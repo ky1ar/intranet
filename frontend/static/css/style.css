@@ -928,9 +928,11 @@ body {
     visibility: visible;
     opacity: 1;
   }
-  /***********************************************************************************/
+/***********************************************************************************/
  
-  /****************************************************	100rem	1600px	 ***************************************************/ 
+
+
+/****************************************************	100rem	1600px	 ***************************************************/ 
 @media only screen and (max-width: 100rem) {
 
 }
@@ -958,7 +960,46 @@ body {
         padding-top: 2rem;
         align-items: center;
     }
-
+    #header .navigation {
+        display: none;
+    }
+    #header .home {
+        display: flex;
+    }
+    #main .wrapper {
+        flex-direction: column;
+    }
+    #pending-shippings {
+        width: 100%;
+    }
+    #schedule-box {
+        width: 100%;
+    }
+    #schedule-box .schedule {
+        flex-direction: column;
+    }
+    #modal-shipping .percent33 {
+        width: 100%;
+    }
+    #modal-shipping .percent40 {
+        width: 100%;
+    }
+    #modal-shipping .percent60 {
+        width: 100%;
+    }
+    #modal-shipping .percent66 {
+        width: 100%;
+    }
+    #modal-shipping .show-box {
+        flex-direction: column;
+        align-items: center;
+    }
+    #modal-shipping .show {
+        width: 100%;
+    }
+    #schedule-box .schedule .day-container {
+        border-right: none;
+    }
 }
 /****************************************************	36rem	576px	 ***************************************************/ 
 @media only screen and (max-width: 36rem) {

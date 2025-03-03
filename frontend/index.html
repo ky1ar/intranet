@@ -20,8 +20,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js" defer></script>
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-    <script src="static/js/main.js?v=0.1.0.52"></script>
-    <link rel="stylesheet" href="static/css/style.css?v=0.1.0.52">
+    <script src="static/js/main.js?v=0.1.0.5212"></script>
+    <link rel="stylesheet" href="static/css/style.css?v=0.1.0.5212">
 
 </head>
 
@@ -296,6 +296,18 @@
                                 <div class="subtitle" x-text="process_shipping.district_name"></div>
                             </div>
                         </a>
+
+                        <template x-if="process_shipping.maps">
+                            <a class="box" 
+                                :href="process_shipping.maps" 
+                                target="_blank">
+                                <img width="24" height="24" alt="notification" src="static/images/maps.svg">
+                                <div class="data">
+                                    <div class="title">Google Maps</div>
+                                    <div class="subtitle">Link disponible</div>
+                                </div>
+                            </a>
+                        </template>
                     </div>
                     
                     <template x-if="process_shipping.status_id == 2">
@@ -327,7 +339,7 @@
 
                             <div class="options">
                                 <button class="hover-opacity red" type="button" @click="rejectShipping()">
-                                    <span>No entregado</span>
+                                    <span x-text="process_shipping.button_rejected"></span>
                                 </button>
                                 <button class="hover-opacity green" type="button" @click="completeShipping()">
                                     <span x-text="process_shipping.button_complete"></span>
@@ -535,7 +547,7 @@
                             </div>
                         </div>
                         
-                        <label class="percent100">
+                        <label class="percent66">
                             <img alt="user" src="static/images/location.svg" width="16" height="16">
                             <input type="text" placeholder="Dirección" x-model="process_shipping.address">
                         </label>
@@ -552,10 +564,10 @@
                             </select>
                         </label>
 
-                        <!--<label class="percent33">
+                        <label class="percent33">
                             <img alt="user" src="static/images/maps.svg" width="16" height="16">
                             <input type="text" placeholder="Link de Maps" x-model="process_shipping.maps">
-                        </label>-->
+                        </label>
 
                         <label class="percent33">
                             <select x-model="process_shipping.vendor_id">

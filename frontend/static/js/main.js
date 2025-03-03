@@ -53,6 +53,7 @@ function data() {
             edit: false,
             button_text: 'Añadir',
             button_complete: 'Entregado',
+            button_rejected: 'No entregado',
             button_class: '',
             driver_id: null,
             vendor_id: null,
@@ -142,9 +143,34 @@ function data() {
         },
         
         async rejectShipping() {
-            await this.updateOrderStatus(6);
-            //await this.updateSchedule();
-            this.closeShipping();
+            if (!this.imageFile) {
+                this.process_shipping.button_rejected = 'Sube una foto';
+                this.process_shipping.button_class = 'error';
+                setTimeout(() => {
+                    this.process_shipping.button_rejected = 'No entregado';
+                    this.process_shipping.button_class = '';
+                }, 1500);
+                return;
+            }
+        
+            const maxWidth = 1024;
+            const maxHeight = 1024;
+        
+            try {
+                const resizedImage = await this.resizeImage(this.imageFile, maxWidth, maxHeight);
+        
+                const formData = new FormData();
+                formData.append("image", resizedImage);
+                formData.append("order_number", this.process_shipping.order_number);
+        
+                await this.uploadImage(formData);
+                await this.updateOrderStatus(6);
+        
+                this.closeShipping();
+        
+            } catch (error) {
+                console.error("Error en el proceso de entrega:", error);
+            }
         },
 
         resizeImage(file, maxWidth, maxHeight) {
@@ -267,6 +293,7 @@ function data() {
                 edit: false,
                 button_text: 'Añadir',
                 button_complete: 'Entregado',
+                button_rejected: 'No entregado',
                 button_class: '',
                 driver_id: this.selectFirstOption(this.drivers),
                 vendor_id: null,
@@ -462,7 +489,7 @@ function data() {
                     edit: true,
                     button_text: 'Actualizar',
                     button_complete: 'Entregado',
-
+                    button_rejected: 'No entregado',
                     driver_id: shipping.driver_id,
                     vendor_id: shipping.vendor_id,
                     document: shipping.contacts[0].document,

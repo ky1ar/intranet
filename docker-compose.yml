@@ -26,9 +26,8 @@ services:
     container_name: logistica_redis
     networks:
       - logistica_net
-    ports:
-      - "6379:6379"
     restart: always
+    command: redis-server --requirepass "150723"
 
   frontend:
     build:
