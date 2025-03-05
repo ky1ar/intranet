@@ -20,8 +20,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js" defer></script>
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-    <script src="static/js/main.js?v=0.1.0.5212"></script>
-    <link rel="stylesheet" href="static/css/style.css?v=0.1.0.5212">
+    <script src="static/js/main.js?v=0.1.0.54"></script>
+    <link rel="stylesheet" href="static/css/style.css?v=0.1.0.54">
 
 </head>
 
@@ -135,8 +135,7 @@
                                                 <span class="name" x-text="shipping.contacts[0].name"></span>
                                                 <span class="address" x-text="shipping.address"></span>
                                             </div>
-                                            <span class="date" x-text="new Date(shipping.register_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })"></span>
-
+                                            <span class="date" x-text="new Date(shipping.register_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })"></span>
                                         </div>
                                     </template>
                                 </template>
