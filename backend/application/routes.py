@@ -7,7 +7,7 @@ from flask_jwt_extended import jwt_required
 from flask_socketio import emit, join_room, leave_room
 from application import socketio
 from config import Config
-
+from PIL import Image
 
 blueprint = Blueprint("base", __name__)
 controller = BaseController()
@@ -99,9 +99,13 @@ def photo_upload():
     if image.filename == "":
         return jsonify({"error": "Nombre de archivo vacío"}), 400
 
-    filename = secure_filename(f"order_{order_number}_{image.filename}")
+    filename = secure_filename(f"order_{order_number}.jpg")
     filepath = os.path.join(Config.UPLOAD_FOLDER, filename)
-    image.save(filepath)
+
+    img = Image.open(image)
+    img = img.convert("RGB")
+    img.save(filepath, "JPEG", quality=90)
+
     data = {
         "order_number": order_number,
         "proof_photo": filename
@@ -112,6 +116,16 @@ def photo_upload():
 @blueprint.route("/uploads/<filename>")
 def uploads(filename):
     return send_from_directory(Config.UPLOAD_FOLDER, filename)
+
+
+@blueprint.route("/webhook", methods=["GET"])
+def webhook():
+    return controller.webhook(request.args)
+
+
+@blueprint.route("/webhook", methods=["POST"])
+def webhook_data():
+    return controller.webhook_data(request.get_json())
 
 
 @socketio.on("connect")

@@ -244,15 +244,18 @@ class BaseController:
         if shipping_order_status != 200:
             return shipping_order, shipping_order_status
         
+        contact = shipping_order.contacts[0]
         status_id = request.get("status_id")
-        #if status_id == 3 or status_id == 4 or status_id == 6:
-        #    data = {
-        #        "phone": shipping_order.client.phone,
-        #        "user": shipping_order.client.name,
-        #        "file": shipping_order.image_path
-        #    }
-
-        #    self.service.send_message(data,template=status_id)
+        if status_id == 3 or status_id == 4 or status_id == 6:
+            data = {
+                "phone": contact.client.phone,
+                "username": contact.client.name.title(),
+                "order_number": shipping_order.order_number,
+                "schedule_id": shipping_order.schedule_id,
+                "file": shipping_order.proof_photo
+            }
+            #logging.info(data)
+            self.service.send_message(data, status_id)
 
         status = None
         if status_id == 1:
@@ -335,3 +338,25 @@ class BaseController:
             return data, 200
         
         return "DNI o contraseña incorrecta", 400
+    
+
+    def webhook(self, request):
+        mode = request.get('hub.mode')
+        challenge = request.get('hub.challenge')
+        verify_token = request.get('hub.verify_token')
+        logging.info(f"Webhook received - mode: {mode}, challenge: {challenge}, verify_token: {verify_token}")
+
+        if verify_token == "15KrEaR073D23":
+            return challenge, 200
+        else:
+            return "Invalid token", 403
+        
+
+    @handle_logs_and_exceptions
+    def webhook_data(self, request):
+        #logging.info(request)
+        return True, 200
+
+        #para que se vaya trabajando como pubvlicidad y que las persons seten su cuenta en dale con bnka
+
+        #EAAJQ9QIvTrABOzc1ccoAapvMK7aY8oWk9PR9nOqnP4BAdMI8aEZBVHWqUFuAJUvZAcy11qlDRJkyHDHIJuoBiI2PDVZAstN3XLvkZCPdyGJTyyCoKVt7N32C5gDKzzsmV4v8erSKRsYjtGYZBtVMicCUAHyxO37nOvuyPHtaGqCBrkw3ZCQDMEv6zfl94aYSYsWQZDZD

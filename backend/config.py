@@ -23,15 +23,22 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES"))
     UPLOAD_FOLDER = os.path.abspath("uploads/")
 
+    BASE_URL = os.getenv("BASE_URL")
+    CONTACT_PHONE = os.getenv("CONTACT_PHONE")
+    REVIEW_URL = os.getenv("REVIEW_URL")
+    T1_START = os.getenv("T1_START")
+    T1_END = os.getenv("T1_END")
+    T2_START = os.getenv("T2_START")
+    T2_END = os.getenv("T2_END")
+
 
 class Redis:
     URL = os.getenv("REDIS_URL")
 
 
-class Twilio:
-    ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
-    AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
-    PHONE = os.getenv("TWILIO_PHONE")
+class WABA:
+    URL = os.getenv("WABA_URL")
+    TOKEN = os.getenv("WABA_TOKEN")
 
 
 class ApisNet:

@@ -3,9 +3,7 @@ import requests
 import json
 
 from application import redis_client
-from config import Twilio, ApisNet
-from twilio.rest import Client
-from twilio.base.exceptions import TwilioRestException
+from config import WABA, ApisNet, Config
 from datetime import date, datetime, timezone, timedelta
 from application.models import Users, ShippingOrders, ShippingDistricts, ShippingMethod, ShippingContact, ShippingHistory, ShippingStatusList
 from application.handlers import handle_exceptions, handle_db_exceptions
@@ -15,47 +13,96 @@ from flask import g
 from application import socketio
 
 
-logging.getLogger("twilio").setLevel(logging.ERROR)
-
 class BaseService:
 
-    def __init__(self):
+    #def __init__(self):
         #self.sms_repository = SmsRepository()
-        self.client = Client(Twilio.ACCOUNT_SID, Twilio.AUTH_TOKEN)
 
+    def post_waba(self, payload):
+        url = f"{WABA.URL}"
 
-    @handle_exceptions
-    def send_message(self, data, template):
-        phone = data.get("phone")
-        user = data.get("user")
-        file = data.get("file")
-
-        messages = {
-            3: f"Hola {user},\n\n📦 Tu pedido está en camino. 🚀\nNuestro repartidor ya está en ruta hacia la dirección indicada. Te avisaremos cuando haya sido entregado.\n\n¡Gracias por tu compra! 😊",
-            4: f"Hola {user},\n\n✅ Tu pedido ha sido entregado con éxito. 🎉\nEsperamos que disfrutes tu compra. Si tienes alguna pregunta o inconveniente, no dudes en contactarnos.\n\n¡Gracias por confiar en nosotros! 🛍️",
-            6: f"Hola {user},\n\n⚠️ No hemos podido entregar tu pedido. 😔\nPor favor, contáctanos para coordinar una nueva entrega o más detalles sobre el estado de tu pedido.\n\nLamentamos el inconveniente y agradecemos tu paciencia. 🙏"
+        headers = {
+            "Authorization": f"Bearer {WABA.TOKEN}",
+            "Content-Type": "application/json"
         }
 
-        message_body = messages.get(template, "Hola, tu pedido ha sido actualizado. 📦")  # Mensaje por defecto
+        response = requests.post(url, headers=headers, data=json.dumps(payload))
+        response_data = response.json()
+        
+        if response.status_code != 200:
+            return f"Error {response_data}", response.status_code
+        
+        return "Mensaje enviado correctamente", 200
+            
 
-        """try:
-            media_url = None
-            if template == 4:
-                media_url = f"https://logistica.munoz.pe/api/uploads/{file}"
-                
-            message = self.client.messages.create(
-                from_=f"whatsapp:{Twilio.PHONE}",
-                body=message_body,
-                to=f"whatsapp:+51{phone}",
-                media_url=[media_url] if media_url else None
-            )
-            logging.info(message)
-        except TwilioRestException as e:
-            logging.error(f"Error al enviar SMS: {e.msg}", exc_info=True)
-            return e.msg, e.status"""
+    @handle_exceptions
+    def send_message(self, data, template_id):
+        phone = data.get("phone")
+        username = data.get("username")
+        order_number = data.get("order_number")
+        schedule_id = data.get("schedule_id")
+        file = data.get("file")
 
-        return "Message sent successfully", 200
+        template_list = {
+            3: "entrega",
+            4: "entrega_exitosa_img",
+            6: "no_entrega_img",
+        }
 
+        template_name = template_list.get(template_id)
+        schedules = {
+            1: (Config.T1_START, Config.T1_END),
+            2: (Config.T2_START, Config.T2_END)
+        }
+        start, end = schedules.get(schedule_id)
+        timer = 10
+
+        mantra = Config.CONTACT_PHONE
+        link = Config.REVIEW_URL
+        base_url = Config.BASE_URL
+        parameters = [{"type": "text", "parameter_name": "username", "text": username}]
+
+        if template_id == 3:
+            parameters.extend([
+                {"type": "text", "parameter_name": "order_number", "text": order_number},
+                {"type": "text", "parameter_name": "start", "text": start},
+                {"type": "text", "parameter_name": "end", "text": end},
+                {"type": "text", "parameter_name": "timer", "text": timer}
+            ])
+        elif template_id == 4:
+            parameters.extend([
+                {"type": "text", "parameter_name": "number", "text": mantra},
+                {"type": "text", "parameter_name": "link", "text": link}
+            ])
+        elif template_id == 6:
+            parameters.append({"type": "text", "parameter_name": "order_number", "text": order_number})
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "template",
+            "template": {
+                "name": template_name,
+                "language": {"code": "es_PE"},
+                "components": [{"type": "body", "parameters": parameters}]
+            }
+        }
+
+        if template_id in {4, 6} and file:
+            header_component = {
+                "type": "header",
+                "parameters": [
+                    {
+                        "type": "image",
+                        "image": {
+                            "link": f"{base_url}{file}"
+                        }
+                    }
+                ]
+            }
+            payload["template"]["components"].insert(0, header_component)
+
+        return self.post_waba(payload)
     
 
     @handle_db_exceptions

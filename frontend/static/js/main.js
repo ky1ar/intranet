@@ -78,6 +78,7 @@ function data() {
         socket: null,
         preview: null,
         imageFile: null,
+        isProcessing: false,
 
         get showOverlay() {
             return Object.values(this.modal).some(value => value);
@@ -98,19 +99,30 @@ function data() {
         },
         
         async onTheWay(){
-            await this.updateOrderStatus(3);
-            
-            /*this.socket.emit("on_the_way", {
-                phone: this.process_shipping.phone,
-                user: this.process_shipping.name
-            });*/
+            if (this.isProcessing) return;
+            this.isProcessing = true;
 
-            //await this.updateSchedule();
-            this.process_shipping.status_id = 3;
-         
+            try {
+                await this.updateOrderStatus(3);
+
+                /*this.socket.emit("on_the_way", {
+                    phone: this.process_shipping.phone,
+                    user: this.process_shipping.name
+                });*/
+
+                //await this.updateSchedule();
+                this.process_shipping.status_id = 3;
+            } catch (error) {
+                console.error("Error en el proceso de actualización:", error);
+            } finally {
+                this.isProcessing = false;
+            }
         },
         
         async completeShipping() {
+            if (this.isProcessing) return;
+            this.isProcessing = true;
+
             if (!this.imageFile) {
                 this.process_shipping.button_complete = 'Sube una foto';
                 this.process_shipping.button_class = 'error';
@@ -118,6 +130,7 @@ function data() {
                     this.process_shipping.button_complete = 'Entregado';
                     this.process_shipping.button_class = '';
                 }, 1500);
+                this.isProcessing = false;
                 return;
             }
         
@@ -134,15 +147,19 @@ function data() {
                 await this.uploadImage(formData);
                 await this.updateOrderStatus(4);
         
-                //await this.updateSchedule();
                 this.closeShipping();
         
             } catch (error) {
                 console.error("Error en el proceso de entrega:", error);
+            } finally {
+                this.isProcessing = false;
             }
         },
         
         async rejectShipping() {
+            if (this.isProcessing) return;
+            this.isProcessing = true;
+
             if (!this.imageFile) {
                 this.process_shipping.button_rejected = 'Sube una foto';
                 this.process_shipping.button_class = 'error';
@@ -150,8 +167,9 @@ function data() {
                     this.process_shipping.button_rejected = 'No entregado';
                     this.process_shipping.button_class = '';
                 }, 1500);
+                this.isProcessing = false;
                 return;
-            }
+            } 
         
             const maxWidth = 1024;
             const maxHeight = 1024;
@@ -170,6 +188,8 @@ function data() {
         
             } catch (error) {
                 console.error("Error en el proceso de entrega:", error);
+            } finally {
+                this.isProcessing = false;
             }
         },
 
