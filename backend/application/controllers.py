@@ -254,8 +254,8 @@ class BaseController:
                 "schedule_id": shipping_order.schedule_id,
                 "file": shipping_order.proof_photo
             }
-            #logging.info(data)
-            self.service.send_message(data, status_id)
+            if shipping_order.method_id < 3:
+                self.service.send_message(data, status_id)
 
         status = None
         if status_id == 1:

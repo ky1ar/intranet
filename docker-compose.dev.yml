@@ -1,0 +1,48 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: logistica_backend_dev
+    environment:
+      - FLASK_APP=main.py
+      - FLASK_ENV=development
+    networks:
+      - logistica_net
+    volumes:
+      - ./backend:/application
+    ports:
+      - 6001:6001
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:6001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    platform: linux/amd64
+    restart: always
+
+  redis:
+    image: redis:latest
+    container_name: logistica_redis_dev
+    networks:
+      - logistica_net
+    restart: always
+    command: redis-server --requirepass "150723"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: logistica_frontend_dev
+    networks:
+      - logistica_net
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+    ports:
+      - 8001:80
+      - 4001:443
+    restart: always
+
+networks:
+  logistica_net:
+    driver: bridge
