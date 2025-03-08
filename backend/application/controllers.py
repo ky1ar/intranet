@@ -1,5 +1,6 @@
 import logging, re
 
+from config import WABA
 from application import bcrypt, socketio
 from application.models import HistoryType, ShippingStatusList
 from application.services import BaseService
@@ -346,7 +347,7 @@ class BaseController:
         verify_token = request.get('hub.verify_token')
         logging.info(f"Webhook received - mode: {mode}, challenge: {challenge}, verify_token: {verify_token}")
 
-        if verify_token == "15KrEaR073D23":
+        if verify_token == WABA.WEBHOOK_TOKEN:
             return challenge, 200
         else:
             return "Invalid token", 403
@@ -356,7 +357,3 @@ class BaseController:
     def webhook_data(self, request):
         #logging.info(request)
         return True, 200
-
-        #para que se vaya trabajando como pubvlicidad y que las persons seten su cuenta en dale con bnka
-
-        #EAAJQ9QIvTrABOzc1ccoAapvMK7aY8oWk9PR9nOqnP4BAdMI8aEZBVHWqUFuAJUvZAcy11qlDRJkyHDHIJuoBiI2PDVZAstN3XLvkZCPdyGJTyyCoKVt7N32C5gDKzzsmV4v8erSKRsYjtGYZBtVMicCUAHyxO37nOvuyPHtaGqCBrkw3ZCQDMEv6zfl94aYSYsWQZDZD

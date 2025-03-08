@@ -39,6 +39,7 @@ class Redis:
 class WABA:
     URL = os.getenv("WABA_URL")
     TOKEN = os.getenv("WABA_TOKEN")
+    WEBHOOK_TOKEN = os.getenv("WABA_WEBHOOK_TOKEN")
 
 
 class ApisNet:
