@@ -1,0 +1,27 @@
+<div x-data="data">
+	<div id="id">
+
+	</div>
+
+
+
+	<script>
+		Alpine.data('data',() => ({
+		
+			async init() {
+				console.log('Inicializando ...');
+				
+				//const loginVerification = Alpine.store('auth').loginVerify();
+				await this.fetchData()
+
+			}
+		}));
+	</script>
+	
+
+
+
+	<style>
+
+	</style>
+</div>

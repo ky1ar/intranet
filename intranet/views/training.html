@@ -1,0 +1,479 @@
+<div x-data="training_data">
+	<div id="training-calendar">
+		<div class="header">
+			<div class="titles">
+				<span class="range">Panel de Capacitaciones</span>
+			</div>
+
+			<div class="title hover-opacity" @click="serviceModal()">+ Añadir orden</div>
+		</div>
+
+		<div class="board">
+			<div class="calendar">
+				<li class="day">dom</li>
+				<li class="day">lun</li>
+				<li class="day">mar</li>
+				<li class="day">mié</li>
+				<li class="day">jue</li>
+				<li class="day">vie</li>
+				<li class="day">sáb</li>
+			</div>
+
+			<div class="calendar">
+				<template x-for="empty_day in calendar_data.empty_days" :key="empty_day">
+					<div class="day">
+						<div class="item"></div>
+					</div>
+				</template>
+
+				<template x-for="date in calendar_data.calendar" :key="date.day">
+					<div class="day">
+						<span x-text="date.day"></span>
+						<div class="item">
+							<template x-for="item in date.trainings" :key="item.id">
+								<div class="box">
+									<div class="row">
+										<span class="order-number" x-text="item.training_start"></span>
+										<div class="passed-days">
+										</div>
+									</div>
+
+									<div class="row">
+										<div>
+											<span class="machine" x-text="item.machine_model"></span>
+											<span class="admin-name" x-text="item.technician_name"></span>
+										</div>
+										<img width="48" height="48" :src="'/static/images/machines/'+item.machine_image" alt="">
+									</div>
+								</div>
+							</template>
+						</div>
+					</div>
+				</template>
+			</div>
+		</div>
+	</div>
+
+
+
+
+
+
+
+
+	<script>
+		Alpine.data('training_data',() => ({
+			calendar_data: [],
+			
+			async getCalendar() {
+				try {
+					const response = await fetch('/api/training/calendar');
+					const data = await response.json();
+					this.calendar_data = data.data || [];
+				} catch (error) {
+					console.error('Error fetching calendar', error);
+				}
+			},
+
+			async init() {
+				console.log('Inicializando Training...');
+				//const fetchDataIfNeeded = !Alpine.store('support').isLoaded() ? this.fetchData() : Promise.resolve();
+
+				await Promise.all([this.getCalendar()]);
+
+			}
+		}));
+	</script>
+
+
+
+
+
+
+
+
+
+	<style>
+		#training-calendar {
+			width: 100%;
+			user-select: none;
+			padding: 1rem;
+			min-height: calc(100vh - 6.5rem);
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			margin: 0 auto;
+			max-width: 118rem;
+		}
+		#training-calendar .header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#training-calendar .header .title {
+			background-color: var(--black);
+			color: var(--white);
+			padding: 0.75rem 1.5rem;
+			border-radius: 2rem;
+			font-weight: 300;
+		}
+		#training-calendar .header .title img {
+			padding: 0.5rem;
+			border-radius: 0.5rem;
+			border: 2px solid #eee;
+		}
+		#training-calendar .header .range {
+			font-size: 1rem;
+			font-weight: 600;
+			text-transform: capitalize;
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			position: relative;
+		}
+		#training-calendar .board {
+			display: flex;
+			height: 100%;
+			user-select: none;
+			background-color: #ffffff4a;
+			border: 2px solid #ffffff52;
+			border-radius: 1.5rem;
+			flex-direction: column;
+		}
+		#training-calendar .group {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			border-right: 2px solid #ffffff80;
+			gap: 0.25rem;
+			transition: var(--transition);
+		}
+		#training-calendar .calendar {
+			padding: 0;
+			margin: 0;
+			list-style: none;
+			display: flex;
+			flex-wrap: wrap;
+			font-size: 1rem;
+			width: 100%;
+		}
+		#training-calendar .calendar .day {
+			width: 14.25%;
+			padding: 0.5rem;
+			display: flex;
+			align-items: center;
+			font-weight: 600;
+			position: relative;
+			flex-direction: column;
+			justify-content: start;
+			border-right: 2px solid #ffffff80;
+			border-bottom: 2px solid #ffffff80;
+			gap: 0.5rem;
+
+		}
+		#training-calendar .calendar .item {
+			display: flex;
+			min-height: 8rem;
+			align-items: center;
+			flex-direction: column;
+			gap: 0.5rem;
+			justify-content: center;
+			width: 100%;
+			height: 100%;
+		}
+		#training-calendar .calendar .box {
+			border-radius: 0.75rem;
+			cursor: pointer;
+			padding: 0.75rem;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			flex-direction: column;
+			position: relative;
+			transition: var(--transition);
+			background-color: white;
+			box-shadow: 0 0 1rem hsl(0deg 0% 0% / 2.5%);
+			width: 100%;
+		}
+		#training-calendar .calendar .box .row {
+			display: flex;
+			justify-content: space-between;
+			width: 100%;
+			align-items: center;
+		}
+		#training-calendar .calendar .box .order-number {
+			font-size: 1rem;
+			font-weight: 600;
+			line-height: 1rem;
+		}
+		#training-calendar .calendar .box .passed-days {
+			display: flex;
+			gap: 0.5rem;
+		}
+		#training-calendar .calendar .box .register-day {
+			font-size: 1rem;
+			font-weight: 700;
+		}
+		#training-calendar .calendar .box .admin-name {
+			font-size: 0.75rem;
+			opacity: 0.75;
+			display: block;
+			line-height: 0.8rem;
+			margin-top: 0.5rem;
+		}
+		#training-calendar .calendar .box .machine {
+			font-weight: 600;
+			font-size: 0.75rem;
+			line-height: 1rem;
+			display: block;
+		}
+		#training-calendar .calendar .box img {
+			mix-blend-mode: darken;
+			position: absolute;
+			bottom: 0.5rem;
+			right: 0.5rem;
+			width: 2rem;
+			pointer-events: none;
+		}
+		#training-calendar .group .name {
+			display: flex;
+			justify-content: center;
+			font-size: 0.9rem;
+			margin-top: 0.75rem;
+			gap: 0.5rem;
+			align-items: center;
+		}
+		#training-calendar ul {
+			margin: 0;
+			list-style: none;
+			display: flex;
+			gap: 0.75rem;
+			flex-direction: column;
+			padding: 0.75rem;
+			flex: 1;
+		}
+		#training-calendar ul li .buttons {
+			display: flex;
+			gap: 0.5rem;
+		}
+		#training-calendar ul li.low .register-day {
+			color: #6fcc85;
+		}
+		#training-calendar ul li.mid .register-day {
+			color: #ff9600;
+		}
+		#training-calendar ul li.high .register-day {
+			color: #f96161;
+		}
+		/***********************************************************************************/
+		#modal-status .update {
+			display: flex;
+			justify-content: center;
+			gap: 1rem;
+			background-color: white;
+			box-shadow: 0 0 2rem hsl(0deg 0% 0% / 5%);
+			border-radius: 1rem;
+			position: relative;
+		}
+		#modal-status .update .box {
+			padding: 1rem;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 0.5rem;
+			flex: 1;
+		}
+		#modal-status .update .arrow {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+		}
+		#modal-status .update .box img {
+			margin-top: 0.5rem;
+		}
+		#modal-status .update .box span {
+			font-size: 0.8rem;
+		}
+		#modal-status .send-whatsapp {
+			display: flex;
+			gap: 0.5rem;
+			align-items: center;
+			font-size: 0.75rem;
+		}
+		#modal-status .send-whatsapp .dot {
+			width: 0.5rem;
+			height: 0.5rem;
+			background-color: var(--primary);
+			border-radius: 1rem;
+		}
+		#modal-status .send-whatsapp .box {
+			display: none;
+			position: relative;
+			width: 2.5rem;
+			height: 1.5rem;
+		}
+		#modal-status .send-whatsapp .box input {
+			opacity: 0;
+			width: 0;
+			height: 0;
+		}
+		#modal-status .send-whatsapp .box .slider {
+			border-radius: 2rem;
+			position: absolute;
+			cursor: pointer;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background-color: #ccc;
+			transition: all 0.25s ease-in-out;
+		}
+		#modal-status .send-whatsapp .box .slider:before {
+			position: absolute;
+			content: "";
+			height: 1rem;
+			width: 1rem;
+			left: 0.25rem;
+			bottom: 0.25rem;
+			background-color: white;
+			transition: all 0.25s ease-in-out;
+			border-radius: 50%;
+		}
+		#modal-status .send-whatsapp .box input:checked + .slider {
+			background-color: var(--primary);
+		}
+		#modal-status .send-whatsapp .box input:checked + .slider:before {
+			transform: translateX(1rem);
+		}
+		/***********************************************************************************/
+		#modal-process .modal {
+			min-width: 29rem;
+		}
+		#modal-process .header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#modal-process .header .left {
+			display: flex;
+			gap: 0.75rem;
+			align-items: center;
+		}
+		#modal-process .header .left .item {
+			display: flex;
+			gap: 0.25rem;
+			align-items: center;
+			background-color: var(--black);
+			color: var(--white);
+			padding: 0.35rem 1rem;
+			border-radius: 2rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#modal-process .header .left .item img {
+			filter: invert(1);
+		}
+		#modal-process .header .days {
+			font-size: 1rem;
+			font-weight: 700;
+		}
+		#modal-process .client {
+			background-color: white;
+			display: flex;
+			align-items: center;
+			padding: 1rem;
+			border-radius: 1rem;
+			box-shadow: 0 0 1rem hsl(0deg 0% 0% / 2.5%);
+			width: 100%;
+			gap: 1rem;
+		}
+		#modal-process .client .data {
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+			justify-content: center;
+		}
+		#modal-process .client .data .machine {
+			font-size: 1rem;
+    		font-weight: 500;
+		}
+		#modal-process .client .data .name {
+			font-size: 0.95rem;
+			font-weight: 400;
+			opacity: 0.75;
+		}
+		#modal-process .client .icons {
+			margin-left: auto;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 0.25rem;
+		}
+		#modal-process .client .icons a {
+			padding: 0.25rem;
+    		display: flex;
+		}
+		#modal-process .client .icons button {
+			padding: 0.25rem;
+			display: flex;
+			margin: 0;
+			background-color: transparent;
+			outline: none;
+			border: none;
+			cursor: pointer;
+		}
+		#modal-process .history {
+			display: flex;
+			flex-direction: column;
+			max-width: 28rem;
+			margin-bottom: -0.75rem;
+		}
+		#modal-process .history .row {
+			align-items: center;
+			display: flex;
+			gap: 0.75rem;
+			padding: 0.75rem 0.25rem;
+			border-top: 1px solid hsl(0deg 0% 100% / 50%);
+		}
+		#modal-process .history .row .left {
+			display: flex;
+			flex-direction: column;
+			width: calc(100% - 6.5rem);
+		}
+		#modal-process .history .row .right {
+			margin-left: auto;
+			display: flex;
+			flex-direction: column;
+		}
+		#modal-process .history .row .name {
+			font-weight: 500;
+			line-height: 1.25rem;
+		}
+		#modal-process .history .row .notes {
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			font-size: 0.75rem;
+			opacity: 0.75;
+			cursor: pointer;
+		}
+		#modal-process .history .row .notes.expanded {
+			text-overflow: unset;
+			white-space: normal;
+			overflow: auto;
+		}
+		#modal-process .history .row .date {
+			opacity: 0.75;
+		}
+		#modal-process .history .row .admin {
+			opacity: 0.75;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			font-size: 0.8rem;
+			display: none;
+		}
+		
+	</style>
+</div>

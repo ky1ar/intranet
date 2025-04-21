@@ -19,31 +19,90 @@ class ShippingStatusList(Enum):
 class BaseModel(db.Model):
     __abstract__ = True
 
-    def to_dict(self, exclude_fields=None):
-        exclude_fields = set(exclude_fields) if exclude_fields else set()
+    def to_dict(self, only_fields=None, exclude_fields=None):
+        if only_fields:
+            only_fields = set(only_fields)
+        if exclude_fields:
+            exclude_fields = set(exclude_fields)
+
         result = {}
         for column in self.__table__.columns:
-            if column.name not in exclude_fields:
-                result[column.name] = getattr(self, column.name)
+            if only_fields and column.name not in only_fields:
+                continue
+            if exclude_fields and column.name in exclude_fields:
+                continue
+            result[column.name] = getattr(self, column.name)
+
         return result
 
 
+
+
+
+# USERS
 class Users(BaseModel):
-    __tablename__ = 'Users'
+    __tablename__ = 'user'
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
-    levels = db.Column(db.Integer)
-    document = db.Column(db.String(255)) #unique=True
+    level_id = db.Column(db.Integer, db.ForeignKey('user_level.id'), nullable=False, default=1)
+    department_id = db.Column(db.Integer, db.ForeignKey('user_department.id'))
+    shipping_app_level = db.Column(db.Integer)
+    document = db.Column(db.String(255), nullable=False, unique=True)
     name = db.Column(db.String(255))
-    nick = db.Column(db.String(255))
-    role = db.Column(db.String(255))
     image = db.Column(db.String(255))
     phone = db.Column(db.String(20))
     email = db.Column(db.String(255))
     password = db.Column(db.String(255))
+    default_page = db.Column(db.String(100))
     stamp = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
+    level = db.relationship("UserLevel", lazy="joined", foreign_keys=[level_id])
+    department = db.relationship("UserDepartment", lazy="joined", foreign_keys=[department_id])
 
+
+class UserLevel(BaseModel):
+    __tablename__ = 'user_level'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(120))
+    slug = db.Column(db.String(120))
+
+
+class UserDepartment(BaseModel):
+    __tablename__ = 'user_department'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(120))
+    slug = db.Column(db.String(120))
+
+
+class UserOrders(BaseModel):
+    __tablename__ = 'user_orders'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    number = db.Column(db.Integer, nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    client = db.relationship("Users", lazy="joined", foreign_keys=[client_id])
+
+
+class FireCloudTokens(BaseModel):
+    __tablename__ = 'firecloud_tokens'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    device_id = db.Column(db.String(255), nullable=False)
+    token = db.Column(db.String(255), nullable=False, unique=True)
+    created_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp())
+    updated_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp())
+
+    admin = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
+
+
+
+
+
+# SHIPPING
 class ShippingMethod(BaseModel):
     __tablename__ = 'shipping_method'
 
@@ -80,7 +139,7 @@ class ShippingContact(BaseModel):
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
     order_id = db.Column(db.Integer, db.ForeignKey('shipping_orders.id'), nullable=False)
-    client_id = db.Column(db.Integer, db.ForeignKey('Users.id'), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
     order = db.relationship("ShippingOrders", lazy="joined", foreign_keys=[order_id])
     client = db.relationship("Users", lazy="joined", foreign_keys=[client_id])
@@ -92,9 +151,9 @@ class ShippingOrders(BaseModel):
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
     order_number = db.Column(db.String(100), nullable=False)
     method_id = db.Column(db.Integer, db.ForeignKey('shipping_method.id'), nullable=False)
-    driver_id = db.Column(db.Integer, db.ForeignKey('Users.id'), nullable=False)
-    vendor_id = db.Column(db.Integer, db.ForeignKey('Users.id'), nullable=False)
-    admin_id = db.Column(db.Integer, db.ForeignKey('Users.id'), nullable=False)
+    driver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    vendor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     status_id = db.Column(db.Integer, db.ForeignKey('shipping_status.id'), nullable=False)
     schedule_id = db.Column(db.Integer, db.ForeignKey('shipping_schedule.id'))
     address = db.Column(db.String(255), nullable=False)
@@ -121,14 +180,171 @@ class ShippingHistory(BaseModel):
     __tablename__ = 'shipping_history'
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
-    admin_id = db.Column(db.Integer, db.ForeignKey('Users.id'), nullable=False)
+    admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     order_id = db.Column(db.Integer, db.ForeignKey('shipping_orders.id'), nullable=False)
     type = db.Column(db.Enum(HistoryType), nullable=False)
     status = db.Column(db.Enum(ShippingStatusList), nullable=False)
-    
     data = db.Column(db.String(255))
     created_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp())
 
     order = db.relationship("ShippingOrders", lazy="joined", foreign_keys=[order_id])
     admin = db.relationship("Users", lazy="joined", foreign_keys=[admin_id])
+
+
+
+
+
+# GENERAL
+class Brands(BaseModel):
+    __tablename__ = 'brands'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    slug = db.Column(db.String(255), nullable=False)
+
+
+class Machines(BaseModel):
+    __tablename__ = 'machines'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    brand_id = db.Column(db.Integer, db.ForeignKey('brands.id'), nullable=False)
+    model = db.Column(db.String(255), nullable=False)
+    image = db.Column(db.String(255), nullable=False)
+
+    brand = db.relationship("Brands", lazy="joined", foreign_keys=[brand_id])
+
+
+
+
+
+# SERVICE
+class ServiceMethod(BaseModel):
+    __tablename__ = 'service_method'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    slug = db.Column(db.String(255), nullable=False)
+
+
+class ServiceOrigin(BaseModel):
+    __tablename__ = 'service_origin'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    slug = db.Column(db.String(255), nullable=False)
+
+
+class ServiceStatus(BaseModel):
+    __tablename__ = 'service_status'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    image = db.Column(db.String(255), nullable=False)
+
+
+class ServiceOrders(BaseModel):
+    __tablename__ = 'service_orders'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    order_number = db.Column(db.Integer, nullable=False, unique=True)
+    machine_id = db.Column(db.Integer, db.ForeignKey('machines.id'), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    technician_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    method_id = db.Column(db.Integer, db.ForeignKey('service_method.id'))
+    origin_id = db.Column(db.Integer, db.ForeignKey('service_origin.id'))
+    status_id = db.Column(db.Integer, db.ForeignKey('service_status.id'), nullable=False, default=1)
+    comments = db.Column(db.String(255))
+    register_at = db.Column(db.DATETIME, nullable=False)
+    updated_at = db.Column(db.DATETIME)
+    paid = db.Column(db.Boolean, default=0)
+
+    machine = db.relationship("Machines", lazy="joined", foreign_keys=[machine_id])
+    client = db.relationship("Users", lazy="joined", foreign_keys=[client_id])
+    technician = db.relationship("Users", lazy="joined", foreign_keys=[technician_id])
+    method = db.relationship("ServiceMethod", lazy="joined", foreign_keys=[method_id])
+    origin = db.relationship("ServiceOrigin", lazy="joined", foreign_keys=[origin_id])
+    status = db.relationship("ServiceStatus", lazy="joined", foreign_keys=[status_id])
+
+
+class ServiceOrderStatus(BaseModel):
+    __tablename__ = 'service_order_status'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    service_order_id = db.Column(db.Integer, db.ForeignKey('service_orders.id'), nullable=False)
+    status_id = db.Column(db.Integer, db.ForeignKey('service_status.id'), nullable=False)
+    admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    register_at = db.Column(db.DATETIME, nullable=False)
+    notes = db.Column(db.Text)
+
+    service_order = db.relationship("ServiceOrders", lazy="joined", foreign_keys=[service_order_id])
+    admin = db.relationship("Users", lazy="joined", foreign_keys=[admin_id])
+    status = db.relationship("ServiceStatus", lazy="joined", foreign_keys=[status_id])
+
+
+
+
+
+# TRAINING
+class TrainingCalendar(BaseModel):
+    __tablename__ = 'training_calendar'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    machine_id = db.Column(db.Integer, db.ForeignKey('machines.id'), nullable=False)
+    technician_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    status_id = db.Column(db.Integer, db.ForeignKey('training_status.id'), nullable=False)
+    purchase_receipt = db.Column(db.String(255))
+    cancel_proof = db.Column(db.String(255))
+    meet = db.Column(db.String(255))
+    comments = db.Column(db.String(255))
+    training_date = db.Column(db.DATE)
+    training_start = db.Column(db.TIME)
+
+    machine = db.relationship("Machines", lazy="joined", foreign_keys=[machine_id])
+    technician = db.relationship("Users", lazy="joined", foreign_keys=[technician_id])
+    client = db.relationship("Users", lazy="joined", foreign_keys=[client_id])
+    status = db.relationship("TrainingStatus", lazy="joined", foreign_keys=[status_id])
+
+
+class TrainingStatus(BaseModel):
+    __tablename__ = 'training_status'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+
+
+
+
+
+# TRACKING
+class TrackingOrders(BaseModel):
+    __tablename__ = 'tracking_orders'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    user_order_id = db.Column(db.Integer, db.ForeignKey('user_orders.id'), nullable=False)
+    agency_id = db.Column(db.Integer, db.ForeignKey('tracking_agencies.id'), nullable=False)
+    status_id = db.Column(db.Integer, db.ForeignKey('tracking_status.id'), nullable=False)
+    code1 = db.Column(db.String(20), nullable=False)
+    code2 = db.Column(db.String(20), nullable=False)
+    register_at = db.Column(db.DATETIME, server_default=db.func.current_timestamp())
+
+    user_order = db.relationship("UserOrders", lazy="joined", foreign_keys=[user_order_id])
+    agency = db.relationship("TrackingAgencies", lazy="joined", foreign_keys=[agency_id])
+    status = db.relationship("TrackingStatus", lazy="joined", foreign_keys=[status_id])
+
+
+class TrackingAgencies(BaseModel):
+    __tablename__ = 'tracking_agencies'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    image = db.Column(db.String(255), nullable=False)
+
+
+class TrackingStatus(BaseModel):
+    __tablename__ = 'tracking_status'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+
 

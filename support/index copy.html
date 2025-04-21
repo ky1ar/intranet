@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-touch-fullscreen" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Gastos" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="#F07E46">
+    <meta name="theme-color" content="#F07E46">
+    <title>Dashboard</title>
+
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="static/images/logo-256a.png">
+    <link rel="apple-touch-startup-image" href="static/images/logo-256a.png">
+    <link rel="icon" href="static/images/favw.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <script src="https://cdn.jsdelivr.net/npm/pinecone-router@6.2.1/dist/router.min.js" ></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js" defer></script>
+
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+    <link rel="stylesheet" href="static/css/style.css?v=0.1.0.7215">
+</head>
+
+<body class="container" x-data="data()">
+        
+    <header>
+        <div id="top-bar">
+            <div class="wrapper">
+                <div class="list">
+                    <a href="https://tiendakrear3d.com/">Tienda</a>
+                    <a href="https://krear3d.com/">Industria</a>
+                    <a href="https://krear3dental.com/">Dental</a>
+                    <a href="https://soporte.krear3d.com/">Soporte</a>
+                </div>
+                
+                <div class="list location">
+                    <a href="https://api.whatsapp.com/send?phone=51970539751" target="_blank" rel="nofollow">
+                        <svg width="14" height="14">
+                            <use xlink:href="#icon-whatsapp"></use>
+                        </svg>
+                        970 539 751
+                    </a>
+                    <a href="https://api.whatsapp.com/send?phone=51934760244" target="_blank" rel="nofollow">
+                        <svg width="14" height="14">
+                            <use xlink:href="#icon-whatsapp"></use>
+                        </svg>
+                        soporte@krear3d.com
+                    </a>
+                    <a href="https://maps.app.goo.gl/RUCnD4YNFSYe2iGF9" target="_blank" rel="nofollow">
+                        <svg width="14" height="14">
+                            <use xlink:href="#icon-maps"></use>
+                        </svg>
+                        Calle Tutumo 116 - Surco
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div id="mid-bar">
+            <div class="wrapper">
+                <div class="top">
+                    <a class="logo" href="/" @click="active = '/'">
+                        <img width="150" height="42" src="https://www.tiendakrear3d.com/wp-content/uploads/2024/10/logo-new1-1.svg" alt="Krear 3D">
+                    </a>
+                    <div class="bottom">
+                        <ul>
+                            <li><a href="/consultas" @click="active = '/consultas'" :class="{'active': active === '/consultas'}">Consultas</a></li>
+                            <li><a href="/capacitaciones" @click="active = '/capacitaciones'" :class="{'active': active === '/capacitaciones'}">Capacitaciones</a></li>
+                            <li><a href="/wiki" @click="active = '/wiki'" :class="{'active': active === '/wiki'}">Wiki</a></li>
+                            <li><a href="/slickers" @click="active = '/slickers'" :class="{'active': active === '/slickers'}">Slickers</a></li>
+                            <li><a href="/stl" @click="active = '/stl'" :class="{'active': active === '/stl'}">STLs</a></li>
+                            <li><a href="/contacto" @click="active = '/contacto'" :class="{'active': active === '/contacto'}">Contacto</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="links">
+                        <a class="account" href="/cuenta">
+                            <svg width="14" height="14">
+                                <use xlink:href="#icon-account"></use>
+                            </svg>
+                            Acceder
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div>
+        <template x-route="/">
+            <section>
+                <div class="home-banner">
+                    <img src="https://soporte.krear3d.com/assets/img/home-pc.webp">
+                </div>
+            </section>
+        </template>
+    
+        <template x-route="/consultas">
+            <main>
+                <section id="frontSlider">
+                    <div class="wrapper">
+                        <img class="imaSop" width="1920" height="630" src="https://soporte.krear3d.com/assets/img/consulta-pc.webp">
+                    </div>
+                </section>
+
+                <section id="searchOrderBoxx">
+                    <div class="wrapper">
+                        <div class="guide"><img src="https://soporte.krear3d.com/assets/img/guia-pre.webp" alt=""></div>
+                        <form id="searchOrder">
+                            <img src="https://soporte.krear3d.com/assets/img/ord.svg" alt="ico" width="64" height="64">
+                            <h1>Consultar Orden de Servicio</h1>
+                            <p>Introduce el número de orden y el documento tal cual se muestra en la orden de ingreso proporcionada.</p>
+                            <input id="orderNumber" type="text" placeholder="Número de Orden">
+                            <input id="document" type="text" placeholder="Documento ( DNI/RUC )">
+                            <div id="searchOrderMessage"></div>
+                            <button type="submit">Consultar Estado</button>
+                        </form>
+                    </div>
+                </section>
+            </main>
+        </template>
+    
+        <template x-route="/capacitaciones">
+            <section id="frontSlider">
+                <div class="wrapper">
+                    <img class="imaCap" width="1920" height="630" src="https://soporte.krear3d.com/assets/img/capacitaciones-pc.webp">
+                </div>
+                <div class="car-prices">
+                    <div class="swiffy-slider slider-item-show3 slider-nav-autoplay slider-nav-dark slider-nav-outside slider-nav-visible slider-indicators-round slider-indicators-dark slider-indicators-outside slider-indicators-sm">
+                        <ul class="slider-container" data-slider-nav-autoplay-interval="4000">
+                            <li class="slide-visible">
+                                <div class="card">
+                                    <img src="https://soporte.krear3d.com/assets/img/pre-1.png" alt="">
+                                    <div>
+                                        <p>Capacitación de<br> Impresora 3D de Filamento</p>
+                                        <p>Duración: 03 horas</p>
+                                        <p>S/50.00</p>
+                                        <p>El costo es exonerado en caso el equipo sea comprado en nuestra empresa*</p>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="slide-visible">
+                                <div class="card">
+                                    <img src="https://soporte.krear3d.com/assets/img/pre-2.png" alt="">
+                                    <div>
+                                        <p>Capacitación de<br> Impresora 3D de Resina</p>
+                                        <p>Duración: 03 horas</p>
+                                        <p>S/50.00</p>
+                                        <p>El costo es exonerado en caso el equipo sea comprado en nuestra empresa*</p>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="slide-visible">
+                                <div class="card">
+                                    <img src="https://soporte.krear3d.com/assets/img/pre-3.png" alt="">
+                                    <div>
+                                        <p>Capacitación de<br> Cortadora Láser</p>
+                                        <p>Duración: 03 horas</p>
+                                        <p>S/50.00</p>
+                                        <p>El costo es exonerado en caso el equipo sea comprado en nuestra empresa*</p>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="">
+                                <div class="card">
+                                    <img src="https://soporte.krear3d.com/assets/img/pre-4.webp" alt="">
+                                    <div>
+                                        <p>Capacitación de<br> Router CNC</p>
+                                        <p>Duración: 03 horas</p>
+                                        <p>S/50.00</p>
+                                        <p>El costo es exonerado en caso el equipo sea comprado en nuestra empresa*</p>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="">
+                                <div class="card">
+                                    <img src="https://soporte.krear3d.com/assets/img/pre-5.webp" alt="">
+                                    <div>
+                                        <p>Capacitación de<br> Escáner 3D</p>
+                                        <p>Duración: 03 horas</p>
+                                        <p>S/50.00</p>
+                                        <p>El costo es exonerado en caso el equipo sea comprado en nuestra empresa*</p>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="">
+                                <div class="card">
+                                    <img src="https://soporte.krear3d.com/assets/img/pre-6.webp" alt="">
+                                    <div>
+                                        <p>Capacitación de<br> Dron</p>
+                                        <p>Duración: 01 hora</p>
+                                        <p>S/50.00</p>
+                                        <p>El costo es exonerado en caso el equipo sea comprado en nuestra empresa*</p>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="">
+                                <div class="card">
+                                    <img src="https://soporte.krear3d.com/assets/img/pre-7.webp" alt="">
+                                    <div>
+                                        <p>Capacitación de<br> Realidad Virtual</p>
+                                        <p>Duración: 01 hora</p>
+                                        <p>S/50.00</p>
+                                        <p>El costo es exonerado en caso el equipo sea comprado en nuestra empresa*</p>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+        
+                        <button type="button" class="slider-nav"></button>
+                        <button type="button" class="slider-nav slider-nav-next"></button>
+        
+                        <ul class="slider-indicators">
+                            <li class=""></li>
+                            <li class="active"></li>
+                            <li></li>
+                            <li></li>
+                            <li></li>
+                            <li></li>
+                            <li></li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </template>
+    </div>
+
+    <footer>
+        <div class="top">
+            <div class="wrapper">
+                <div class="item">
+                    
+                    <img class="logo" width="170" height="38" src="https://soporte.krear3d.com/assets/img/logo-v1-white.png" alt="Krear 3D">
+                </div>
+                <div class="item">
+                    <b>HORARIO DE ATENCIÓN</b>
+                    <ul>
+          
+                        <li>
+                            <p>Lunes a Viernes: 9:00am - 1:00pm y 2:00pm - 6:00 pm <br>Sábados: 9:00am - 1:00pm</p>
+                        </li>
+                    </ul>
+                </div>
+                <div class="item">
+                    <b>SÍGUENOS</b>
+                    <ul class="social-icons">
+                        <li>
+                            <a href="https://www.facebook.com/krear3d/" target="_blank">
+                                <img src="https://soporte.krear3d.com/assets/img/footer_facebook.png" width="40px" height="40px" alt="Facebook">
+                            </a>
+                        </li>
+                        <li>
+                            <a href="https://www.instagram.com/krear3d_peru/" target="_blank">
+                                <img src="https://soporte.krear3d.com/assets/img/footer_instagram.png" width="40px" height="40px" alt="Instagram">
+                            </a>
+                        </li>
+                        <li>
+                            <a href="https://twitter.com/krear3d_peru" target="_blank">
+                                <img src="https://soporte.krear3d.com/assets/img/footer_twitter.png" width="40px" height="40px" alt="Twitter">
+                            </a>
+                        </li>
+                        <li>
+                            <a href="https://www.threads.net/@krear3d_peru?hl=sv" target="_blank">
+                                <img src="https://soporte.krear3d.com/assets/img/footer_threads.png" width="40px" height="40px" alt="Threads">
+                            </a>
+                        </li>
+                        <li>
+                            <a href="https://www.tiktok.com/@krear3d_peru" target="_blank">
+                                <img src="https://soporte.krear3d.com/assets/img/footer_tiktok.png" width="40px" height="40px" alt="TikTok">
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+            </div>
+        </div>
+    
+        <div class="bottom">
+            <div class="wrapper">
+                <ul>
+                    <li><a target="_blank" href="https://www.tiendakrear3d.com/terminos/condiciones-garantia/">POLÍTICAS Y CONDICIONES</a></li>
+                    <li><a target="_blank" href="https://www.tiendakrear3d.com/terminos/garantia-soporte/">POLÍTICAS DE GARANTÍA</a></li>
+                    <li><a target="_blank" href="https://www.tiendakrear3d.com/terminos/politicas-de-capacitaciones-virtuales/">POLÍTICAS DE CAPACITACIONES</a></li>
+                </ul>
+    
+                <span class="copyright">
+                    Fabricaciones Digitales del Perú S.A. | RUC 20556316890<br>
+                    Krear 3D © 2025. Todos los derechos reservados.
+                </span>
+            </div>
+        </div>
+    </footer>
+    <script src="static/js/main.js?v=0.1.0.7215"></script>
+
+</body>
+</html>

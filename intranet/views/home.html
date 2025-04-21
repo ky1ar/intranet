@@ -1,0 +1,103 @@
+<div x-data="home_data">
+	<div id="home">
+		<div class="header">Inicio</div>
+		<div class="content">
+			<div class="left">
+
+			</div>
+			<div class="right">
+				<div class="profile glass">
+					<img alt="user" :src="'/static/images/users/' + $store.auth.image" width="108" height="108">
+					<span class="name" x-text="$store.auth.name"></span>
+					<span class="department" x-text="$store.auth.role"></span>
+				</div>
+
+				<template x-for="history in service_order?.history" :key="history.status_id">
+					<div class="row">
+						<img width="20" height="20" :src="'/static/images/support/' + $store.support.service_status[history.status_id].image" alt="">
+
+						<div class="left">
+							<div class="head">
+								<span class="name" x-text="$store.support.service_status[history.status_id].name"></span>
+								<div class="right">
+									<span class="admin" x-text="history.admin_name"></span>
+									<span class="date" x-text="history.register_at"></span>
+								</div>
+							</div>
+							<span class="notes" x-text="history.notes"></span>
+						</div>
+					</div>
+				</template>
+			</div>
+		</div>
+	</div>
+
+
+
+
+
+	<script>
+        Alpine.data('home_data',() => ({
+
+            async init() {
+				console.log('Inicializando Home...');
+
+				const fetchDataIfNeeded = !Alpine.store('home').isLoaded() ? this.fetchData() : Promise.resolve();
+
+				await Promise.all([fetchDataIfNeeded]);
+            },
+
+        }));
+    </script>
+
+
+
+
+
+	<style>
+		#home {
+			width: 100%;
+			user-select: none;
+			padding: 1rem;
+			min-height: calc(100vh - 6.5rem);
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			margin: 0 auto;
+			max-width: 118rem;
+		}
+		#home .content {
+			display: flex;
+			gap: 1rem;
+		}
+		#home .left {
+			display: flex;
+			gap: 1rem;
+			width: 75%;
+		}
+		#home .right {
+			display: flex;
+			gap: 1rem;
+			width: 25%;
+		}
+		#home .profile {
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+			width: 100%;
+			align-items: center;
+			padding: 3rem;
+		}
+		#home .profile img {
+			border-radius: 4rem;
+		}
+		#home .profile .name {
+			font-size: 1.125rem;
+			font-weight: 600;
+		}
+		#home .profile .department {
+		}
+	</style>
+</div>
+	
+

@@ -20,8 +20,9 @@ class Config:
     API_PORT = os.getenv("API_PORT")
 
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-    JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES"))
+    JWT_ACCESS_TOKEN_EXPIRES = False #int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES"))
     UPLOAD_FOLDER = os.path.abspath("uploads/")
+    UPLOAD_MACHINES_FOLDER = os.path.abspath("uploads/machines/")
 
     BASE_URL = os.getenv("BASE_URL")
     CONTACT_PHONE = os.getenv("CONTACT_PHONE")
@@ -40,8 +41,14 @@ class WABA:
     URL = os.getenv("WABA_URL")
     TOKEN = os.getenv("WABA_TOKEN")
     WEBHOOK_TOKEN = os.getenv("WABA_WEBHOOK_TOKEN")
+    SUPPORT_TERMS = os.getenv("SUPPORT_TERMS")
 
 
 class ApisNet:
     TOKEN = os.getenv("APISNET_TOKEN")
     URL = os.getenv("APISNET_URL")
+
+
+class ApiPeru:
+    TOKEN = os.getenv("APIPERU_TOKEN")
+    URL = os.getenv("APIPERU_URL")

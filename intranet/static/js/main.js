@@ -1,0 +1,281 @@
+document.addEventListener('alpine:init', () => {
+    Alpine.store('router', {
+        active: window.location.pathname,
+        titles: {
+            '/': 'Krear 3D - Iniciar Sesión',
+            '/Home': 'Krear 3D - Inicio',
+            '/soporte': 'Krear 3D - Panel de Soporte',
+            '/capacitaciones': 'Krear 3D - Panel de Capacitaciones',
+            '/logistics': 'Krear 3D - Panel de Logística',
+            '/clients': 'Krear 3D - Clientes',
+          },
+
+        setActive(path) {
+            this.active = path;
+            document.title = this.titles[path] || 'Krear 3D'
+        }
+    });
+    
+    Alpine.store('modal', {
+        active: new Set(),
+    
+        show(modal) {
+            this.active.add(modal);
+        },
+    
+        hide(modal) {
+            this.active.delete(modal);
+        },
+    
+        hideAll() {
+            this.active.clear();
+        },
+
+        isVisible(modal) {
+            return this.active.has(modal);
+        },
+
+        hasActive() {
+            return this.active.size > 0;
+        },
+
+        hideLast() {
+            if (this.active.size > 0) {
+                const lastModal = Array.from(this.active).pop();
+                this.active.delete(lastModal);
+            }
+        }
+    });
+    
+    Alpine.store('home', {
+        team: [],
+
+        setTeam(data) {
+            console.log('Datos de team almacenados en el store');
+            this.team = data;
+        },
+
+        isLoaded() {
+            console.log('Verficando datos de Home...')
+            if (this.team.length === 0) {
+                console.log('Los datos no se encuentran en el Store');
+                return false;
+            } 
+            console.log('Los datos se encuentran en el Store');
+            return true;
+        },
+    });
+
+    Alpine.store('support', {
+        service_status: [],
+        service_methods: [],
+        technicians: [],
+
+        setServiceStatus(data) {
+            console.log('Datos de estados de servicio almacenados en el store');
+            this.service_status = data;
+        },
+
+        setServiceMethods(data) {
+            console.log('Datos de tipos de servicio almacenados en el store');
+            this.service_methods = data;
+        },
+
+        setTechnicians(data) {
+            console.log('Datos de técnicos almacenados en el store');
+            this.technicians = data;
+        },
+
+        isLoaded() {
+            console.log('Verficando datos de Support...')
+            if (this.service_status.length === 0) {
+                console.log('Los datos no se encuentran en el Store');
+                return false;
+            } 
+            console.log('Los datos se encuentran en el Store');
+            return true;
+        },
+    });
+
+    Alpine.store('auth', {
+        image: (JSON.parse(localStorage.getItem('user_data'))?.image || 'user_default.jpg'),
+        id: null,
+        level: null,
+        app_level: null,
+        name: '',
+        role: '',
+        token: null,
+        default: '',
+
+        setUser(data) {
+            console.log('Datos de usuario almacenados en el store');
+
+            if (data.image) this.image = data.image;
+            this.id = data.id;
+            this.level = data.level_id;
+            this.app_level = data.shipping_app_level;
+            this.name = data.name;
+            this.role = data.department_name;
+            this.token = data.token;
+            this.default = data.default_page;
+        },
+
+        setUserfromLocalStorage(data) {
+            console.log('Datos de usuario almacenados en el store');
+
+            if (data.image) this.image = data.image;
+            this.id = data.id;
+            this.level = data.level;
+            this.app_level = data.app_level;
+            this.name = data.name;
+            this.role = data.role;
+            this.token = data.token;
+            this.default = data.default;
+        },
+        
+        unsetUser() {
+            console.log('Datos de usuario limpiados del store');
+            this.image = "user_default.jpg";
+            this.id = null;
+            this.level = null;
+            this.app_level = null;
+            this.name = "";
+            this.role = "";
+            this.token = null;
+            this.default = "";
+        },
+
+        logout() {
+            console.log('Logout');
+            this.unsetUser()
+            Alpine.store('sidebar').off();
+            localStorage.removeItem('user_data');
+            window.PineconeRouter.context.navigate('/');
+        },
+
+        getUserData() {
+            return {
+                image: this.image,
+                id: this.id,
+                level: this.level,
+                app_level: this.app_level,
+                name: this.name,
+                role: this.role,
+                token: this.token,
+                default: this.default
+            };
+        }
+    });
+    
+    Alpine.store('sidebar', {
+        active: false,
+        open_menu: false,
+
+        visible() {
+            this.active = true;
+        },
+
+        off() {
+            this.active = false;
+            this.open_menu = false;
+        },
+        
+        toogleMenu() { 
+            this.open_menu = !this.open_menu;
+        },
+
+        hideMenu() { 
+            this.open_menu = false;
+        }
+    });
+
+    Alpine.data('data',() => ({
+        async init() {
+            console.log('Inicializando Alpine...')
+        },
+
+        pages: [
+            { name: 'home', label: 'Inicio', image: 'home' },
+            { name: 'support', label: 'Soporte', image: 'support' },
+            { name: 'training', label: 'Capacitaciones', image: 'training' },
+            { name: 'logistics', label: 'Logística', image: 'logistics' },
+            { name: 'schedule', label: 'Horarios', image: 'schedule' },
+            { name: 'clients', label: 'Clientes', image: 'clients' },
+            { name: 'machines', label: 'Equipos', image: 'machines' },
+        ],
+
+    }));
+    
+});
+
+async function loginVerify(context) {
+    console.log('Verificando Login...');
+    let token = Alpine.store('auth').token;
+    const storedData = localStorage.getItem('user_data');
+    if (!token) {
+        if (storedData) {
+            console.log('Verificando desde localStorage');
+            const userData = JSON.parse(storedData);
+            token = userData.token;
+        } else {
+            console.log('No estás logueado');
+            if (context.route !== "/") {
+                window.PineconeRouter.context.navigate("/");
+            }
+            return false;
+        }
+    } else {
+        console.log('Verificando desde el router');
+    }
+
+    NProgress.start();
+
+    try {
+        const response = await fetch('/api/user/verify', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            console.error('Error en la verificación del usuario', response.statusText);
+            await Alpine.store('auth').logout();
+            return false;
+        }
+        console.log('Usuario logeado');
+        if (storedData && !Alpine.store('auth').token) {
+            const userData = JSON.parse(storedData);
+            Alpine.store('auth').setUserfromLocalStorage(userData);
+        }
+        Alpine.store('sidebar').visible();
+        if (context.route == '/') {
+            console.log('Sesión iniciada. Redirigiendo a default...');
+            window.PineconeRouter.context.navigate(Alpine.store('auth').default);
+        }
+        return true;
+
+    } catch (error) {
+        console.error('Error en la verificación del usuario:', error);
+
+        await Alpine.store('auth').logout();
+        return false;
+
+    } finally {
+        NProgress.done();
+    }
+}
+
+document.addEventListener('pinecone-start', () => {
+    NProgress.start();
+});
+
+document.addEventListener('pinecone-end', () => {
+    Alpine.store('router').setActive(window.location.pathname);
+    NProgress.done();
+});
+
+document.addEventListener('fetch-error', (err) =>
+    console.error(err)
+);

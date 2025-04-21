@@ -3,12 +3,12 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: logistica_backend_dev
+    container_name: backend_dev
     environment:
       - FLASK_APP=main.py
       - FLASK_ENV=development
     networks:
-      - logistica_net
+      - krear3d
     volumes:
       - ./backend:/application
     ports:
@@ -23,26 +23,40 @@ services:
 
   redis:
     image: redis:latest
-    container_name: logistica_redis_dev
+    container_name: redis_dev
     networks:
-      - logistica_net
+      - krear3d
     restart: always
     command: redis-server --requirepass "150723"
 
-  frontend:
+  support:
     build:
-      context: ./frontend
+      context: ./support
       dockerfile: Dockerfile
-    container_name: logistica_frontend_dev
+    container_name: support_dev
     networks:
-      - logistica_net
+      - krear3d
     volumes:
-      - ./frontend:/usr/share/nginx/html
+      - ./support:/usr/share/nginx/html
     ports:
-      - 8001:80
-      - 4001:443
+      - 8003:80
+      - 4003:443
+    restart: always
+
+  intranet:
+    build:
+      context: ./intranet
+      dockerfile: Dockerfile
+    container_name: intranet_dev
+    networks:
+      - krear3d
+    volumes:
+      - ./intranet:/usr/share/nginx/html
+    ports:
+      - 8004:80
+      - 4004:443
     restart: always
 
 networks:
-  logistica_net:
+  krear3d:
     driver: bridge

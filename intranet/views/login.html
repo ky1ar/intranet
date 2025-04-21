@@ -1,0 +1,350 @@
+<div x-data="login_data" class="fixed" id="new-login">
+    <div class="box glass">
+        <img src="static/images/logo.svg" alt="Logo" width="128" height="27">
+
+        <div x-show="!temp_auth.name" class="content">
+            <div class="top">
+                <h1>Bienvenido</h1>
+                <p>Ingresa tu DNI para comenzar</p>
+            </div>
+
+            <form @submit.prevent="find()" class="bottom">
+                <input type="text"
+                    x-model="temp_auth.document"
+                    required
+                    placeholder="Número de DNI"
+                    pattern="\d{8}" 
+                    maxlength="8"
+                    inputmode="numeric"
+                    oninput="this.value = this.value.replace(/\D/g, '').slice(0, 8)">
+                <button class="hover-opacity" :class="buttons.find.class" x-text="buttons.find.text" type="submit"></button>
+            </form>
+        </div>
+
+        <div x-show="temp_auth.name" class="content">
+            <div class="top">
+                <div class="banner">
+                    <h1 x-text="temp_auth.name"></h1>
+                    <img @click="clean_temp()" class="hover-opacity" alt="user" :src="temp_auth.image" width="64" height="64">
+                </div>
+                <p x-text="first_login ? (!new_pin ? 'Crea tu clave secreta' : 'Confirma tu clave secreta') : 'Ingresa tu clave para acceder'"></p>
+            </div>
+            
+            <form x-show="first_login" @submit.prevent="createPin()" class="bottom">
+                <input type="password" 
+                    x-show="!new_pin" 
+                    x-model="temp_auth.pin" 
+                    required 
+                    placeholder="Ingresa 4 números"
+                    pattern="\d{4}" 
+                    maxlength="4"
+                    inputmode="numeric"
+                    oninput="this.value = this.value.replace(/\D/g, '').slice(0, 4)">
+                    
+                <input type="password" 
+                    x-show="new_pin" 
+                    x-model="temp_auth.confirm_pin" 
+                    required 
+                    placeholder="Vuelve a ingresar tu clave"
+                    pattern="\d{4}" 
+                    maxlength="4"
+                    inputmode="numeric"
+                    oninput="this.value = this.value.replace(/\D/g, '').slice(0, 4)">
+                <button class="hover-opacity" x-show="!new_pin" :class="buttons.new_pin.class" x-text="buttons.new_pin.text" @click="new_pin = true"></button>
+                <button class="hover-opacity" x-show="new_pin" :class="buttons.create_pin.class" x-text="buttons.create_pin.text" type="submit"></button>
+            </form>
+
+            <form x-show="!first_login" @submit.prevent="login()" class="bottom">
+                <input type="password"
+                    x-model="temp_auth.pin"
+                    required
+                    placeholder="Clave secreta"
+                    pattern="\d{4}" 
+                    maxlength="4"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    autocorrect="off"
+                    spellcheck="false"
+                    oninput="this.value = this.value.replace(/\D/g, '').slice(0, 4)">
+                <button class="hover-opacity" :class="buttons.login.class" x-text="buttons.login.text" type="submit"></button>
+            </form>
+        </div>
+        <span class="copy">Krear 3D © 2025. Todos los derechos reservados</span>
+    </div>
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <script>
+        Alpine.data('login_data',() => ({
+            temp_auth: {
+                document: (JSON.parse(localStorage.getItem('temp_auth'))?.document || ''),
+                name: (JSON.parse(localStorage.getItem('temp_auth'))?.name || ''),
+                image: (JSON.parse(localStorage.getItem('temp_auth'))?.image || '/static/images/users/user_default.jpg'),
+            },
+
+            buttons: {
+                find: { class: '', text: 'Siguiente' },
+                login: { class: '', text: 'Acceder' },
+                new_pin: { class: '', text: 'Continuar' },
+                create_pin: { class: '', text: 'Crear clave' },
+            },
+
+            first_login: false,
+            new_pin: false,
+
+            async find() {
+                NProgress.start();
+                const payload = { document: this.temp_auth.document };
+
+                try {
+                    const response = await fetch('/api/user/find', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+                    const { name, image, first_login } = jsonData.data;
+
+                    this.temp_auth.name = name;
+                    this.first_login = first_login ?? false;
+
+                    if (image) this.temp_auth.image = `/static/images/users/${image}`;
+
+                    if (!first_login) {
+                        localStorage.setItem('temp_auth', JSON.stringify({
+                            document: this.temp_auth.document,
+                            name: this.temp_auth.name,
+                            image: this.temp_auth.image,
+                        }));
+                    }
+                } catch (error) {
+                    this.showError('find', error.message);
+                } finally {
+                    NProgress.done();
+                }
+            }, 
+
+            async login() {
+				console.log('Login...');
+                NProgress.start();
+                const payload = { 
+                    document: this.temp_auth.document,
+                    password: this.temp_auth.pin,
+                    //fcm_token: localStorage.getItem("fcm_token")
+                }
+
+                try {
+                    const response = await fetch('/api/user/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+                    
+                    const user = jsonData.data;
+                    Alpine.store('auth').setUser(user);
+                    Alpine.store('sidebar').visible();
+                    localStorage.setItem('user_data', JSON.stringify(Alpine.store('auth').getUserData()));
+
+                    window.PineconeRouter.context.navigate(Alpine.store('auth').default);
+                } catch (error) {
+                    this.showError('login', error.message);
+                } finally {
+                    NProgress.done();
+                }
+            },  
+
+            showError(btnKey, errorMsg) {
+                const originalText = this.buttons[btnKey].text;
+                const originalClass = this.buttons[btnKey].class;
+
+                if (originalClass == 'error') {
+                    return;
+                }
+                this.buttons[btnKey].text = errorMsg;
+                this.buttons[btnKey].class = 'error';
+
+                setTimeout(() => {
+                    this.buttons[btnKey].text = originalText;
+                    this.buttons[btnKey].class = originalClass;
+                }, 2000);
+            },
+
+            async createPin() {
+                pin = this.temp_auth.pin;
+                confirm_pin = this.temp_auth.confirm_pin;
+
+                if (pin != confirm_pin) {
+                    this.showError('new_pin', "Las claves son distintas");
+                    this.temp_auth.pin = ''
+                    this.temp_auth.confirm_pin = '';
+                    this.new_pin = false;
+                    return;
+                }
+
+                const payload = { document: this.temp_auth.document, pin: this.temp_auth.pin }
+                try {
+                    const response = await fetch('/api/user/create_pin', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+                    
+                    const jsonData = await response.json();
+
+                    if (!response.ok) {
+                        if (response.status === 400) {
+                            this.showError('create_pin', jsonData.data.message)
+                        }
+                        return false;
+                    }
+                    localStorage.setItem('temp_auth', JSON.stringify(this.temp_auth));
+                    await this.login();
+                    this.first_login = false;
+                    this.new_pin = false;
+                } catch (e) {
+                    console.error('Error during createPin:', e.message);
+                }
+            },
+            
+            clean_temp() {
+                this.temp_auth = {
+                    document: '',
+                    name: '',
+                    image: '/static/images/users/user_default.jpg',
+                },
+                this.first_login = false;
+                localStorage.removeItem('temp_auth'); 
+            },
+
+            async init() {
+				console.log('Inicializando Login...');
+            }
+        }));
+    </script>
+
+
+
+
+
+
+
+
+    <style>
+        #new-login {
+            text-align: center;
+        }
+        #new-login .box {
+            display: flex;
+            flex-direction: column;
+            gap: 5rem;
+            padding: 2rem 3rem;
+        }
+        #new-login .copy {
+            opacity: 0.5;
+            font-size: 0.7rem;
+        }
+        #new-login .content {
+            display: flex;
+            gap: 1.5rem;
+            flex-direction: column;
+            max-width: 24rem;
+        }
+        #new-login .content .top {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        #new-login .content .top h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        #new-login .content .top p {
+            margin: 0;
+        }
+        #new-login .content .top .banner {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            align-items: center;
+            flex-direction: column-reverse;
+        }
+        #new-login .content .top .banner img {
+            border-radius: 2rem;
+        }
+        #new-login .content .bottom {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-width: 16rem;
+        }
+        #new-login .content .bottom.row {
+            flex-direction: row;
+        }
+        #new-login .content .bottom input {
+            outline: none;
+            border: 1px solid var(--white);
+            background-color: var(--white) !important;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            width: 100%;
+            font-family: var(--font);
+            font-size: 0.85rem;
+            text-align: center;
+        }
+        #new-login .content .bottom button {
+            width: 100%;
+            text-align: center;
+            padding: 0.75rem;
+            background-color: var(--primary);
+            border-radius: 0.5rem;
+            color: var(--white);
+            border: none;
+            font-size: 0.85rem;
+            font-family: var(--font);
+        }
+        #new-login .content .bottom button.gray {
+            background-color: var(--graydark);
+            color: var(--black);
+        }
+        #new-login .content .bottom button.error {
+            opacity: 1;
+            background-color: #d7445a;
+        }
+        #new-login .content ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        #new-login .content li {
+            font-size: 0.95rem;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+
+    </style>
+</div>

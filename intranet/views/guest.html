@@ -1,0 +1,655 @@
+<div x-data="guest_data" class="fixed" id="guest">
+
+    <div class="modal glass">
+        <div x-show="step == 0" class="content">
+            <div class="top">
+                <img alt="user" :src="'/static/images/users/' + $store.auth.image" width="80" height="80">
+                <h1>¡Hola! Vamos a empezar</h1>
+                <p>Solo necesito tu DNI o RUC para comenzar.</p>
+            </div>
+            <div class="bottom">
+                <input type="text"
+                    x-model="service_order.document"
+                    placeholder="DNI o RUC"
+                    pattern="\d{11}"
+                    maxlength="11"
+                    inputmode="numeric"
+                    oninput="this.value = this.value.replace(/\D/g, '').slice(0, 11)">
+                <button class="button hover-opacity" @click="findName()" :class="buttons.find.class" x-text="buttons.find.text"></button>
+            </div>
+        </div>
+
+
+        <div x-show="step == 1" class="content">
+            <div class="hover-opacity modal-back" @click="resetOrder(); step--;">
+				<img alt="close" src="static/images/back.svg" width="20" height="20">
+			</div>
+            <div class="top">
+                <img alt="user" :src="'/static/images/users/' + $store.auth.image" width="80" height="80">
+                <h1>¿Está bien el nombre?</h1>
+                <p>Encontré el siguiente nombre, si todo está bien, ¡continuemos!</p>
+            </div>
+            <div class="bottom">
+                <h2 x-text="service_order.name"></h2>
+                <button class="button hover-opacity" @click="step++">Sí, está bien</button>
+            </div>
+        </div>
+
+
+        <div x-show="step == 2" class="content">
+            <div class="hover-opacity modal-back" @click="step--">
+				<img alt="close" src="static/images/back.svg" width="20" height="20">
+			</div>
+            <div class="top">
+                <img alt="user" :src="'/static/images/users/' + $store.auth.image" width="80" height="80">
+                <h1 x-text="!service_order.phone ? '¿Cuál es tu número de celular?' : '¿Tu número de celular es éste?'"></h1>
+                <p x-text="!service_order.phone ? 'Por favor, ingresa tu número de celular para mantenernos en contacto.' : 'Hallé este número, si deseas puedes actualizarlo.'"></p>
+            </div>
+            <div class="bottom">
+                <input type="text"
+                    x-model="service_order.phone"
+                    placeholder="Número de celular"
+                    pattern="\d{9}"
+                    maxlength="9"
+                    inputmode="numeric"
+                    oninput="this.value = this.value.replace(/\D/g, '').slice(0, 9)">
+                <button class="button hover-opacity" @click="validatePhone()" :class="buttons.phone.class" x-text="buttons.phone.text"></button>
+            </div>
+        </div>
+
+
+        <div x-show="step == 3" class="content">
+            <div class="hover-opacity modal-back" @click="step--">
+				<img alt="close" src="static/images/back.svg" width="20" height="20">
+			</div>
+            <div class="top">
+                <img alt="user" :src="'/static/images/users/' + $store.auth.image" width="80" height="80">
+                <h1>¿Qué equipo estás registrando?</h1>
+                <p>Selecciona el equipo y marca si es una compra interna.</p>
+            </div>
+            <div class="bottom">
+                <input type="text"
+                    x-model="service_order.machine"
+                    placeholder="Nombre del equipo"
+                    @input="getMachine()">
+
+                    <div class="machines">
+                        <template x-for="machine in machines" :key="machine.id">
+                            <span
+                            x-text="machine.name"
+                            class="hover-opacity"
+                            @click="
+                                service_order.machine = machine.name;
+                                service_order.machine_id = machine.id;
+                                service_order.machine_image = machine.image;
+                                machines = [];
+                            ">
+                            </span>
+                            
+                        
+                        </template>
+                    </div>
+                <button class="button hover-opacity" @click="validateMachine()" :class="buttons.machine.class" x-text="buttons.machine.text"></button>
+            </div>
+        </div>
+
+
+        <div x-show="step == 4" class="content">
+            <div class="hover-opacity modal-back" @click="step--">
+				<img alt="close" src="static/images/back.svg" width="20" height="20">
+			</div>
+            <div class="top">
+                <img alt="user" :src="'/static/images/users/' + $store.auth.image" width="80" height="80">
+                <h1>¿Qué problema estás reportando?</h1>
+                <p>Cuéntanos brevemente el problema que estás teniendo con el equipo.</p>
+            </div>
+            <div class="bottom">
+                <textarea class="textarea"
+                    x-model="service_order.notes"
+                    placeholder="Descripción del problema"></textarea>
+                <button class="button hover-opacity" @click="validateText()" :class="buttons.notes.class" x-text="buttons.notes.text"></button>
+            </div>
+        </div>
+        
+
+        <div x-show="step == 5" class="content">
+            <div class="hover-opacity modal-back" @click="step--">
+				<img alt="close" src="static/images/back.svg" width="20" height="20">
+			</div>
+            <div class="top">
+                <img alt="user" :src="'/static/images/users/' + $store.auth.image" width="80" height="80">
+                <h1>¿Todo está correcto?</h1>
+                <p>Aquí tienes un resumen de lo que ingresaste.</p>
+            </div>
+            <div class="bottom">
+                <div class="card review">
+                    <img alt="machine" :src="'/static/images/machines/' + service_order.machine_image" width="64" height="64">
+                    <div class="text">
+                        <span class="machine" x-text="service_order.machine"></span>
+                        <span class="name" x-text="service_order.name"></span>
+                        <span x-text="service_order.phone.replace(/(.{3})/g, '$1 ').trim()"></span>
+                    </div>
+                </div>
+                <p class="review-notes" x-text="service_order.notes"></p>
+                <button class="button hover-opacity" @click="step++"> Continuar</button>
+            </div>
+        </div>
+
+
+        <div x-show="step == 6" class="content">
+            <div class="hover-opacity modal-back" @click="step--">
+				<img alt="close" src="static/images/back.svg" width="20" height="20">
+			</div>
+            <div class="top">
+                <img alt="user" :src="'/static/images/users/' + $store.auth.image" width="80" height="80">
+                <h1>¿Estás de acuerdo con los términos?</h1>
+                <p>Para continuar, necesitamos que aceptes nuestros términos y condiciones.</p>
+            </div>
+            <div class="bottom">
+                <div class="card page" x-ref="terms">
+                    <h1 style="text-align: center;"><strong>Políticas de Garantía y Soporte Técnico</strong></h1>
+                    <h3><strong>¿Cómo aplicar la garantía o servicio técnico de un equipo?</strong></h3>
+                    <ol>
+                    <li>Si el equipo presenta fallas o problemas de configuración el cliente debe comunicarse en el horario de atención de lunes a viernes de 9am a 6pm con el área de soporte&nbsp;<strong>únicamente&nbsp;</strong>por mensaje al WhatsApp&nbsp;<strong>+51</strong>&nbsp;<strong>970 539 751</strong>. Indicando la marca, modelo, número de serie y comprobante de pago.</li>
+                    <li>El área de soporte brindará la asistencia respectiva para dar solución al problema de forma virtual (vía WhatsApp), a más tardar en 2 días hábiles.</li>
+                    <li>En caso sea necesario, el área de soporte determinará el internamiento del equipo en nuestro local ubicado en&nbsp;<strong>Calle Javier Fernandez 262, Miraflores 15047</strong>.</li>
+                    <li>Una vez ingresado el equipo, el área de soporte técnico analizará el estado de la máquina y en qué condiciones ha fallado el equipo. Luego de ello, se emitirá un diagnóstico oficial en el&nbsp;<strong>plazo máximo de 10 días hábiles</strong>, indicando si es factible aplicar la garantía (ver: <em>Limitaciones y exclusiones de garantía</em>)</li>
+                    </ol>
+                    <p>4.1 De corresponder aplicar la garantía, y con la aprobación del cliente, se iniciarán los trabajos en el equipo sin costo alguno. La reparación durará un plazo de 10 días hábiles adicionales al diagnóstico e incluirá la reparación o sustitución de los componentes que sean necesarios a criterio de Krear 3D.</p>
+                    <p>4.2 De ser un caso contemplado en las exclusiones de garantía o un servicio técnico externo el cliente podrá optar por la reparación del equipo para lo cual se le indicará al cliente el costo de los repuestos y servicios correspondientes, con cuya aprobación y previo pago se iniciará la reparación del equipo en un plazo de 10 días hábiles adicionales al diagnóstico.</p>
+                    <p><em>Estos plazos pueden ser ampliados en coordinación con el cliente dependiendo de la disponibilidad de los repuestos o partes requeridas</em>.</p>
+                    <h3><strong>¿Cuál es el plazo de tiempo para la atención del servicio técnico?</strong></h3>
+                    <p>Las evaluaciones como las reparaciones tardan en conjunto<strong>&nbsp;20 días hábiles</strong>. Cabe resaltar que el plazo puede ser ampliado en coordinación con el cliente dependiendo de la disponibilidad de los repuestos o partes requeridas<strong>.</strong></p>
+                    <p><strong>Las actualizaciones del estado de la máquina se harán a los 10 días hábiles del internamiento,&nbsp;</strong>el área de soporte se contactará con el cliente vía WhatsApp en el plazo indicado.</p>
+                    <p>*Los servicios no se realizan en el domicilio del cliente; se realizan únicamente en el taller de Krear 3D.</p>
+                    <p><strong>Requisitos para el internamiento del equipo</strong></p>
+                    <p>Para poder internar algún equipo, este debe contar con lo siguiente:</p>
+                    <ul>
+                    <li>Comprobante de pago: boleta o factura de compra emitida por Krear3D.</li>
+                    <li>Coordinación previa de internamiento del equipo con el área de soporte vía WhatsApp.</li>
+                    <li>El producto debe estar con todos sus accesorios originales completos.</li>
+                    <li>La garantía debe estar vigente.</li>
+                    </ul>
+                    <p><strong>Costo de almacenaje</strong></p>
+                    <p>Finalizado el servicio, el equipo de soporte técnico comunica al cliente vía WhatsApp y/o correo electrónico registrado que debe recoger su equipo, el cual tendrá un plazo de 7 días calendario luego de haberle comunicado que el equipo se encuentra listo para recojo.</p>
+                    <p>Después de cumplir dicho plazo y el equipo aún no ha sido recogido, se cobrará el almacenaje del equipo, el costo será de S/ 5 por cada día transcurrido.</p>
+                    <p>Una vez el cobro acumulado por almacén haya alcanzado el valor del producto de acuerdo a su comprobante de compra, o alcance más de 3 meses en nuestro poder el equipo será declarado en abandono; por lo que, el cliente autoriza y faculta a KREAR3D a deshacer, destruir, eliminar el producto sin derecho a reclamos posteriores.</p>
+                    <p><strong>Limitaciones y exclusiones de Garantía</strong></p>
+                    <p>La garantía del equipo se excluye en los siguientes casos:</p>
+                    <ul>
+                    <li>Cuando el usuario lo transporta de forma inadecuada; es decir, cuando el tránsito de la tienda al domicilio del cliente es a cargo de este y el equipo presente fallas de nivelación y/o calibración.</li>
+                    <li>Cuando se manipulen los componentes propios del equipo de forma incorrecta.</li>
+                    <li>Cuando el equipo falla por instalación de otros componentes adicionales.</li>
+                    <li>Cuando el equipo falla por un mal armado, no se respeta las indicaciones del manual.</li>
+                    <li>Cuando se incurre en mal manejo de la fuente de poder, quemando los componentes del equipo.</li>
+                    <li>Cuando ocurre falla en la impresión, producto del mal manejo de parámetros.</li>
+                    <li>Cuando la falla del equipo sea producida por falta de mantenimiento preventivo o mantenimiento inapropiado, o haya sido susceptible a un servicio técnico no autorizado.</li>
+                    <li>Cuando la falla se deba al uso de accesorios, cargadores o consumibles que no sean compatibles con el equipo.</li>
+                    <li>Cuando el equipo haya recibido golpes accidentales o intencionales.</li>
+                    <li>Cuando se produzcan derrames de sustancias o líquidos que dañen el equipo.</li>
+                    <li>Cuando el sello de garantía haya sido alterado.</li>
+                    <li>Cuando el equipo esté fuera del periodo de garantía.</li>
+                    <li>Cuando el equipo sufra daños debido a fluctuaciones en la alimentación eléctrica.</li>
+                    <li>Cuando ocurra desgaste natural de componentes debido al propio uso del equipo.</li>
+                    <li>Cuando el equipo funciona bien, pero no satisface las necesidades específicas del cliente. Es responsabilidad del cliente asegurarse de comprar el equipo adecuado según sus requerimientos.</li>
+                    </ul>
+                    <p><strong>Limitaciones y exenciones de responsabilidad</strong></p>
+                    <p>La responsabilidad de Krear3D frente a los defectos de fabricación quedará limitada a la atención de la garantía dentro del período vigente de la misma, reparando o reemplazando componentes de acuerdo al diagnóstico de Krear3D sin costo alguno; siempre y cuando se cumpla con los requisitos antes descritos y no se incurra en los casos de limitación y exclusión de garantía. Krear3D no se hace responsable por:</p>
+                    <ul>
+                    <li>Indemnizaciones a causa de fallas del equipo.</li>
+                    <li>Incompatibilidad del equipo con un software específico.</li>
+                    <li>Gasto de insumos o cualquier otro cargo con relación al uso del producto.</li>
+                    <li>Gastos logísticos asociados al transporte del equipo.</li>
+                    </ul>
+                    <p><strong>Otro términos y condiciones</strong></p>
+                    <ul>
+                    <li>El periodo de garantía inicia desde la fecha de compra del equipo. La garantía tiene un periodo de 24 meses.</li>
+                    <li>La garantía es personal, es decir solo aplica a la persona natural o jurídica registrada en la compra; y es intransferible, puesto que no se extiende a terceros.</li>
+                    <li>En caso que no sea aplicable la garantía por uno o más de los ítems del apartado Limitaciones y exclusiones de Garantía, se realizará el cobro por el servicio técnico y repuestos. El monto del servicio técnico será indicado luego del diagnóstico del equipo.</li>
+                    <li>Los servicios técnicos pagados tienen el mismo tiempo de atención.</li>
+                    </ul>
+                    <p><strong>Recomendaciones</strong></p>
+                    <p>Krear3D recomienda revisar los manuales de usuario, tutoriales, guía de inicio y las instrucciones provistas con el producto debido a que son dispositivos electrónicos sofisticados. Asimismo, debido a la alta precisión mecánica y piezas electrónicas se recomienda realizar el mantenimiento preventivo cada 3 meses a efectos de estar coberturados por la garantía.</p>
+                </div>
+                <button class="button hover-opacity" @click="step=7">Acepto los términos y condiciones</button>
+            </div>
+        </div>
+
+
+        <div x-show="step == 7" class="content">
+            <div class="hover-opacity modal-back" @click="step--">
+				<img alt="close" src="static/images/back.svg" width="20" height="20">
+			</div>
+            <div class="top">
+                <img alt="user" :src="'/static/images/users/' + $store.auth.image" width="80" height="80">
+                <h1>Por último, dibuja tu firma</h1>
+                <p>Utiliza el recuadro blanco para firmar.</p>
+            </div>
+            <div class="bottom">
+                <canvas x-ref="canvas"></canvas>
+                
+                <div class="buttons">
+                    <button @click="clear" class="button hover-opacity gray">Limpiar</button>
+                    <button class="button hover-opacity" @click="newOrder()" :class="buttons.new.class" x-text="buttons.new.text"></button>
+                </div>
+            </div>
+        </div>
+
+
+        <div x-show="step == 8" class="content">
+            <div class="top">
+                <img alt="user" :src="'/static/images/users/' + $store.auth.image" width="80" height="80">
+                <h1>¡Gracias! He registrado tu orden</h1>
+                <p>Te he enviado un mensaje con los datos que ingresaste.</p>
+            </div>
+            <div class="bottom">
+                <button class="button hover-opacity" @click="step = 0"> Ir al inicio</button>
+            </div>
+        </div>
+    </div>
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    <script>
+        let signaturePad;
+
+        Alpine.data('guest_data',() => ({
+            step: 0,
+            service_order: {
+                document: '',
+                id: null,
+                name: '',
+                phone: '',
+                notes: '',
+                machine: null,
+                machine_id: null,
+                machine_image: null,
+            },
+            machines: [],
+            buttons: {
+                find: { class: '', text: 'Siguiente' },
+                phone: { class: '', text: 'Siguiente' },
+                machine: { class: '', text: 'Siguiente' },
+                notes: { class: '', text: 'Siguiente' },
+                new: { class: '', text: 'Completar' },
+            },
+
+            init() {
+				console.log('Inicializando Guest...');
+                const canvas = this.$refs.canvas;
+                
+                const resizeCanvas = () => {
+                    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                    const rect = canvas.getBoundingClientRect();
+
+                    canvas.width = rect.width * ratio;
+                    canvas.height = rect.height * ratio;
+                    canvas.getContext("2d").scale(ratio, ratio);
+
+                    if (signaturePad) {
+                        signaturePad.clear();
+                    }
+                };
+
+                signaturePad = new SignaturePad(canvas, {
+                    backgroundColor: 'rgb(255,255,255)',
+                });
+
+                window.addEventListener("resize", () => {
+                    resizeCanvas();
+                });
+
+                resizeCanvas(); 
+            },
+
+            clear() {
+                signaturePad.clear();
+            },
+            
+            resetOrder() {
+                this.service_order = {
+                    document: '',
+                    id: null,
+                    name: '',
+                    phone: '',
+                    notes: '',
+                    machine: null,
+                    machine_id: null,
+                    machine_image: null,
+                };
+            },
+
+            validatePhone() {
+                const phone = this.service_order.phone;
+                if (phone.length < 9) {
+                    this.showError('phone', 'Ingresa un número válido');
+                    return;
+                }
+                this.step++;
+            },
+
+            validateMachine() {
+                if (!this.service_order.machine_id) {
+                    this.showError('machine', 'Elige un equipo');
+                    return;
+                }
+                this.step++;
+            },
+
+            validateText() {
+                if (this.service_order.notes.trim() == '') {
+                    this.showError('notes', 'Describe el problema');
+                    return;
+                }
+                this.step++;
+            },
+
+            async findName() {
+                const document = this.service_order.document;
+
+                try {
+                    NProgress.start();
+                    if (document.trim() == '') {
+                        this.showError('find', 'Ingresa el documento');
+                        return;
+                    }
+                    
+                    const response = await fetch(`/api/user/data/${document}`, {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+                    const { id, name, phone } = jsonData.data;
+
+                    this.service_order.id = id;
+                    this.service_order.name = name;
+                    this.service_order.phone = phone;
+                    this.step = 1;
+
+                } catch (error) {
+                    this.showError('find', error.message);
+                } finally {
+                    NProgress.done();
+                }
+            }, 
+
+            async newOrder() {
+                if (signaturePad.isEmpty()) {
+                    this.showError('new', 'Debe firmar.');
+                    return;
+                }
+                NProgress.start();
+                
+
+                const payload = { 
+                    machine_id: this.service_order.machine_id,
+                    admin_id: Alpine.store('auth').id,
+                    notes: this.service_order.notes,
+                    client_id: this.service_order.id,
+                    client: {
+                        document: this.service_order.document,
+                        name: this.service_order.name,
+                        phone: this.service_order.phone,
+                    },
+                }
+
+                try {
+                    const response = await fetch('/api/support/order/new', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+                    
+                    this.$refs.terms.scrollTop = 0;
+                    this.step++;
+                    this.resetOrder();
+
+                } catch (error) {
+                    this.showError('new', error.message);
+                } finally {
+                    NProgress.done();
+                }
+            }, 
+
+            async getMachine() {
+                const machine_search = this.service_order.machine;
+                try {
+                    NProgress.start();
+                    if (machine_search.length < 3) {
+                        this.machines = [];
+                        return;
+                    }
+                    
+                    const response = await fetch(`/api/machine/find/${machine_search}`, {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+                    this.machines = jsonData.data;
+                } catch (error) {
+                    this.machines = [];
+                    return;
+                } finally {
+                    NProgress.done();
+                }
+            },
+
+            showError(btnKey, errorMsg) {
+                const originalText = this.buttons[btnKey].text;
+                const originalClass = this.buttons[btnKey].class;
+
+                if (originalClass == 'error') {
+                    return;
+                }
+                this.buttons[btnKey].text = errorMsg;
+                this.buttons[btnKey].class = 'error';
+
+                setTimeout(() => {
+                    this.buttons[btnKey].text = originalText;
+                    this.buttons[btnKey].class = originalClass;
+                }, 1000);
+            },
+        }));
+    </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <style>
+        #guest {
+            text-align: center;
+        }
+        #guest .modal {
+            padding: 4rem 5rem;
+            max-width: 42rem;
+        }
+        #guest .content {
+            display: flex;
+            gap: 2.5rem;
+            flex-direction: column;
+        }
+        #guest .content .top {
+            align-items: center;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        #guest .content .top img {
+            border-radius: 3rem;
+        }
+        #guest .content .top h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        #guest .content .top p {
+            margin: 0;
+            font-size: 1rem;
+        }
+        #guest .content .bottom {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-width: 16rem;
+            position: relative;
+        }
+        #guest .content .bottom h2 {
+            font-weight: 500;
+            margin: 0;
+        }
+        #guest .content .bottom .button {
+            font-size: 1rem;
+        }
+        #guest .content .bottom .textarea {
+            font-size: 1rem;
+            line-height: 1.25rem;
+        }
+        #guest .content .bottom .machines {
+            position: absolute;
+            max-height: 8rem;
+            overflow-y: auto;
+            top: 2.85rem;
+            left: 0;
+            width: 100%;
+            background-color: white;
+            border-radius: 0 0 0.5rem 0.5rem;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 1rem hsl(0deg 0% 0% / 10%);
+            line-height: 2rem;
+            font-size: 1rem;
+            z-index: 10;
+        }
+        #guest .content .bottom .review {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        #guest .content .bottom .review .text {
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+            gap: 0.25rem;
+            margin-right: 1rem;
+        }
+        #guest .content .bottom .review .machine {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        #guest .content .bottom .review .name {
+            font-size: 1rem;
+            font-weight: 400;
+            opacity: 0.75;
+        }
+        #guest .content .bottom .review-notes {
+            font-size: 1rem;
+            border: 2px dashed var(--graydarkest);
+            padding: 1rem;
+            border-radius: 1rem;
+            margin: 0;
+            text-align: left;
+        }
+        #guest .content .bottom input {
+            outline: none;
+            border: 1px solid var(--white);
+            background-color: var(--white) !important;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            width: 100%;
+            font-family: var(--font);
+            font-size: 1rem;
+            text-align: center;
+        }
+        #guest .content .bottom .page {
+            font-size: 0.75rem;
+            text-align: left;
+            padding: 1rem 2rem;
+            max-height: 16rem;
+            overflow-y: scroll;
+        }
+        #guest .content .bottom .page h1 {
+            font-size: 1.125rem;
+            font-weight: 500;
+        }
+        #guest .content .bottom .page h3 {
+            font-weight: 400;
+        }
+        #guest .content .bottom .buttons {
+            gap: 1rem;
+            display: flex;
+            width: 100%;
+        }
+        #guest .content .bottom canvas {
+            background-color: white;
+            box-shadow: 0 0 1rem hsl(0deg 0% 0% / 2.5%);
+            border-radius: 0.75rem;
+            cursor: crosshair;
+            height: 12rem;
+            width: 100%;
+        }
+
+                
+        /****************************************************	100rem	1600px	 ***************************************************/ 
+        @media only screen and (max-width: 100rem) {
+
+        }
+        /****************************************************	75rem	1200px	 ***************************************************/ 
+        @media only screen and (max-width: 75rem) {
+            
+        }
+        /****************************************************	62rem	992px	 ***************************************************/ 
+        @media only screen and (max-width: 62rem) {
+
+        }
+        /****************************************************	48rem	768px	 ***************************************************/ 
+        @media only screen and (max-width: 48rem) {
+            #guest .modal {
+                height: 100dvh;
+                max-height: initial;
+                justify-content: center;
+                padding: 2rem;
+                width: 100%;
+                border-radius: 0;
+            }
+        }
+        /****************************************************	36rem	576px	 ***************************************************/ 
+        @media only screen and (max-width: 36rem) {
+            
+        }
+        /****************************************************	26rem	416px	 ***************************************************/ 
+        @media only screen and (max-width: 26rem) {
+            
+        }
+    </style>
+</div>
