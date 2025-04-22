@@ -326,6 +326,9 @@ class TrackingOrders(BaseModel):
     status_id = db.Column(db.Integer, db.ForeignKey('tracking_status.id'), nullable=False)
     code1 = db.Column(db.String(20), nullable=False)
     code2 = db.Column(db.String(20), nullable=False)
+    origin_agency = db.Column(db.String(100))
+    destination_agency = db.Column(db.String(100))
+    external_id = db.Column(db.String(25))
     register_at = db.Column(db.DATETIME, server_default=db.func.current_timestamp())
 
     user_order = db.relationship("UserOrders", lazy="joined", foreign_keys=[user_order_id])

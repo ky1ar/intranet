@@ -24,7 +24,7 @@ class UserRepository:
     def get_user_order_by_number(self, order_number):
         user_order = g.db_session.query(UserOrders).filter_by(number=order_number).first()
         if not user_order:
-            return 'Orden no encontrada', 400
+            return 'Orden no encontrada', 404
 
         return user_order, 200
     

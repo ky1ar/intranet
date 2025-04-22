@@ -17,6 +17,9 @@ class TrackingRepository:
             status_id=1,
             code1=data.get("code1"),
             code2=data.get("code2"),
+            origin_agency=data.get("origin_agency"),
+            destination_agency=data.get("destination_agency"),
+            external_id=data.get("external_id"),
             register_at=peru_time,
         )
 
@@ -36,4 +39,17 @@ class TrackingRepository:
             return [], 400
 
         return order_list, 200
+    
+
+    @handle_db_exceptions
+    def get_tracking_order(self, user_order_id):
+        tracking_order = (
+            g.db_session.query(TrackingOrders)
+            .filter(TrackingOrders.user_order_id == user_order_id)
+            .first()
+        )
+        if not tracking_order:
+            return 'Tracking Orden no localizada', 400
+
+        return tracking_order, 200
     

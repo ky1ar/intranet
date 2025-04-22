@@ -52,3 +52,17 @@ class ApisNet:
 class ApiPeru:
     TOKEN = os.getenv("APIPERU_TOKEN")
     URL = os.getenv("APIPERU_URL")
+
+
+class Shalom:
+    TRACK_URL = os.getenv("SHALOM_TRACK_URL")
+    STATE_URL = os.getenv("SHALOM_STATE_URL")
+
+
+class Olva:
+    TRACK_URL = os.getenv("OLVA_TRACK_URL")
+    API_KEY = os.getenv("OLVA_API_KEY")
+
+
+class Marvisur:
+    TRACK_URL = os.getenv("MARVISUR_TRACK_URL")

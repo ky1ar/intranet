@@ -27,7 +27,7 @@ class OrderService:
                 "document": user_order.client.document,
                 "id": user_order.client_id,
                 "name": user_order.client.name.title(),
-                "phone": user_order.client.phone,
+                "phone": user_order.client.phone[2:],
             }
         }
 
