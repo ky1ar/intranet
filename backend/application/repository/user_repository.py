@@ -21,6 +21,15 @@ class UserRepository:
         
 
     @handle_db_exceptions
+    def get_user_by_user_order(self, user_order_id):
+        user_order = g.db_session.query(UserOrders).filter_by(id=user_order_id).first()
+        if not user_order:
+            return 'Orden no encontrada', 404
+
+        return user_order, 200
+
+
+    @handle_db_exceptions
     def get_user_order_by_number(self, order_number):
         user_order = g.db_session.query(UserOrders).filter_by(number=order_number).first()
         if not user_order:
@@ -60,13 +69,11 @@ class UserRepository:
     def get_user_orders(self, client_id):
         orders = (
             g.db_session.query(UserOrders)
-            .filter(
-                client_id == client_id,
-            )
+            .filter(UserOrders.client_id == client_id)
             .all()
         )
         if not orders:
-            return [], 200
+            return "No se encontraron ordenes", 400
 
         return orders, 200
     

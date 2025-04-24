@@ -351,3 +351,13 @@ class TrackingStatus(BaseModel):
     name = db.Column(db.String(255), nullable=False)
 
 
+class TrackingOrderStatus(BaseModel):
+    __tablename__ = 'tracking_order_history'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    tracking_order_id = db.Column(db.Integer, db.ForeignKey('tracking_orders.id'), nullable=False)
+    status_id = db.Column(db.Integer, db.ForeignKey('tracking_status.id'), nullable=False)
+    register_at = db.Column(db.DATETIME, nullable=False)
+
+    tracking_order = db.relationship("TrackingOrders", lazy="joined", foreign_keys=[tracking_order_id])
+    status = db.relationship("TrackingStatus", lazy="joined", foreign_keys=[status_id])

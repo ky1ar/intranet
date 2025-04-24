@@ -70,8 +70,3 @@ class SupportController:
         return self.support.service_order_process(request)
     
 
-    @handle_logs_and_exceptions
-    def support_dashboard(self):
-        return self.support.support_dashboard()
-    
-

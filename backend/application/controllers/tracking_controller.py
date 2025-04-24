@@ -24,4 +24,9 @@ class TrackingController:
             return validation_error, 400
         document = data.get("document")
         return self.tracking.list(document)
+    
+
+    @handle_logs_and_exceptions
+    def tracking_get_order(self, tracking_order_id):
+        return self.tracking.get_order(tracking_order_id)
 

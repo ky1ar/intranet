@@ -22,7 +22,7 @@ class TrackingService:
     def add(self, data):
         user_order_id = data.get("user_order_id")
         order_number = data.get("order_number", "").strip()
-        agency_id = data.get("agency_id")
+        agency_id = int(data.get("agency_id"))
         code1 = data.get("code1")
         code2 = data.get("code2")
 
@@ -32,6 +32,20 @@ class TrackingService:
             return "Ingrese el código 1", 400
         if not code2:
             return "Ingrese el código 2", 400
+        
+        agency_clients = {
+            1: self.shalom,
+            2: self.olva,
+            3: self.marvisur
+        }
+
+        tracking_client = agency_clients.get(agency_id)
+        if not tracking_client:
+            return "Agencia no soportada", 400
+
+        tracking_data, tracking_status = tracking_client.tracking(code1, code2)
+        if tracking_status != 200:
+            return tracking_data, tracking_status
         
         if not user_order_id:
             logging.info("Not user_order_id find, creating new one")
@@ -69,7 +83,7 @@ class TrackingService:
                     if added_client_status != 200:
                         return added_client, added_client_status
                     client_id = added_client
-            
+
             user_order, user_status = self.user_repository.add_user_order(order_number, client_id)
             if user_status != 200:
                 return user_order, user_status
@@ -79,58 +93,19 @@ class TrackingService:
             _, find_status = self.tracking_repository.get_tracking_order(user_order_id)
             if find_status == 200:
                 return "La Orden ya ha sido registrada", 400
-        
-        if agency_id == '1':
-            shalom_track, shalom_status = self.shalom.tracking(code1, code2)
-            if shalom_status != 200:
-                return shalom_track, shalom_status
-            
-            if shalom_track.get('success') == False:
-                return "Tracking no encontrado", 400
-            
-            shalom_data = shalom_track.get('data')
-            shalom_origin = shalom_data.get('origen')
-            shalom_destination = shalom_data.get('destino')
 
-            data['origin_agency'] = f"{shalom_origin.get('nombre')}, {shalom_origin.get('departamento')}".title()
-            data['destination_agency'] = f"{shalom_destination.get('nombre')}, {shalom_destination.get('departamento')}".title()
-            data['external_id'] = shalom_data.get('ose_id')
+        tracking_order, tracking_order_status = self.tracking_repository.add_tracking_order(data, tracking_data)
+        if tracking_order_status != 200:
+            return tracking_order, tracking_order_status
 
-        elif agency_id == '2':
-            olva_track, olva_status = self.olva.tracking(code1, code2)
-            if olva_status == 502:
-                return olva_track, olva_status
-            
-            if olva_status == 404:
-                return "Tracking no encontrado", 400
-            
-            olva_data = olva_track.get('data').get('general')
-            data['origin_agency'] = f"{olva_data.get('origen')}".title()
-            data['destination_agency'] = f"{olva_data.get('destino')}".title()
-
-        elif agency_id == '3':
-            marvisur_track, marvisur_status = self.marvisur.tracking(code1, code2)
-            if marvisur_status != 200:
-                return marvisur_track, marvisur_status
-            
-            if marvisur_track.get('success') == False:
-                return "Tracking no encontrado", 400
-            
-            marvisur_data = marvisur_track.get('data').get('Table')
-            for item in marvisur_data:
-                if item.get('COMENTARIO') == "RECEPCION":
-                    data['origin_agency'] = item.get('DEPORIGEN', '').title()
-                    data['destination_agency'] = item.get('DEPDESTINO', '').title()
-                    break
-                
-        tracking_order, tracking_status = self.tracking_repository.add_tracking_order(data)
-        if tracking_status != 200:
-            return tracking_order, tracking_status
+        #logging.info( tracking_data.get("status_data"))
+        tracking_history, tracking_history_status = self.tracking_repository.add_tracking_history(tracking_order, tracking_data.get("status_data"))
+        if tracking_history_status != 200:
+            return tracking_history, tracking_history_status
         
         #socketio.emit("update_schedule", {})
         return "Orden registrada correctamente", 200
         
-
 
     @handle_exceptions
     def list(self, document):
@@ -143,6 +118,8 @@ class TrackingService:
             return orders, orders_status
 
         order_ids = [order.id for order in orders]
+        logging.info(orders)
+        logging.info(client.id)
 
         tracking_list, tracking_list_status = self.tracking_repository.get_list(order_ids)
         if tracking_list_status != 200:
@@ -153,12 +130,51 @@ class TrackingService:
             data.append({
                 'id': track.id,
                 'order_number': track.user_order.number,
-                'agency': track.agency.name if track.agency else None,
-                'agency_id': track.agency_id,
+                'client_name': client.name,
+                'client_document': client.document,
+                #'agency': track.agency.name if track.agency else None,
+                'agency_image': track.agency.image if track.agency else None,
+                #'agency_id': track.agency_id,
                 'status': track.status.name if track.status else None,
                 'code1': track.code1,
                 'code2': track.code2,
-                'register_at': track.register_at.isoformat() if track.register_at else None
+                'register_at': track.register_at.strftime("%d %B %Y %I:%M %p") if track.register_at else None
             })
 
         return data, 200
+
+
+    @handle_exceptions
+    def get_order(self, tracking_order_id):
+        tracking_order, tracking_order_status = self.tracking_repository.get_tracking_order_by_id(tracking_order_id)
+        if tracking_order_status != 200:
+            return tracking_order, tracking_order_status
+        
+        user_order, user_order_status = self.user_repository.get_user_by_user_order(tracking_order.user_order_id)
+        if user_order_status != 200:
+            return user_order, user_order_status
+        
+        order_history, order_history_status = self.tracking_repository.get_order_history(tracking_order_id)
+        if order_history_status != 200:
+            return order_history, order_history_status
+
+        history_data = []
+        for history in order_history:
+            history_data.append({
+                #'status_id': history.status_id,
+                'status_name': history.status.name,
+                'register_at': history.register_at.strftime("%d-%m-%Y %I:%M %p"),
+            })
+
+        result = {
+            'agency_name': tracking_order.agency.name,
+            'code1': tracking_order.code1,
+            'code2': tracking_order.code2,
+            'origin_agency': tracking_order.origin_agency,
+            'destination_agency': tracking_order.destination_agency,
+            'last_status_name': tracking_order.status.name,
+            'last_status_id': tracking_order.status_id,
+            'status_history': history_data
+        }
+        return result, 200
+    
