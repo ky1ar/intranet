@@ -10,6 +10,7 @@
 	--gray: #ebebeb;
 	--graydark: #e6e6e6;
     --graydarkest : #cccccc;
+    --newgray: #c3c3c375;
 	--black: #0f2027;
 
     --transition: 0.2s ease-in-out; 
@@ -68,13 +69,18 @@ body.modal-open {
     background-color: hsl(0deg 0% 100% / 30%);
     border: 2px solid hsl(0deg 0% 100% / 45%);
     box-shadow: 0 0 2rem hsl(0deg 0% 0% / 5%);
-    border-radius: 2rem;
+    border-radius: 1.5rem;
 }
 .glass2 {
     background-color: hsl(0deg 0% 95% / 75%);
     border: 2px solid hsl(0deg 0% 100% / 45%);
     box-shadow: 0 0 2rem hsl(0deg 0% 0% / 5%);
     border-radius: 1.5rem;
+}
+.white {
+    background-color: var(--white);
+    box-shadow: 0 0 1rem hsl(0deg 0% 0% / 2.5%);
+    border-radius: 0.75rem;
 }
 .hover-opacity {
     transition: var(--transition);
@@ -94,7 +100,7 @@ body.modal-open {
     align-items: center;
     justify-content: center;
     z-index: 20;
-    background: linear-gradient(315deg, hsl(26.67deg 20.93% 91.57% / 85%), hsl(213.33deg 21.95% 91.96% / 85%));
+    background: linear-gradient(315deg, hsl(20deg 22% 85% / 80%), hsl(211deg 22% 85% / 80%));
     backdrop-filter: blur(2px);
 }
 .modal {
@@ -180,19 +186,66 @@ body.modal-open {
     font-weight: 500;
     font-size: 0.85rem;
     border-radius: 0.5rem;
-    line-height: 3rem;
+    line-height: 2.5rem;
     padding: 0;
     width: 100%;
     outline: none;
+}
+.modal .button.black {
+    background-color: var(--secondary);
+    color: var(--white);
 }
 .modal .button.gray {
     background-color: transparent;
     color: var(--black);
     border: 2px solid hsl(198deg 44% 11% / 15%);
 }
-.modal .button.error {
+.modal .button.green {
+    opacity: 1;
+    background-color: #4fa877;
+}
+.modal .button.error,
+.modal .button.red {
     opacity: 1;
     background-color: #d7445a;
+}
+.modal .fields {
+    position: relative;
+    display: flex;
+    gap: 1rem;
+}
+.modal label {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex: 1;
+    padding: 0 0.75rem;
+}
+.modal label select,
+.modal label input {
+    height: 2.5rem;
+    color: var(--black);
+    padding: 0;
+    width: 100%;
+    font-family: var(--font);
+    border: none;
+    outline: none;
+    background-color: transparent;
+}
+.modal .percent33 {
+    width: 33.33%;
+}
+.modal .percent40 {
+    width: 40%;
+}
+.modal .percent60 {
+    width: 60%;
+}
+.modal .percent66 {
+    width: 66.66%;
+}
+.modal .percent100 {
+    width: 100%;
 }
 /***********************************************************************************/
 #nprogress {

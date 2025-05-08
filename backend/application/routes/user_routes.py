@@ -17,16 +17,6 @@ def user_team():
     return controller.user_team(request.get_json())
 
 
-@user_bp.route("/data/<document>", methods=["GET"])
-def user_data_document(document):
-    return controller.user_data_document(document)
-
-
-@user_bp.route("/name/<document>", methods=["GET"])
-def user_name(document):
-    return controller.user_name(document)
-
-
 @user_bp.route("/create_pin", methods=["POST"])
 def user_create_pin():
     return controller.user_create_pin(request.get_json())

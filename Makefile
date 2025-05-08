@@ -1,23 +1,23 @@
 dev-up:
-	docker compose -f docker-compose.dev.yml up --build -d
+	docker compose -f docker-compose.dev.yml --env-file backend/.env.dev up --build -d
 
 dev-down:
-	docker compose -f docker-compose.dev.yml down
+	docker compose -f docker-compose.dev.yml --env-file backend/.env.dev down
 
 dev-logs:
-	docker logs -f backend_dev
-
-dev-flogs:
-	docker logs -f --tail 1000 backend_dev
+	docker logs -f --tail 1000 api_dev
 
 dev-restart:
-	docker restart backend_dev
+	docker restart api_dev
 
 prod-up:
-	docker compose -f docker-compose.prod.yml up --build -d
+	docker compose -f docker-compose.prod.yml --env-file backend/.env.prod up --build -d
 
 prod-down:
-	docker compose -f docker-compose.prod.yml down
+	docker compose -f docker-compose.prod.yml --env-file backend/.env.prod down
 
 prod-logs:
-	docker logs -f backend
+	docker logs -f --tail 1000 api
+
+prod-restart:
+	docker restart api

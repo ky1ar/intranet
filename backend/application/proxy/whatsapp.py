@@ -69,3 +69,34 @@ class Whatsapp:
         }
         return self.post(payload)
     
+
+    @handle_exceptions
+    def status_change(self, current_status_id, client_phone, client_name):
+        if current_status_id == 1:
+            return False, 200
+        
+        templates = {
+            2: "soporte_1_revision",
+            3: "soporte_2_diagnostico",
+            4: "soporte_3_repuesto",
+            5: "soporte_4_reparacion",
+            6: "soporte_5_pruebas",
+            7: "soporte_6_recojo",
+        }
+                
+        parameters = [
+            {"type": "text", "parameter_name": "username", "text": client_name},
+        ]
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": client_phone,
+            "type": "template",
+            "template": {
+                "name": templates.get(current_status_id),
+                "language": {"code": "es_PE"},
+                "components": [{"type": "body", "parameters": parameters}]
+            }
+        }
+        return self.post(payload)
+    

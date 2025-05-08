@@ -7,6 +7,7 @@ from application.repository.machine_repository import MachineRepository
 from application.repository.user_repository import UserRepository
 from application.repository.general_repository import GeneralRepository
 from application.proxy.whatsapp import Whatsapp
+from application import socketio
 
 
 class SupportService:
@@ -71,6 +72,8 @@ class SupportService:
         stamp = utc_now - timedelta(hours=5)
         current_status_id = service_order.status_id
         service_order_id = service_order.id
+        client_name = service_order.client.name
+        client_phone = service_order.client.phone
 
         next_order, next_order_status = self.repository.next_service_order(service_order, current_status_id, stamp) 
         if next_order_status != 200:
@@ -80,6 +83,10 @@ class SupportService:
         if new_order_status_code != 200:
             return new_order_status, new_order_status_code
         
+        socketio.emit("support_dashboard_update", {})
+        
+        #self.whatsapp.status_change(current_status_id, client_phone, client_name)
+        #threading.Thread(target=self.whatsapp.status_change, args=(current_status_id, client_phone, client_name)).start()
         return "Order de servicio actualizada correctamente", 200
     
 
@@ -262,8 +269,6 @@ class SupportService:
         else:
             if not phone or len(phone) != 9:
                 return "Ingresa un celular válido", 400
-            if not document or len(document) not in (8, 11):
-                return "Ingresa un documento válido", 400
             if not name:
                 return "Ingresa un nombre del cliente", 400
             

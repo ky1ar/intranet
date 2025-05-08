@@ -23,3 +23,23 @@ def general_technicians():
 @general_bp.route("/tracking_agencies", methods=["GET"])
 def tracking_agencies():
     return controller.general_tracking_agencies()
+
+
+@general_bp.route("/drivers", methods=["GET"])
+def general_drivers():
+    return controller.general_drivers()
+
+
+@general_bp.route("/vendors", methods=["GET"])
+def general_vendors():
+    return controller.general_vendors()
+
+
+@general_bp.route("/districts", methods=["GET"])
+def general_districts():
+    return controller.general_districts()
+
+
+@general_bp.route("/shipping_types", methods=["GET"])
+def general_shipping_types():
+    return controller.general_shipping_types()

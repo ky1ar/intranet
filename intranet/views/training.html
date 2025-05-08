@@ -67,7 +67,7 @@
 			
 			async getCalendar() {
 				try {
-					const response = await fetch('/api/training/calendar');
+					const response = await fetch(Alpine.store('cache').api + '/training/calendar');
 					const data = await response.json();
 					this.calendar_data = data.data || [];
 				} catch (error) {

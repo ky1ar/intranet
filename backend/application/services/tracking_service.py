@@ -4,6 +4,7 @@ from datetime import date, datetime, timezone, timedelta
 from application.handlers import handle_exceptions
 from application.repository.tracking_repository import TrackingRepository
 from application.repository.user_repository import UserRepository
+from application.repository.client_repository import ClientRepository
 from application.proxy.shalom import Shalom
 from application.proxy.olva import Olva
 from application.proxy.marvisur import Marvisur
@@ -12,6 +13,7 @@ from application.proxy.marvisur import Marvisur
 class TrackingService:
     def __init__(self):
         self.user_repository = UserRepository()
+        self.client_repository = ClientRepository()
         self.tracking_repository = TrackingRepository()
         self.shalom = Shalom()
         self.olva = Olva()
@@ -75,7 +77,7 @@ class TrackingService:
                 if not name:
                     return "Ingrese el nombre", 400
                 
-                client, client_status = self.user_repository.get_user_by_document(document)
+                client, client_status = self.client_repository.get_client_by_document(document)
                 if client_status == 200:
                     client_id = client.id
                 else:
@@ -109,17 +111,15 @@ class TrackingService:
 
     @handle_exceptions
     def list(self, document):
-        client, client_status = self.user_repository.get_user_by_document(document)
+        client, client_status = self.client_repository.get_client_by_document(document)
         if client_status != 200:
             return client, client_status
         
-        orders, orders_status = self.user_repository.get_user_orders(client.id)
+        orders, orders_status = self.client_repository.get_client_orders(client.id)
         if orders_status != 200:
             return orders, orders_status
 
         order_ids = [order.id for order in orders]
-        logging.info(orders)
-        logging.info(client.id)
 
         tracking_list, tracking_list_status = self.tracking_repository.get_list(order_ids)
         if tracking_list_status != 200:
@@ -129,11 +129,12 @@ class TrackingService:
         for track in tracking_list:
             data.append({
                 'id': track.id,
-                'order_number': track.user_order.number,
+                'order_number': track.client_order.number,
                 'client_name': client.name,
                 'client_document': client.document,
                 #'agency': track.agency.name if track.agency else None,
                 'agency_image': track.agency.image if track.agency else None,
+                'agency_id': track.agency_id,
                 #'agency_id': track.agency_id,
                 'status': track.status.name if track.status else None,
                 'code1': track.code1,
@@ -145,16 +146,16 @@ class TrackingService:
 
 
     @handle_exceptions
-    def get_order(self, tracking_order_id):
-        tracking_order, tracking_order_status = self.tracking_repository.get_tracking_order_by_id(tracking_order_id)
+    def get_order(self, order_number):
+        client_order, client_order_status = self.client_repository.get_client_order_by_number(order_number)
+        if client_order_status != 200:
+            return client_order, client_order_status
+        
+        tracking_order, tracking_order_status = self.tracking_repository.get_tracking_order(client_order.id)
         if tracking_order_status != 200:
             return tracking_order, tracking_order_status
         
-        user_order, user_order_status = self.user_repository.get_user_by_user_order(tracking_order.user_order_id)
-        if user_order_status != 200:
-            return user_order, user_order_status
-        
-        order_history, order_history_status = self.tracking_repository.get_order_history(tracking_order_id)
+        order_history, order_history_status = self.tracking_repository.get_order_history(tracking_order.id)
         if order_history_status != 200:
             return order_history, order_history_status
 
@@ -168,6 +169,7 @@ class TrackingService:
 
         result = {
             'agency_name': tracking_order.agency.name,
+            'agency_id': tracking_order.agency_id,
             'code1': tracking_order.code1,
             'code2': tracking_order.code2,
             'origin_agency': tracking_order.origin_agency,

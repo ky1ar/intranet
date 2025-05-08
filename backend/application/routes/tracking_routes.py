@@ -15,6 +15,6 @@ def list():
     return controller.tracking_list(request.get_json())
 
 
-@tracking_bp.route("/id/<tracking_order_id>", methods=["GET"])
-def get_order(tracking_order_id):
-    return controller.tracking_get_order(tracking_order_id)
+@tracking_bp.route("/order_number/<order_number>", methods=["GET"])
+def get_order(order_number):
+    return controller.tracking_get_order(order_number)

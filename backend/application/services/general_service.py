@@ -49,7 +49,14 @@ class GeneralService:
         if technicians_status != 200:
             return technicians, technicians_status
         
-        return [technician.to_dict(only_fields=['id', 'name']) for technician in technicians], 200
+        result = []
+        for technician in technicians:
+            name = self.format_name(technician.name)
+            result.append({
+                "id": technician.id,
+                "name": name
+            })
+        return result, 200
     
 
     @handle_exceptions
@@ -68,4 +75,71 @@ class GeneralService:
         ]
         return result, 200
     
+    
+    @handle_exceptions
+    def get_drivers(self):
+        drivers, drivers_status = self.repository.get_drivers() 
+        if drivers_status != 200:
+            return drivers, drivers_status
+        
+        result = []
+        for driver in drivers:
+            name = self.format_name(driver.name)
+            result.append({
+                "id": driver.id,
+                "name": name
+            })
+        return result, 200
+    
+
+    @handle_exceptions
+    def get_vendors(self):
+        vendors, vendors_status = self.repository.get_vendors() 
+        if vendors_status != 200:
+            return vendors, vendors_status
+        
+        result = []
+        for vendor in vendors:
+            name = self.format_name(vendor.name)
+            result.append({
+                "id": vendor.id,
+                "name": name
+            })
+        return result, 200
+    
+
+    @handle_exceptions
+    def get_districts(self):
+        districts, districts_status = self.repository.get_districts() 
+        if districts_status != 200:
+            return districts, districts_status
+        
+        districts_data = [district.to_dict() for district in districts]
+        #redis_client.setex(cache_key, 86400, json.dumps(districts_data)) #86400 dia #3600 hora #300 5
+
+        return districts_data, 200
+
+
+    @handle_exceptions
+    def get_shipping_types(self):
+        shipping_types, shipping_types_status = self.repository.get_shipping_types() 
+        if shipping_types_status != 200:
+            return shipping_types, shipping_types_status
+        
+        data = [shipping_type.to_dict() for shipping_type in shipping_types]
+
+        return data, 200
+    
+
+    @handle_exceptions
+    def format_name(self, full_name):
+        words = full_name.strip().split()
+
+        if len(words) == 3:
+            return f"{words[0]} {words[1]}"
+        elif len(words) == 4:
+            return f"{words[0]} {words[2]}"
+        elif len(words) == 5:
+            return f"{words[0]} {words[3]}"
+        return "Texto no válido"
         

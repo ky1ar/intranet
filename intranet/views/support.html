@@ -16,8 +16,8 @@
 						@dragleave="onDragLeave($event)"
 						@drop="dropService(group.status_id)">
 						<div class="name">
-							<img width="20" height="20" :src="'/static/images/support/' + $store.support.service_status[group.status_id].image" alt="">
-							<span x-text="$store.support.service_status[group.status_id].name"></span>
+							<img width="20" height="20" :src="'/static/images/support/' + $store.cache.service_status[group.status_id].image" alt="">
+							<span x-text="$store.cache.service_status[group.status_id].name"></span>
 						</div>
 
 						<ul>
@@ -66,13 +66,13 @@
 
 			<div class="update">
 				<div class="box">
-					<img width="20" height="20" :src="'/static/images/support/' + $store.support.service_status[selected_service?.status_id]?.image" alt="from">
-					<span x-text="$store.support.service_status[selected_service?.status_id]?.name"></span>
+					<img width="20" height="20" :src="'/static/images/support/' + $store.cache.service_status?.[selected_service?.status_id]?.image" alt="from">
+					<span x-text="$store.cache.service_status?.[selected_service?.status_id]?.name"></span>
 				</div>
 
 				<div class="box">
-					<img width="20" height="20" :src="'/static/images/support/' + $store.support.service_status[selected_service?.status_id + 1]?.image" alt="to">
-					<span x-text="$store.support.service_status[selected_service?.status_id + 1]?.name"></span>
+					<img width="20" height="20" :src="'/static/images/support/' + $store.cache.service_status?.[selected_service?.status_id + 1]?.image" alt="to">
+					<span x-text="$store.cache.service_status?.[selected_service?.status_id + 1]?.name"></span>
 				</div>
 				<img class="arrow" width="16" height="16" src="/static/images/arrownext.svg">
 			</div>
@@ -144,11 +144,11 @@
 			<div class="history">
 				<template x-for="history in service_order?.history" :key="history.status_id">
 					<div class="row">
-						<img width="20" height="20" :src="'/static/images/support/' + $store.support.service_status[history.status_id].image" alt="">
+						<img width="20" height="20" :src="'/static/images/support/' + $store.cache.service_status[history.status_id].image" alt="">
 
 						<div class="left">
 							<div class="head">
-								<span class="name" x-text="$store.support.service_status[history.status_id].name"></span>
+								<span class="name" x-text="$store.cache.service_status[history.status_id].name"></span>
 								<div class="right">
 									<span class="admin" x-text="history.admin_name"></span>
 									<span class="date" x-text="history.register_at"></span>
@@ -175,110 +175,72 @@
 		id="modal-add"
 		x-cloak>
 		<div class="modal glass2" @click.stop>
-			<form class="content">
-				<input class="percent40 title" type="text" placeholder="Número de orden" x-model="add_service_order.order_number">
+			<span class="title"><img alt="user" width="20" height="20" src="/static/images/users/00000000.jpg">Nueva orden</span>
+			
+			<div class="fields">
+				<label class="white">
+					<select x-model="add_service_order.method_id">
+						<template x-if="$store.cache.service_methods?.length !== 1">
+							<option value="">Tipo de servicio</option>
+						</template>
 
-				<div class="fields">
-					<label class="percent33">
-						<select x-model="add_service_order.method_id">
-							<template x-if="$store.support.service_methods.length !== 1">
-								<option value="">Tipo de servicio</option>
-							</template>
+						<template x-for="method in $store.cache.service_methods" :key="method.id">
+							<option :value="method.id" x-text="method.name"></option>
+						</template>
+					</select>
+				</label>
 
-							<template x-for="method in $store.support.service_methods" :key="method.id">
-								<option :value="method.id" x-text="method.name"></option>
-							</template>
-						</select>
-					</label>
+				<label class="white">
+					<input type="date" x-model="add_service_order.register_date">
+				</label>
 
-					<label class="percent33">
-						<input type="date" x-model="add_service_order.register_date">
-					</label>
+				<label class="white">
+					<img alt="user" src="static/images/id.svg" width="16" height="16">
+					<input type="text" maxlength="11" @input="add_service_order.document = add_service_order.document.replace(/\D/g, '')" placeholder="DNI / RUC" x-model="add_service_order.document" @blur="fetchUserData()">
+					<input type="hidden" x-model="add_service_order.document_id">
+				</label>
+			</div>
 
-					<label class="percent33">
-						<img alt="user" src="static/images/id.svg" width="16" height="16">
-						<input type="text" maxlength="11" @input="add_service_order.document = add_service_order.document.replace(/\D/g, '')" placeholder="DNI / RUC" x-model="add_service_order.document" @blur="fetchUserData()">
-						<input type="hidden" x-model="add_service_order.document_id">
-					</label>
-					
-					<div class="contact">
-						<div class="data">
-							<label class="percent100">
-								<img alt="user" src="static/images/user.svg" width="16" height="16">
-								<input type="text" placeholder="Nombre o Razón Social" x-model="add_service_order.name" disabled>
-							</label>
-	
-							<label class="percent66">
-								<img alt="email" src="static/images/email.svg" width="16" height="16">
-								<input type="text" placeholder="Email" x-model="add_service_order.email">
-							</label>
-	
-							<label class="percent33">
-								<img alt="phone" src="static/images/phone.svg" width="16" height="16">
-								<input type="text" maxlength="9" @input="add_service_order.phone = add_service_order.phone.replace(/\D/g, '')" placeholder="Celular" x-model="add_service_order.phone">
-							</label>
-						</div>
-					</div>
-					
-					<label class="percent66">
-						<img alt="user" src="static/images/location.svg" width="16" height="16">
-						<input type="text" placeholder="Dirección" x-model="add_service_order.address">
-					</label>
+			<div class="white">
+				<label class="percent100">
+					<img alt="user" src="static/images/user.svg" width="16" height="16">
+					<input type="text" placeholder="Nombre o Razón Social" x-model="add_service_order.name">
+				</label>
 
-					<label class="percent33">
-						<select x-model="add_service_order.district_id">
-							<template x-if="districts.length !== 1">
-								<option value="">Distrito</option>
-							</template>
-							
-							<template x-for="district in districts" :key="district.id">
-								<option :value="district.id" x-text="district.name"></option>
-							</template>
-						</select>
-					</label>
+				<label class="percent66">
+					<img alt="email" src="static/images/email.svg" width="16" height="16">
+					<input type="text" placeholder="Email" x-model="add_service_order.email">
+				</label>
 
-					<label class="percent33">
-						<img alt="user" src="static/images/maps.svg" width="16" height="16">
-						<input type="text" placeholder="Link de Maps" x-model="add_service_order.maps">
-					</label>
+				<label class="percent33">
+					<img alt="phone" src="static/images/phone.svg" width="16" height="16">
+					<input type="text" maxlength="9" @input="add_service_order.phone = add_service_order.phone.replace(/\D/g, '')" placeholder="Celular" x-model="add_service_order.phone">
+				</label>
+			</div>
 
-					<label class="percent33">
-						<select x-model="add_service_order.vendor_id">
-							<template x-if="shippingMethod.length !== 1">
-								<option value=null>Responsable</option>
-							</template>
+			<div class="fields">
+				<label class="white">
+                	<input type="text" x-model="service_order.machine" placeholder="Nombre del equipo" @input="getMachine()">
+				</label>
 
-							<template x-for="vendor in vendors" :key="vendor.id">
-								<option :value="vendor.id" x-text="vendor.name"></option>
-							</template>
-						</select>   
-					</label>
-
-					<label class="percent33">
-						<select x-model="add_service_order.driver_id">
-							<template x-for="driver in drivers" :key="driver.id">
-								<option :value="driver.id" x-text="driver.name"></option>
-							</template>
-						</select>
-					</label>
-				</div>
-				
-				<div class="process_buttons">
-					<template x-if="add_service_order.edit && add_service_order.status_id != 3 && add_service_order.status_id != 4 && (auth.level > 2 || auth.app_level == 3)">
-						<button class="hover-opacity red" type="button" @click="deleteShipping()">
-							<span>Eliminar</span>
-						</button>
+				<div class="white machines">
+					<template x-for="machine in machines" :key="machine.id">
+						<span
+						x-text="machine.name"
+						@click="
+							service_order.machine = machine.name;
+							service_order.machine_id = machine.id;
+							service_order.machine_image = machine.image;
+							machines = [];
+						">
+						</span>
 					</template>
-					<button class="hover-opacity" type="button" :class="[add_service_order.button_class, add_service_order.edit ? 'green' : '']" @click="processShipping()">
-						<span x-text="add_service_order.button_text"></span>
-					</button>
 				</div>
-				
+            </div>
 
-				<div class="hover-opacity" id="modal-close" @click="closeShipping()" >
-					<img alt="close" src="static/images/x.svg" width="12" height="12">
-				</div>
-			</form>
+			<textarea x-model="status_notes" class="text-area" placeholder="Problema reportado"></textarea>
+
+			<button class="button hover-opacity" @click="newOrder()" :class="buttons.add.class" x-text="buttons.add.text"></button>
 
 			<div class="hover-opacity modal-close" @click="$store.modal.hideLast()">
 				<img alt="close" src="static/images/x.svg" width="12" height="12">
@@ -295,20 +257,172 @@
 
 	<script>
 		Alpine.data('support_data',() => ({
-		
-			//click="$store.modal.hideLast()"
 			dashboard: [],
 			service_order: [],
+			machines: [],
 			add_service_order: {
-				order_number: null,
-			},
+                document: '',
+                id: null,
+                name: '',
+                phone: '',
+                notes: '',
+                machine: null,
+                machine_id: null,
+                machine_image: null,
+            },
 			selected_service: null,
 			status_notes: '',
 			show_document: false,
+			buttons: {
+                add: { class: '', text: 'Añadir' },
+            },
+
+			async init() {
+				console.log('Inicializando Support...');
+
+                this.initSocket();
+				const fetchDataIfNeeded = !Alpine.store('cache').isLoaded('service_status') ? this.fetchData() : Promise.resolve();
+				await Promise.all([fetchDataIfNeeded, this.getDashboard()]);
+			},
+
+			async initSocket() {
+				try {
+					this.socket = io(Alpine.store('cache').api +"/");
+
+					this.socket.on("support_dashboard_update", async () => {
+						await this.getDashboard();
+					});
+
+					this.socket.on("connect_error", (err) => {
+						console.error("Error en la conexión del socket:", err.message);
+					});
+
+				} catch (error) {
+					console.error("Error inicializando WebSocket:", error);
+				}
+			},
+
+			async fetchData() {
+				try {
+					console.log('Obteniendo datos desde API');
+					
+					const endpoints = [
+						{ url: '/general/service_status', key: 'service_status' },
+						{ url: '/general/service_methods', key: 'service_methods' },
+						{ url: '/general/technicians', key: 'technicians' },
+					];
+
+					const responses = await Promise.all(
+						endpoints.map(ep => 
+							fetch(Alpine.store('cache').api + ep.url)
+								.then(res => res.json())
+								.then(data => ({ key: ep.key, data: data.data }))
+						)
+					);
+
+					responses.forEach(({ key, data }) => {
+						Alpine.store('cache').setData(key, data);
+					});
+
+				} catch (error) {
+					console.error('Error fetching data:', error);
+				}
+			},
+
+			async getMachine() {
+                const machine_search = this.service_order.machine;
+                try {
+                    NProgress.start();
+                    if (machine_search.length < 3) {
+                        this.machines = [];
+                        return;
+                    }
+                    
+                    const response = await fetch(Alpine.store('cache').api + `/machine/find/${machine_search}`, {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+                    this.machines = jsonData.data;
+                } catch (error) {
+                    this.machines = [];
+                    return;
+                } finally {
+                    NProgress.done();
+                }
+            },
+
+			async newOrder() {
+                NProgress.start();
+
+                const payload = { 
+                    machine_id: this.add_service_order.machine_id,
+                    admin_id: Alpine.store('auth').id,
+                    notes: this.add_service_order.notes,
+                    client_id: this.add_service_order.id,
+                    client: {
+                        document: this.add_service_order.document,
+                        name: this.add_service_order.name,
+                        phone: this.add_service_order.phone,
+                    },
+                }
+
+                try {
+                    const response = await fetch(Alpine.store('cache').api + '/support/order/new', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+                    
+                    //this.$refs.terms.scrollTop = 0;
+                    //this.step++;
+                    this.resetOrder();
+
+                } catch (error) {
+                    this.showError('new', error.message);
+                } finally {
+                    NProgress.done();
+                }
+            }, 
 			
+			showError(btnKey, errorMsg) {
+                const originalText = this.buttons[btnKey].text;
+                const originalClass = this.buttons[btnKey].class;
+
+                if (originalClass == 'error') {
+                    return;
+                }
+                this.buttons[btnKey].text = errorMsg;
+                this.buttons[btnKey].class = 'error';
+
+                setTimeout(() => {
+                    this.buttons[btnKey].text = originalText;
+                    this.buttons[btnKey].class = originalClass;
+                }, 1000);
+            },
+
+			resetOrder() {
+                this.add_service_order = {
+                    document: '',
+                    id: null,
+                    name: '',
+                    phone: '',
+                    notes: '',
+                    machine: null,
+                    machine_id: null,
+                    machine_image: null,
+                };
+            },
+
 			async getDashboard() {
 				try {
-					const response = await fetch('/api/support/dashboard');
+					const response = await fetch(Alpine.store('cache').api + '/support/dashboard');
 					const data = await response.json();
 					this.dashboard = data.data || [];
 				} catch (error) {
@@ -355,10 +469,9 @@
 			async viewOrder(order_number) {
 				NProgress.start();
 				try {
-					const response = await fetch(`/api/support/order/${order_number}`);
+					const response = await fetch(Alpine.store('cache').api + `/support/order_number/${order_number}`);
 					const data = await response.json();
 					this.service_order = data.data;
-					this.expandedNotes = {};
 					Alpine.store('modal').show('view');
 				} catch (error) {
 					console.error('Error en la asignación:', error);
@@ -372,31 +485,28 @@
 			},
 
 			async fetchUserData() {
-				const document = this.process_shipping.document;
+				const document = this.add_service_order.document;
 				if (!document) {
-					this.process_shipping.document_id = '';
-					this.process_shipping.email = '';
-					this.process_shipping.name = '';
-					this.process_shipping.phone = '';
+					this.add_service_order.document_id = '';
+					this.add_service_order.name = '';
+					this.add_service_order.phone = '';
 					return;
 				}
 
 				try {
-					const response = await fetch(`/api/user/${document}`);
+					const response = await fetch(Alpine.store('cache').api + `/client/data/${document}`);
 					if (!response.ok) {
-						this.process_shipping.document_id = '';
-						this.process_shipping.email = '';
-						this.process_shipping.name = '';
-						this.process_shipping.phone = '';
+						this.add_service_order.document_id = '';
+						this.add_service_order.name = '';
+						this.add_service_order.phone = '';
 						return;
 					}
 
 					const data = await response.json();
 					if (data.success) {
-						this.process_shipping.document_id = data.data.id;
-						this.process_shipping.email = data.data.email;
-						this.process_shipping.name = data.data.name;
-						this.process_shipping.phone = data.data.phone;
+						this.add_service_order.document_id = data.data.id;
+						this.add_service_order.name = data.data.name;
+						this.add_service_order.phone = data.data.phone;
 						//this.process_shipping.disabled = true;
 					} else {
 						console.warn('Respuesta de API no exitosa.');
@@ -415,7 +525,7 @@
 				};
 			
 				try {
-					const response = await fetch('/api/support/order/next', {
+					const response = await fetch(Alpine.store('cache').api + '/support/order/next', {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json'
@@ -429,7 +539,7 @@
 
 					Alpine.store('modal').hide('status');
 					this.selected_service = null;
-					await this.getDashboard();
+					//await this.getDashboard();
 
 				} catch (error) {
 					console.error('Error en la asignación:', error);
@@ -438,33 +548,7 @@
 				}
 			},
 			
-			async fetchData() {
-				try {
-					console.log('Obteniendo datos desde API')
-					const [serviceStatusRes, serviceMethodsRes, techniciansRes] = await Promise.all([
-						fetch('/api/general/service_status').then(res => res.json()),
-						fetch('/api/general/service_methods').then(res => res.json()),
-						fetch('/api/general/technicians').then(res => res.json()),
-					]);
 
-					Alpine.store('support').setServiceStatus(serviceStatusRes.data);
-					Alpine.store('support').setServiceMethods(serviceMethodsRes.data);
-					Alpine.store('support').setTechnicians(techniciansRes.data);
-					//await this.getDashboard();
-				} catch (error) {
-					console.error('Error fetching data:', error);
-				}
-			},
-			
-			async init() {
-				console.log('Inicializando Support...');
-				
-				//const loginVerification = Alpine.store('auth').loginVerify();
-				const fetchDataIfNeeded = !Alpine.store('support').isLoaded() ? this.fetchData() : Promise.resolve();
-
-				await Promise.all([fetchDataIfNeeded, this.getDashboard()]);
-
-			}
 		}));
 	</script>
 
@@ -830,6 +914,35 @@
 			font-size: 0.8rem;
 			opacity: 0.75;
 			text-align: justify;
+		}
+		/***********************************************************************************/
+		#modal-add .modal .title {
+			align-items: center;
+			gap: 0.5rem;
+			display: flex;
+		}
+		#modal-add .modal .title img {
+			border-radius: 1rem;
+		}
+		#modal-add .modal .machines {
+			position: absolute;
+			max-height: 8rem;
+			overflow-y: auto;
+			top: 2.75rem;
+			left: 0;
+			width: 100%;
+			display: flex;
+			flex-direction: column;
+			line-height: 2rem;
+			z-index: 10;
+		}
+		#modal-add .modal .machines span {
+			padding: 0 0.75rem;
+			transition: var(--transition);
+			cursor: pointer;
+		}
+		#modal-add .modal .machines span:hover {
+			background-color: var(--gray);
 		}
 	</style>
 </div>

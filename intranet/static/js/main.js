@@ -2,11 +2,12 @@ document.addEventListener('alpine:init', () => {
     Alpine.store('router', {
         active: window.location.pathname,
         titles: {
-            '/': 'Krear 3D - Iniciar Sesión',
+            //'/': 'Krear 3D - Iniciar Sesión',
             '/Home': 'Krear 3D - Inicio',
             '/soporte': 'Krear 3D - Panel de Soporte',
             '/capacitaciones': 'Krear 3D - Panel de Capacitaciones',
             '/logistics': 'Krear 3D - Panel de Logística',
+            '/tracking': 'Krear 3D - Panel de Trackings',
             '/clients': 'Krear 3D - Clientes',
           },
 
@@ -66,36 +67,6 @@ document.addEventListener('alpine:init', () => {
         },
     });
 
-    Alpine.store('support', {
-        service_status: [],
-        service_methods: [],
-        technicians: [],
-
-        setServiceStatus(data) {
-            console.log('Datos de estados de servicio almacenados en el store');
-            this.service_status = data;
-        },
-
-        setServiceMethods(data) {
-            console.log('Datos de tipos de servicio almacenados en el store');
-            this.service_methods = data;
-        },
-
-        setTechnicians(data) {
-            console.log('Datos de técnicos almacenados en el store');
-            this.technicians = data;
-        },
-
-        isLoaded() {
-            console.log('Verficando datos de Support...')
-            if (this.service_status.length === 0) {
-                console.log('Los datos no se encuentran en el Store');
-                return false;
-            } 
-            console.log('Los datos se encuentran en el Store');
-            return true;
-        },
-    });
 
     Alpine.store('auth', {
         image: (JSON.parse(localStorage.getItem('user_data'))?.image || 'user_default.jpg'),
@@ -195,18 +166,47 @@ document.addEventListener('alpine:init', () => {
         },
 
         pages: [
-            { name: 'home', label: 'Inicio', image: 'home' },
-            { name: 'support', label: 'Soporte', image: 'support' },
-            { name: 'training', label: 'Capacitaciones', image: 'training' },
-            { name: 'logistics', label: 'Logística', image: 'logistics' },
-            { name: 'schedule', label: 'Horarios', image: 'schedule' },
-            { name: 'clients', label: 'Clientes', image: 'clients' },
-            { name: 'machines', label: 'Equipos', image: 'machines' },
+            //{ name: 'home', label: 'Inicio', image: 'home' },
+            //{ name: 'support', label: 'Soporte', image: 'support' },
+            //{ name: 'training', label: 'Capacitaciones', image: 'training' },
+            { name: 'logistics', label: 'Envíos', image: 'logistics' },
+            { name: 'tracking', label: 'Tracking', image: 'tracking' },
+            //{ name: 'schedule', label: 'Horarios', image: 'schedule' },
+            //{ name: 'clients', label: 'Clientes', image: 'clients' },
+            //{ name: 'machines', label: 'Equipos', image: 'machines' },
         ],
 
     }));
+
+
+    Alpine.store('cache', {
+        api: 'https://devapi.krear3d.com',
+
+        setData(key, data) {
+            if (!this.hasOwnProperty(key)) {
+                console.log(`La clave '${key}' no existe. Creándola automáticamente en el store.`);
+                this[key] = [];
+            }
+            console.log(`Datos de ${key} almacenados en el store`);
+            this[key] = data;
+        },
     
+        isLoaded(key) {
+            console.log(`Verificando datos de ${key}...`);
+            if (!this.hasOwnProperty(key)) {
+                console.log(`La clave '${key}' no existe en el store`);
+                return false;
+            }
+            if (!Array.isArray(this[key]) || this[key].length === 0) {
+                console.log(`Los datos de '${key}' no se encuentran en el Store`);
+                return false;
+            }
+            console.log(`Los datos de '${key}' se encuentran en el Store`);
+            return true;
+        },
+    });
 });
+
 
 async function loginVerify(context) {
     console.log('Verificando Login...');
@@ -231,7 +231,7 @@ async function loginVerify(context) {
     NProgress.start();
 
     try {
-        const response = await fetch('/api/user/verify', {
+        const response = await fetch(Alpine.store('cache').api + '/user/verify', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,

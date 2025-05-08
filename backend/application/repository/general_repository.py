@@ -1,6 +1,6 @@
 from datetime import date, datetime, timezone, timedelta
 from application.handlers import handle_db_exceptions
-from application.models import ServiceStatus, ServiceMethod, Users, TrackingAgencies
+from application.models import ServiceStatus, ServiceMethod, Users, TrackingAgencies, ShippingDistricts, ShippingMethod
 from flask import g
 
 
@@ -35,6 +35,46 @@ class GeneralRepository:
             return [], 400
         return agencies, 200
 
+
+    @handle_db_exceptions
+    def get_drivers(self):
+        drivers = g.db_session.query(Users).filter_by(shipping_app_level=4).all()
+        if not drivers:
+            return 'Drivers not found', 404
+        return drivers, 200
+
+
+    @handle_db_exceptions
+    def get_vendors(self):
+        vendors = g.db_session.query(Users).filter((Users.level_id == 3) | (Users.department_id.in_([3, 7]))).order_by(Users.name).all()
+        if not vendors:
+            return 'Vendors not found', 400
+        return vendors, 200
+
+
+    @handle_db_exceptions
+    def get_districts(self):
+        #cache_key = "district:list"
+
+        #cached = redis_client.get(cache_key)
+        #if cached:
+        #    logging.info('From redis')
+        #    return json.loads(cached), 200 
+        
+        districts = g.db_session.query(ShippingDistricts).order_by(ShippingDistricts.name).all()
+        if not districts:
+            return 'Districts not found', 400
+        return districts, 200
+
+
+    @handle_db_exceptions
+    def get_shipping_types(self):
+        shipping_types = g.db_session.query(ShippingMethod).all()
+        if not shipping_types:
+            return 'Shipping Types not found', 400
+        
+        return shipping_types, 200
+        
 
     @handle_db_exceptions
     def get_technicians(self):

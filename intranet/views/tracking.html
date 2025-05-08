@@ -1,0 +1,656 @@
+<div x-data="tracking_data">
+	<div id="tracking-dashboard">
+        <div class="header">
+			<div class="titles">
+				<span class="range">Panel de Trackings</span>
+			</div>
+			<div class="title hover-opacity" @click="addTracking()">+ Añadir tracking</div>
+		</div>
+		<div class="container-tracking">
+			<!-- AGENCIA -->
+			<div class="cont agencia">
+				<h1 class="title"><img class="icon" src="/static/images/tracking/op1-house.svg" alt="">En Agencia</h1>
+				<div class="data">
+					<template x-if="orders.agencia.length > 0">
+						<template x-for="order in orders.agencia" :key="order.orderId">
+							<div class="order">
+								<div class="f1">
+									<p class="orderId" x-text="order.orderId"></p>
+									<img :src="order.logo" alt="">
+								</div>
+								<div class="f2">
+									<p class="tracking" x-text="order.tracking"></p>
+									<p class="client_name" x-text="order.client_name"></p>
+									<p class="document" x-text="order.document"></p>
+								</div>
+								<div class="f3">
+									<p class="origin" x-text="order.origin"></p>
+									<span class="line" 
+									:class="{'no-animation': order.state_id === 3}"
+									:style="`--line-color: ${getLineColor(order.agency_id)}`"></span>
+									<p class="destiny" x-text="order.destiny"></p>
+								</div>
+							</div>
+						</template>
+					</template>
+					<template x-if="orders.agencia.length === 0">
+						<p class="no-orders">No hay órdenes en agencia.</p>
+					</template>
+				</div>
+			</div>
+		
+			<!-- RUTA -->
+			<div class="cont ruta">
+				<h1 class="title"><img class="icon" src="/static/images/tracking/op2-car.svg" alt="">En Ruta</h1>
+				<div class="data">
+					<template x-if="orders.ruta.length > 0">
+						<template x-for="order in orders.ruta" :key="order.orderId">
+							<div class="order">
+								<div class="f1">
+									<p class="orderId" x-text="order.orderId"></p>
+									<img :src="order.logo" alt="">
+								</div>
+								<div class="f2">
+									<p class="tracking" x-text="order.tracking"></p>
+									<p class="client_name" x-text="order.client_name"></p>
+									<p class="document" x-text="order.document"></p>
+								</div>
+								<div class="f3">
+									<p class="origin" x-text="order.origin"></p>
+									<span class="line" 
+									:class="{'no-animation': order.state_id === 3}"
+									:style="`--line-color: ${getLineColor(order.agency_id)}`"></span>
+									<p class="destiny" x-text="order.destiny"></p>
+								</div>
+							</div>
+						</template>
+					</template>
+					<template x-if="orders.ruta.length === 0">
+						<p class="no-orders">No hay órdenes en ruta.</p>
+					</template>
+				</div>
+			</div>
+		
+			<!-- ENTREGADO -->
+			<div class="cont entregado">
+				<h1 class="title"><img class="icon" src="/static/images/tracking/op3-pack.svg" alt="">Entregado</h1>
+				<div class="data">
+					<template x-if="orders.entregado.length > 0">
+						<template x-for="order in orders.entregado" :key="order.orderId">
+							<div class="order">
+								<div class="f1">
+									<p class="orderId" x-text="order.orderId"></p>
+									<img :src="order.logo" alt="">
+								</div>
+								<div class="f2">
+									<p class="tracking" x-text="order.tracking"></p>
+									<p class="client_name" x-text="order.client_name"></p>
+									<p class="document" x-text="order.document"></p>
+								</div>
+								<div class="f3">
+									<p class="origin" x-text="order.origin"></p>
+									<span class="line" 
+									:class="{'no-animation': order.state_id === 3}"
+									:style="`--line-color: ${getLineColor(order.agency_id)}`"></span>
+									<p class="destiny" x-text="order.destiny"></p>
+								</div>
+							</div>
+						</template>
+					</template>
+					<template x-if="orders.entregado.length === 0">
+						<p class="no-orders">No hay órdenes entregadas.</p>
+					</template>
+				</div>
+			</div>
+		</div>
+	</div>
+    <div
+		x-show="$store.modal.isVisible('add')"
+		@click="$store.modal.hideLast()"
+		x-transition.duration.300ms
+		class="modal-wrap"
+		id="modal-add"
+		x-cloak
+	>
+		<div id="registerTrackings" class="modal" @click.stop>
+			<form  x-ref="form" method="POST" class="form" @submit.prevent="processTracking">
+				<div class="hover-opacity modal-close" @click="$store.modal.hideLast()">
+					<img alt="close" src="static/images/x.svg" width="12" height="12">
+				</div>
+				<h1 class="title">Registro de Tracking</h1>
+				<div class="order">
+					<input
+						x-model="order_number"
+						type="text" 
+						placeholder="N° Orden" 
+						maxlength="6" 
+						@input="
+							if ($event.target.value.toUpperCase().startsWith('S')) {
+							order_number = $event.target.value.toUpperCase();
+							} else {
+							order_number = '';
+							}
+						"
+						@blur="fetchOrderData()"
+						required>
+				</div>
+				<div class="doc">
+					<input 
+					x-model="document"
+					type="text"
+					placeholder="DNI o RUC" 
+					maxlength="15"
+					x-bind:disabled="disableDoc"
+					@blur="fetchDocumentData()" 
+					required>
+				</div>
+				<div class="name">
+					<input 
+						x-model="name"
+						type="text"
+						placeholder="Nombre o Razón Social" 
+						maxlength="40" 
+						x-bind:disabled="disableName"
+						required>
+				</div>
+				<div class="phone">
+					<input 
+						x-model="phone"
+						type="tel" 
+						placeholder="Celular" 
+						maxlength="9" 
+						x-on:input="phone = $event.target.value.replace(/[^0-9]/g, '')"
+						x-bind:disabled="disablePhone" 
+						required
+					>
+				</div>
+				<div class="email">
+					<input 
+					x-model="email"
+					type="email" 
+					placeholder="Correo"
+					maxlength="50"
+					x-bind:disabled="disableEmail">
+				</div>
+				<div class="agen-tit">
+					<p>Agencia</p>
+				</div>
+				<div class="agen">
+					<select name="agency" id="agency" x-model="agency" @change="updateFields">
+						<option value="1">Shalom</option>
+						<option value="2">Olva</option>
+						<option value="3">Marvisur</option>
+					</select>
+				</div>
+				<div class="track">
+					<input 
+						type="text" 
+						:placeholder="config[agency].p1" 
+						x-model="code1" 
+						x-on:input="
+							if (agency === '3') {
+								code1 = $event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+								if (!code1.startsWith('V')) {
+									code1 = '';
+								}
+							} else {
+								code1 = $event.target.value.replace(/[^0-9]/g, '');
+							}
+						" 
+						:maxlength="config[agency].m1" 
+						required>
+				
+					<template x-if="config[agency].type2 === 'select'">
+						<select class="sp" x-model="code2" required>
+							<template x-for="opt in config[agency].options" :key="opt">
+							  <option :value="opt" x-text="opt"></option>
+							</template>
+						  </select>
+					</template>
+				
+					<template x-if="config[agency].type2 === 'text'">
+						<input 
+						  type="text" 
+						  x-model="code2"
+						  x-on:input="
+							if (agency === '3') {
+							  code2 = $event.target.value.replace(/[^0-9]/g, '');
+							} else {
+							  code2 = $event.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+							}
+						  "
+						  :placeholder="config[agency].p2" 
+						  :maxlength="config[agency].m2" 
+						  required>
+					  </template>
+				</div>
+				<div id="error-register"></div>
+				<button class="ins hover-opacity" type="submit">Agregar Registro</button>
+			</form>
+		</div>
+	</div>
+	<script>
+		Alpine.data('tracking_data', () => ({
+			order_number: "",    
+			document: "",
+			name: "", 
+			phone: "",    
+			email: "",       
+			agency: "1",         
+			code1: "",          
+			code2: "",
+			client_id: null,
+			user_order_id: null,
+			disableDoc: false,    
+			disableName: false,   
+			disablePhone: false,  
+			disableEmail: false,             
+			orders: {
+				agencia: [],
+				ruta: [],
+				entregado: []
+        	},
+			config: {
+				1: { p1: "N° de Orden", m1: 8, type2: "text", p2: "Código de Orden", m2: 4 },
+				2: { p1: "N° de Tracking", m1: 7, type2: "select", options: ["25", "24", "23", "22"] },
+				3: { p1: "V001", m1: 4, type2: "text", p2: "0000001", m2: 7 }
+			},
+		
+			init() {
+				this.loadOrders();
+			},
+		
+			updateFields() {
+				this.code1 = "";
+				this.code2 = "";
+				if (this.agency === "2" && Array.isArray(this.config[this.agency]?.options)) {
+					this.code2 = this.config[this.agency].options[0];
+				}
+
+				this.$nextTick(() => {});
+			},
+	  
+			fetchOrderData() {
+				const orderNumber = this.order_number.trim();
+				if (!orderNumber) return;
+
+				fetch(Alpine.store('cache').api + `/order/id/${orderNumber}`)
+					.then(res => res.json())
+					.then(({ data: { client = {}, user_order_id = null } = {} }) => {
+						this.document = client.document || "";
+						this.name = client.name || "";
+						this.phone = client.phone || "";
+						this.email = client.email || "";
+						this.client_id = client.id || null;
+						this.user_order_id = user_order_id;
+						this.disableDoc = !!client.document;
+						this.disableName = !!client.name;
+						this.disablePhone = !!client.phone;
+						this.disableEmail = !!client.email;
+					})
+					.catch(() => {
+						this.document = this.name = this.phone = this.email = "";
+						this.client_id = this.user_order_id = null;
+						this.disableDoc = this.disableName = this.disablePhone = this.disableEmail = false;
+					});
+			},
+
+			fetchDocumentData() {
+				const doc = this.document.trim();
+				if (!doc) return;
+
+				fetch(Alpine.store('cache').api + `/client/data/${doc}`)
+					.then(res => res.json())
+					.then(({ data: client = {} } = {}) => {
+						this.name = client.name || "";
+						this.phone = client.phone || "";
+						this.email = client.email || "";
+						this.client_id = client.id || null;
+						this.disableName = !!client.name;
+						this.disablePhone = !!client.phone;
+						this.disableEmail = !!client.email;
+					})
+					.catch(() => {
+						this.name = this.phone = this.email = "";
+						this.client_id = null;
+						this.disableName = this.disablePhone = this.disableEmail = false;
+					});
+			},
+			getLineColor(agency_id) {
+				switch (agency_id) {
+					case 1: return '#ff4848'; // Rojo para Shalom
+					case 2: return '#ffdd00'; // Amarillo para Olva
+					case 3: return '#ff7f00'; // Naranja para Marvisur
+					default: return '#ff4848'; // Rojo por defecto
+				}
+			},
+			resetForm() {
+				this.order_number = "";
+				this.document = "";
+				this.name = "";
+				this.phone = "";
+				this.email = "";
+				this.user_order_id = "";
+				this.client_id = null;
+				this.disableDoc = false;
+				this.disableName = false;
+				this.disablePhone = false;
+				this.disableEmail = false;
+				this.disableInputs = false;
+			},
+
+			processTracking() {
+				if (!this.$refs.form.checkValidity()) {
+					return;
+				}
+
+				const payload = {
+					order_number: this.order_number,
+					agency_id: this.agency,
+					code1: this.code1,
+					code2: this.code2,
+					client_id: this.client_id || null,
+					user_order_id: this.user_order_id || null,
+					client: {
+						document: this.document,
+						name: this.name,
+						phone: this.phone,
+						email: this.email,
+					},
+				};
+
+				fetch(Alpine.store('cache').api + "/tracking/add", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify(payload),
+				})
+				.then(res => res.json())
+				.then(data => {
+					const errorContainer = document.getElementById("error-register");
+					if (data.success) {
+						errorContainer.innerHTML = `<p class="true success-register">Registro Exitoso</p>`;
+						errorContainer.style.display = "block";
+						setTimeout(() => {
+							errorContainer.style.display = "none";
+						}, 1500);
+
+						this.resetForm();
+					} else {
+						errorContainer.innerHTML = `<p>${data.data?.message || "Error al registrar el tracking."}</p>`;
+						errorContainer.style.display = "block";
+						setTimeout(() => {
+							errorContainer.style.display = "none";
+						}, 1500);
+					}
+				})
+				.catch(() => {
+					const errorContainer = document.getElementById("error-register");
+					errorContainer.innerHTML = `<p>Error</p>`;
+					errorContainer.style.display = "block";
+					setTimeout(() => {
+						errorContainer.style.display = "none";
+					}, 1500);
+				});
+			},
+			async loadOrders() {
+				const response = await fetch('/static/js/listOrders.json');
+				const data = await response.json();
+				this.orders.agencia = data.filter(order => order.state_id === 1);
+				this.orders.ruta = data.filter(order => order.state_id === 2);
+				this.orders.entregado = data.filter(order => order.state_id === 3);
+			},
+			addTracking() {
+			Alpine.store('modal').show('add');
+			}
+		}));
+	  </script>
+	
+	
+	<style>
+        #tracking-dashboard {
+			width: 100%;
+			user-select: none;
+			padding: 1rem;
+			min-height: calc(100vh - 6.5rem);
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			margin: 0 auto;
+			max-width: 118rem;
+		}
+		#tracking-dashboard .header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#tracking-dashboard .header .title {
+			background-color: var(--black);
+			color: var(--white);
+			padding: 0.75rem 1.5rem;
+			border-radius: 2rem;
+			font-weight: 300;
+		}
+		#tracking-dashboard .header .title img {
+			padding: 0.5rem;
+			border-radius: 0.5rem;
+			border: 2px solid #eee;
+		}
+		#tracking-dashboard .header .range {
+			font-size: 1rem;
+			font-weight: 600;
+			text-transform: capitalize;
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			position: relative;
+		}
+		#tracking-dashboard .container-tracking{
+			display: flex;
+			border: .1rem solid var(--white);
+			border-radius: 2rem;
+		}
+		#tracking-dashboard .container-tracking .cont{
+			flex: 1;
+			padding: 1rem;
+		}
+		#tracking-dashboard .container-tracking .cont .title{
+			margin: 0 0 1rem 0;
+			text-align: center;
+			font-size: 1rem;
+			font-weight: 400;
+		}
+		#tracking-dashboard .container-tracking .cont .title .icon{
+			width: 1.3rem;
+			margin-right: .5rem;
+		}
+		#tracking-dashboard .container-tracking .cont.agencia .title .icon{
+			filter: invert(49%) sepia(96%) saturate(747%) hue-rotate(196deg) brightness(104%) contrast(101%);
+		}
+		#tracking-dashboard .container-tracking .cont.ruta{
+			border-left: .1rem solid var(--white);
+			border-right: .1rem solid var(--white);
+		}
+		#tracking-dashboard .container-tracking .cont.ruta .title .icon {
+			filter: invert(82%) sepia(45%) saturate(800%) hue-rotate(330deg) brightness(100%) contrast(95%);
+		}
+		#tracking-dashboard .container-tracking .cont.entregado .title .icon {
+			filter: hue-rotate(30deg);
+		}
+		#tracking-dashboard .container-tracking .cont .data{
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+		}
+		#tracking-dashboard .container-tracking .cont .data .no-orders{
+			text-align: center;
+		}
+		#tracking-dashboard .container-tracking .cont .data .order{
+			display: flex;
+			flex-direction: column;
+			background-color: var(--white);
+			border-radius: 1rem;
+			padding: 1rem;
+
+		}
+		#tracking-dashboard .container-tracking .cont .data .order p{
+			margin: 0;
+		}
+		#tracking-dashboard .container-tracking .cont .data .order .f1{
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#tracking-dashboard .container-tracking .cont .data .order .f1 .orderId{
+			font-weight: 500;
+			font-size: 1rem;
+		}
+		#tracking-dashboard .container-tracking .cont .data .order .f1 img{
+			height: 1.3rem;
+		}
+		#tracking-dashboard .container-tracking .cont .data .order .f2{
+			display: flex;
+			flex-direction: column;
+			margin: 1rem 0;
+		}
+		#tracking-dashboard .container-tracking .cont .data .order .f3{
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#tracking-dashboard .container-tracking .cont .data .order .f3 .origin{
+			padding-right: 1rem;
+		}
+		#tracking-dashboard .container-tracking .cont .data .order .f3 .destiny{
+			padding-left: 1rem;
+		}  
+		#tracking-dashboard .container-tracking .cont .data .order .f3 .line {
+			display: flex;
+			width: 100%;
+			height: 0.5rem;
+			background: linear-gradient(90deg, transparent 0%, rgb(255, 255, 255) 40%, var(--line-color) 100%);
+			background-size: 200% 100%;
+			animation: gradientMove 4s linear infinite;
+			margin-top: 0.15rem;
+			border-radius: 1rem;
+		}
+
+		#tracking-dashboard .container-tracking .cont .data .order .f3 .line.no-animation {
+			background: var(--line-color);
+			animation: none;
+			background-size: initial;
+		}
+
+		@keyframes gradientMove {
+			0% {
+				background-position: 200% 0;
+			}
+			100% {
+				background-position: -200% 0;
+			}
+		}
+		#registerTrackings .form {
+			display: flex;
+			position: relative;
+			flex-wrap: wrap;
+			width: 35rem;
+			background-color: var(--white);
+			box-shadow: 0.1rem 0.1rem 0.5rem 0.2rem #dddddd;
+			padding: 2rem;
+			border-radius: 1rem;
+			justify-content: space-between;
+		}
+		#registerTrackings .form div {
+			display: flex;
+		}
+		#registerTrackings .form .title {
+			font-size: 1.4rem;
+			width: 100%;
+			text-align: center;
+			margin: 0 0 2rem 0;
+		}
+		#registerTrackings .form .order,
+		#registerTrackings .form .phone {
+			width: 40%;
+			margin-bottom: 1rem;
+		}
+		#registerTrackings .form .doc,
+		#registerTrackings .form .name {
+			width: 58%;
+			margin-bottom: 1rem;
+		}
+		#registerTrackings .form .email{
+			width: 100%;
+		}
+		#registerTrackings .form .agen {
+			width: 28%;
+		}
+		#registerTrackings .form .track {
+			width: 70%;
+			justify-content: space-between;
+		}
+		#registerTrackings .form #error-register{
+			width: 100%;
+		}
+		#registerTrackings .form #error-register p{
+			text-align: center;
+			color: red;
+			font-size: .9rem;
+			font-weight: 600;
+			margin: 1rem auto -1rem auto;
+			line-height: 1;
+		}
+		#registerTrackings .form #error-register p.true{
+			color: rgb(11, 199, 73);
+		}
+		#registerTrackings .form .order input,
+		#registerTrackings .form .doc input,
+		#registerTrackings .form .name input,
+		#registerTrackings .form .phone input,
+		#registerTrackings .form .email input,
+		#registerTrackings .form .agen select,
+		#registerTrackings .form .track .sp,
+		#registerTrackings .form .track input {
+			border: 0.1rem solid var(--newgray);
+			padding: 0.5rem;
+			border-radius: 0.5rem;
+			outline: none;
+			width: 100%;
+			font-size: 0.9rem;
+		}
+		#registerTrackings .form .track input,
+		#registerTrackings .form .track .sp {
+			width: 49%;
+		}
+		#registerTrackings .form .agen-tit {
+			font-size: 1rem;
+			font-weight: 1rem;
+			width: 100%;
+			margin: 0;
+			font-weight: 500;
+		}
+		#registerTrackings .form .ins {
+			width: 100%;
+			margin: 2rem 0 0 0;
+			border: 0;
+			background-color: var(--primary);
+			color: var(--white);
+			padding: 0.75rem;
+			border-radius: 1rem;
+			font-size: 0.9rem;
+			outline: none;
+			cursor: pointer;
+		}
+
+		@media only screen and (max-width: 75rem) {
+
+		}
+		@media only screen and (max-width: 62rem) {
+
+		}
+		@media only screen and (max-width: 48rem) {
+
+		}
+	</style>
+</div>

@@ -1,27 +1,31 @@
 services:
-  backend:
+  api-dev:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: backend_dev
+    container_name: api_dev
     environment:
+      - ENV=${ENV}
       - FLASK_APP=main.py
       - FLASK_ENV=development
+      - FLASK_DEBUG=1
+    env_file:
+      - backend/.env.${ENV}
     networks:
       - krear3d
     volumes:
       - ./backend:/application
     ports:
-      - 6001:6001
+      - "${API_PORT}:${API_PORT}"
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:6001/"]
+      test: ["CMD", "curl", "--fail", "http://localhost:${API_PORT}/"]
       interval: 30s
       timeout: 10s
       retries: 5
     platform: linux/amd64
     restart: always
 
-  redis:
+  redis-dev:
     image: redis:latest
     container_name: redis_dev
     networks:
@@ -29,21 +33,21 @@ services:
     restart: always
     command: redis-server --requirepass "150723"
 
-  support:
-    build:
-      context: ./support
-      dockerfile: Dockerfile
-    container_name: support_dev
-    networks:
-      - krear3d
-    volumes:
-      - ./support:/usr/share/nginx/html
-    ports:
-      - 8003:80
-      - 4003:443
-    restart: always
+  #support:
+  #  build:
+  #    context: ./support
+  #    dockerfile: Dockerfile
+  #  container_name: support
+  #  networks:
+  #    - krear3d
+  #  volumes:
+  #    - ./support:/usr/share/nginx/html
+  #  ports:
+  #   - 8003:80
+  #   - 4003:443
+  #  restart: always
 
-  intranet:
+  intranet-dev:
     build:
       context: ./intranet
       dockerfile: Dockerfile
@@ -53,8 +57,8 @@ services:
     volumes:
       - ./intranet:/usr/share/nginx/html
     ports:
-      - 8004:80
-      - 4004:443
+      - 7010:80
+      - 3010:443
     restart: always
 
 networks:

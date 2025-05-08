@@ -15,7 +15,6 @@ class Config:
         "max_overflow": 10,
         "pool_timeout": 30,
     }
-
     API_HOST = os.getenv("API_HOST")
     API_PORT = os.getenv("API_PORT")
 

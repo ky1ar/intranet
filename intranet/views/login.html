@@ -108,7 +108,7 @@
                 const payload = { document: this.temp_auth.document };
 
                 try {
-                    const response = await fetch('/api/user/find', {
+                    const response = await fetch(Alpine.store('cache').api + '/user/find', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload),
@@ -148,7 +148,7 @@
                 }
 
                 try {
-                    const response = await fetch('/api/user/login', {
+                    const response = await fetch(Alpine.store('cache').api + '/user/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload),
@@ -200,7 +200,7 @@
 
                 const payload = { document: this.temp_auth.document, pin: this.temp_auth.pin }
                 try {
-                    const response = await fetch('/api/user/create_pin', {
+                    const response = await fetch(Alpine.store('cache').api + '/user/create_pin', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload),

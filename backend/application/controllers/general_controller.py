@@ -29,4 +29,25 @@ class GeneralController:
     def general_tracking_agencies(self):
         return self.general.get_tracking_agencies()
 
+
+    @handle_logs_and_exceptions
+    def general_drivers(self):
+        return self.general.get_drivers()
+    
+
+    @handle_logs_and_exceptions
+    def general_vendors(self):
+        return self.general.get_vendors()
+    
+
+    @handle_logs_and_exceptions
+    def general_districts(self):
+        return self.general.get_districts()
+    
+
+    @handle_logs_and_exceptions
+    def general_shipping_types(self):
+        return self.general.get_shipping_types()
+    
+
     

@@ -9,4 +9,4 @@ if __name__ == "__main__":
         datefmt='%Y-%m-%d %H:%M:%S'
     )
     #logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
-    socketio.run(app, host=app.config["API_HOST"], port=app.config["API_PORT"], debug=True)
+    socketio.run(app, host=app.config["API_HOST"], port=app.config["API_PORT"])

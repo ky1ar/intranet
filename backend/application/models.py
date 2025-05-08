@@ -76,16 +76,6 @@ class UserDepartment(BaseModel):
     slug = db.Column(db.String(120))
 
 
-class UserOrders(BaseModel):
-    __tablename__ = 'user_orders'
-
-    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
-    number = db.Column(db.Integer, nullable=False)
-    client_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-
-    client = db.relationship("Users", lazy="joined", foreign_keys=[client_id])
-
-
 class FireCloudTokens(BaseModel):
     __tablename__ = 'firecloud_tokens'
 
@@ -97,6 +87,31 @@ class FireCloudTokens(BaseModel):
     updated_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp())
 
     admin = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
+
+
+
+
+
+# CLIENTS
+class Clients(BaseModel):
+    __tablename__ = 'clients'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    document = db.Column(db.String(255), nullable=False, unique=True)
+    name = db.Column(db.String(255))
+    phone = db.Column(db.String(20))
+    email = db.Column(db.String(255))
+    stamp = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+
+
+class ClientOrders(BaseModel):
+    __tablename__ = 'client_orders'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    number = db.Column(db.Integer, unique=True, nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
+
+    client = db.relationship("Clients", lazy="joined", foreign_keys=[client_id])
 
 
 
@@ -149,11 +164,10 @@ class ShippingOrders(BaseModel):
     __tablename__ = 'shipping_orders'
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
-    order_number = db.Column(db.String(100), nullable=False)
+    client_order_id = db.Column(db.Integer, db.ForeignKey('client_orders.id'), nullable=False)
     method_id = db.Column(db.Integer, db.ForeignKey('shipping_method.id'), nullable=False)
     driver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    vendor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    assigned_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     status_id = db.Column(db.Integer, db.ForeignKey('shipping_status.id'), nullable=False)
     schedule_id = db.Column(db.Integer, db.ForeignKey('shipping_schedule.id'))
     address = db.Column(db.String(255), nullable=False)
@@ -165,30 +179,28 @@ class ShippingOrders(BaseModel):
     delivery_date = db.Column(db.DATE, nullable=False)
     is_deleted = db.Column(db.Boolean, default=False, nullable=False)
     
+    client_order = db.relationship("ClientOrders", lazy="joined", foreign_keys=[client_order_id])
     method = db.relationship("ShippingMethod", lazy="joined", foreign_keys=[method_id])
     driver = db.relationship("Users", lazy="joined", foreign_keys=[driver_id])
-    vendor = db.relationship("Users", lazy="joined", foreign_keys=[vendor_id])
-    admin = db.relationship("Users", lazy="joined", foreign_keys=[admin_id])
+    assigned = db.relationship("Users", lazy="joined", foreign_keys=[assigned_id])
     status = db.relationship("ShippingStatus", lazy="joined", foreign_keys=[status_id])
     schedule = db.relationship("ShippingSchedule", lazy="joined", foreign_keys=[schedule_id])
     district = db.relationship("ShippingDistricts", lazy="joined", foreign_keys=[district_id])
-
-    contacts = db.relationship("ShippingContact", lazy="joined", foreign_keys=[ShippingContact.order_id])
 
 
 class ShippingHistory(BaseModel):
     __tablename__ = 'shipping_history'
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
-    admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    order_id = db.Column(db.Integer, db.ForeignKey('shipping_orders.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    shipping_order_id = db.Column(db.Integer, db.ForeignKey('shipping_orders.id'), nullable=False)
     type = db.Column(db.Enum(HistoryType), nullable=False)
     status = db.Column(db.Enum(ShippingStatusList), nullable=False)
     data = db.Column(db.String(255))
     created_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp())
 
-    order = db.relationship("ShippingOrders", lazy="joined", foreign_keys=[order_id])
-    admin = db.relationship("Users", lazy="joined", foreign_keys=[admin_id])
+    shipping_order = db.relationship("ShippingOrders", lazy="joined", foreign_keys=[shipping_order_id])
+    user = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
 
 
 
@@ -321,7 +333,7 @@ class TrackingOrders(BaseModel):
     __tablename__ = 'tracking_orders'
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
-    user_order_id = db.Column(db.Integer, db.ForeignKey('user_orders.id'), nullable=False)
+    client_order_id = db.Column(db.Integer, db.ForeignKey('client_orders.id'), nullable=False)
     agency_id = db.Column(db.Integer, db.ForeignKey('tracking_agencies.id'), nullable=False)
     status_id = db.Column(db.Integer, db.ForeignKey('tracking_status.id'), nullable=False)
     code1 = db.Column(db.String(20), nullable=False)
@@ -331,7 +343,7 @@ class TrackingOrders(BaseModel):
     external_id = db.Column(db.String(25))
     register_at = db.Column(db.DATETIME, server_default=db.func.current_timestamp())
 
-    user_order = db.relationship("UserOrders", lazy="joined", foreign_keys=[user_order_id])
+    client_order = db.relationship("ClientOrders", lazy="joined", foreign_keys=[client_order_id])
     agency = db.relationship("TrackingAgencies", lazy="joined", foreign_keys=[agency_id])
     status = db.relationship("TrackingStatus", lazy="joined", foreign_keys=[status_id])
 

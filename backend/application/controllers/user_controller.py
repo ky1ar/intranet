@@ -10,24 +10,11 @@ class UserController:
 
 
     @handle_logs_and_exceptions
-    def user_data_document(self, document):
-        if not document:
-            return 'Documento inválido', 400
-        
-        return self.user.get_data(document)
-    
-
-    @handle_logs_and_exceptions
     def user_team(self, data):
         if validation := validate_request(data, {"admin_id"}):
             return validation, 400
         admin_id = data.get("admin_id")
         return self.user.get_department_team(admin_id)
-
-
-    @handle_logs_and_exceptions
-    def user_name(self, document):
-        return self.user.get_name(document)
     
 
     @handle_logs_and_exceptions

@@ -34,7 +34,7 @@ class TrackingRepository:
     def get_list(self, order_ids):
         order_list = (
             g.db_session.query(TrackingOrders)
-            .filter(TrackingOrders.user_order_id.in_(order_ids))
+            .filter(TrackingOrders.client_order_id.in_(order_ids))
             .all()
         )
         if not order_list:
@@ -47,7 +47,7 @@ class TrackingRepository:
     def get_tracking_order(self, user_order_id):
         tracking_order = (
             g.db_session.query(TrackingOrders)
-            .filter(TrackingOrders.user_order_id == user_order_id)
+            .filter(TrackingOrders.client_order_id == user_order_id)
             .first()
         )
         if not tracking_order:

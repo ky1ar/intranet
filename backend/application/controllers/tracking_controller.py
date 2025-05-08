@@ -27,6 +27,6 @@ class TrackingController:
     
 
     @handle_logs_and_exceptions
-    def tracking_get_order(self, tracking_order_id):
-        return self.tracking.get_order(tracking_order_id)
+    def tracking_get_order(self, order_number):
+        return self.tracking.get_order(order_number)
 

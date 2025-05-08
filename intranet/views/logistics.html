@@ -1,7 +1,991 @@
-<section x-init="console.log('Auth Stored:', $store.auth)">
+<div x-data="logistics_data">
+	<div id="logistics">
+		<!--<div class="header">
+			
+		</div>-->
 
+		<div class="main glass">
+			<div class="top">
+				<span class="pendings hover-opacity" @click="pendings_open = !pendings_open" x-text="'Pendientes de agendar ' + pendings_total"></span>
+
+				<span class="range" x-text="schedule_range"></span>
+
+				<div class="navigation">
+					<div class="button hover-opacity" @click="prev">
+						<img alt="prev" src="static/images/arrow.svg" width="16" height="16">
+					</div>
+					<div class="button middle hover-opacity" @click="today">Hoy</div>
+					<div class="button hover-opacity" @click="next">
+						<img alt="next" src="static/images/arrow.svg" width="16" height="16">
+					</div>
+				</div>
+			</div>
+
+			<div class="schedule-container">
+				<div x-transition.duration.300ms x-cloak x-show="pendings_open" class="pending-shippings">
+					<div class="title hover-opacity" @click="processShippingModal()">+ Añadir envío</div>
+
+					<div class="container"
+						@dragover="onDragOver($event)" 
+						@dragleave="onDragLeave($event)"
+						@drop="onDropPending()"
+					>
+						<template x-if="pending.length > 0">
+							<template x-for="shipping in pending" :key="shipping.order_number">
+								<div class="item-card"
+									:style="`background-color: ${shipping.method_background}; border: 2px solid ${shipping.method_border}`"
+									:class="shipping.method_slug"
+									:draggable="true"
+									@dragstart="onDragStart(shipping)"
+									@click="processShippingModal(shipping.order_number)"
+								>   
+									<span class="number" x-text="shipping.order_number"></span>
+									<span class="district" x-text="shipping.district_name"></span>
+									<div class="data">
+										<span class="name" x-text="shipping.client_name"></span>
+										<span class="address" x-text="shipping.address"></span>
+									</div>
+									<span class="date" x-text="new Date(shipping.register_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })"></span>
+								</div>
+							</template>
+						</template>
+						<span class="empty" x-show="!Array.isArray(pending)">No hay órdenes pendientes.</span>
+					</div>
+				</div>
+
+				<div class="schedule white">
+					<template x-for="day in schedule" :key="day.date">
+						<div class="day-container">
+							<span x-text="day.day_name" class="day-name"></span>
+
+							<template x-for="schedule_index in [1, 2]" :key="schedule_index">
+								<div class="order-container"
+									@dragover="onDragOver($event, day)" 
+									@dragleave="onDragLeave($event)" 
+									@drop="onDrop(day, schedule_index)">
+									<!--<span class="turn" x-text="schedule_index == 1 ? 'Mañana':'Tarde'"></span>-->
+									<template x-if="day.orders['schedule_' + schedule_index]?.length > 0">
+										<template x-for="shipping in day.orders['schedule_' + schedule_index]" :key="shipping.order_number">
+											<div class="item-card"
+												:style="`background-color: ${shipping.method_background}; border: 2px solid ${shipping.method_border}`"
+												:class="[shipping.method_slug, isFutureOrToday(day.date) ? '' : 'past-date']"
+												:draggable="(shipping.status_id != 3 && shipping.status_id != 4)"
+												@dragstart="onDragStart(shipping)"
+												@click="processShippingModal(shipping.order_number)"
+											>
+												<span class="number" x-text="shipping.order_number"></span>
+												<span class="district" x-text="shipping.district_name"></span>
+												<div class="data">
+													<span class="name" x-text="shipping.client_name"></span>
+													<span class="address" x-text="shipping.address"></span>
+												</div>
+												<a class="phone" @click.stop :href="'https://api.whatsapp.com/send?phone=' + shipping.client_phone" target="_blank" rel="nofollow">
+													<img src="static/images/wsp.svg" width="16" height="16" alt="phone">
+												</a>
+												<template x-if="shipping.status_id > 2">
+													<span class="status" 
+														:style="`border: 2px solid ${shipping.method_border}; 
+																background-color: ${shipping.status_id > 3 ? shipping.method_background : 'white'}`"
+														x-text="shipping.status_name"></span>
+												</template>
+											</div>
+										</template>
+									</template>
+							
+								</div>
+							</template>
+							
+						</div>
+					</template>
+				</div>
+			</div>
+
+		</div>
+
+		<div
+			x-show="$store.modal.isVisible('process')"
+			@click="$store.modal.hideLast()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-shipping"
+			x-cloak>
+			<div class="modal glass2" @click.stop>
+				<input class="percent40 title" type="text" placeholder="Número de orden" x-model="process_shipping.order_number" :disabled="!!process_shipping.client_order_id && edit" @blur="fetchClientOrder()">
+
+				<div class="fields">
+					<label class="white">
+						<select x-model="process_shipping.method_id">
+							<template x-if="$store.cache.shipping_method?.length !== 1">
+								<option value="">Tipo de envío</option>
+							</template>
+
+							<template x-for="type in $store.cache.shipping_method" :key="type.id">
+								<option :value="type.id" x-text="type.name"></option>
+							</template>
+						</select>
+					</label>
+
+					<label class="white">
+						<input type="date" x-model="process_shipping.register_date_format">
+					</label>
+
+					<label class="white">
+						<img alt="user" src="static/images/id.svg" width="16" height="16">
+						<input type="text" maxlength="11" :disabled="!!process_shipping.client_order_id && edit" @input="process_shipping.client_document = process_shipping.client_document.replace(/\D/g, '')" placeholder="DNI / RUC" x-model="process_shipping.client_document" @blur="fetchClientData()">
+						<input type="hidden" x-model="process_shipping.client_id">
+					</label>
+				</div>
+
+				<div class="fields">
+					<label class="white">
+						<img alt="user" src="static/images/user.svg" width="16" height="16">
+						<input type="text" placeholder="Nombre o Razón Social" x-model="process_shipping.client_name" disabled>
+					</label>
+
+					<label class="white">
+						<img alt="email" src="static/images/email.svg" width="16" height="16">
+						<input type="text" placeholder="Email" x-model="process_shipping.client_email">
+					</label>
+
+					<label class="white">
+						<img alt="phone" src="static/images/phone.svg" width="16" height="16">
+						<input type="text" maxlength="9" @input="process_shipping.client_phone = process_shipping.client_phone.replace(/\D/g, '')" placeholder="Celular" x-model="process_shipping.client_phone">
+					</label>
+				</div>
+
+				<div class="fields">
+					<label class="white">
+						<img alt="user" src="static/images/location.svg" width="16" height="16">
+						<input type="text" placeholder="Dirección" x-model="process_shipping.address">
+					</label>
+
+					<label class="white">
+						<select x-model="process_shipping.district_id">
+							<template x-if="$store.cache.districts?.length !== 1">
+								<option value="">Distrito</option>
+							</template>
+							
+							<template x-for="district in $store.cache.districts" :key="district.id">
+								<option :value="district.id" x-text="district.name"></option>
+							</template>
+						</select>
+					</label>
+				</div>
+
+				<div class="fields">
+					<label class="white">
+						<img alt="user" src="static/images/maps.svg" width="16" height="16">
+						<input type="text" placeholder="Link de Maps" x-model="process_shipping.maps">
+					</label>
+
+					<label class="white">
+						<select x-model="process_shipping.assigned_id">
+							<template x-if="$store.cache.shipping_method?.length !== 1">
+								<option value=null>Responsable</option>
+							</template>
+
+							<template x-for="vendor in $store.cache.vendors" :key="vendor.id">
+								<option :value="vendor.id" x-text="vendor.name"></option>
+							</template>
+						</select>   
+					</label>
+
+					<label class="white">
+						<select x-model="process_shipping.driver_id">
+							<template x-for="driver in $store.cache.drivers" :key="driver.id">
+								<option :value="driver.id" x-text="driver.name"></option>
+							</template>
+						</select>
+					</label>
+				</div>
+				
+				<div class="fields">
+					<template x-if="process_shipping.client_order_id && edit && process_shipping.status_id != 3 && process_shipping.status_id != 4">
+						<button class="button hover-opacity black" @click="deleteShipping()" :class="buttons.delete.class" x-text="buttons.delete.text"></button>
+					</template>
+					<button x-show="!edit" class="button hover-opacity" @click="processShipping()" :class="buttons.process.class" x-text="buttons.process.text"></button>
+					<button x-show="edit" class="button hover-opacity" @click="processShipping()" :class="buttons.update.class" x-text="buttons.update.text"></button>
+
+				</div>
+				
+
+				<div class="hover-opacity modal-close" @click="$store.modal.hideLast()" >
+					<img alt="close" src="static/images/x.svg" width="12" height="12">
+				</div>
+			</div>
+		</div>
+	</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+	<script>
+		Alpine.data('logistics_data',() => ({
+			pending: [],
+			pendings_total: 0,
+			pendings_open: false,
+			schedule: [],
+			schedule_range: '',
+			offset: 0,
+			process_shipping: {},
+			selected_shipping: {},
+			edit: false,
+			buttons: {
+                process: { class: '', text: 'Añadir' },
+                update: { class: '', text: 'Actualizar' },
+                delete: { class: '', text: 'Eliminar' },
+            },
+			
+			async init() {
+				console.log('Inicializando Logistics...');
+
+                this.initSocket();
+
+				const fetchDataIfNeeded = !Alpine.store('cache').isLoaded('drivers') ? this.fetchData() : Promise.resolve();
+				await Promise.all([fetchDataIfNeeded, this.getPending(), this.getDashboard()]);
+			},
+
+			async initSocket() {
+				try {
+					this.socket = io(Alpine.store('cache').api +"/");
+
+					this.socket.on("update_dashboard", async () => {
+						await Promise.all([this.getPending(), this.getDashboard()]);
+					});
+
+					this.socket.on("connect_error", (err) => {
+						console.error("Error en la conexión del socket:", err.message);
+					});
+
+				} catch (error) {
+					console.error("Error inicializando WebSocket:", error);
+				}
+			},
+
+			async fetchData() {
+				try {
+					const [drivers, vendors, districts, shippingMethod] = await Promise.all([
+						fetch(Alpine.store('cache').api + '/general/drivers').then(res => res.json()),
+						fetch(Alpine.store('cache').api + '/general/vendors').then(res => res.json()),
+						fetch(Alpine.store('cache').api + '/general/districts').then(res => res.json()),
+						fetch(Alpine.store('cache').api + '/general/shipping_types').then(res => res.json())
+					]);
+
+					Alpine.store('cache').setData('drivers', drivers.data);
+					Alpine.store('cache').setData('vendors', vendors.data);
+					Alpine.store('cache').setData('districts', districts.data);
+					Alpine.store('cache').setData('shipping_method', shippingMethod.data);
+
+					//this.process_shipping.driver_id = this.selectFirstOption(this.drivers);
+					//await Promise.all([this.getPending(), this.getDashboard()]);
+				} catch (error) {
+					console.error('Error fetching data', error);
+				}
+			},
+
+			onDragStart(shipping) {
+				console.log('dragging');
+				this.selected_shipping = shipping;
+			},
+
+			onDragOver(event, day=null) {
+				event.preventDefault();
+				if (day) {
+					if (this.isFutureOrToday(day.date)) {
+						event.currentTarget.classList.add('drag-over');
+						event.dataTransfer.dropEffect = 'move';
+					} else {
+						event.dataTransfer.dropEffect = 'none';
+					}
+				}
+			},
+			
+			onDragLeave(event) {
+				event.currentTarget.classList.remove('drag-over');
+			},
+			
+			async onDrop(day, schedule) {
+				document.querySelectorAll('.order-container').forEach(container => {
+					container.classList.remove('drag-over');
+				});
+			
+				if (!this.selected_shipping) {
+					console.error('No hay orden seleccionada.');
+					return;
+				}
+			
+				if (!this.isFutureOrToday(day.date)) {
+					console.warn('No se puede soltar en fechas pasadas.');
+					return;
+				}
+			
+				if (this.selected_shipping.delivery_date == day.date && this.selected_shipping.schedule_id == schedule) {
+					return;
+				}
+
+				NProgress.start();
+				
+				const payload = {
+					order_number: this.selected_shipping.order_number,
+					delivery_date: day.date,
+					status_id: 2,
+					schedule_id: schedule,
+					user_id: Alpine.store('auth').id
+				};
+				try {
+					const response = await fetch(Alpine.store('cache').api + '/logistic/set', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(payload)
+					});
+			
+					if (!response.ok) {
+						throw new Error('Error al asignar la orden.');
+					}
+					
+				} catch (error) {
+					console.error('Error en la asignación:', error);
+                } finally {
+                    NProgress.done();
+                }
+			},
+
+			async onDropPending() {
+				if (!this.selected_shipping) {
+					console.error('No hay orden seleccionada.');
+					return;
+				}
+				if (this.selected_shipping.status_id == 1) {
+					return;
+				}
+
+				NProgress.start();
+
+				const payload = {
+					order_number: this.selected_shipping.order_number,
+					delivery_date: null,
+					status_id: 1,
+					schedule_id: null,
+					user_id: Alpine.store('auth').id
+				};
+
+				try {
+					const response = await fetch(Alpine.store('cache').api + '/logistic/set', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(payload)
+					});
+
+					if (!response.ok) {
+						throw new Error('Error al asignar la orden.');
+					}
+
+				} catch (error) {
+					console.error('Error en la asignación:', error);
+                } finally {
+                    NProgress.done();
+                }
+			},
+			
+			async getPending() {
+				try {
+					const response = await fetch(Alpine.store('cache').api + '/logistic/pending').then(res => res.json());
+					this.pending = response.data || [];
+					this.pendings_total = Array.isArray(this.pending) ? this.pending.length : 0;
+
+				} catch (error) {
+					console.error('Error fetching schedule', error);
+				}
+			},
+
+			async getDashboard() {
+				NProgress.start();
+
+				try {
+					const scheduleRes = await fetch(Alpine.store('cache').api + `/logistic/dashboard/week?offset=${this.offset}`).then(res => res.json());
+					this.schedule = scheduleRes.data || [];
+					this.schedule_range = this.getDateRange(this.schedule)
+				} catch (error) {
+					console.error('Error fetching schedule', error);
+				} finally {
+                    NProgress.done();
+                }
+			},
+
+			async fetchClientData() {
+                NProgress.start();
+
+				const document = this.process_shipping.client_document;
+				if (!document) {
+					this.process_shipping.client_id = '';
+					this.process_shipping.client_name = '';
+					this.process_shipping.client_phone = '';
+					return;
+				}
+
+				try {
+					const response = await fetch(Alpine.store('cache').api + `/client/data/${document}`);
+					if (!response.ok) {
+						this.process_shipping.client_id = '';
+						this.process_shipping.client_name = '';
+						this.process_shipping.client_phone = '';
+						return;
+					}
+
+					const data = await response.json();
+					if (data.success) {
+						this.process_shipping.client_id = data.data.id;
+						this.process_shipping.client_name = data.data.name;
+						this.process_shipping.client_phone = data.data.phone;
+						//this.process_shipping.disabled = true;
+					} else {
+						console.warn('Respuesta de API no exitosa.');
+					}
+				} catch (error) {
+					console.error('Error fetching schedule', error);
+				} finally {
+                    NProgress.done();
+                }
+			},
+
+			async fetchClientOrder() {
+                NProgress.start();
+
+				const order_number = this.process_shipping.order_number;
+				if (!order_number) {
+					this.process_shipping.client_order_id = '';
+					this.process_shipping.client_id = '';
+					this.process_shipping.client_document = '';
+					this.process_shipping.client_name = '';
+					this.process_shipping.client_phone = '';
+					this.process_shipping.client_email = '';
+					return;
+				}
+
+				try {
+					const response = await fetch(Alpine.store('cache').api + `/client/order_number/${order_number}`);
+					if (!response.ok) {
+						this.process_shipping.client_order_id = '';
+						this.process_shipping.client_id = '';
+						this.process_shipping.client_document = '';
+						this.process_shipping.client_name = '';
+						this.process_shipping.client_phone = '';
+						this.process_shipping.client_email = '';
+						return;
+					}
+
+					const data = await response.json();
+					if (data.success) {
+						const client = data.data.client;
+
+						this.process_shipping.client_order_id = data.data.client_order_id;
+						this.process_shipping.client_id = client.id;
+						this.process_shipping.client_document = client.document;
+						this.process_shipping.client_name = client.name;
+						this.process_shipping.client_phone = client.phone;
+						this.process_shipping.client_email = client.email;
+						//this.process_shipping.disabled = true;
+					} else {
+						console.warn('Respuesta de API no exitosa.');
+					}
+				} catch (error) {
+					console.error('Error fetching schedule', error);
+				} finally {
+                    NProgress.done();
+                }
+			},
+
+			async processShipping() {
+                NProgress.start();
+				
+				const payload = {
+					shipping_order_id: this.process_shipping.shipping_order_id,
+					client_order_id: this.process_shipping.client_order_id,
+					order_number: this.process_shipping.order_number,
+					method_id: this.process_shipping.method_id,
+					driver_id: this.process_shipping.driver_id,
+					assigned_id: this.process_shipping.assigned_id,
+					user_id: Alpine.store('auth').id,
+					driver_id: 4,
+					address: this.process_shipping.address,
+					district_id: this.process_shipping.district_id,
+					maps: this.process_shipping.maps,
+					register_date: this.process_shipping.register_date_format,
+					client_id: this.process_shipping.client_id,
+					client: {
+						document: this.process_shipping.client_document,
+						email: this.process_shipping.client_email,
+						name: this.process_shipping.client_name,
+						phone: this.process_shipping.client_phone,
+					},
+					comments: ""
+				};
+
+				try {
+					const response = await fetch(Alpine.store('cache').api + '/logistic/process', {
+						method: 'POST',
+						headers: {'Content-Type': 'application/json'},
+						body: JSON.stringify(payload),
+					});
+
+                    const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+					
+					Alpine.store('modal').hide('process');
+					this.resetOrder();
+					
+				} catch (error) {
+					if (this.edit) {
+                    	this.showError('update', error.message);
+					} else {
+                    	this.showError('process', error.message);
+					}
+                } finally {
+                    NProgress.done();
+                }
+			},
+
+			async deleteShipping() {
+                NProgress.start();
+
+				const payload = {
+					order_number: this.process_shipping.order_number,
+					user_id: Alpine.store('auth').id,
+				};
+				
+				try {
+					const response = await fetch(Alpine.store('cache').api + '/logistic/delete', {
+						method: 'POST',
+						headers: {'Content-Type': 'application/json'},
+						body: JSON.stringify(payload)
+					});
+				
+					const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+					
+					Alpine.store('modal').hide('process');
+					this.resetOrder();
+					
+				} catch (error) {
+                    this.showError('delete', error.message);
+                } finally {
+                    NProgress.done();
+                }
+			},
+			
+			resetOrder() {
+                this.process_shipping = {};
+				this.edit = false;
+            },
+
+			showError(btnKey, errorMsg) {
+                const originalText = this.buttons[btnKey].text;
+                const originalClass = this.buttons[btnKey].class;
+
+                if (originalClass == 'error') {
+                    return;
+                }
+                this.buttons[btnKey].text = errorMsg;
+                this.buttons[btnKey].class = 'error';
+
+                setTimeout(() => {
+                    this.buttons[btnKey].text = originalText;
+                    this.buttons[btnKey].class = originalClass;
+                }, 1000);
+            },
+			
+			getDateRange(data) {
+				const dates = data.map(item => new Date(item.date));
+				const startDate = dates[0];
+				const endDate = dates[dates.length - 1];
+
+				const getNames = (date) => {
+					const months = [
+						"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+						"Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+					];
+					return months[date.getMonth()];
+				};
+
+				const startMonth = getNames(startDate);
+				const startYear = startDate.getFullYear();
+				const endMonth = getNames(endDate);
+				const endYear = endDate.getFullYear();
+
+				if (startMonth === endMonth && startYear === endYear) {
+					return `${startMonth} ${startYear}`;
+				} else {
+					return `${startMonth} ${startYear} - ${endMonth} ${endYear}`;
+				}
+			},
+
+			async processShippingModal(shipping_number){
+				if (shipping_number){
+					await this.getShipping(shipping_number);
+					Alpine.store('modal').show('process');
+				} else {
+					this.resetOrder();
+					Alpine.store('modal').show('process');
+				}
+			},
+
+			async getShipping(order_number) {
+				NProgress.start();
+
+				try {
+					const response = await fetch(Alpine.store('cache').api + `/logistic/order_number/${order_number}`).then(res => res.json());
+					this.process_shipping = response.data || {};
+					this.edit = true;
+
+				} catch (error) {
+					console.error('Error fetching order:', error);
+                } finally {
+                    NProgress.done();
+                }
+			},
+
+			async next() {
+				this.offset++;
+				await this.getDashboard();
+
+				/*if (this.auth.app_level == 4) {
+					await this.getShippingDay();
+				} else {
+					await this.getDashboard();
+				}*/
+			},
+
+			async prev() {
+				this.offset--;
+				await this.getDashboard();
+
+				/*if (this.auth.app_level == 4) {
+					await this.getShippingDay();
+				} else {
+					await this.getDashboard();
+				}*/
+			},
+
+			async today() {
+				if (this.offset == 0) {
+					return;
+				}
+				this.offset = 0;
+				await this.getDashboard();
+				/*
+				if (this.auth.app_level == 4) {
+					await this.getShippingDay();
+				} else {
+					await this.getSchedule();
+				}*/
+			},
+			
+			isFutureOrToday(dateString) {
+				if (!dateString) return false;
+				const today = new Date();
+				today.setHours(0, 0, 0, 0);
+			
+				const dateParts = dateString.split('-');
+				const targetDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+			
+				return targetDate >= today;
+			},
+			
+		}));
+	</script>
 	
 
-	<h2>Hola, <span x-text="$store.auth.name || 'Usuario'"></span></h2>
 
-</section>
+
+
+
+
+
+	<style>
+		#logistics {
+			user-select: none;
+			padding: 1rem;
+			display: flex;
+			gap: 1rem;
+			margin: 0 auto;
+			max-width: 118rem;
+			flex-direction: column;
+		}
+		#logistics .header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+		}
+		
+		/***********************************************************************************/
+		#logistics .main {
+			padding: 1.5rem;
+			display: flex;
+			min-height: calc(100vh - 2rem);
+			flex-direction: column;
+			gap: 1rem;
+		}
+		#logistics .main h3 {
+			margin: 0;
+			font-size: 1.25rem;
+			line-height: 1rem;
+		}
+		#logistics .main .top {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#logistics .main .pendings {
+			line-height: 2.5rem;
+			background-color: var(--secondary);
+			color: var(--white);
+			padding: 0 1.5rem;
+			border-radius: 1.75rem;
+		}
+		#logistics .main .top .range {
+			font-size: 1rem;
+			font-weight: 500;
+		}
+		#logistics .main .navigation {
+			display: flex;
+			gap: 0.75rem;
+		}
+		#logistics .main .navigation .button {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			width: 2.5rem;
+			line-height: 2.5rem;
+			background-color: var(--secondary);
+			color: var(--white);
+			border-radius: 0.75rem;
+		}
+		#logistics .main .navigation .button.middle {
+			width: initial;
+			padding: 0 1.25rem;
+		}
+		#logistics .main .navigation .button img{
+			filter: invert(1);
+		}
+		#logistics .main .navigation .button:last-child img{
+			transform: rotate(180deg);
+		}
+		#logistics .main .schedule-container {
+			display: flex;
+			flex: 1;
+		}
+		/*********************************************************************************/
+		#logistics .main .pending-shippings {
+			width: 15%;
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			padding-right: 1rem;
+		}
+		#logistics .main .pending-shippings .title {
+			line-height: 2.75rem;
+			border-radius: 0.75rem;
+			border: 2px dotted #c5c5c5;
+			font-weight: 600;
+			color: #494949;
+			font-size: 0.8rem;
+			text-align: center;
+			cursor: pointer;
+		}
+		#logistics .main .pending-shippings .container {
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+			height: 100%;
+		}
+		#logistics .main .pending-shippings .empty {
+			text-align: center;
+		}
+		/*********************************************************************************/
+		#logistics .main .schedule {
+			display: flex;
+			flex: 1;
+			user-select: none;
+		}
+		#logistics .main .schedule .day-container {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			border-right: 2px solid #eee;
+		}
+		#logistics .main .schedule .day-container:last-child {
+			border-right: none;
+		}
+		#logistics .main .schedule .day-container .day-name {
+			display: flex;
+			justify-content: center;
+			font-size: 0.9rem;
+			font-weight: 500;
+			border-bottom: 2px solid #eee;
+			padding: 0.75rem 0;
+		}
+		/***********************************************************************************/
+		#logistics .main.driver {
+			width: 100%;
+			min-height: calc(100vh - 6.5rem);
+		}
+		#logistics .main.driver .navigation {
+			flex: 1;
+		}
+		#logistics .main.driver .navigation .button.middle {
+			flex: 1;
+		}
+		#logistics .main.driver .schedule {
+			border: none;
+		}
+		#logistics .main.driver .order-container {
+			padding: 0;
+			padding-bottom: 2rem;
+		}
+		#logistics .main.driver .order-container + .order-container {
+			padding: 0;
+			padding-top: 2rem;
+		}
+		#logistics .main.driver .order-container .empty {
+			text-align: center;
+			border: 2px solid #eee;
+			padding: 1rem;
+			border-radius: 0.5rem;
+			font-weight: 500;
+			color: #888;
+		}
+		#logistics .order-container {
+			display: flex;
+			gap: 0.75rem;
+			flex-direction: column;
+			padding: 0.75rem;
+			flex: 1;
+			border-bottom: 2px solid #eee;
+			background-color: transparent;
+			transition: var(--transition);
+		}
+		#logistics .order-container .turn {
+			text-align: center;
+			opacity: 0.5;
+			font-size: 0.75rem;
+			font-weight: 600;
+		}
+		#logistics .order-container.drag-over {
+			background-color: var(--gray);
+		}
+		#logistics .order-container + .order-container {
+			border-bottom: none;
+		}
+		#logistics .item-card {
+			border-radius: 0.75rem;
+			padding: 0.75rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			cursor: pointer;
+			position: relative;
+			transition: var(--transition);
+			align-items: start;
+		}
+		#logistics .item-card .data {
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+		}
+		#logistics .item-card:active {
+			transform: scale(0.95);
+		}
+		#logistics .item-card .district {
+			font-size: 0.75rem;
+			font-weight: 600;
+			opacity: 0.6;
+			position: absolute;
+			right: 10px;
+			top: 10px;
+			width: 50%;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			overflow: hidden;
+			text-align: right;
+			line-height: 1rem;
+		}
+		#logistics .item-card .address {
+			font-size: 0.75rem;
+			font-weight: 400;
+			line-height: 0.9rem;
+		}
+		#logistics .item-card .name {
+			font-size: 0.75rem;
+			font-weight: 600;
+			line-height: 1rem;
+		}
+		#logistics .item-card .status {
+			font-size: 0.65rem;
+			font-weight: 600;
+			line-height: 1rem;
+			position: absolute;
+			bottom: -2px;
+			right: -2px;
+			/*background-color: var(--white);*/
+			padding: 0.25rem 0.75rem;
+			border-radius: 0.75rem 0;
+		}
+		#logistics .item-card .phone {
+			font-size: 0.75rem;
+			font-weight: 600;
+			line-height: 0.9rem;
+			color: var(--black);
+			display: flex;
+			align-items: center;
+			gap: 0.25rem;
+		}
+		#main .item-card .number {
+			font-size: 0.85rem;
+			opacity: 0.6;
+			font-weight: 700;
+			line-height: 1rem;
+		}
+		#main .item-card .shipping {
+			display: none;
+		}
+		#main .item-card .date {
+			font-size: 0.75rem;
+			font-weight: 500;
+			opacity: 0.75;
+		}
+		#main .item-card.past-date {
+			/*opacity: 1 !important;
+			cursor: default !important;*/
+		}
+		#main .right {
+			width: 85%;
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+		}
+		#modal-shipping .title {
+			font-family: inherit;
+			border: none;
+			border-radius: 0.75rem;
+			padding: 0 0.75rem;
+			margin: 0;
+			line-height: 2.5rem;
+			outline: none;
+		}
+		/***********************************************************************************/
+
+	</style>
+</div>
