@@ -6,7 +6,9 @@
 
 		<div class="main glass">
 			<div class="top">
-				<span class="pendings hover-opacity" @click="pendings_open = !pendings_open" x-text="'Pendientes de agendar ' + pendings_total"></span>
+				<template x-if="$store.cache.user.department_id == 2 || $store.cache.user.level_id == 4">
+					<span class="pendings hover-opacity" @click="pendings_open = !pendings_open" x-text="'Pendientes de agendar ' + pendings_total"></span>
+				</template>
 
 				<span class="range" x-text="schedule_range"></span>
 
@@ -339,7 +341,7 @@
 					delivery_date: day.date,
 					status_id: 2,
 					schedule_id: schedule,
-					user_id: Alpine.store('auth').id
+					user_id: Alpine.store('cache').user.id
 				};
 				try {
 					const response = await fetch(Alpine.store('cache').api + '/logistic/set', {
@@ -377,7 +379,7 @@
 					delivery_date: null,
 					status_id: 1,
 					schedule_id: null,
-					user_id: Alpine.store('auth').id
+					user_id: Alpine.store('cache').user.id
 				};
 
 				try {
@@ -518,7 +520,7 @@
 					method_id: this.process_shipping.method_id,
 					driver_id: this.process_shipping.driver_id,
 					assigned_id: this.process_shipping.assigned_id,
-					user_id: Alpine.store('auth').id,
+					user_id: Alpine.store('cache').user.id,
 					driver_id: 4,
 					address: this.process_shipping.address,
 					district_id: this.process_shipping.district_id,
@@ -563,7 +565,7 @@
 
 				const payload = {
 					order_number: this.process_shipping.order_number,
-					user_id: Alpine.store('auth').id,
+					user_id: Alpine.store('cache').user.id,
 				};
 				
 				try {

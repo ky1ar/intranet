@@ -7,9 +7,9 @@
 			</div>
 			<div class="right">
 				<div class="profile glass">
-					<img alt="user" :src="'/static/images/users/' + $store.auth.image" width="108" height="108">
-					<span class="name" x-text="$store.auth.name"></span>
-					<span class="department" x-text="$store.auth.role"></span>
+					<img alt="user" :src="'/static/images/users/' + $store.cache.user.image" width="108" height="108">
+					<span class="name" x-text="$store.cache.user.name"></span>
+					<span class="department" x-text="$store.cache.user.department_name"></span>
 				</div>
 
 				<template x-for="history in service_order?.history" :key="history.status_id">

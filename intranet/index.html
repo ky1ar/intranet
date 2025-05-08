@@ -44,14 +44,14 @@
     <template x-route="/machines" x-handler="loginVerify" x-template.preload.target.content="/views/machines.html"></template>
     <template x-route="notfound" x-template.preload="views/404.html"></template>
 
-    <template x-if="$store.auth.id">
+    <template x-if="$store.cache.user.id">
         <div id="sidebar">
             <a href="/home">
                 <img class="home hover-opacity" src="static/images/single-logo.svg" alt="Logo" width="32" height="32">
             </a>
             
             <ul>
-                <template x-for="pageItem in ($store.auth.level > 2 
+                <template x-for="pageItem in ($store.cache.user.level_id > 2 
                     ? pages 
                     : pages.filter(p => p.name !== 'history' && p.name !== 'workers'))" 
                     :key="pageItem.name">
@@ -70,15 +70,15 @@
                     <div class="dot"></div>
                 </div>
 
-                <img alt="user" @click="$store.sidebar.toogleMenu()" class="user hover-opacity" :src="'/static/images/users/' + $store.auth.image" width="40" height="40">
+                <img alt="user" @click="$store.sidebar.toogleMenu()" class="user hover-opacity" :src="'/static/images/users/' + $store.cache.user.image" width="40" height="40">
         
                 <div x-show="$store.sidebar.open_menu" x-transition.duration.300ms x-cloak @click.outside="$store.sidebar.hideMenu()" class="menu">
                     <div class="content">
-                        <img alt="user" class="image" :src="'/static/images/users/' + $store.auth.image" width="80" height="80">
+                        <img alt="user" class="image" :src="'/static/images/users/' + $store.cache.user.image" width="80" height="80">
                         
                         <div class="text">
-                            <b x-text="$store.auth.name"></b>
-                            <span x-text="$store.auth.role"></span>
+                            <b x-text="$store.cache.user.name"></b>
+                            <span x-text="$store.cache.user.department_name"></span>
                         </div>
 
                         <div class="controls">
@@ -86,7 +86,7 @@
                                 <img alt="controls" src="static/images/settings.svg" width="16" height="16">
                             </div>
 
-                            <div class="image hover-opacity" @click="$store.auth.logout()">
+                            <div class="image hover-opacity" @click="$store.cache.logout()">
                                 <img alt="controls" src="static/images/logout.svg" width="16" height="16">
                             </div>
                         </div>

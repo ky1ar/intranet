@@ -360,7 +360,7 @@
 
                 const payload = { 
                     machine_id: this.add_service_order.machine_id,
-                    admin_id: Alpine.store('auth').id,
+                    admin_id: Alpine.store('cache').user.id,
                     notes: this.add_service_order.notes,
                     client_id: this.add_service_order.id,
                     client: {
@@ -520,7 +520,7 @@
 				NProgress.start();
 				const payload = {
 					order_number: this.selected_service.order_number,
-					admin_id: Alpine.store('auth').id,
+					admin_id: Alpine.store('cache').user.id,
 					notes: this.status_notes,
 				};
 			

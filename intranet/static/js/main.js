@@ -67,76 +67,6 @@ document.addEventListener('alpine:init', () => {
         },
     });
 
-
-    Alpine.store('auth', {
-        image: (JSON.parse(localStorage.getItem('user_data'))?.image || 'user_default.jpg'),
-        id: null,
-        level: null,
-        app_level: null,
-        name: '',
-        role: '',
-        token: null,
-        default: '',
-
-        setUser(data) {
-            console.log('Datos de usuario almacenados en el store');
-
-            if (data.image) this.image = data.image;
-            this.id = data.id;
-            this.level = data.level_id;
-            this.app_level = data.shipping_app_level;
-            this.name = data.name;
-            this.role = data.department_name;
-            this.token = data.token;
-            this.default = data.default_page;
-        },
-
-        setUserfromLocalStorage(data) {
-            console.log('Datos de usuario almacenados en el store');
-
-            if (data.image) this.image = data.image;
-            this.id = data.id;
-            this.level = data.level;
-            this.app_level = data.app_level;
-            this.name = data.name;
-            this.role = data.role;
-            this.token = data.token;
-            this.default = data.default;
-        },
-        
-        unsetUser() {
-            console.log('Datos de usuario limpiados del store');
-            this.image = "user_default.jpg";
-            this.id = null;
-            this.level = null;
-            this.app_level = null;
-            this.name = "";
-            this.role = "";
-            this.token = null;
-            this.default = "";
-        },
-
-        logout() {
-            console.log('Logout');
-            this.unsetUser()
-            Alpine.store('sidebar').off();
-            localStorage.removeItem('user_data');
-            window.PineconeRouter.context.navigate('/');
-        },
-
-        getUserData() {
-            return {
-                image: this.image,
-                id: this.id,
-                level: this.level,
-                app_level: this.app_level,
-                name: this.name,
-                role: this.role,
-                token: this.token,
-                default: this.default
-            };
-        }
-    });
     
     Alpine.store('sidebar', {
         active: false,
@@ -181,6 +111,31 @@ document.addEventListener('alpine:init', () => {
 
     Alpine.store('cache', {
         api: 'https://devapi.krear3d.com',
+        user: {},
+
+        setUser(data) {
+            console.log('Datos de usuario almacenados en el store');
+            this.user = data;
+        },
+
+        unsetUser() {
+            console.log('Datos de usuario limpiados del store');
+            this.user = {};
+        },
+
+        getUserData() {
+            return {
+                user: this.user,
+            };
+        },
+
+        logout() {
+            console.log('Logout');
+            this.unsetUser()
+            Alpine.store('sidebar').off();
+            localStorage.removeItem('user_data');
+            window.PineconeRouter.context.navigate('/');
+        },
 
         setData(key, data) {
             if (!this.hasOwnProperty(key)) {
@@ -210,7 +165,7 @@ document.addEventListener('alpine:init', () => {
 
 async function loginVerify(context) {
     console.log('Verificando Login...');
-    let token = Alpine.store('auth').token;
+    let token = Alpine.store('cache').user.token;
     const storedData = localStorage.getItem('user_data');
     if (!token) {
         if (storedData) {
@@ -241,25 +196,25 @@ async function loginVerify(context) {
 
         if (!response.ok) {
             console.error('Error en la verificación del usuario', response.statusText);
-            await Alpine.store('auth').logout();
+            await Alpine.store('cache').logout();
             return false;
         }
         console.log('Usuario logeado');
-        if (storedData && !Alpine.store('auth').token) {
+        if (storedData && !Alpine.store('cache').user.token) {
             const userData = JSON.parse(storedData);
-            Alpine.store('auth').setUserfromLocalStorage(userData);
+            Alpine.store('cache').setUser(userData);
         }
         Alpine.store('sidebar').visible();
         if (context.route == '/') {
             console.log('Sesión iniciada. Redirigiendo a default...');
-            window.PineconeRouter.context.navigate(Alpine.store('auth').default);
+            window.PineconeRouter.context.navigate(Alpine.store('cache').user.default_page);
         }
         return true;
 
     } catch (error) {
         console.error('Error en la verificación del usuario:', error);
 
-        await Alpine.store('auth').logout();
+        await Alpine.store('cache').logout();
         return false;
 
     } finally {

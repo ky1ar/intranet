@@ -158,11 +158,11 @@
                     if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
                     
                     const user = jsonData.data;
-                    Alpine.store('auth').setUser(user);
+                    Alpine.store('cache').setUser(user);
                     Alpine.store('sidebar').visible();
-                    localStorage.setItem('user_data', JSON.stringify(Alpine.store('auth').getUserData()));
+                    localStorage.setItem('user_data', JSON.stringify(Alpine.store('cache').user));
 
-                    window.PineconeRouter.context.navigate(Alpine.store('auth').default);
+                    window.PineconeRouter.context.navigate(Alpine.store('cache').user.default_page);
                 } catch (error) {
                     this.showError('login', error.message);
                 } finally {
