@@ -46,10 +46,10 @@ class UserService:
         
         if user.level_id == 1:
             return "No cuentas con acceso al sistema", 400
-
+        name = self.format_name(user.name)
         response = {
             "image": user.image if user.image else 'user_default.jpg',
-            "name": user.name.split()[0],
+            "name": name,
             "department_name": user.department.name,
         }
 
@@ -96,7 +96,7 @@ class UserService:
                 "document": user.document,
                 "name": self.general_service.format_name(user.name),
                 "image": user.image if user.image else 'user_default.jpg',
-                "default_page": user.default_page or "home",
+                "default_page": user.default_page or "logistics",
                 "token": access_token
             }
             return user_data, 200
@@ -104,5 +104,15 @@ class UserService:
         return "Clave incorrecta", 400
     
     
-        
+    @handle_exceptions
+    def format_name(self, full_name):
+        words = full_name.strip().split()
+
+        if len(words) == 3:
+            return f"{words[0]} {words[1]}"
+        elif len(words) == 4:
+            return f"{words[0]} {words[2]}"
+        elif len(words) == 5:
+            return f"{words[0]} {words[3]}"
+        return "Texto no válido"
         

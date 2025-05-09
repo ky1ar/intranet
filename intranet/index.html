@@ -47,20 +47,17 @@
 
     <template x-if="$store.cache.user.id">
         <div id="sidebar">
-            <a href="/home">
-                <img class="home hover-opacity" src="static/images/single-logo.svg" alt="Logo" width="32" height="32">
-            </a>
+            <span href="/home">
+                <img class="home" src="static/images/single-logo.svg" alt="Logo" width="32" height="32">
+            </span>
             
             <ul>
-                <template x-for="pageItem in ($store.cache.user.level_id > 2 
-                    ? pages 
-                    : pages.filter(p => p.name !== 'history' && p.name !== 'workers'))" 
-                    :key="pageItem.name">
-                    <li :class="{'active': $store.router.active == '/'+pageItem.name}">
-                        <a :href="'/' + pageItem.name">
-                            <img width="20" height="20" :src="'/static/images/icons/'+pageItem.image+'.svg'" alt="">
+                <template x-for="page in $store.cache.getPages()" :key="page.name">
+                    <li :class="{'active': $store.router.active == '/' + page.name}">
+                        <a :href="'/' + page.name">
+                            <img width="20" height="20" :src="'/static/images/icons/'+page.image+'.svg'" alt="">
                         </a>
-                        <span x-text="pageItem.label"></span>
+                        <span x-text="page.label"></span>
                     </li>
                 </template>
             </ul>
@@ -71,11 +68,11 @@
                     <div class="dot"></div>
                 </div>
 
-                <img alt="user" @click="$store.sidebar.toogleMenu()" class="user hover-opacity" :src="'/static/images/users/' + $store.cache.user.image" width="40" height="40">
+                <img alt="user" @click="$store.sidebar.toogleMenu()" class="user hover-opacity" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="40" height="40">
         
                 <div x-show="$store.sidebar.open_menu" x-transition.duration.300ms x-cloak @click.outside="$store.sidebar.hideMenu()" class="menu">
                     <div class="content">
-                        <img alt="user" class="image" :src="'/static/images/users/' + $store.cache.user.image" width="80" height="80">
+                        <img alt="user" class="image" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
                         
                         <div class="text">
                             <b x-text="$store.cache.user.name"></b>
@@ -83,11 +80,12 @@
                         </div>
 
                         <div class="controls">
-                            <div class="image hover-opacity">
+                            <!--<div class="image hover-opacity">
                                 <img alt="controls" src="static/images/settings.svg" width="16" height="16">
-                            </div>
+                            </div>-->
 
                             <div class="image hover-opacity" @click="$store.cache.logout()">
+                                Cerrar sesión
                                 <img alt="controls" src="static/images/logout.svg" width="16" height="16">
                             </div>
                         </div>

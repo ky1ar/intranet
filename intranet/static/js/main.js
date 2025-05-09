@@ -92,9 +92,9 @@ document.addEventListener('alpine:init', () => {
 
     Alpine.data('data',() => ({
         async init() {
-            console.log('Inicializando Alpine...')
+            console.log('Inicializando Alpine...');
         },
-
+        
         pages: [
             //{ name: 'home', label: 'Inicio', image: 'home' },
             //{ name: 'support', label: 'Soporte', image: 'support' },
@@ -113,6 +113,48 @@ document.addEventListener('alpine:init', () => {
     Alpine.store('cache', {
         api: 'https://devapi.krear3d.com',
         user: {},
+        pages: [
+            //{ name: 'home', label: 'Inicio', image: 'home' },
+            //{ name: 'support', label: 'Soporte', image: 'support' },
+            //{ name: 'training', label: 'Capacitaciones', image: 'training' },
+            { name: 'logistics', label: 'Envíos', image: 'logistics' },
+            { name: 'driver', label: 'Conductor', image: 'driver' },
+            //{ name: 'tracking', label: 'Tracking', image: 'tracking' },
+            //{ name: 'schedule', label: 'Horarios', image: 'schedule' },
+            //{ name: 'clients', label: 'Clientes', image: 'clients' },
+            //{ name: 'machines', label: 'Equipos', image: 'machines' },
+        ],
+
+        getPages() {
+            const department_id = Alpine.store('cache').user.department_id;
+            const level_id = Alpine.store('cache').user.level_id;
+
+            if (level_id == 4 ) {
+                return this.pages;
+            } else if (department_id === 2) {
+                return this.pages.filter(page =>
+                    ['logistics', 'driver', 'tracking'].includes(page.name)
+                );
+            } else {
+                return this.pages.filter(page =>
+                    ['logistics', 'tracking'].includes(page.name)
+                );
+            }
+            
+            /*else if (department_id === 2) {
+                return this.pages.filter(page =>
+                    ['logistics', 'tracking'].includes(page.name)
+                );
+            } else if (department_id === 3) {
+                // Conductor: solo driver
+                return this.pages.filter(page =>
+                    page.name === 'driver'
+                );
+            }*/
+        
+            // Por defecto: sin páginas
+            return [];
+        },
 
         setUser(data) {
             console.log('Datos de usuario almacenados en el store');

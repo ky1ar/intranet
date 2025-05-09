@@ -26,7 +26,10 @@
 								<div class="f3">
 									<p class="origin" x-text="order.origin"></p>
 									<span class="line" 
-									:class="{'no-animation': order.state_id === 3}"
+									:class="{
+										'no-animation': order.state_id === 3,
+										'par-animation': order.state_id === 1
+									}"
 									:style="`--line-color: ${getLineColor(order.agency_id)}`"></span>
 									<p class="destiny" x-text="order.destiny"></p>
 								</div>
@@ -58,7 +61,10 @@
 								<div class="f3">
 									<p class="origin" x-text="order.origin"></p>
 									<span class="line" 
-									:class="{'no-animation': order.state_id === 3}"
+									:class="{
+										'no-animation': order.state_id === 3,
+										'par-animation': order.state_id === 1
+									}"
 									:style="`--line-color: ${getLineColor(order.agency_id)}`"></span>
 									<p class="destiny" x-text="order.destiny"></p>
 								</div>
@@ -90,7 +96,10 @@
 								<div class="f3">
 									<p class="origin" x-text="order.origin"></p>
 									<span class="line" 
-									:class="{'no-animation': order.state_id === 3}"
+									:class="{
+										'no-animation': order.state_id === 3,
+										'par-animation': order.state_id === 1
+									}"
 									:style="`--line-color: ${getLineColor(order.agency_id)}`"></span>
 									<p class="destiny" x-text="order.destiny"></p>
 								</div>
@@ -267,6 +276,7 @@
 			updateFields() {
 				this.code1 = "";
 				this.code2 = "";
+				this.code3 = "";
 				if (this.agency === "2" && Array.isArray(this.config[this.agency]?.options)) {
 					this.code2 = this.config[this.agency].options[0];
 				}
@@ -415,6 +425,8 @@
 						}, 1500);
 
 						this.resetForm();
+						this.agency = "1";
+						this.updateFields();
 					} else {
 						errorContainer.innerHTML = `<p>${data.data?.message || "Error al registrar el tracking."}</p>`;
 						errorContainer.style.display = "block";
@@ -572,11 +584,21 @@
 			margin-top: 0.15rem;
 			border-radius: 1rem;
 		}
-
 		#tracking-dashboard .container-tracking .cont .data .order .f3 .line.no-animation {
 			background: var(--line-color);
 			animation: none;
 			background-size: initial;
+		}
+		#tracking-dashboard .container-tracking .cont .data .order .f3 .line.par-animation {
+			background: var(--line-color);
+			animation: blink 1.5s infinite ease-in-out;
+			background-size: initial;
+		}
+
+		/* Parpadeo suave */
+		@keyframes blink {
+			0%, 100% { opacity: 1; }
+			50% { opacity: 0.2; }
 		}
 
 		@keyframes gradientMove {

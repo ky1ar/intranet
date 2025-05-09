@@ -3,7 +3,7 @@
     <div class="modal glass">
         <div x-show="step == 0" class="content">
             <div class="top">
-                <img alt="user" :src="'/static/images/users/' + $store.cache.user.image" width="80" height="80">
+                <img alt="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
                 <h1>¡Hola! Vamos a empezar</h1>
                 <p>Solo necesito tu DNI o RUC para comenzar.</p>
             </div>
@@ -25,7 +25,7 @@
 				<img alt="close" src="static/images/back.svg" width="20" height="20">
 			</div>
             <div class="top">
-                <img alt="user" :src="'/static/images/users/' + $store.cache.user.image" width="80" height="80">
+                <img alt="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
                 <h1>¿Está bien el nombre?</h1>
                 <p>Encontré el siguiente nombre, si todo está bien, ¡continuemos!</p>
             </div>
@@ -41,7 +41,7 @@
 				<img alt="close" src="static/images/back.svg" width="20" height="20">
 			</div>
             <div class="top">
-                <img alt="user" :src="'/static/images/users/' + $store.cache.user.image" width="80" height="80">
+                <img alt="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
                 <h1 x-text="!service_order.phone ? '¿Cuál es tu número de celular?' : '¿Tu número de celular es éste?'"></h1>
                 <p x-text="!service_order.phone ? 'Por favor, ingresa tu número de celular para mantenernos en contacto.' : 'Hallé este número, si deseas puedes actualizarlo.'"></p>
             </div>
@@ -63,7 +63,7 @@
 				<img alt="close" src="static/images/back.svg" width="20" height="20">
 			</div>
             <div class="top">
-                <img alt="user" :src="'/static/images/users/' + $store.cache.user.image" width="80" height="80">
+                <img alt="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
                 <h1>¿Qué equipo estás registrando?</h1>
                 <p>Selecciona el equipo y marca si es una compra interna.</p>
             </div>
@@ -99,7 +99,7 @@
 				<img alt="close" src="static/images/back.svg" width="20" height="20">
 			</div>
             <div class="top">
-                <img alt="user" :src="'/static/images/users/' + $store.cache.user.image" width="80" height="80">
+                <img alt="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
                 <h1>¿Qué problema estás reportando?</h1>
                 <p>Cuéntanos brevemente el problema que estás teniendo con el equipo.</p>
             </div>
@@ -117,7 +117,7 @@
 				<img alt="close" src="static/images/back.svg" width="20" height="20">
 			</div>
             <div class="top">
-                <img alt="user" :src="'/static/images/users/' + $store.cache.user.image" width="80" height="80">
+                <img alt="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
                 <h1>¿Qué accesorios incluyes?</h1>
                 <p>Selecciona los accesorios que estás entregando junto al equipo.</p>
             </div>
@@ -152,7 +152,7 @@
 				<img alt="close" src="static/images/back.svg" width="20" height="20">
 			</div>
             <div class="top">
-                <img alt="user" :src="'/static/images/users/' + $store.cache.user.image" width="80" height="80">
+                <img alt="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
                 <h1>¿Todo está correcto?</h1>
                 <p>Aquí tienes un resumen de lo que ingresaste.</p>
             </div>
@@ -186,7 +186,7 @@
 				<img alt="close" src="static/images/back.svg" width="20" height="20">
 			</div>
             <div class="top">
-                <img alt="user" :src="'/static/images/users/' + $store.cache.user.image" width="80" height="80">
+                <img alt="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
                 <h1>¿Estás de acuerdo con los términos?</h1>
                 <p>Para continuar, necesitamos que aceptes nuestros términos y condiciones.</p>
             </div>
@@ -266,7 +266,7 @@
 				<img alt="close" src="static/images/back.svg" width="20" height="20">
 			</div>
             <div class="top">
-                <img alt="user" :src="'/static/images/users/' + $store.cache.user.image" width="80" height="80">
+                <img alt="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
                 <h1>Por último, dibuja tu firma</h1>
                 <p>Utiliza el recuadro blanco para firmar.</p>
             </div>
@@ -283,7 +283,7 @@
 
         <div x-show="step == 9" class="content">
             <div class="top">
-                <img alt="user" :src="'/static/images/users/' + $store.cache.user.image" width="80" height="80">
+                <img alt="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
                 <h1>¡Gracias! He registrado tu orden</h1>
                 <p>Te he enviado un mensaje con los datos que ingresaste.</p>
             </div>

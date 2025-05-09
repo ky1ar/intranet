@@ -90,7 +90,7 @@
             temp_auth: {
                 document: (JSON.parse(localStorage.getItem('temp_auth'))?.document || ''),
                 name: (JSON.parse(localStorage.getItem('temp_auth'))?.name || ''),
-                image: (JSON.parse(localStorage.getItem('temp_auth'))?.image || '/static/images/users/user_default.jpg'),
+                image: (JSON.parse(localStorage.getItem('temp_auth'))?.image || '/static/images/uploads/users/user_default.jpg'),
             },
 
             buttons: {
@@ -122,7 +122,7 @@
                     this.temp_auth.name = name;
                     this.first_login = first_login ?? false;
 
-                    if (image) this.temp_auth.image = `/static/images/users/${image}`;
+                    if (image) this.temp_auth.image = `/static/images/uploads/users/${image}`;
 
                     if (!first_login) {
                         localStorage.setItem('temp_auth', JSON.stringify({
@@ -227,7 +227,7 @@
                 this.temp_auth = {
                     document: '',
                     name: '',
-                    image: '/static/images/users/user_default.jpg',
+                    image: '/static/images/uploads/users/user_default.jpg',
                 },
                 this.first_login = false;
                 localStorage.removeItem('temp_auth'); 
