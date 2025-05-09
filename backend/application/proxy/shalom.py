@@ -22,7 +22,7 @@ class Shalom:
         #logging.info(shalom_response)
 
         if shalom_response.get('success') == False:
-            return "Tracking no encontrado", 404
+            return "Códigos de tracking incorrectos", 404
         
         shalom_data = shalom_response.get('data')
         shalom_origin = shalom_data.get('origen')

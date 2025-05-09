@@ -1,6 +1,7 @@
 import logging, requests, json
 from application.handlers import handle_exceptions
 from config import WABA as API
+from config import Config
 
 
 class Whatsapp:
@@ -98,5 +99,75 @@ class Whatsapp:
                 "components": [{"type": "body", "parameters": parameters}]
             }
         }
+        return self.post(payload)
+    
+
+    @handle_exceptions
+    def logistic_status_change(self, data, status_id):
+        phone = data.get("phone")
+        username = data.get("username")
+        order_number = data.get("order_number")
+        schedule_id = data.get("schedule_id")
+        file = data.get("file")
+
+        template_list = {
+            3: "entrega",
+            4: "entrega_exitosa_img",
+            6: "no_entrega_img",
+        }
+
+        template_name = template_list.get(status_id)
+        schedules = {
+            1: (Config.T1_START, Config.T1_END),
+            2: (Config.T2_START, Config.T2_END)
+        }
+        start, end = schedules.get(schedule_id)
+        timer = 10
+
+        mantra = Config.CONTACT_PHONE
+        link = Config.REVIEW_URL
+        base_url = Config.BASE_URL
+        parameters = [{"type": "text", "parameter_name": "username", "text": username}]
+
+        if status_id == 3:
+            parameters.extend([
+                {"type": "text", "parameter_name": "order_number", "text": order_number},
+                {"type": "text", "parameter_name": "start", "text": start},
+                {"type": "text", "parameter_name": "end", "text": end},
+                {"type": "text", "parameter_name": "timer", "text": timer}
+            ])
+        elif status_id == 4:
+            parameters.extend([
+                {"type": "text", "parameter_name": "number", "text": mantra},
+                {"type": "text", "parameter_name": "link", "text": link}
+            ])
+        elif status_id == 6:
+            parameters.append({"type": "text", "parameter_name": "order_number", "text": order_number})
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "template",
+            "template": {
+                "name": template_name,
+                "language": {"code": "es_PE"},
+                "components": [{"type": "body", "parameters": parameters}]
+            }
+        }
+
+        if status_id in {4, 6} and file:
+            header_component = {
+                "type": "header",
+                "parameters": [
+                    {
+                        "type": "image",
+                        "image": {
+                            "link": f"{base_url}{file}"
+                        }
+                    }
+                ]
+            }
+            payload["template"]["components"].insert(0, header_component)
+
         return self.post(payload)
     

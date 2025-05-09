@@ -90,6 +90,7 @@ class LogisticRepository:
             .join(ClientOrders, ShippingOrders.client_order_id == ClientOrders.id)
             .filter(ShippingOrders.client_order_id == client_order_id)
             .filter(ShippingOrders.is_deleted.is_(False))
+            .filter(ShippingOrders.status_id != 6)
             .options(
                 joinedload(ShippingOrders.client_order).joinedload(ClientOrders.client),
             )
@@ -124,35 +125,30 @@ class LogisticRepository:
 
     @handle_db_exceptions
     def update_shipping_order(self, shipping_order, data):
-        method_id = data.get("method_id")
-        register_date = data.get("register_date")
-        address = data.get("address", "").strip()
-        district_id = data.get("district_id")
-        maps = data.get("maps")
-        assigned_id = data.get("assigned_id")
-        driver_id = data.get("driver_id")
+        direct_update_fields = ["delivery_date", "status_id", "schedule_id", "proof_photo"]
+        conditional_fields = [
+            "method_id", "register_date", "address",
+            "district_id", "maps", "assigned_id", "driver_id"
+        ]
 
         updated_fields = {}
-        if shipping_order.method_id != method_id:
-            updated_fields["method_id"] = method_id
-        if shipping_order.register_date != register_date:
-            updated_fields["register_date"] = register_date
-        if shipping_order.address != address:
-            updated_fields["address"] = address
-        if shipping_order.district_id != district_id:
-            updated_fields["district_id"] = district_id
-        if shipping_order.maps != maps:
-            updated_fields["maps"] = maps
-        if shipping_order.assigned_id != assigned_id:
-            updated_fields["assigned_id"] = assigned_id
-        if shipping_order.driver_id != driver_id:
-            updated_fields["driver_id"] = driver_id
 
-        if updated_fields:
-            for field, value in updated_fields.items():
+        for field in direct_update_fields:
+            value = data.get(field)
+            if value is not None:
                 setattr(shipping_order, field, value)
+
+        for field in conditional_fields:
+            new_value = data.get(field, "").strip() if field == "address" else data.get(field)
+            current_value = getattr(shipping_order, field)
+            if new_value and new_value != current_value:
+                updated_fields[field] = new_value
+                setattr(shipping_order, field, new_value)
+
+        if updated_fields or any(data.get(f) is not None for f in direct_update_fields):
             g.db_session.add(shipping_order)
             g.db_session.commit()
+
         return updated_fields, 200
     
 

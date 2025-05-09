@@ -167,4 +167,4 @@ static/swagger.json
 .DS_Store
 
 backend/serviceAccountKey.json
-backend/uploads/
+shared_uploads/

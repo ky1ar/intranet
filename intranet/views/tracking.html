@@ -34,7 +34,7 @@
 						</template>
 					</template>
 					<template x-if="orders.agencia.length === 0">
-						<p class="no-orders">No hay órdenes en agencia.</p>
+						<p class="no-orders">No hay pedidos en agencia.</p>
 					</template>
 				</div>
 			</div>
@@ -66,7 +66,7 @@
 						</template>
 					</template>
 					<template x-if="orders.ruta.length === 0">
-						<p class="no-orders">No hay órdenes en ruta.</p>
+						<p class="no-orders">No hay pedidos en ruta.</p>
 					</template>
 				</div>
 			</div>
@@ -98,7 +98,7 @@
 						</template>
 					</template>
 					<template x-if="orders.entregado.length === 0">
-						<p class="no-orders">No hay órdenes entregadas.</p>
+						<p class="no-orders">No hay pedidos entregados.</p>
 					</template>
 				</div>
 			</div>
@@ -124,13 +124,7 @@
 						type="text" 
 						placeholder="N° Orden" 
 						maxlength="6" 
-						@input="
-							if ($event.target.value.toUpperCase().startsWith('S')) {
-							order_number = $event.target.value.toUpperCase();
-							} else {
-							order_number = '';
-							}
-						"
+						@input="order_number = $event.target.value.toUpperCase()"
 						@blur="fetchOrderData()"
 						required>
 				</div>
@@ -158,9 +152,15 @@
 						x-model="phone"
 						type="tel" 
 						placeholder="Celular" 
+						minlength="9"
 						maxlength="9" 
-						x-on:input="phone = $event.target.value.replace(/[^0-9]/g, '')"
-						x-bind:disabled="disablePhone" 
+						x-on:input="
+							let val = $event.target.value.replace(/[^0-9]/g, '');
+							if (val.length === 1 && val !== '9') {
+								val = '';
+							}
+							phone = val;
+						"
 						required
 					>
 				</div>
@@ -169,8 +169,7 @@
 					x-model="email"
 					type="email" 
 					placeholder="Correo"
-					maxlength="50"
-					x-bind:disabled="disableEmail">
+					maxlength="60">
 				</div>
 				<div class="agen-tit">
 					<p>Agencia</p>
@@ -223,6 +222,13 @@
 						  :maxlength="config[agency].m2" 
 						  required>
 					  </template>
+					<template x-if="agency === '1'">
+						<input 
+							type="text" 
+							x-model="code3"
+							placeholder="Clave" 
+							maxlength="4">
+					</template>
 				</div>
 				<div id="error-register"></div>
 				<button class="ins hover-opacity" type="submit">Agregar Registro</button>
@@ -239,19 +245,18 @@
 			agency: "1",         
 			code1: "",          
 			code2: "",
+			code3: "",
 			client_id: null,
-			user_order_id: null,
-			disableDoc: false,    
-			disableName: false,   
-			disablePhone: false,  
-			disableEmail: false,             
+			client_order_id: null,
+			disableDoc: false,     
+			disableName: false,
 			orders: {
 				agencia: [],
 				ruta: [],
 				entregado: []
         	},
 			config: {
-				1: { p1: "N° de Orden", m1: 8, type2: "text", p2: "Código de Orden", m2: 4 },
+				1: { p1: "N° Orden Shalom", m1: 8, type2: "text", p2: "Código de Orden", m2: 4 },
 				2: { p1: "N° de Tracking", m1: 7, type2: "select", options: ["25", "24", "23", "22"] },
 				3: { p1: "V001", m1: 4, type2: "text", p2: "0000001", m2: 7 }
 			},
@@ -259,41 +264,65 @@
 			init() {
 				this.loadOrders();
 			},
-		
 			updateFields() {
 				this.code1 = "";
 				this.code2 = "";
 				if (this.agency === "2" && Array.isArray(this.config[this.agency]?.options)) {
 					this.code2 = this.config[this.agency].options[0];
 				}
-
+				if (this.agency !== "1") {
+					this.code3 = null;
+				}
 				this.$nextTick(() => {});
 			},
 	  
 			fetchOrderData() {
-				const orderNumber = this.order_number.trim();
-				if (!orderNumber) return;
+    const orderNumber = this.order_number.trim();
+    if (!orderNumber) return;
 
-				fetch(Alpine.store('cache').api + `/order/id/${orderNumber}`)
-					.then(res => res.json())
-					.then(({ data: { client = {}, user_order_id = null } = {} }) => {
-						this.document = client.document || "";
-						this.name = client.name || "";
-						this.phone = client.phone || "";
-						this.email = client.email || "";
-						this.client_id = client.id || null;
-						this.user_order_id = user_order_id;
-						this.disableDoc = !!client.document;
-						this.disableName = !!client.name;
-						this.disablePhone = !!client.phone;
-						this.disableEmail = !!client.email;
-					})
-					.catch(() => {
-						this.document = this.name = this.phone = this.email = "";
-						this.client_id = this.user_order_id = null;
-						this.disableDoc = this.disableName = this.disablePhone = this.disableEmail = false;
-					});
-			},
+    fetch(Alpine.store('cache').api + `/client/order_number/${orderNumber}`)
+        .then(res => res.json())
+        .then(({ data: { client = {}, client_order_id = null } = {} }) => {
+            let shouldClear = !client.name && !client.document && !client.phone && !client.email;
+
+            if (client.name) {
+                this.name = client.name;
+                this.disableName = true;
+            } else if (!client.name && this.disableName) {
+                this.name = "";
+                this.disableName = false;
+            }
+
+            if (client.document) {
+                this.document = client.document;
+                this.disableDoc = true;
+            } else if (!client.document && this.disableDoc) {
+                this.document = "";
+                this.disableDoc = false;
+            }
+
+            ["phone", "email"].forEach(field => {
+                if (client[field]) {
+                    this[field] = client[field];
+                } else if (!client[field] && this[`${field}Source`] !== 'order') {
+                    this[field] = "";
+                }
+            });
+
+            this.client_id = client.id || null;
+            this.client_order_id = client_order_id;
+        })
+        .catch(() => {
+            if (this.nameSource !== 'order') this.name = "";
+            this.disableName = false;
+            if (this.documentSource !== 'order') this.document = "";
+            if (this.phoneSource !== 'order') this.phone = "";
+            if (this.emailSource !== 'order') this.email = "";
+            this.client_id = null;
+            this.client_order_id = null;
+        });
+},
+
 
 			fetchDocumentData() {
 				const doc = this.document.trim();
@@ -302,26 +331,36 @@
 				fetch(Alpine.store('cache').api + `/client/data/${doc}`)
 					.then(res => res.json())
 					.then(({ data: client = {} } = {}) => {
-						this.name = client.name || "";
-						this.phone = client.phone || "";
-						this.email = client.email || "";
+						['name', 'phone', 'email'].forEach(field => {
+							const disableField = `disable${field.charAt(0).toUpperCase() + field.slice(1)}`;
+							if (client[field]) {
+								this[field] = client[field];
+								this[disableField] = true;
+							} else if (this[disableField]) {
+								this[field] = "";
+								this[disableField] = false;
+							}
+						});
 						this.client_id = client.id || null;
-						this.disableName = !!client.name;
-						this.disablePhone = !!client.phone;
-						this.disableEmail = !!client.email;
 					})
 					.catch(() => {
-						this.name = this.phone = this.email = "";
+						['name', 'phone', 'email'].forEach(field => {
+							const disableField = `disable${field.charAt(0).toUpperCase() + field.slice(1)}`;
+							if (this[disableField]) {
+								this[field] = "";
+								this[disableField] = false;
+							}
+						});
 						this.client_id = null;
-						this.disableName = this.disablePhone = this.disableEmail = false;
 					});
 			},
+
 			getLineColor(agency_id) {
 				switch (agency_id) {
-					case 1: return '#ff4848'; // Rojo para Shalom
-					case 2: return '#ffdd00'; // Amarillo para Olva
-					case 3: return '#ff7f00'; // Naranja para Marvisur
-					default: return '#ff4848'; // Rojo por defecto
+					case 1: return '#ff0000';
+					case 2: return '#ffd800'; 
+					case 3: return '#ff6e00'; 
+					default: return '#cdcdcd';
 				}
 			},
 			resetForm() {
@@ -330,13 +369,10 @@
 				this.name = "";
 				this.phone = "";
 				this.email = "";
-				this.user_order_id = "";
+				this.client_order_id = "";
 				this.client_id = null;
 				this.disableDoc = false;
 				this.disableName = false;
-				this.disablePhone = false;
-				this.disableEmail = false;
-				this.disableInputs = false;
 			},
 
 			processTracking() {
@@ -349,8 +385,9 @@
 					agency_id: this.agency,
 					code1: this.code1,
 					code2: this.code2,
+					code3: this.code3 || null, 
 					client_id: this.client_id || null,
-					user_order_id: this.user_order_id || null,
+					client_order_id: this.client_order_id || null,
 					client: {
 						document: this.document,
 						name: this.name,
@@ -492,7 +529,6 @@
 			background-color: var(--white);
 			border-radius: 1rem;
 			padding: 1rem;
-
 		}
 		#tracking-dashboard .container-tracking .cont .data .order p{
 			margin: 0;
@@ -554,7 +590,7 @@
 			display: flex;
 			position: relative;
 			flex-wrap: wrap;
-			width: 35rem;
+			width: 40rem;
 			background-color: var(--white);
 			box-shadow: 0.1rem 0.1rem 0.5rem 0.2rem #dddddd;
 			padding: 2rem;
@@ -584,11 +620,11 @@
 			width: 100%;
 		}
 		#registerTrackings .form .agen {
-			width: 28%;
+			width: 20%;
 		}
 		#registerTrackings .form .track {
-			width: 70%;
-			justify-content: space-between;
+			width: calc(80% - 1rem);
+			gap: 1rem;
 		}
 		#registerTrackings .form #error-register{
 			width: 100%;
@@ -621,7 +657,7 @@
 		}
 		#registerTrackings .form .track input,
 		#registerTrackings .form .track .sp {
-			width: 49%;
+			flex: 1;
 		}
 		#registerTrackings .form .agen-tit {
 			font-size: 1rem;

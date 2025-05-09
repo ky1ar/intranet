@@ -140,7 +140,7 @@ body.modal-open {
     position: relative;
     font-weight: 500;
     font-size: 1.125rem;
-    line-height: 1rem;
+    line-height: 1.125rem;
 }
 .modal .textarea {
     padding: 1rem;
@@ -274,6 +274,7 @@ body.modal-open {
 }
 #sidebar .home {
     margin-top: 1.5rem;
+    min-width: 2rem;
 }
 #sidebar ul {
     margin: 0;
@@ -465,10 +466,43 @@ body.modal-open {
 /****************************************************	48rem	768px	 ***************************************************/ 
 @media only screen and (max-width: 48rem) {
     #sidebar {
+        flex-direction: row;
+        height: initial;
+        left: 0rem;
+        right: 0rem;
+        justify-content: space-between;
+        bottom: 0rem;
+        padding: 1rem;
+        background: linear-gradient(315deg, hsl(20deg 22% 85% / 80%), hsl(211deg 22% 85% / 80%));
+        backdrop-filter: blur(2px);
+    }
+    #sidebar .home {
+        margin: 0;
+    }
+    #sidebar ul {
+        flex-direction: row;
+        margin-right: auto;
+        padding: 0.5rem 0.75rem;
+    }
+    #sidebar .config {
+        flex-direction: row;
+        margin: 0;
+    }
+    #sidebar ul li span {
         display: none;
+    }
+    #sidebar .menu {
+        left: initial;
+        right: 1rem;
+        bottom: 5.5rem;
+        padding: 0;
     }
     #content.sidebar {
         margin: 0;
+        padding-bottom: 5.5rem;
+    }
+    .modal {
+        width: calc(100% - 2rem);
     }
 }
 /****************************************************	36rem	576px	 ***************************************************/ 

@@ -22,7 +22,7 @@ class TrackingService:
 
     @handle_exceptions
     def add(self, data):
-        user_order_id = data.get("user_order_id")
+        client_order_id = data.get("client_order_id")
         order_number = data.get("order_number", "").strip()
         agency_id = int(data.get("agency_id"))
         code1 = data.get("code1")
@@ -49,8 +49,7 @@ class TrackingService:
         if tracking_status != 200:
             return tracking_data, tracking_status
         
-        if not user_order_id:
-            logging.info("Not user_order_id find, creating new one")
+        if not client_order_id:
             if not order_number:
                 return "Ingrese el número de orden", 400
             
@@ -61,38 +60,38 @@ class TrackingService:
             name = client_data.get("name", "").strip()
             phone = client_data.get("phone", "").strip()
 
-            if not phone or len(phone) != 9:
-                return "Ingrese un celular válido", 400
-        
             if client_id:
-                logging.info("client_id already exist")
-                client, client_status = self.user_repository.get_user_by_id(client_id)
+                client, client_status = self.client_repository.get_client_by_id(client_id)
                 if client_status != 200:
                     return client, client_status
-                self.user_repository.update_client(client, client_data)
+                self.client_repository.update_client(client, client_data)
             else:
-                logging.info("Client not exist, creating new one")
                 if not document:
                     return "Ingrese un documento", 400
                 if not name:
                     return "Ingrese el nombre", 400
+                if not phone or len(phone) != 9:
+                    return "Ingrese un celular válido", 400
                 
                 client, client_status = self.client_repository.get_client_by_document(document)
-                if client_status == 200:
-                    client_id = client.id
-                else:
-                    added_client, added_client_status = self.user_repository.add_client(client_data)
+                if client_status == 500:
+                    return client, client_status
+                if client_status == 404:
+                    added_client, added_client_status = self.client_repository.add_client(client_data)
                     if added_client_status != 200:
                         return added_client, added_client_status
                     client_id = added_client
+                else:
+                    client_id = client.id
 
-            user_order, user_status = self.user_repository.add_user_order(order_number, client_id)
-            if user_status != 200:
-                return user_order, user_status
-            data["user_order_id"] = user_order
-
+            client_order, client_order_status = self.client_repository.add_client_order(order_number, client_id)
+            if client_order_status != 200:
+                return client_order, client_order_status
+            data["client_order_id"] = client_order
         else:
-            _, find_status = self.tracking_repository.get_tracking_order(user_order_id)
+            find, find_status = self.tracking_repository.get_tracking_order(client_order_id)
+            if find_status == 500:
+                return find, find_status
             if find_status == 200:
                 return "La Orden ya ha sido registrada", 400
 
@@ -100,12 +99,11 @@ class TrackingService:
         if tracking_order_status != 200:
             return tracking_order, tracking_order_status
 
-        #logging.info( tracking_data.get("status_data"))
-        tracking_history, tracking_history_status = self.tracking_repository.add_tracking_history(tracking_order, tracking_data.get("status_data"))
-        if tracking_history_status != 200:
-            return tracking_history, tracking_history_status
-        
         #socketio.emit("update_schedule", {})
+        history, history_status = self.tracking_repository.add_tracking_history(tracking_order, tracking_data.get("status_data"))
+        if history_status != 200:
+            return history, history_status
+        
         return "Orden registrada correctamente", 200
         
 
@@ -137,6 +135,7 @@ class TrackingService:
                 'agency_id': track.agency_id,
                 #'agency_id': track.agency_id,
                 'status': track.status.name if track.status else None,
+                'status_id': track.status.id if track.status else None,
                 'code1': track.code1,
                 'code2': track.code2,
                 'register_at': track.register_at.strftime("%d %B %Y %I:%M %p") if track.register_at else None

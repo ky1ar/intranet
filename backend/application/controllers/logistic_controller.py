@@ -73,6 +73,14 @@ class LogisticController:
         return self.logistic_service.delete_shipping_order(shipping_order, data)
     
 
+    @handle_logs_and_exceptions
+    def photo_upload(self, data):
+        order_number = data.pop("order_number")
+        shipping_order, shipping_order_status = self.logistic_service.shipping_by_order_number(order_number)
+        if shipping_order_status != 200:
+            return shipping_order, shipping_order_status
+        
+        return self.logistic_service.photo_upload(shipping_order, data)
         
 
 
@@ -114,20 +122,7 @@ class LogisticController:
         return self.logistic_service.send_message(data, template=3)
 
 
-    @handle_logs_and_exceptions
-    def photo_upload(self, request):
-        if validation_error := validate_request(
-            request, 
-            {"order_number", "proof_photo"}
-        ):
-            return validation_error, 400
-
-        order_number = request.pop("order_number")
-        order, order_status = self.logistic_service.get_shipping_by_order_number(order_number)
-        if order_status != 200:
-            return order, order_status
-        
-        return self.logistic_service.update_shipping_order(order, request)
+    
 
 
     def webhook(self, request):

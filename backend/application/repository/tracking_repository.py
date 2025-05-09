@@ -12,11 +12,12 @@ class TrackingRepository:
         peru_time = utc_now - timedelta(hours=5)
 
         new_tracking_order = TrackingOrders(
-            user_order_id=data.get("user_order_id"),
+            client_order_id=data.get("client_order_id"),
             agency_id=data.get("agency_id"),
             status_id=tracking_data.get("last_status_id"),
             code1=data.get("code1"),
             code2=data.get("code2"),
+            code3=data.get("code3"),
             origin_agency=tracking_data.get("origin_agency"),
             destination_agency=tracking_data.get("destination_agency"),
             external_id=tracking_data.get("external_id"),
@@ -44,10 +45,10 @@ class TrackingRepository:
     
 
     @handle_db_exceptions
-    def get_tracking_order(self, user_order_id):
+    def get_tracking_order(self, client_order_id):
         tracking_order = (
             g.db_session.query(TrackingOrders)
-            .filter(TrackingOrders.client_order_id == user_order_id)
+            .filter(TrackingOrders.client_order_id == client_order_id)
             .first()
         )
         if not tracking_order:

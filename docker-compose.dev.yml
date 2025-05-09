@@ -15,6 +15,7 @@ services:
       - krear3d
     volumes:
       - ./backend:/application
+      - ./shared_uploads:/shared_uploads
     ports:
       - "${API_PORT}:${API_PORT}"
     healthcheck:
@@ -56,6 +57,7 @@ services:
       - krear3d
     volumes:
       - ./intranet:/usr/share/nginx/html
+      - ./shared_uploads:/usr/share/nginx/html/static/images/uploads
     ports:
       - 7010:80
       - 3010:443
@@ -64,3 +66,6 @@ services:
 networks:
   krear3d:
     driver: bridge
+
+volumes:
+  shared_uploads:

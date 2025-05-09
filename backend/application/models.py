@@ -338,6 +338,7 @@ class TrackingOrders(BaseModel):
     status_id = db.Column(db.Integer, db.ForeignKey('tracking_status.id'), nullable=False)
     code1 = db.Column(db.String(20), nullable=False)
     code2 = db.Column(db.String(20), nullable=False)
+    code3 = db.Column(db.String(20), nullable=False)
     origin_agency = db.Column(db.String(100))
     destination_agency = db.Column(db.String(100))
     external_id = db.Column(db.String(25))

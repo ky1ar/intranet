@@ -1,5 +1,7 @@
-from flask import Blueprint, request
+
+from flask import Blueprint
 from application.controllers.general_controller import GeneralController
+
 
 general_bp = Blueprint("general", __name__, url_prefix="/general")
 controller = GeneralController()
@@ -43,3 +45,4 @@ def general_districts():
 @general_bp.route("/shipping_types", methods=["GET"])
 def general_shipping_types():
     return controller.general_shipping_types()
+

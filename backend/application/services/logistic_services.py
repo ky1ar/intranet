@@ -1,15 +1,14 @@
 import logging
-import requests
-import json
 import firebase_admin
+import threading
 
 from firebase_admin import messaging, credentials
-from config import WABA, Config
 from datetime import date, datetime, timezone, timedelta
 from application.models import  ShippingHistory, ShippingStatusList, FireCloudTokens, HistoryType
 from application.handlers import handle_exceptions, handle_db_exceptions
 from application.repository.logistic_repository import LogisticRepository
 from application.repository.client_repository import ClientRepository
+from application.proxy.whatsapp import Whatsapp
 from flask import g
 from application import socketio
 
@@ -19,6 +18,7 @@ class LogisticService:
         self.check_firebase_initialized()
         self.logistic_repository = LogisticRepository()
         self.client_repository = ClientRepository()
+        self.whatsapp = Whatsapp()
 
 
     @handle_exceptions
@@ -39,7 +39,7 @@ class LogisticService:
     def get_day_shippings(self, offset):
         day_of_interest = date.today() + timedelta(days=offset)
         day_str = day_of_interest.strftime("%Y-%m-%d")
-        day_name = self._get_day_name_es(day_of_interest)
+        day_name = self._get_day_name_es(day_of_interest, True)
         day_name_with_number = f"{day_name} {day_of_interest.day}"
 
         scheduled_orders, status = self.logistic_repository.get_scheduled_shippings(day_of_interest, day_of_interest)
@@ -120,11 +120,16 @@ class LogisticService:
         return schedule_by_day
 
 
-    def _get_day_name_es(self, date_obj):
+    def _get_day_name_es(self, date_obj, full=False):
         DAYS_IN_SPANISH = {
             "Monday": "lun", "Tuesday": "mar", "Wednesday": "mié",
             "Thursday": "jue", "Friday": "vie", "Saturday": "sáb", "Sunday": "dom"
         }
+        if full:
+            DAYS_IN_SPANISH = {
+                "Monday": "lunes", "Tuesday": "martes", "Wednesday": "miércoles",
+                "Thursday": "jueves", "Friday": "viernes", "Saturday": "sábado", "Sunday": "domingo"
+            }
         return DAYS_IN_SPANISH.get(date_obj.strftime("%A"), date_obj.strftime("%A"))
 
 
@@ -218,16 +223,15 @@ class LogisticService:
         client = shipping_order.client_order.client
 
         if status_id in (3, 4, 6):
-            data = {
+            payload = {
                 "phone": client.phone,
                 "username": client.name.title(),
-                "order_number": shipping_order.order_number,
+                "order_number": shipping_order.client_order.number,
                 "schedule_id": shipping_order.schedule_id,
                 "file": shipping_order.proof_photo,
             }
             if shipping_order.method_id < 3:
-                pass
-                #self.logistic_service.send_message(data, status_id)
+                threading.Thread(target=self.whatsapp.logistic_status_change, args=(payload, status_id)).start()
 
         status_map = {
             1: ShippingStatusList.PENDING,
@@ -237,28 +241,18 @@ class LogisticService:
             6: ShippingStatusList.NOT_DELIVERED,
         }
         status = status_map.get(status_id)
-        history, history_status = self.logistic_repository.add_shipping_history(user_id, shipping_order.id, HistoryType.STATUS_CHANGE, status, data=data)
+        logging.info(data)
+        shipping_order_id = shipping_order.id
+        update_shipping, update_status = self.logistic_repository.update_shipping_order(shipping_order, data)
+        if update_status != 200:
+            return update_shipping, update_status
+        
+        socketio.emit("update_dashboard", {})
+
+        history, history_status = self.logistic_repository.add_shipping_history(user_id, shipping_order_id, HistoryType.STATUS_CHANGE, status, data=update_shipping)
         if history_status != 200:
             return history, history_status
-
-        return self.update_shipping_order(shipping_order, data)
-    
-
-    @handle_db_exceptions
-    def update_shipping_order(self, shipping_order, data):
-        if "delivery_date" in data:
-            shipping_order.delivery_date = data["delivery_date"]
-        if "status_id" in data:
-            shipping_order.status_id = data["status_id"]
-        if "schedule_id" in data:
-            shipping_order.schedule_id = data["schedule_id"]
-        if "proof_photo" in data:
-            shipping_order.proof_photo = data["proof_photo"]
-
-        g.db_session.add(shipping_order)
-        g.db_session.commit()
-        socketio.emit("update_dashboard", {})
-        self.send_notification(shipping_order)
+        
         return "Orden actualizada correctamente", 200
     
 
@@ -431,127 +425,61 @@ class LogisticService:
         return result, 200
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    def post_waba(self, payload):
-        url = f"{WABA.URL}"
-
-        headers = {
-            "Authorization": f"Bearer {WABA.TOKEN}",
-            "Content-Type": "application/json"
-        }
-
-        response = requests.post(url, headers=headers, data=json.dumps(payload))
-        response_data = response.json()
+    @handle_db_exceptions
+    def photo_upload(self, shipping_order, data):
+        user_id = data.get("user_id")
+        shipping_order_id = shipping_order.id
+        update_shipping, update_status = self.logistic_repository.update_shipping_order(shipping_order, data)
+        if update_status != 200:
+            return update_shipping, update_status
         
-        if response.status_code != 200:
-            return f"Error {response_data}", response.status_code
+        socketio.emit("update_dashboard", {})
+
+        history, history_status = self.logistic_repository.add_shipping_history(user_id, shipping_order_id, HistoryType.UPDATED, data=update_shipping)
+        if history_status != 200:
+            return history, history_status
         
-        return "Mensaje enviado correctamente", 200
-            
-
-    @handle_exceptions
-    def send_message(self, data, template_id):
-        phone = data.get("phone")
-        username = data.get("username")
-        order_number = data.get("order_number")
-        schedule_id = data.get("schedule_id")
-        file = data.get("file")
-
-        template_list = {
-            3: "entrega",
-            4: "entrega_exitosa_img",
-            6: "no_entrega_img",
-        }
-
-        template_name = template_list.get(template_id)
-        schedules = {
-            1: (Config.T1_START, Config.T1_END),
-            2: (Config.T2_START, Config.T2_END)
-        }
-        start, end = schedules.get(schedule_id)
-        timer = 10
-
-        mantra = Config.CONTACT_PHONE
-        link = Config.REVIEW_URL
-        base_url = Config.BASE_URL
-        parameters = [{"type": "text", "parameter_name": "username", "text": username}]
-
-        if template_id == 3:
-            parameters.extend([
-                {"type": "text", "parameter_name": "order_number", "text": order_number},
-                {"type": "text", "parameter_name": "start", "text": start},
-                {"type": "text", "parameter_name": "end", "text": end},
-                {"type": "text", "parameter_name": "timer", "text": timer}
-            ])
-        elif template_id == 4:
-            parameters.extend([
-                {"type": "text", "parameter_name": "number", "text": mantra},
-                {"type": "text", "parameter_name": "link", "text": link}
-            ])
-        elif template_id == 6:
-            parameters.append({"type": "text", "parameter_name": "order_number", "text": order_number})
-
-        payload = {
-            "messaging_product": "whatsapp",
-            "to": phone,
-            "type": "template",
-            "template": {
-                "name": template_name,
-                "language": {"code": "es_PE"},
-                "components": [{"type": "body", "parameters": parameters}]
-            }
-        }
-
-        if template_id in {4, 6} and file:
-            header_component = {
-                "type": "header",
-                "parameters": [
-                    {
-                        "type": "image",
-                        "image": {
-                            "link": f"{base_url}{file}"
-                        }
-                    }
-                ]
-            }
-            payload["template"]["components"].insert(0, header_component)
-
-        return self.post_waba(payload)
+        return "Orden actualizada correctamente", 200
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
     @handle_exceptions
     def check_firebase_initialized(self):

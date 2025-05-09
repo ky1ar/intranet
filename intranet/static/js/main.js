@@ -100,6 +100,7 @@ document.addEventListener('alpine:init', () => {
             //{ name: 'support', label: 'Soporte', image: 'support' },
             //{ name: 'training', label: 'Capacitaciones', image: 'training' },
             { name: 'logistics', label: 'Envíos', image: 'logistics' },
+            { name: 'driver', label: 'Conductor', image: 'driver' },
             { name: 'tracking', label: 'Tracking', image: 'tracking' },
             //{ name: 'schedule', label: 'Horarios', image: 'schedule' },
             //{ name: 'clients', label: 'Clientes', image: 'clients' },

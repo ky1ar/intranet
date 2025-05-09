@@ -1,10 +1,7 @@
 import os, logging
-
-from flask import Blueprint, request, jsonify, send_from_directory
+from flask import Blueprint, request, send_from_directory
 from werkzeug.utils import secure_filename
 from application.controllers.logistic_controller import LogisticController
-from flask_socketio import emit, join_room, leave_room
-from application import socketio
 from config import Config
 from PIL import Image
 
@@ -51,35 +48,14 @@ def order_delete():
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@logistic_bp.route("/photo/upload", methods=["POST"])
+@logistic_bp.route("/upload_proof", methods=["POST"])
 def photo_upload():
     image = request.files["image"]
     order_number = request.form.get("order_number")
+    user_id = request.form.get("user_id")
 
     if image.filename == "":
-        return jsonify({"error": "Nombre de archivo vacío"}), 400
+        return {"error": "Nombre de archivo vacío"}, 400
 
     filename = secure_filename(f"order_{order_number}.jpg")
     filepath = os.path.join(Config.UPLOAD_FOLDER, filename)
@@ -90,14 +66,40 @@ def photo_upload():
 
     data = {
         "order_number": order_number,
-        "proof_photo": filename
+        "proof_photo": filename,
+        "user_id": user_id,
     }
     return controller.photo_upload(data)
 
 
-@logistic_bp.route("/uploads/<filename>")
-def uploads(filename):
-    return send_from_directory(Config.UPLOAD_FOLDER, filename)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 @logistic_bp.route("/uploads/machines/<filename>")

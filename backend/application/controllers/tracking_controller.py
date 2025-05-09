@@ -23,6 +23,7 @@ class TrackingController:
         if validation_error := validate_request(data, {"document"}):
             return validation_error, 400
         document = data.get("document")
+        
         return self.tracking.list(document)
     
 

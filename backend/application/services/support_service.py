@@ -312,9 +312,19 @@ class SupportService:
         threading.Thread(target=self.whatsapp.new_order, args=(payload, client_name, machine_name)).start()
         threading.Thread(target=self.whatsapp.new_order_alert, args=("946887982", order_number, machine_name)).start()
         #self.whatsapp.new_order(payload, client_name, machine_name)
-        #self.whatsapp.new_order(payload, client_name, machine_name)
         #socketio.emit("update_schedule", {})
         return "Orden registrada correctamente", 200
+
+
+
+
+
+
+
+
+
+
+
 
 
 

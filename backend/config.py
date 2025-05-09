@@ -20,7 +20,7 @@ class Config:
 
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
     JWT_ACCESS_TOKEN_EXPIRES = False #int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES"))
-    UPLOAD_FOLDER = os.path.abspath("uploads/")
+    UPLOAD_FOLDER = os.path.abspath("/shared_uploads/")
     UPLOAD_MACHINES_FOLDER = os.path.abspath("uploads/machines/")
 
     BASE_URL = os.getenv("BASE_URL")

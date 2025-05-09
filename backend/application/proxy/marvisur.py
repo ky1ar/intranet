@@ -22,7 +22,7 @@ class Marvisur:
         #logging.info(marvisur_response)
 
         if marvisur_response.get('success') == False:
-            return "Tracking no encontrado", 404
+            return "Códigos de tracking incorrectos", 404
         
         origin_agency = ''
         destination_agency = ''

@@ -19,7 +19,7 @@ class Olva:
             
         response = requests.get(self.tracking_url, params=params)
         if response.status_code == 404:
-            return "Tracking no encontrado", 404
+            return "Códigos de tracking incorrectos", 404
 
         if response.status_code != 200:
             return "Error al consultar Olva API", 502
