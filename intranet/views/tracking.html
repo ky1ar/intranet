@@ -277,52 +277,53 @@
 			},
 	  
 			fetchOrderData() {
-    const orderNumber = this.order_number.trim();
-    if (!orderNumber) return;
+				const orderNumber = this.order_number.trim();
+				if (!orderNumber) return;
 
-    fetch(Alpine.store('cache').api + `/client/order_number/${orderNumber}`)
-        .then(res => res.json())
-        .then(({ data: { client = {}, client_order_id = null } = {} }) => {
-            let shouldClear = !client.name && !client.document && !client.phone && !client.email;
+				fetch(Alpine.store('cache').api + `/client/order_number/${orderNumber}`)
+					.then(res => res.json())
+					.then(({ data: { client = {}, client_order_id = null } = {} }) => {
+						let shouldClear = !client.name && !client.document && !client.phone && !client.email;
 
-            if (client.name) {
-                this.name = client.name;
-                this.disableName = true;
-            } else if (!client.name && this.disableName) {
-                this.name = "";
-                this.disableName = false;
-            }
+						if (client.name) {
+							this.name = client.name;
+							this.disableName = true;
+						} else if (this.disableName) {
+							this.name = "";
+							this.disableName = false;
+						}
 
-            if (client.document) {
-                this.document = client.document;
-                this.disableDoc = true;
-            } else if (!client.document && this.disableDoc) {
-                this.document = "";
-                this.disableDoc = false;
-            }
+						if (client.document) {
+							this.document = client.document;
+							this.disableDoc = true;
+						} else if (this.disableDoc) {
+							this.document = "";
+							this.disableDoc = false;
+						}
 
-            ["phone", "email"].forEach(field => {
-                if (client[field]) {
-                    this[field] = client[field];
-                } else if (!client[field] && this[`${field}Source`] !== 'order') {
-                    this[field] = "";
-                }
-            });
+						["phone", "email"].forEach(field => {
+							if (client[field]) {
+								this[field] = client[field];
+							} else if (shouldClear) {
+								this[field] = "";
+							}
+						});
 
-            this.client_id = client.id || null;
-            this.client_order_id = client_order_id;
-        })
-        .catch(() => {
-            if (this.nameSource !== 'order') this.name = "";
-            this.disableName = false;
-            if (this.documentSource !== 'order') this.document = "";
-            if (this.phoneSource !== 'order') this.phone = "";
-            if (this.emailSource !== 'order') this.email = "";
-            this.client_id = null;
-            this.client_order_id = null;
-        });
-},
-
+						this.client_id = client.id || null;
+						this.client_order_id = client_order_id;
+					})
+					.catch(() => {
+						this.name = "";
+						this.disableName = false;
+						this.document = "";
+						this.disableDoc = false;
+						["phone", "email"].forEach(field => {
+							this[field] = "";
+						});
+						this.client_id = null;
+						this.client_order_id = null;
+					});
+			},
 
 			fetchDocumentData() {
 				const doc = this.document.trim();
