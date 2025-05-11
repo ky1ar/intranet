@@ -5,6 +5,7 @@ from application.handlers import handle_exceptions
 from application.repository.tracking_repository import TrackingRepository
 from application.repository.user_repository import UserRepository
 from application.repository.client_repository import ClientRepository
+from application.repository.logistic_repository import LogisticRepository
 from application.proxy.shalom import Shalom
 from application.proxy.olva import Olva
 from application.proxy.marvisur import Marvisur
@@ -15,6 +16,7 @@ class TrackingService:
         self.user_repository = UserRepository()
         self.client_repository = ClientRepository()
         self.tracking_repository = TrackingRepository()
+        self.logistic_repository = LogisticRepository()
         self.shalom = Shalom()
         self.olva = Olva()
         self.marvisur = Marvisur()
@@ -141,41 +143,79 @@ class TrackingService:
                 'register_at': track.register_at.strftime("%d %B %Y %I:%M %p") if track.register_at else None
             })
 
+        logistic_list, logistic_list_status = self.logistic_repository.get_list(order_ids)
+        if logistic_list_status != 200:
+            return logistic_list, logistic_list_status
+        
+        for row in logistic_list:
+            data.append({
+                'id': row.id,
+                'order_number': row.client_order.number,
+                'client_name': client.name,
+                'client_document': client.document,
+                #'agency': row.agency.name if row.agency else None,
+                'agency_image': "https://www.tiendakrear3d.com/wp-content/uploads/2024/08/krear3dlogo.webp",
+                'agency_id': 4,
+                #'agency_id': row.agency_id,
+                'status': row.status.name if row.status else None,
+                'status_id': row.status.id if row.status else None,
+                'register_at': row.register_date.strftime("%d %B %Y %I:%M %p") if row.register_date else None
+            })
+
         return data, 200
 
 
     @handle_exceptions
-    def get_order(self, order_number):
+    def get_order(self, data):
+        order_number = data.get("order_number")
+        agency_id = data.get("agency_id")
+
         client_order, client_order_status = self.client_repository.get_client_order_by_number(order_number)
         if client_order_status != 200:
             return client_order, client_order_status
         
-        tracking_order, tracking_order_status = self.tracking_repository.get_tracking_order(client_order.id)
-        if tracking_order_status != 200:
-            return tracking_order, tracking_order_status
+        if agency_id < 4:
+            tracking_order, tracking_order_status = self.tracking_repository.get_tracking_order(client_order.id)
+            if tracking_order_status != 200:
+                return tracking_order, tracking_order_status
+            
+            order_history, order_history_status = self.tracking_repository.get_order_history(tracking_order.id)
+            if order_history_status != 200:
+                return order_history, order_history_status
+
+            history_data = []
+            for history in order_history:
+                history_data.append({
+                    #'status_id': history.status_id,
+                    'status_name': history.status.name,
+                    'register_at': history.register_at.strftime("%d-%m-%Y %I:%M %p"),
+                })
+
+            result = {
+                'agency_name': tracking_order.agency.name,
+                'agency_id': tracking_order.agency_id,
+                'code1': tracking_order.code1,
+                'code2': tracking_order.code2,
+                'origin_agency': tracking_order.origin_agency,
+                'destination_agency': tracking_order.destination_agency,
+                'last_status_name': tracking_order.status.name,
+                'last_status_id': tracking_order.status_id,
+                'status_history': history_data
+            }
+            return result, 200
         
-        order_history, order_history_status = self.tracking_repository.get_order_history(tracking_order.id)
-        if order_history_status != 200:
-            return order_history, order_history_status
-
-        history_data = []
-        for history in order_history:
-            history_data.append({
-                #'status_id': history.status_id,
-                'status_name': history.status.name,
-                'register_at': history.register_at.strftime("%d-%m-%Y %I:%M %p"),
-            })
-
+        logistic_order, logistic_order_status = self.logistic_repository.get_logistic_order(client_order.id)
+        if logistic_order_status != 200:
+            return logistic_order, logistic_order_status
+        
         result = {
-            'agency_name': tracking_order.agency.name,
-            'agency_id': tracking_order.agency_id,
-            'code1': tracking_order.code1,
-            'code2': tracking_order.code2,
-            'origin_agency': tracking_order.origin_agency,
-            'destination_agency': tracking_order.destination_agency,
-            'last_status_name': tracking_order.status.name,
-            'last_status_id': tracking_order.status_id,
-            'status_history': history_data
+            'agency_name': "Krear 3D",
+            'agency_id': 4,
+            'origin_agency': "Lima",
+            'destination_agency': logistic_order.district.name,
+            'last_status_name': logistic_order.status.name,
+            'last_status_id': logistic_order.status_id,
+            #'status_history': history_data
         }
         return result, 200
     

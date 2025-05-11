@@ -53,7 +53,7 @@
             
             <ul>
                 <template x-for="page in $store.cache.getPages()" :key="page.name">
-                    <li :class="{'active': $store.router.active == '/' + page.name}">
+                    <li :class="{'active': $store.cache.active_page == '/' + page.name}">
                         <a :href="'/' + page.name">
                             <img width="20" height="20" :src="'/static/images/icons/'+page.image+'.svg'" alt="">
                         </a>

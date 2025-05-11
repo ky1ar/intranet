@@ -28,6 +28,8 @@ class TrackingController:
     
 
     @handle_logs_and_exceptions
-    def tracking_get_order(self, order_number):
-        return self.tracking.get_order(order_number)
+    def tracking_get_order(self, data):
+        if validation_error := validate_request(data, {"order_number", "agency_id"}):
+            return validation_error, 400
+        return self.tracking.get_order(data)
 

@@ -207,14 +207,16 @@ class LogisticService:
         if shipping_dates_status != 200:
             return shipping_dates, shipping_dates_status
         
+        if shipping_order.status_id == 3:
+            result["on_the_way_date"] = shipping_dates.get("on_the_way_date")
         if shipping_order.status_id == 4:
             result["on_the_way_date"] = shipping_dates.get("on_the_way_date")
             result["delivered_date"] = shipping_dates.get("delivered_date")
         elif shipping_order.status_id == 6:
             result["on_the_way_date"] = shipping_dates.get("on_the_way_date")
             result["not_delivered_date"] = shipping_dates.get("not_delivered_date")
-        
         return result, 200
+
 
     @handle_exceptions
     def order_set(self, shipping_order, data):
@@ -397,8 +399,6 @@ class LogisticService:
             statuses_to_fetch.append(ShippingStatusList.DELIVERED)
         elif status_id == 6:
             statuses_to_fetch.append(ShippingStatusList.NOT_DELIVERED)
-        else:
-            return None, 200
         
         history_entries = (
             g.db_session.query(ShippingHistory)

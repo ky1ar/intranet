@@ -39,7 +39,7 @@ class TrackingRepository:
             .all()
         )
         if not order_list:
-            return [], 400
+            return [], 200
 
         return order_list, 200
     

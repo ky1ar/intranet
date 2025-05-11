@@ -28,6 +28,19 @@ class LogisticRepository:
     
 
     @handle_db_exceptions
+    def get_list(self, order_ids):
+        order_list = (
+            g.db_session.query(ShippingOrders)
+            .filter(ShippingOrders.client_order_id.in_(order_ids))
+            .all()
+        )
+        if not order_list:
+            return [], 200
+
+        return order_list, 200
+    
+
+    @handle_db_exceptions
     def get_orders_by_status(self, status_id):
         shipping_orders = (
             g.db_session.query(ShippingOrders)
@@ -150,6 +163,19 @@ class LogisticRepository:
             g.db_session.commit()
 
         return updated_fields, 200
+    
+
+    @handle_db_exceptions
+    def get_logistic_order(self, client_order_id):
+        logistic_order = (
+            g.db_session.query(ShippingOrders)
+            .filter(ShippingOrders.client_order_id == client_order_id)
+            .first()
+        )
+        if not logistic_order:
+            return 'Logistic Orden no localizada', 400
+
+        return logistic_order, 200
     
 
     @handle_db_exceptions

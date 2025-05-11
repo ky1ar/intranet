@@ -1,22 +1,4 @@
 document.addEventListener('alpine:init', () => {
-    Alpine.store('router', {
-        active: window.location.pathname,
-        titles: {
-            //'/': 'Krear 3D - Iniciar Sesión',
-            '/Home': 'Krear 3D - Inicio',
-            '/soporte': 'Krear 3D - Panel de Soporte',
-            '/capacitaciones': 'Krear 3D - Panel de Capacitaciones',
-            '/logistics': 'Krear 3D - Panel de Logística',
-            '/tracking': 'Krear 3D - Panel de Trackings',
-            '/clients': 'Krear 3D - Clientes',
-          },
-
-        setActive(path) {
-            this.active = path;
-            document.title = this.titles[path] || 'Krear 3D'
-        }
-    });
-    
     Alpine.store('modal', {
         active: new Set(),
     
@@ -94,36 +76,30 @@ document.addEventListener('alpine:init', () => {
         async init() {
             console.log('Inicializando Alpine...');
         },
-        
-        pages: [
-            //{ name: 'home', label: 'Inicio', image: 'home' },
-            //{ name: 'support', label: 'Soporte', image: 'support' },
-            //{ name: 'training', label: 'Capacitaciones', image: 'training' },
-            { name: 'logistics', label: 'Envíos', image: 'logistics' },
-            { name: 'driver', label: 'Conductor', image: 'driver' },
-            { name: 'tracking', label: 'Tracking', image: 'tracking' },
-            //{ name: 'schedule', label: 'Horarios', image: 'schedule' },
-            //{ name: 'clients', label: 'Clientes', image: 'clients' },
-            //{ name: 'machines', label: 'Equipos', image: 'machines' },
-        ],
-
     }));
 
 
     Alpine.store('cache', {
         api: 'https://api.krear3d.com',
         user: {},
+        active_page: window.location.pathname,
         pages: [
-            //{ name: 'home', label: 'Inicio', image: 'home' },
-            //{ name: 'support', label: 'Soporte', image: 'support' },
-            //{ name: 'training', label: 'Capacitaciones', image: 'training' },
-            { name: 'logistics', label: 'Envíos', image: 'logistics' },
-            { name: 'driver', label: 'Conductor', image: 'driver' },
-            //{ name: 'tracking', label: 'Tracking', image: 'tracking' },
-            //{ name: 'schedule', label: 'Horarios', image: 'schedule' },
-            //{ name: 'clients', label: 'Clientes', image: 'clients' },
-            //{ name: 'machines', label: 'Equipos', image: 'machines' },
+            { name: 'logistics', label: 'Envíos', image: 'logistics', title: 'Krear 3D - Panel de Logística' },
+            { name: 'driver', label: 'Conductor', image: 'driver', title: 'Krear 3D - Conductor' },
+            //{ name: '', label: '', image: 'login', title: 'Krear 3D - Intranet' },
+            //{ name: 'tracking', label: 'Tracking', image: 'tracking', title: 'Krear 3D - Panel de Trackings' },
+            //{ name: 'clients', label: 'Clientes', image: 'clients', title: 'Krear 3D - Clientes' },
+            //{ name: 'soporte', label: 'Soporte', image: 'support', title: 'Krear 3D - Panel de Soporte' },
+            //{ name: 'capacitaciones', label: 'Capacitaciones', image: 'training', title: 'Krear 3D - Panel de Capacitaciones' },
+            //{ name: 'Home', label: 'Inicio', image: 'home', title: 'Krear 3D - Inicio' }
         ],
+
+        setActivePage(path) {
+            this.active_page = path;
+            const name = path.replace('/', '');
+            const page = this.pages.find(p => p.name === name);
+            document.title = page?.title || 'Krear 3D - Intranet';
+        },
 
         getPages() {
             const department_id = Alpine.store('cache').user.department_id;
@@ -140,20 +116,6 @@ document.addEventListener('alpine:init', () => {
                     ['logistics', 'tracking'].includes(page.name)
                 );
             }
-            
-            /*else if (department_id === 2) {
-                return this.pages.filter(page =>
-                    ['logistics', 'tracking'].includes(page.name)
-                );
-            } else if (department_id === 3) {
-                // Conductor: solo driver
-                return this.pages.filter(page =>
-                    page.name === 'driver'
-                );
-            }*/
-        
-            // Por defecto: sin páginas
-            return [];
         },
 
         setUser(data) {
@@ -270,7 +232,7 @@ document.addEventListener('pinecone-start', () => {
 });
 
 document.addEventListener('pinecone-end', () => {
-    Alpine.store('router').setActive(window.location.pathname);
+    Alpine.store('cache').setActivePage(window.location.pathname);
     NProgress.done();
 });
 
