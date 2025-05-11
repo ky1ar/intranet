@@ -24,7 +24,7 @@
 									<template x-for="shipping in schedule.orders['schedule_' + schedule_index]" :key="shipping.order_number">
 										<div class="item-card"
 											:style="`background-color: ${shipping.method_background}; border: 2px solid ${shipping.method_border}`"
-											@click="processShippingModal(shipping.order_number)"
+											@click="processShippingModal(shipping.shipping_order_id)"
 										>
 											<span class="number" x-text="shipping.order_number"></span>
 											<span class="district" x-text="shipping.district_name"></span>
@@ -54,7 +54,7 @@
 
 		<div
 			x-show="$store.cache.isVisibleModal('status_change')"
-			@click="$store.cache.hideLastModal()"
+			@mousedown.self="$store.cache.hideLastModal()"
 			x-transition.duration.300ms
 			class="modal-wrap"
 			id="modal-finish"
@@ -154,7 +154,7 @@
 
 		<div 
 			x-show="$store.cache.isVisibleModal('image')"
-			@click="$store.cache.hideLastModal()"
+			@mousedown.self="$store.cache.hideLastModal()"
 			x-transition.duration.300ms
 			class="modal-wrap"
 			id="modal-image"
@@ -248,16 +248,16 @@
                 }, 1000);
             },
 
-			async processShippingModal(shipping_number){
-				await this.getShipping(shipping_number);
+			async processShippingModal(shipping_order_id){
+				await this.getShipping(shipping_order_id);
 				Alpine.store('cache').showModal('status_change');
 			},
 			
-			async getShipping(order_number) {
+			async getShipping(shipping_order_id) {
 				NProgress.start();
 
 				try {
-					const response = await fetch(Alpine.store('cache').api + `/logistic/order_number/${order_number}`).then(res => res.json());
+					const response = await fetch(Alpine.store('cache').api + `/logistic/shipping_order_id/${shipping_order_id}`).then(res => res.json());
 					this.process_shipping = response.data || {};
 
 				} catch (error) {
@@ -303,7 +303,7 @@
 			async updateOrderStatus(status) {
 				NProgress.start();
 				const payload = {
-					order_number: this.process_shipping.order_number,
+					shipping_order_id: this.process_shipping.shipping_order_id,
 					status_id: status,
 					user_id: Alpine.store('cache').user.id,
 				};
@@ -347,6 +347,7 @@
 					formData.append("image", resizedImage);
 					formData.append("user_id", Alpine.store('cache').user.id);
 					formData.append("order_number", this.process_shipping.order_number);
+					formData.append("shipping_order_id", this.process_shipping.shipping_order_id);
 			
 					await this.uploadImage(formData);
 					await this.updateOrderStatus(4);
@@ -379,6 +380,7 @@
 					formData.append("image", resizedImage);
 					formData.append("user_id", Alpine.store('cache').user.id);
 					formData.append("order_number", this.process_shipping.order_number);
+					formData.append("shipping_order_id", this.process_shipping.shipping_order_id);
 			
 					await this.uploadImage(formData);
 					await this.updateOrderStatus(6);

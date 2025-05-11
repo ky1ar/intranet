@@ -11,53 +11,59 @@ controller = LogisticController()
 
 
 @logistic_bp.route("/dashboard/week", methods=["GET"])
-def order_schedule():
+def logistic_dashboard_week():
     offset = request.args.get('offset', None)
-    return controller.order_schedule(offset)
+    return controller.logistic_dashboard_week(offset)
 
 
 @logistic_bp.route("/dashboard/day", methods=["GET"])
-def shipping_day():
+def logistic_dashboard_day():
     offset = request.args.get('offset', None)
-    return controller.shipping_day(offset)
+    return controller.logistic_dashboard_day(offset)
 
 
 @logistic_bp.route("/pending", methods=["GET"])
-def order_get_pending():
-    return controller.order_get_pending()
+def logistic_pendings():
+    return controller.logistic_pendings()
 
 
 @logistic_bp.route("/order_number/<number>", methods=["GET"])
-def order_get_by_number(number):
-    return controller.order_get_by_number(number)
+def logistic_order_number(number):
+    return controller.logistic_order_number(number)
+
+
+@logistic_bp.route("/shipping_order_id/<shipping_order_id>", methods=["GET"])
+def logistic_shipping_order_by_id(shipping_order_id):
+    return controller.logistic_shipping_order_by_id(shipping_order_id)
 
 
 @logistic_bp.route("/set", methods=["POST"])
-def order_set():
-    return controller.order_set(request.get_json())
+def logistic_set():
+    return controller.logistic_set(request.get_json())
 
 
 @logistic_bp.route("/process", methods=["POST"])
-def order_process():
-    return controller.order_process(request.get_json())
+def logistic_process():
+    return controller.logistic_process(request.get_json())
 
 
 @logistic_bp.route("/delete", methods=["POST"])
-def order_delete():
-    return controller.order_delete(request.get_json())
+def logistic_delete():
+    return controller.logistic_delete(request.get_json())
 
 
 
 @logistic_bp.route("/upload_proof", methods=["POST"])
-def photo_upload():
+def logistic_upload_proof():
     image = request.files["image"]
     order_number = request.form.get("order_number")
+    shipping_order_id = request.form.get("shipping_order_id")
     user_id = request.form.get("user_id")
 
     if image.filename == "":
         return {"error": "Nombre de archivo vacío"}, 400
 
-    filename = secure_filename(f"order_{order_number}.jpg")
+    filename = secure_filename(f"order_{order_number}_{shipping_order_id}.jpg")
     filepath = os.path.join(Config.UPLOAD_FOLDER, filename)
 
     img = Image.open(image)
@@ -65,11 +71,11 @@ def photo_upload():
     img.save(filepath, "JPEG", quality=90)
 
     data = {
-        "order_number": order_number,
+        "shipping_order_id": shipping_order_id,
         "proof_photo": filename,
         "user_id": user_id,
     }
-    return controller.photo_upload(data)
+    return controller.logistic_upload_proof(data)
 
 
 

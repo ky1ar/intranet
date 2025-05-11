@@ -74,6 +74,7 @@ class LogisticService:
         client = shipping.client_order.client
 
         return {
+            "shipping_order_id": shipping.id,
             "address": shipping.address.title(),
             "register_date": register_date,
             "delivery_date": delivery_date,
@@ -182,7 +183,7 @@ class LogisticService:
     
 
     @handle_exceptions
-    def order_get_by_number(self, shipping_order):
+    def get_shipping_order(self, shipping_order):
         client = shipping_order.client_order.client
 
         result = shipping_order.to_dict()
@@ -221,6 +222,7 @@ class LogisticService:
     @handle_exceptions
     def order_set(self, shipping_order, data):
         user_id = data.get("user_id")
+        shipping_order_id = data.get("shipping_order_id")
         status_id = data.get("status_id")
         client = shipping_order.client_order.client
 
@@ -243,7 +245,6 @@ class LogisticService:
             6: ShippingStatusList.NOT_DELIVERED,
         }
         status = status_map.get(status_id)
-        shipping_order_id = shipping_order.id
         update_shipping, update_status = self.logistic_repository.update_shipping_order(shipping_order, data)
         if update_status != 200:
             return update_shipping, update_status
@@ -260,6 +261,7 @@ class LogisticService:
     @handle_exceptions
     def edit_shipping_order(self, shipping_order, data):
         user_id = data.get("user_id")
+        shipping_order_id = data.get("shipping_order_id")
         method_id = data.get("method_id")
         user_id = data.get("user_id")
         register_date = data.get("register_date")
@@ -275,7 +277,6 @@ class LogisticService:
         if not district_id:
             return "Seleccione un distrito", 400
     
-        shipping_order_id = shipping_order.id
         update_shipping, update_status = self.logistic_repository.update_shipping_order(shipping_order, data)
         if update_status != 200:
             return update_shipping, update_status
@@ -378,7 +379,7 @@ class LogisticService:
     @handle_db_exceptions
     def delete_shipping_order(self, shipping_order, data):
         user_id = data.get("user_id")
-        shipping_order_id  = shipping_order.id
+        shipping_order_id = data.get("shipping_order_id")
         delete_shipping, delete_shipping_status = self.logistic_repository.delete_shipping_order(shipping_order)
         if delete_shipping_status != 200:
             return delete_shipping, delete_shipping_status
@@ -427,7 +428,7 @@ class LogisticService:
     @handle_db_exceptions
     def photo_upload(self, shipping_order, data):
         user_id = data.get("user_id")
-        shipping_order_id = shipping_order.id
+        shipping_order_id = data.get("shipping_order_id")
         update_shipping, update_status = self.logistic_repository.update_shipping_order(shipping_order, data)
         if update_status != 200:
             return update_shipping, update_status

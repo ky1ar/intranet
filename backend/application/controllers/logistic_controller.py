@@ -1,10 +1,8 @@
 import logging
 
 from config import WABA
-from application import socketio
-from application.models import HistoryType, ShippingStatusList
-from application.services.logistic_services import LogisticService
 from application.handlers import handle_logs_and_exceptions, validate_request
+from application.services.logistic_services import LogisticService
 
 class LogisticController:
     def __init__(self):
@@ -12,35 +10,44 @@ class LogisticController:
 
 
     @handle_logs_and_exceptions
-    def order_schedule(self, offset=0):
+    def logistic_dashboard_week(self, offset=0):
         return self.logistic_service.get_schedule(int(offset))
     
 
     @handle_logs_and_exceptions
-    def shipping_day(self, offset=0):
+    def logistic_dashboard_day(self, offset=0):
         return self.logistic_service.get_day_shippings(int(offset))
     
 
     @handle_logs_and_exceptions
-    def order_get_pending(self):
+    def logistic_pendings(self):
         return self.logistic_service.get_orders_by_status(status_id=1)
         
 
     @handle_logs_and_exceptions
-    def order_get_by_number(self, order_number):
+    def logistic_order_number(self, order_number):
         shipping_order, status = self.logistic_service.shipping_by_order_number(order_number)
         if status != 200:
             return shipping_order, status
         
-        return self.logistic_service.order_get_by_number(shipping_order)
+        return self.logistic_service.get_shipping_order(shipping_order)
 
 
     @handle_logs_and_exceptions
-    def order_set(self, data):
-        if validation_error := validate_request(data, {"order_number", "user_id"}):
+    def logistic_shipping_order_by_id(self, shipping_order_id):
+        shipping_order, status = self.logistic_service.shipping_by_id(shipping_order_id)
+        if status != 200:
+            return shipping_order, status
+        
+        return self.logistic_service.get_shipping_order(shipping_order)
+    
+
+    @handle_logs_and_exceptions
+    def logistic_set(self, data):
+        if validation_error := validate_request(data, {"shipping_order_id", "user_id"}):
             return validation_error, 400
 
-        shipping_order, shipping_order_status = self.logistic_service.shipping_by_order_number(data.get("order_number"))
+        shipping_order, shipping_order_status = self.logistic_service.shipping_by_id(data.get("shipping_order_id"))
         if shipping_order_status != 200:
             return shipping_order, shipping_order_status
         
@@ -48,7 +55,7 @@ class LogisticController:
 
     
     @handle_logs_and_exceptions
-    def order_process(self, data):
+    def logistic_process(self, data):
         shipping_order_id = data.get("shipping_order_id")
         if shipping_order_id:
             shipping_order, shipping_status = self.logistic_service.shipping_by_id(shipping_order_id)
@@ -61,12 +68,11 @@ class LogisticController:
 
         
     @handle_logs_and_exceptions
-    def order_delete(self, data):
-        if validation_error := validate_request(data, {"order_number", "user_id"}):
+    def logistic_delete(self, data):
+        if validation_error := validate_request(data, {"shipping_order_id", "user_id"}):
             return validation_error, 400
 
-        order_number = data.get("order_number")
-        shipping_order, shipping_order_status = self.logistic_service.shipping_by_order_number(order_number)
+        shipping_order, shipping_order_status = self.logistic_service.shipping_by_id(data.get("shipping_order_id"))
         if shipping_order_status != 200:
             return shipping_order, shipping_order_status
         
@@ -74,9 +80,8 @@ class LogisticController:
     
 
     @handle_logs_and_exceptions
-    def photo_upload(self, data):
-        order_number = data.pop("order_number")
-        shipping_order, shipping_order_status = self.logistic_service.shipping_by_order_number(order_number)
+    def logistic_upload_proof(self, data):
+        shipping_order, shipping_order_status = self.logistic_service.shipping_by_id(data.get("shipping_order_id"))
         if shipping_order_status != 200:
             return shipping_order, shipping_order_status
         

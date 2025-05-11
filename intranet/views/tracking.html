@@ -115,7 +115,7 @@
 	</div>
     <div
 		x-show="$store.cache.isVisibleModal('add')"
-		@click="$store.cache.hideLastModal()"
+		@mousedown.self="$store.cache.hideLastModal()"
 		x-transition.duration.300ms
 		class="modal-wrap"
 		id="modal-add"
