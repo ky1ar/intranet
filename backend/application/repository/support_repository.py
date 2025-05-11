@@ -113,7 +113,7 @@ class SupportRepository:
             .all()
         )
         if not service_order:
-            return [], 400
+            return [], 200
 
         return service_order, 200
     

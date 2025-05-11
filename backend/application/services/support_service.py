@@ -12,10 +12,10 @@ from application import socketio
 
 class SupportService:
     def __init__(self):
-        self.repository = SupportRepository()
-        self.machine = MachineRepository()
-        self.user = UserRepository()
-        self.general = GeneralRepository()
+        self.support_repository = SupportRepository()
+        self.machine_repository = MachineRepository()
+        self.user_repository = UserRepository()
+        self.general_repository = GeneralRepository()
         self.whatsapp = Whatsapp()
 
 
@@ -43,7 +43,7 @@ class SupportService:
 
     @handle_exceptions
     def order_consult(self, order_number, document):
-        service_order, service_order_status = self.repository.get_service_order_by_number_and_document(order_number, document) 
+        service_order, service_order_status = self.support_repository.get_service_order_by_number_and_document(order_number, document) 
         if service_order_status != 200:
             return service_order, service_order_status
         
@@ -64,7 +64,7 @@ class SupportService:
 
     @handle_exceptions
     def service_order_next(self, order_number, admin_id, notes):
-        service_order, service_order_status = self.repository.get_service_order_by_number(order_number) 
+        service_order, service_order_status = self.support_repository.get_service_order_by_number(order_number) 
         if service_order_status != 200:
             return service_order, service_order_status
 
@@ -75,11 +75,11 @@ class SupportService:
         client_name = service_order.client.name
         client_phone = service_order.client.phone
 
-        next_order, next_order_status = self.repository.next_service_order(service_order, current_status_id, stamp) 
+        next_order, next_order_status = self.support_repository.next_service_order(service_order, current_status_id, stamp) 
         if next_order_status != 200:
             return next_order, next_order_status
         
-        new_order_status, new_order_status_code = self.repository.new_order_status(service_order_id, current_status_id, admin_id, stamp, notes) 
+        new_order_status, new_order_status_code = self.support_repository.new_order_status(service_order_id, current_status_id, admin_id, stamp, notes) 
         if new_order_status_code != 200:
             return new_order_status, new_order_status_code
         
@@ -92,26 +92,26 @@ class SupportService:
 
     @handle_exceptions
     def service_order_prev(self, order_number, admin_id):
-        service_order, service_order_status = self.repository.get_service_order_by_number(order_number) 
+        service_order, service_order_status = self.support_repository.get_service_order_by_number(order_number) 
         if service_order_status != 200:
             return service_order, service_order_status
         
         current_status_id = service_order.status_id
         service_order_id = service_order.id
-        order_status, order_status_code = self.repository.get_order_status(service_order_id, current_status_id) 
+        order_status, order_status_code = self.support_repository.get_order_status(service_order_id, current_status_id) 
         if order_status_code != 200:
             return order_status, order_status_code
         
-        delete_order, delete_order_code = self.repository.delete_order_status(order_status) 
+        delete_order, delete_order_code = self.support_repository.delete_order_status(order_status) 
         if delete_order_code != 200:
             return delete_order, delete_order_code
 
-        previous_status, previous_status_code = self.repository.get_order_status(service_order_id, current_status_id - 1) 
+        previous_status, previous_status_code = self.support_repository.get_order_status(service_order_id, current_status_id - 1) 
         if previous_status_code != 200:
             return previous_status, previous_status_code
         
         previous_status_date = previous_status.register_at
-        prev_order, prev_order_status = self.repository.prev_service_order(service_order, current_status_id, previous_status_date) 
+        prev_order, prev_order_status = self.support_repository.prev_service_order(service_order, current_status_id, previous_status_date) 
         if prev_order_status != 200:
             return prev_order, prev_order_status
         
@@ -132,7 +132,7 @@ class SupportService:
 
     @handle_exceptions
     def get_service_order_by_number(self, order_number):
-        service_order, service_order_status = self.repository.get_service_order_by_number(order_number) 
+        service_order, service_order_status = self.support_repository.get_service_order_by_number(order_number) 
         if service_order_status != 200:
             return service_order, service_order_status
         
@@ -155,11 +155,11 @@ class SupportService:
             "passed_days": f"{self.calculate_passed_days(service_order.register_at)} días"
         }
 
-        history, history_status = self.repository.get_service_order_history(service_order.id) 
+        history, history_status = self.support_repository.get_service_order_history(service_order.id) 
         if history_status != 200:
             return history, history_status
         
-        service_status, service_order_status = self.general.get_service_status() 
+        service_status, service_order_status = self.general_repository.get_service_status() 
         if service_order_status != 200:
             return service_status, service_order_status
         
@@ -197,11 +197,11 @@ class SupportService:
 
     @handle_exceptions
     def support_dashboard(self):
-        service_orders, service_order_status = self.repository.get_working_service_order() 
+        service_orders, service_order_status = self.support_repository.get_working_service_order() 
         if service_order_status != 200:
             return service_orders, service_order_status
 
-        service_status, service_order_status = self.general.get_service_status() 
+        service_status, service_order_status = self.general_repository.get_service_status() 
         if service_order_status != 200:
             return service_status, service_order_status
         
@@ -261,18 +261,18 @@ class SupportService:
             return "Describe el problema", 400
         
         if client_id:
-            client, client_status = self.general.get_user_by_id(client_id)
+            client, client_status = self.general_repository.get_user_by_id(client_id)
             if client_status != 200:
                 return client, client_status
             client_name = client.name
-            self.general.update_client(client, client_data)
+            self.general_repository.update_client(client, client_data)
         else:
             if not phone or len(phone) != 9:
                 return "Ingresa un celular válido", 400
             if not name:
                 return "Ingresa un nombre del cliente", 400
             
-            client, client_status = self.general.add_client(client_data)
+            client, client_status = self.general_repository.add_client(client_data)
             if client_status != 200:
                 return client, client_status
             client_name = client.name
@@ -280,8 +280,8 @@ class SupportService:
         
         utc_now = datetime.now(timezone.utc)
         register_at = utc_now - timedelta(hours=5)
-        order_number = self.repository.get_next_order_number()
-        leader = self.user.get_support_leader()
+        order_number = self.support_repository.get_next_order_number()
+        leader = self.user_repository.get_support_leader()
 
         payload = {
             "order_number": order_number,
@@ -295,15 +295,15 @@ class SupportService:
             "phone": phone,
         }
         
-        shipping_order_id, service_order_status = self.repository.new_service_order(payload)
+        shipping_order_id, service_order_status = self.support_repository.new_service_order(payload)
         if service_order_status != 200:
             return shipping_order_id, service_order_status
         
-        order_status, service_status = self.repository.add_order_status(shipping_order_id, payload)
+        order_status, service_status = self.support_repository.add_order_status(shipping_order_id, payload)
         if service_status != 200:
             return order_status, service_status
         
-        machine, machine_status = self.machine.get_machine(machine_id)
+        machine, machine_status = self.machine_repository.get_machine(machine_id)
         if machine_status != 200:
             return machine, machine_status
         
@@ -360,7 +360,7 @@ class SupportService:
         if not order_number:
             return "Ingrese el número de orden", 400
         
-        service_order, service_order_status = self.repository.get_service_order_by_number(order_number)
+        service_order, service_order_status = self.support_repository.get_service_order_by_number(order_number)
         if service_order_status == 500:
             return service_order, service_order_status
         """ if edit:
@@ -428,10 +428,10 @@ class SupportService:
             return "Ingrese un celular válido", 400
     
         if client_id:
-            client, client_status = self.general.get_user_by_id(client_id)
+            client, client_status = self.general_repository.get_user_by_id(client_id)
             if client_status != 200:
                 return client, client_status
-            self.general.update_client(client, client_data)
+            self.general_repository.update_client(client, client_data)
         else:
             if not document:
                 return "Ingrese el documento", 400
@@ -440,16 +440,16 @@ class SupportService:
             if not name:
                 return "Ingrese un documento válido", 400
             
-            added_client, added_client_status = self.general.add_client(client_data)
+            added_client, added_client_status = self.general_repository.add_client(client_data)
             if added_client_status != 200:
                 return added_client, added_client_status
             client_id = added_client
         
-        service_order_id, service_order_status = self.repository.add_service_order(data)
+        service_order_id, service_order_status = self.support_repository.add_service_order(data)
         if service_order_status != 200:
             return service_order_id, service_order_status
         
-        order_status, service_status = self.repository.add_order_status(service_order_id, data)
+        order_status, service_status = self.support_repository.add_order_status(service_order_id, data)
         if service_status != 200:
             return order_status, service_status
         #socketio.emit("update_schedule", {})

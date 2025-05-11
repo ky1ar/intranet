@@ -309,7 +309,6 @@
 							:src="'/static/images/uploads/' + process_shipping.proof_photo" 
 							alt="preview" 
 							@click="$store.cache.showModal('image');"
-							style="cursor: pointer;"
 						>
 					</div>
 				</div>
@@ -1132,7 +1131,6 @@
 		#modal-finish .content {
 			display: flex;
 			gap: 1rem;
-			align-items: start;
 		}
 		#modal-finish .left {
 			display: flex;
@@ -1229,6 +1227,10 @@
 			justify-content: center;
 			overflow: hidden;
 			flex: 1;
+		}
+		#modal-finish .right .thumbnail {
+			object-fit: cover;
+			height: 100%;
 		}
 		@media only screen and (max-width: 48rem) {
 			#logistics .main .schedule {
