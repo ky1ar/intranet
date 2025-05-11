@@ -160,7 +160,11 @@
 			id="modal-image"
 			x-cloak>
 			<div class="modal glass2">
-				<img :src="'/static/images/uploads/' + process_shipping.proof_photo" class="full-image" alt="preview" style="border-radius: 0.75rem;">
+				<img
+					@click="$store.cache.hideLastModal()"
+					:src="'/static/images/uploads/' + process_shipping.proof_photo"
+					alt="preview"
+					style="border-radius: 0.75rem;">
 			</div>
 			
 		</div>
