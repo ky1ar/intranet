@@ -263,10 +263,11 @@ class LogisticService:
         user_id = data.get("user_id")
         shipping_order_id = data.get("shipping_order_id")
         method_id = data.get("method_id")
-        user_id = data.get("user_id")
         register_date = data.get("register_date")
         district_id = data.get("district_id")
         address = data.get("address", "").strip()
+        client_data = data.pop("client")
+        client_id = shipping_order.client_order.client_id
         
         if not method_id:
             return "Seleccione un tipo de envío", 400
@@ -281,6 +282,11 @@ class LogisticService:
         if update_status != 200:
             return update_shipping, update_status
         
+        client, client_status = self.client_repository.get_client_by_id(client_id)
+        if client_status != 200:
+            return client, client_status
+        self.client_repository.update_client(client, client_data)
+
         socketio.emit("update_dashboard", {})
 
         history, history_status = self.logistic_repository.add_shipping_history(user_id, shipping_order_id, HistoryType.UPDATED, data=update_shipping)
@@ -299,7 +305,6 @@ class LogisticService:
         register_date = data.get("register_date")
         district_id = data.get("district_id")
         address = data.get("address", "").strip()
-
 
         if not client_order_id:
             if not order_number:

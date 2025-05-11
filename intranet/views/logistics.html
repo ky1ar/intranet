@@ -108,7 +108,7 @@
 			id="modal-shipping"
 			x-cloak>
 			<div class="modal glass2" @click.stop>
-				<input class="percent40 title" type="text" placeholder="Número de orden" x-model="process_shipping.order_number" :disabled="!!process_shipping.client_order_id && edit" @blur="fetchClientOrder()">
+				<input class="percent40 title" type="text" placeholder="Número de orden" x-model="process_shipping.order_number" :disabled="edit" @blur="fetchClientOrder()">
 
 				<div class="fields">
 					<label class="white">
@@ -127,17 +127,24 @@
 						<input type="date" x-model="process_shipping.register_date_format">
 					</label>
 
-					<label class="white">
+					<label :class="client_order_found || edit ? 'glass2' : 'white'">
 						<img alt="user" src="static/images/id.svg" width="16" height="16">
-						<input type="text" maxlength="11" :disabled="!!process_shipping.client_order_id && edit" @input="process_shipping.client_document = process_shipping.client_document.replace(/\D/g, '')" placeholder="DNI / RUC" x-model="process_shipping.client_document" @blur="fetchClientData()">
+						<input
+							type="text"
+							maxlength="11"
+							:disabled="client_order_found || edit"
+							@input="process_shipping.client_document = process_shipping.client_document.replace(/\D/g, '')"
+							placeholder="DNI / RUC"
+							x-model="process_shipping.client_document"
+							@blur="fetchClientData()">
 						<input type="hidden" x-model="process_shipping.client_id">
 					</label>
 				</div>
 
 				<div class="fields">
-					<label class="white">
+					<label :class="client_order_found || client_found || edit ? 'glass2' : 'white'">
 						<img alt="user" src="static/images/user.svg" width="16" height="16">
-						<input type="text" placeholder="Nombre o Razón Social" x-model="process_shipping.client_name">
+						<input :disabled="client_order_found || client_found || edit" type="text" placeholder="Nombre o Razón Social" x-model="process_shipping.client_name">
 					</label>
 
 					<label class="white">
@@ -363,6 +370,8 @@
                 update: { class: '', text: 'Actualizar' },
                 delete: { class: '', text: 'Eliminar' },
             },
+			client_order_found: false,
+			client_found: false,
 			
 			async init() {
 				console.log('Inicializando Logistics...');
@@ -552,12 +561,16 @@
 			},
 
 			async fetchClientData() {
+				if (this.client_order_found) {
+					return;
+				}
 				const document = this.process_shipping.client_document;
 
 				if (!document) {
 					this.process_shipping.client_id = '';
 					this.process_shipping.client_name = '';
 					this.process_shipping.client_phone = '';
+					this.client_found = false;
 					return;
 				}
                 NProgress.start();
@@ -568,6 +581,7 @@
 						this.process_shipping.client_id = '';
 						this.process_shipping.client_name = '';
 						this.process_shipping.client_phone = '';
+						this.client_found = false;
 						return;
 					}
 
@@ -576,7 +590,7 @@
 						this.process_shipping.client_id = data.data.id;
 						this.process_shipping.client_name = data.data.name;
 						this.process_shipping.client_phone = data.data.phone;
-						//this.process_shipping.disabled = true;
+						this.client_found = true;
 					} else {
 						console.warn('Respuesta de API no exitosa.');
 					}
@@ -596,6 +610,8 @@
 					this.process_shipping.client_name = '';
 					this.process_shipping.client_phone = '';
 					this.process_shipping.client_email = '';
+					this.client_order_found = false;
+					this.client_found = false;
 					return;
 				}
                 NProgress.start();
@@ -609,6 +625,8 @@
 						this.process_shipping.client_name = '';
 						this.process_shipping.client_phone = '';
 						this.process_shipping.client_email = '';
+						this.client_order_found = false;
+						this.client_found = false;
 						return;
 					}
 
@@ -622,7 +640,7 @@
 						this.process_shipping.client_name = client.name;
 						this.process_shipping.client_phone = client.phone;
 						this.process_shipping.client_email = client.email;
-						//this.process_shipping.disabled = true;
+						this.client_order_found = true;
 					} else {
 						console.warn('Respuesta de API no exitosa.');
 					}
@@ -758,6 +776,7 @@
 			},
 
 			async processShippingModal(shipping_order_id){
+				this.client_order_found = false;
 				if (shipping_order_id){
 					await this.getShipping(shipping_order_id);
 					if (this.process_shipping.status_id > 3 || (Alpine.store('cache').user.department_id != 2 && Alpine.store('cache').user.level_id != 4) || Alpine.store('cache').user.shipping_app_level == 4){
@@ -1090,10 +1109,6 @@
 			font-weight: 500;
 			opacity: 0.75;
 		}
-		#main .item-card.past-date {
-			/*opacity: 1 !important;
-			cursor: default !important;*/
-		}
 		#main .right {
 			width: 85%;
 			display: flex;
@@ -1108,6 +1123,9 @@
 			margin: 0;
 			line-height: 2.5rem;
 			outline: none;
+		}
+		#modal-shipping .fields .glass2 {
+			border-radius: 0.75rem;
 		}
 		/***********************************************************************************/
 		#modal-finish .top {
