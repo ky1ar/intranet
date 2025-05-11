@@ -114,8 +114,8 @@
 		</div>
 	</div>
     <div
-		x-show="$store.modal.isVisible('add')"
-		@click="$store.modal.hideLast()"
+		x-show="$store.cache.isVisibleModal('add')"
+		@click="$store.cache.hideLastModal()"
 		x-transition.duration.300ms
 		class="modal-wrap"
 		id="modal-add"
@@ -123,7 +123,7 @@
 	>
 		<div id="registerTrackings" class="modal" @click.stop>
 			<form  x-ref="form" method="POST" class="form" @submit.prevent="processTracking">
-				<div class="hover-opacity modal-close" @click="$store.modal.hideLast()">
+				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
 					<img alt="close" src="static/images/x.svg" width="12" height="12">
 				</div>
 				<h1 class="title">Registro de Tracking</h1>
@@ -452,7 +452,7 @@
 				this.orders.entregado = data.filter(order => order.state_id === 3);
 			},
 			addTracking() {
-			Alpine.store('modal').show('add');
+			Alpine.store('cache').showModal('add');
 			}
 		}));
 	  </script>

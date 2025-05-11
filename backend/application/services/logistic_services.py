@@ -243,7 +243,6 @@ class LogisticService:
             6: ShippingStatusList.NOT_DELIVERED,
         }
         status = status_map.get(status_id)
-        logging.info(data)
         shipping_order_id = shipping_order.id
         update_shipping, update_status = self.logistic_repository.update_shipping_order(shipping_order, data)
         if update_status != 200:
@@ -370,7 +369,7 @@ class LogisticService:
             return shipping_order_id, shipping_order_status
 
         socketio.emit("update_dashboard", {})
-        history, history_status = self.logistic_repository.add_shipping_history(user_id, shipping_order_id, HistoryType.ADDED)
+        history, history_status = self.logistic_repository.add_shipping_history(user_id, shipping_order_id, HistoryType.ADDED, ShippingStatusList.PENDING, data=data)
         if history_status != 200:
             return history, history_status
         return "Orden registrada correctamente", 200

@@ -159,7 +159,7 @@
                     
                     const user = jsonData.data;
                     Alpine.store('cache').setUser(user);
-                    Alpine.store('sidebar').visible();
+                    Alpine.store('cache').sidebarOn();
                     localStorage.setItem('user_data', JSON.stringify(Alpine.store('cache').user));
 
                     window.PineconeRouter.context.navigate(Alpine.store('cache').user.default_page);

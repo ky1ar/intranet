@@ -189,6 +189,7 @@ class LogisticRepository:
             address=data.get("address"),
             district_id=data.get("district_id"),
             comments=data.get("comments"),
+            maps=data.get("maps"),
             register_date=data.get("register_date"),
         )
 

@@ -101,8 +101,8 @@
 		</div>
 
 		<div
-			x-show="$store.modal.isVisible('process')"
-			@click="$store.modal.hideLast()"
+			x-show="$store.cache.isVisibleModal('process')"
+			@click="$store.cache.hideLastModal()"
 			x-transition.duration.300ms
 			class="modal-wrap"
 			id="modal-shipping"
@@ -206,7 +206,7 @@
 
 				</div>
 
-				<div class="hover-opacity modal-close" @click="$store.modal.hideLast()" >
+				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()" >
 					<img alt="close" src="static/images/x.svg" width="12" height="12">
 				</div>
 			</div>
@@ -215,8 +215,8 @@
 		
 
 		<div
-			x-show="$store.modal.isVisible('finish')"
-			@click="$store.modal.hideLast()"
+			x-show="$store.cache.isVisibleModal('finish')"
+			@click="$store.cache.hideLastModal()"
 			x-transition.duration.300ms
 			class="modal-wrap"
 			id="modal-finish"
@@ -263,14 +263,22 @@
 							</template>
 						</div>
 
-						<div x-show="process_shipping.status_id > 2" class="review glass2">
+						<div x-show="process_shipping.status_id > 1" class="review glass2">
+							<div class="row">
+								<span class="detail">Registrado</span>
+								<span class="date" x-text="new Date(process_shipping.register_date).toLocaleString('es-ES', { 
+									weekday: 'long', 
+									day: 'numeric', 
+									month: 'long', 
+								})"></span>
+							</div>
+
 							<div class="row" x-show="process_shipping.on_the_way_date">
 								<span class="detail">En camino</span>
 								<span class="date" x-text="new Date(process_shipping.on_the_way_date).toLocaleString('es-ES', { 
 									weekday: 'long', 
 									day: 'numeric', 
 									month: 'long', 
-									year: 'numeric', 
 									hour: '2-digit', 
 									minute: '2-digit', 
 								})"></span>
@@ -282,11 +290,11 @@
 									weekday: 'long', 
 									day: 'numeric', 
 									month: 'long', 
-									year: 'numeric', 
 									hour: '2-digit', 
 									minute: '2-digit', 
 								})"></span>
 							</div>
+							
 							<!-- 
 								<div class="header">
 									<span class="register" x-text="'Ingresado el ' + new Date(process_shipping.register_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })"></span>
@@ -300,13 +308,13 @@
 							class="thumbnail hover-opacity" 
 							:src="'/static/images/uploads/' + process_shipping.proof_photo" 
 							alt="preview" 
-							@click="$store.modal.show('image');"
+							@click="$store.cache.showModal('image');"
 							style="cursor: pointer;"
 						>
 					</div>
 				</div>
 				
-				<div class="hover-opacity modal-close" @click="$store.modal.hideLast()" >
+				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()" >
 					<img alt="close" src="static/images/x.svg" width="12" height="12">
 				</div>
 			</div>
@@ -315,8 +323,8 @@
 
 
 		<div 
-			x-show="$store.modal.isVisible('image')"
-			@click="$store.modal.hideLast()"
+			x-show="$store.cache.isVisibleModal('image')"
+			@click="$store.cache.hideLastModal()"
 			x-transition.duration.300ms
 			class="modal-wrap"
 			id="modal-image"
@@ -665,7 +673,7 @@
                     const jsonData = await response.json();
 					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
 					
-					Alpine.store('modal').hide('process');
+					Alpine.store('cache').hideModal('process');
 					this.resetOrder();
 					
 				} catch (error) {
@@ -697,7 +705,7 @@
 					const jsonData = await response.json();
 					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
 					
-					Alpine.store('modal').hide('process');
+					Alpine.store('cache').hideModal('process');
 					this.resetOrder();
 					
 				} catch (error) {
@@ -757,13 +765,13 @@
 				if (shipping_number){
 					await this.getShipping(shipping_number);
 					if (this.process_shipping.status_id > 3 || (Alpine.store('cache').user.department_id != 2 && Alpine.store('cache').user.level_id != 4) || Alpine.store('cache').user.shipping_app_level == 4){
-						Alpine.store('modal').show('finish');
+						Alpine.store('cache').showModal('finish');
 					} else {
-						Alpine.store('modal').show('process');
+						Alpine.store('cache').showModal('process');
 					}
 				} else {
 					this.resetOrder();
-					Alpine.store('modal').show('process');
+					Alpine.store('cache').showModal('process');
 				}
 			},
 			
@@ -1129,7 +1137,7 @@
 		#modal-finish .left {
 			display: flex;
 			flex-wrap: wrap;
-			width: 30rem;
+			width: 28rem;
 			gap: 1rem;
 		}
 		#modal-finish .left .user {
@@ -1214,8 +1222,7 @@
 			opacity: 0.6;
 		}
 		#modal-finish .right {
-			width: 12.5rem;
-			border: 2px solid var(--gray);
+			width: 15.75rem;
 			border-radius: 0.75rem;
 			display: flex;
 			align-items: center;

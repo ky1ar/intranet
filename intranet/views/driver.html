@@ -53,8 +53,8 @@
 		</div>
 
 		<div
-			x-show="$store.modal.isVisible('status_change')"
-			@click="$store.modal.hideLast()"
+			x-show="$store.cache.isVisibleModal('status_change')"
+			@click="$store.cache.hideLastModal()"
 			x-transition.duration.300ms
 			class="modal-wrap"
 			id="modal-finish"
@@ -110,7 +110,7 @@
 							class="thumbnail hover-opacity" 
 							:src="'/static/images/uploads/' + process_shipping.proof_photo" 
 							alt="preview" 
-							@click="$store.modal.show('image');"
+							@click="$store.cache.showModal('image');"
 							style="cursor: pointer;"
 						>
 					</div>
@@ -146,15 +146,15 @@
 					</template>
 				</div>
 					
-				<div class="hover-opacity modal-close" @click="$store.modal.hideLast()" >
+				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()" >
 					<img alt="close" src="static/images/x.svg" width="12" height="12">
 				</div>
 			</div>
 		</div>
 
 		<div 
-			x-show="$store.modal.isVisible('image')"
-			@click="$store.modal.hideLast()"
+			x-show="$store.cache.isVisibleModal('image')"
+			@click="$store.cache.hideLastModal()"
 			x-transition.duration.300ms
 			class="modal-wrap"
 			id="modal-image"
@@ -250,7 +250,7 @@
 
 			async processShippingModal(shipping_number){
 				await this.getShipping(shipping_number);
-				Alpine.store('modal').show('status_change');
+				Alpine.store('cache').showModal('status_change');
 			},
 			
 			async getShipping(order_number) {
@@ -292,7 +292,7 @@
 				try {
 					await this.updateOrderStatus(3);
 					this.process_shipping.status_id = 3;
-					Alpine.store('modal').hide('status_change');
+					Alpine.store('cache').hideModal('status_change');
 				} catch (error) {
 					console.error("Error en el proceso de actualización:", error);
 				} finally {
@@ -350,7 +350,7 @@
 			
 					await this.uploadImage(formData);
 					await this.updateOrderStatus(4);
-					Alpine.store('modal').hide('status_change');
+					Alpine.store('cache').hideModal('status_change');
 			
 				} catch (error) {
 					console.error("Error en el proceso de entrega:", error);
@@ -382,7 +382,7 @@
 			
 					await this.uploadImage(formData);
 					await this.updateOrderStatus(6);
-					Alpine.store('modal').hide('status_change');
+					Alpine.store('cache').hideModal('status_change');
 			
 				} catch (error) {
 					console.error("Error en el proceso de entrega:", error);

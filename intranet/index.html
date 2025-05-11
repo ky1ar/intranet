@@ -27,11 +27,11 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
     
     <!--<link rel="stylesheet" href="static/css/style.css?v=0.1.0.7215">-->
-    <link rel="stylesheet" href="static/css/new.css?v=0.1.0.7219">
+    <link rel="stylesheet" href="static/css/new.css?v=0.2.2.0">
 </head>
 
-<body class="container" x-data="data" :class="{'modal-open': $store.modal.hasActive()}">
-    <script src="static/js/main.js?v=0.1.0.7219"></script>
+<body class="container" x-data="data" :class="{'modal-open': $store.cache.hasActiveModals()}">
+    <script src="static/js/main.js?v=0.2.2.0"></script>
 
     <template x-route="/" x-handler="loginVerify" x-template.preload.target.content="/views/login.html"></template>
     <template x-route="/home" x-handler="loginVerify" x-template.preload.target.content="/views/home.html"></template>
@@ -68,9 +68,9 @@
                     <div class="dot"></div>
                 </div>
 
-                <img alt="user" @click="$store.sidebar.toogleMenu()" class="user hover-opacity" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="40" height="40">
+                <img alt="user" @click="$store.cache.toogleSidebarMenu()" class="user hover-opacity" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="40" height="40">
         
-                <div x-show="$store.sidebar.open_menu" x-transition.duration.300ms x-cloak @click.outside="$store.sidebar.hideMenu()" class="menu">
+                <div x-show="$store.cache.sidebar_menu" x-transition.duration.300ms x-cloak @click.outside="$store.cache.hideSidebarMenu()" class="menu">
                     <div class="content">
                         <img alt="user" class="image" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
                         
@@ -95,7 +95,7 @@
         </div>
     </template>
     
-    <div id="content" :class="{'sidebar': $store.sidebar.active}"></div>
+    <div id="content" :class="{'sidebar': $store.cache.sidebar}"></div>
 
 </body>
 </html>

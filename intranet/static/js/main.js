@@ -1,86 +1,12 @@
 document.addEventListener('alpine:init', () => {
-    Alpine.store('modal', {
-        active: new Set(),
-    
-        show(modal) {
-            this.active.add(modal);
-        },
-    
-        hide(modal) {
-            this.active.delete(modal);
-        },
-    
-        hideAll() {
-            this.active.clear();
-        },
-
-        isVisible(modal) {
-            return this.active.has(modal);
-        },
-
-        hasActive() {
-            return this.active.size > 0;
-        },
-
-        hideLast() {
-            if (this.active.size > 0) {
-                const lastModal = Array.from(this.active).pop();
-                this.active.delete(lastModal);
-            }
-        }
-    });
-    
-    Alpine.store('home', {
-        team: [],
-
-        setTeam(data) {
-            console.log('Datos de team almacenados en el store');
-            this.team = data;
-        },
-
-        isLoaded() {
-            console.log('Verficando datos de Home...')
-            if (this.team.length === 0) {
-                console.log('Los datos no se encuentran en el Store');
-                return false;
-            } 
-            console.log('Los datos se encuentran en el Store');
-            return true;
-        },
-    });
-
-    
-    Alpine.store('sidebar', {
-        active: false,
-        open_menu: false,
-
-        visible() {
-            this.active = true;
-        },
-
-        off() {
-            this.active = false;
-            this.open_menu = false;
-        },
-        
-        toogleMenu() { 
-            this.open_menu = !this.open_menu;
-        },
-
-        hideMenu() { 
-            this.open_menu = false;
-        }
-    });
-
     Alpine.data('data',() => ({
         async init() {
             console.log('Inicializando Alpine...');
         },
     }));
 
-
     Alpine.store('cache', {
-        api: 'https://api.krear3d.com',
+        api: 'https://devapi.krear3d.com',
         user: {},
         active_page: window.location.pathname,
         pages: [
@@ -93,6 +19,53 @@ document.addEventListener('alpine:init', () => {
             //{ name: 'capacitaciones', label: 'Capacitaciones', image: 'training', title: 'Krear 3D - Panel de Capacitaciones' },
             //{ name: 'Home', label: 'Inicio', image: 'home', title: 'Krear 3D - Inicio' }
         ],
+        modals: new Set(),
+        sidebar: false,
+        sidebar_menu: false,
+
+        sidebarOn() {
+            this.sidebar = true;
+        },
+
+        sidebarOff() {
+            this.sidebar = false;
+            this.sidebar_menu = false;
+        },
+        
+        toogleSidebarMenu() { 
+            this.sidebar_menu = !this.sidebar_menu;
+        },
+
+        hideSidebarMenu() { 
+            this.sidebar_menu = false;
+        },
+
+        showModal(modal) {
+            this.modals.add(modal);
+        },
+    
+        hideModal(modal) {
+            this.modals.delete(modal);
+        },
+    
+        hideAllModals() {
+            this.modals.clear();
+        },
+
+        isVisibleModal(modal) {
+            return this.modals.has(modal);
+        },
+
+        hasActiveModals() {
+            return this.modals.size > 0;
+        },
+
+        hideLastModal() {
+            if (this.modals.size > 0) {
+                const lastModal = Array.from(this.modals).pop();
+                this.modals.delete(lastModal);
+            }
+        },
 
         setActivePage(path) {
             this.active_page = path;
@@ -137,7 +110,7 @@ document.addEventListener('alpine:init', () => {
         logout() {
             console.log('Logout');
             this.unsetUser()
-            Alpine.store('sidebar').off();
+            Alpine.store('cache').sidebarOff();
             localStorage.removeItem('user_data');
             window.PineconeRouter.context.navigate('/');
         },
@@ -209,7 +182,7 @@ async function loginVerify(context) {
             const userData = JSON.parse(storedData);
             Alpine.store('cache').setUser(userData);
         }
-        Alpine.store('sidebar').visible();
+        Alpine.store('cache').sidebarOn();
         if (context.route == '/') {
             console.log('Sesión iniciada. Redirigiendo a default...');
             window.PineconeRouter.context.navigate(Alpine.store('cache').user.default_page);

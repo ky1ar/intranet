@@ -55,8 +55,8 @@
 
 
 	<div
-		x-show="$store.modal.isVisible('status')"
-		@click="$store.modal.hideLast()"
+		x-show="$store.cache.isVisibleModal('status')"
+		@click="$store.cache.hideLastModal()"
 		x-transition.duration.300ms
 		class="modal-wrap"
 		id="modal-status"
@@ -90,7 +90,7 @@
 
 			<button class="hover-opacity button" @click="updateStatus()">Actualizar</button>
 
-			<div class="hover-opacity modal-close" @click="$store.modal.hideLast()">
+			<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
 				<img alt="close" src="static/images/x.svg" width="12" height="12">
 			</div>
 		</div>
@@ -98,8 +98,8 @@
 
 
 	<div
-		x-show="$store.modal.isVisible('view')"
-		@click="$store.modal.hideLast()"
+		x-show="$store.cache.isVisibleModal('view')"
+		@click="$store.cache.hideLastModal()"
 		x-transition.duration.300ms
 		class="modal-wrap"
 		id="modal-view"
@@ -160,7 +160,7 @@
 				</template>
 			</div>
 
-			<div class="hover-opacity modal-close" @click="$store.modal.hideLast()">
+			<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
 				<img alt="close" src="static/images/x.svg" width="12" height="12">
 			</div>
 		</div>
@@ -168,8 +168,8 @@
 
 
 	<div
-		x-show="$store.modal.isVisible('add')"
-		@click="$store.modal.hideLast()"
+		x-show="$store.cache.isVisibleModal('add')"
+		@click="$store.cache.hideLastModal()"
 		x-transition.duration.300ms
 		class="modal-wrap"
 		id="modal-add"
@@ -242,7 +242,7 @@
 
 			<button class="button hover-opacity" @click="newOrder()" :class="buttons.add.class" x-text="buttons.add.text"></button>
 
-			<div class="hover-opacity modal-close" @click="$store.modal.hideLast()">
+			<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
 				<img alt="close" src="static/images/x.svg" width="12" height="12">
 			</div>
 		</div>
@@ -463,7 +463,7 @@
 					return;
 				}
 				this.status_notes = '';
-				Alpine.store('modal').show('status');
+				Alpine.store('cache').showModal('status');
 			},
 			
 			async viewOrder(order_number) {
@@ -472,7 +472,7 @@
 					const response = await fetch(Alpine.store('cache').api + `/support/order_number/${order_number}`);
 					const data = await response.json();
 					this.service_order = data.data;
-					Alpine.store('modal').show('view');
+					Alpine.store('cache').showModal('view');
 				} catch (error) {
 					console.error('Error en la asignación:', error);
 				} finally {
@@ -481,7 +481,7 @@
 			},
 
 			addOrder() {
-				Alpine.store('modal').show('add');
+				Alpine.store('cache').showModal('add');
 			},
 
 			async fetchUserData() {
@@ -537,7 +537,7 @@
 						throw new Error('Error al asignar la orden.');
 					}
 
-					Alpine.store('modal').hide('status');
+					Alpine.store('cache').hideModal('status');
 					this.selected_service = null;
 					//await this.getDashboard();
 

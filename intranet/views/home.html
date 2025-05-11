@@ -42,9 +42,6 @@
             async init() {
 				console.log('Inicializando Home...');
 
-				const fetchDataIfNeeded = !Alpine.store('home').isLoaded() ? this.fetchData() : Promise.resolve();
-
-				await Promise.all([fetchDataIfNeeded]);
             },
 
         }));
