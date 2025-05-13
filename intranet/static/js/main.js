@@ -12,7 +12,7 @@ document.addEventListener('alpine:init', () => {
         common_pages: [
             //{ name: 'Home', label: 'Inicio', image: 'home', title: 'Krear 3D - Inicio' }
             { name: 'logistics', label: 'Envíos', image: 'logistics', title: 'Krear 3D - Logística' },
-            //{ name: 'tracking', label: 'Tracking', image: 'tracking', title: 'Krear 3D - Trackings' },
+            { name: 'tracking', label: 'Tracking', image: 'tracking', title: 'Krear 3D - Trackings' },
             //{ name: 'support', label: 'Soporte', image: 'support', title: 'Krear 3D - Soporte' },
             //{ name: 'training', label: 'Capacitaciones', image: 'training', title: 'Krear 3D - Capacitaciones' },
             //{ name: 'clients', label: 'Clientes', image: 'clients', title: 'Krear 3D - Clientes' },

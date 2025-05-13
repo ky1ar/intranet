@@ -1,7 +1,7 @@
 
 from datetime import date, datetime, timezone, timedelta
 from application.handlers import handle_db_exceptions
-from application.models import TrackingOrders, TrackingOrderStatus
+from application.models import TrackingOrders, TrackingOrderStatus, TrackingAgencies
 from flask import g
 
 
@@ -80,6 +80,19 @@ class TrackingRepository:
 
         return tracking_order, 200
     
+
+    @handle_db_exceptions
+    def get_agency(self, agency_id):
+        agency = (
+            g.db_session.query(TrackingAgencies)
+            .filter(TrackingAgencies.id == agency_id)
+            .first()
+        )
+        if not agency:
+            return 'Agencia no localizada', 400
+
+        return agency, 200
+
 
     @handle_db_exceptions
     def get_tracking_order_by_id(self, id):

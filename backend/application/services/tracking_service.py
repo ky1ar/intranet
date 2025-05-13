@@ -1,4 +1,5 @@
 import logging
+import threading
 
 from datetime import date, datetime, timezone, timedelta
 from application.handlers import handle_exceptions
@@ -10,6 +11,7 @@ from application.models import ShippingStatusList
 from application.proxy.shalom import Shalom
 from application.proxy.olva import Olva
 from application.proxy.marvisur import Marvisur
+from application.proxy.whatsapp import Whatsapp
 
 
 class TrackingService:
@@ -21,6 +23,8 @@ class TrackingService:
         self.shalom = Shalom()
         self.olva = Olva()
         self.marvisur = Marvisur()
+        self.whatsapp = Whatsapp()
+
 
 
     @handle_exceptions
@@ -52,16 +56,16 @@ class TrackingService:
         if tracking_status != 200:
             return tracking_data, tracking_status
         
+        client_id = data.get("client_id")
+        client_data = data.pop("client")
+
+        document = client_data.get("document", "").strip()
+        name = client_data.get("name", "").strip()
+        phone = client_data.get("phone", "").strip()
+    
         if not client_order_id:
             if not order_number:
                 return "Ingrese el número de orden", 400
-            
-            client_id = data.get("client_id")
-            client_data = data.pop("client")
-
-            document = client_data.get("document", "").strip()
-            name = client_data.get("name", "").strip()
-            phone = client_data.get("phone", "").strip()
 
             if client_id:
                 client, client_status = self.client_repository.get_client_by_id(client_id)
@@ -79,6 +83,7 @@ class TrackingService:
                 client, client_status = self.client_repository.get_client_by_document(document)
                 if client_status == 500:
                     return client, client_status
+                
                 if client_status == 404:
                     added_client, added_client_status = self.client_repository.add_client(client_data)
                     if added_client_status != 200:
@@ -102,6 +107,23 @@ class TrackingService:
         if tracking_order_status != 200:
             return tracking_order, tracking_order_status
 
+        agency, agency_status = self.tracking_repository.get_agency(agency_id)
+        if agency_status != 200:
+            return agency, agency_status
+        
+        payload = {
+            "phone": phone,
+            "client_name": name.title(),
+            "order_number": order_number,
+            "agency": agency.name,
+            "agency": agency_id,
+            "code1": data.get("code1"),
+            "code2": data.get("code2"),
+            "code3": data.get("code3", ""),
+        }
+
+        threading.Thread(target=self.whatsapp.tracking_alert, args=(payload,)).start()
+            
         #socketio.emit("update_schedule", {})
         history, history_status = self.tracking_repository.add_tracking_history(tracking_order, tracking_data.get("status_data"))
         if history_status != 200:

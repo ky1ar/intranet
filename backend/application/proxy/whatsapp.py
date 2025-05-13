@@ -9,6 +9,7 @@ class Whatsapp:
         self.token = API.TOKEN
         self.url = API.URL
         self.terms = API.SUPPORT_TERMS
+        self.tracking_url = "http://tiendakrear3d.com/rastrear-pedido"
 
 
     def post(self, payload):
@@ -24,6 +25,51 @@ class Whatsapp:
             return f"Error {response_data}", response.status_code
         
         return "Mensaje enviado correctamente", 200
+    
+
+    @handle_exceptions
+    def tracking_alert(self, data):
+        agency_id = data.get("agency_id")
+        code1 = None
+        code2 = None
+        code3 = None
+
+        if agency_id == 1: # Shalom
+            code1 = f"N° de Orden: *{data.get('code1')}*"
+            code2 = f"Código: *{data.get('code2')}*"
+            code3 = f"Clave de recojo: *{data.get('code3')}*"
+    
+        elif agency_id == 2: # Olva
+            code1 = f"N° de Tracking: *{data.get('code1')}*"
+            code2 = f"Año: *{data.get('code2')}*"
+            code3 = ""
+
+        else: # Marvisur
+            code1 = f"Serie: *{data.get('code1')}*"
+            code2 = f"Número: *{data.get('code2')}*"
+            code3 = ""
+
+        parameters = [
+            {"type": "text", "parameter_name": "username", "text": data.get("client_name")},
+            {"type": "text", "parameter_name": "order", "text": data.get("order_number")},
+            {"type": "text", "parameter_name": "agency", "text": data.get("agency")},
+            {"type": "text", "parameter_name": "code1", "text": code1},
+            {"type": "text", "parameter_name": "code2", "text": code2},
+            {"type": "text", "parameter_name": "code3", "text": code3},
+            {"type": "text", "parameter_name": "url", "text": self.tracking_url},
+        ]
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": data.get("phone"),
+            "type": "template",
+            "template": {
+                "name": "tracking_alert",
+                "language": {"code": "es_PE"},
+                "components": [{"type": "body", "parameters": parameters}]
+            }
+        }
+        return self.post(payload)
     
 
     @handle_exceptions
