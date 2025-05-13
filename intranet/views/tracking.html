@@ -12,26 +12,21 @@
 				<h1 class="title"><img class="icon" src="/static/images/tracking/op1-house.svg" alt="">En Agencia</h1>
 				<div class="data">
 					<template x-if="orders.agencia.length > 0">
-						<template x-for="order in orders.agencia" :key="order.orderId">
+						<template x-for="order in orders.agencia" :key="order.order_number">
 							<div class="order">
 								<div class="f1">
-									<p class="orderId" x-text="order.orderId"></p>
-									<img :src="order.logo" alt="">
+									<p class="orderId" x-text="order.order_number"></p>
+									<img :src="order.agency_image" alt="">
 								</div>
 								<div class="f2">
-									<p class="tracking" x-text="order.tracking"></p>
+									<p class="tracking" x-text="order.codes"></p>
 									<p class="client_name" x-text="order.client_name"></p>
-									<p class="document" x-text="order.document"></p>
+									<p class="document" x-text="order.client_document"></p>
 								</div>
 								<div class="f3">
-									<p class="origin" x-text="order.origin"></p>
-									<span class="line" 
-									:class="{
-										'no-animation': order.state_id === 3,
-										'par-animation': order.state_id === 1
-									}"
-									:style="`--line-color: ${getLineColor(order.agency_id)}`"></span>
-									<p class="destiny" x-text="order.destiny"></p>
+									<p class="origin" x-text="order.origin_agency"></p>
+									<span class="line par-animation" :style="`--line-color: ${getLineColor(order.agency_id)}`"></span>
+									<p class="destiny" x-text="order.destination_agency"></p>
 								</div>
 							</div>
 						</template>
@@ -47,26 +42,21 @@
 				<h1 class="title"><img class="icon" src="/static/images/tracking/op2-car.svg" alt="">En Ruta</h1>
 				<div class="data">
 					<template x-if="orders.ruta.length > 0">
-						<template x-for="order in orders.ruta" :key="order.orderId">
+						<template x-for="order in orders.ruta" :key="order.order_number">
 							<div class="order">
 								<div class="f1">
-									<p class="orderId" x-text="order.orderId"></p>
-									<img :src="order.logo" alt="">
+									<p class="orderId" x-text="order.order_number"></p>
+									<img :src="order.agency_image" alt="">
 								</div>
 								<div class="f2">
-									<p class="tracking" x-text="order.tracking"></p>
+									<p class="tracking" x-text="order.codes"></p>
 									<p class="client_name" x-text="order.client_name"></p>
-									<p class="document" x-text="order.document"></p>
+									<p class="document" x-text="order.client_document"></p>
 								</div>
 								<div class="f3">
-									<p class="origin" x-text="order.origin"></p>
-									<span class="line" 
-									:class="{
-										'no-animation': order.state_id === 3,
-										'par-animation': order.state_id === 1
-									}"
-									:style="`--line-color: ${getLineColor(order.agency_id)}`"></span>
-									<p class="destiny" x-text="order.destiny"></p>
+									<p class="origin" x-text="order.origin_agency"></p>
+									<span class="line" :style="`--line-color: ${getLineColor(order.agency_id)}`"></span>
+									<p class="destiny" x-text="order.destination_agency"></p>
 								</div>
 							</div>
 						</template>
@@ -82,26 +72,21 @@
 				<h1 class="title"><img class="icon" src="/static/images/tracking/op3-pack.svg" alt="">Entregado</h1>
 				<div class="data">
 					<template x-if="orders.entregado.length > 0">
-						<template x-for="order in orders.entregado" :key="order.orderId">
+						<template x-for="order in orders.entregado" :key="order.order_number">
 							<div class="order">
 								<div class="f1">
-									<p class="orderId" x-text="order.orderId"></p>
-									<img :src="order.logo" alt="">
+									<p class="orderId" x-text="order.order_number"></p>
+									<img :src="order.agency_image" alt="">
 								</div>
 								<div class="f2">
-									<p class="tracking" x-text="order.tracking"></p>
+									<p class="tracking" x-text="order.codes"></p>
 									<p class="client_name" x-text="order.client_name"></p>
-									<p class="document" x-text="order.document"></p>
+									<p class="document" x-text="order.client_document"></p>
 								</div>
 								<div class="f3">
-									<p class="origin" x-text="order.origin"></p>
-									<span class="line" 
-									:class="{
-										'no-animation': order.state_id === 3,
-										'par-animation': order.state_id === 1
-									}"
-									:style="`--line-color: ${getLineColor(order.agency_id)}`"></span>
-									<p class="destiny" x-text="order.destiny"></p>
+									<p class="origin" x-text="order.origin_agency"></p>
+									<span class="line no-animation" :style="`--line-color: ${getLineColor(order.agency_id)}`"></span>
+									<p class="destiny" x-text="order.destination_agency"></p>
 								</div>
 							</div>
 						</template>
@@ -445,11 +430,23 @@
 				});
 			},
 			async loadOrders() {
-				const response = await fetch('/static/js/listOrders.json');
-				const data = await response.json();
-				this.orders.agencia = data.filter(order => order.state_id === 1);
-				this.orders.ruta = data.filter(order => order.state_id === 2);
-				this.orders.entregado = data.filter(order => order.state_id === 3);
+				try {
+					const response = await fetch(Alpine.store('cache').api + "/tracking/all", {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({})
+					});
+					const result = await response.json(); 
+					const data = result.data;
+
+					this.orders.agencia = data.filter(order => order.last_status_id === 1);
+					this.orders.ruta = data.filter(order => order.last_status_id === 2);
+					this.orders.entregado = data.filter(order => order.last_status_id === 3);
+				} catch (error) {
+					console.error("Error al cargar las órdenes:", error);
+				}
 			},
 			addTracking() {
 			Alpine.store('cache').showModal('add');

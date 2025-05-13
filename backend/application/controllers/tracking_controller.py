@@ -19,17 +19,22 @@ class TrackingController:
 
 
     @handle_logs_and_exceptions
-    def tracking_list(self, data):
+    def tracking_client_list(self, data):
         if validation_error := validate_request(data, {"document"}):
             return validation_error, 400
         document = data.get("document")
         
-        return self.tracking.list(document)
+        return self.tracking.client_list(document)
+    
+
+    @handle_logs_and_exceptions
+    def tracking_all_list(self):
+        return self.tracking.all_list()
     
 
     @handle_logs_and_exceptions
     def tracking_get_order(self, data):
-        if validation_error := validate_request(data, {"order_number", "agency_id"}):
+        if validation_error := validate_request(data, {"order_id", "agency_id"}):
             return validation_error, 400
         return self.tracking.get_order(data)
 

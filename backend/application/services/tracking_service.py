@@ -6,6 +6,7 @@ from application.repository.tracking_repository import TrackingRepository
 from application.repository.user_repository import UserRepository
 from application.repository.client_repository import ClientRepository
 from application.repository.logistic_repository import LogisticRepository
+from application.models import ShippingStatusList
 from application.proxy.shalom import Shalom
 from application.proxy.olva import Olva
 from application.proxy.marvisur import Marvisur
@@ -110,7 +111,7 @@ class TrackingService:
         
 
     @handle_exceptions
-    def list(self, document):
+    def client_list(self, document):
         client, client_status = self.client_repository.get_client_by_document(document)
         if client_status != 200:
             return client, client_status
@@ -132,62 +133,94 @@ class TrackingService:
                 'order_number': track.client_order.number,
                 'client_name': client.name,
                 'client_document': client.document,
-                #'agency': track.agency.name if track.agency else None,
                 'agency_image': track.agency.image if track.agency else None,
                 'agency_id': track.agency_id,
-                #'agency_id': track.agency_id,
-                'status': track.status.name if track.status else None,
-                'status_id': track.status.id if track.status else None,
                 'code1': track.code1,
                 'code2': track.code2,
-                'register_at': track.register_at.strftime("%d %B %Y %I:%M %p") if track.register_at else None
+                'last_status': track.status.name if track.status else None,
+                'last_status_id': track.status.id if track.status else None,
+                'last_status_date': track.updated_at.strftime("%d %B %Y %I:%M %p") if track.updated_at else None
             })
 
         logistic_list, logistic_list_status = self.logistic_repository.get_list(order_ids)
         if logistic_list_status != 200:
             return logistic_list, logistic_list_status
         
+        STATUS_MAPPING = {
+            1: (1, "Registrado", ShippingStatusList.PENDING),
+            2: (1, "Programado", ShippingStatusList.SCHEDULED),
+            3: (2, "En ruta", ShippingStatusList.ON_THE_WAY),
+            4: (3, "Entregado", ShippingStatusList.DELIVERED),
+            6: (4, "No entregado", ShippingStatusList.NOT_DELIVERED),
+        }
+
+        AGENCY_IMAGE_URL = "https://www.tiendakrear3d.com/wp-content/uploads/2024/08/krear3dlogo.webp"
+        AGENCY_ID_DEFAULT = 4
+
         for row in logistic_list:
+            status_id, status_name, status_enum = STATUS_MAPPING.get(row.status.id, (None, None, None))
+            shipping_date, shipping_date_status = self.logistic_repository.get_shipping_date(row.id, status_enum)
+            if shipping_date_status != 200:
+                return shipping_date, shipping_date_status
+            
             data.append({
                 'id': row.id,
                 'order_number': row.client_order.number,
                 'client_name': client.name,
                 'client_document': client.document,
-                #'agency': row.agency.name if row.agency else None,
-                'agency_image': "https://www.tiendakrear3d.com/wp-content/uploads/2024/08/krear3dlogo.webp",
-                'agency_id': 4,
-                #'agency_id': row.agency_id,
-                'status': row.status.name if row.status else None,
-                'status_id': row.status.id if row.status else None,
-                'register_at': row.register_date.strftime("%d %B %Y %I:%M %p") if row.register_date else None
+                'agency_image': AGENCY_IMAGE_URL,
+                'agency_id': AGENCY_ID_DEFAULT,
+                'last_status': status_name,
+                'last_status_id': status_id,
+                'last_status_date': shipping_date.created_at.strftime("%d-%m-%Y %I:%M %p") if status_enum.value != "SCHEDULED" and shipping_date else row.delivery_date.strftime("%d-%m-%Y"),
             })
+        return data, 200
 
+
+    @handle_exceptions
+    def all_list(self):
+        tracking_list, tracking_list_status = self.tracking_repository.get_all_list()
+        if tracking_list_status != 200:
+            return tracking_list, tracking_list_status
+        
+        data = []
+        for track in tracking_list:
+            data.append({
+                'id': track.id,
+                'order_number': track.client_order.number,
+                'client_name': track.client_order.client.name,
+                'client_document': track.client_order.client.document,
+                'agency_image': track.agency.image if track.agency else None,
+                'agency_id': track.agency_id,
+                'codes': f"{track.code1} / {track.code2}",
+                'origin_agency': track.origin_agency,
+                'destination_agency': track.destination_agency,
+                'last_status': track.status.name if track.status else None,
+                'last_status_id': track.status.id if track.status else None,
+                'last_status_date': track.updated_at.strftime("%d %B %Y %I:%M %p") if track.updated_at else None
+            })
         return data, 200
 
 
     @handle_exceptions
     def get_order(self, data):
-        order_number = data.get("order_number")
+        order_id = data.get("order_id")
         agency_id = data.get("agency_id")
-
-        client_order, client_order_status = self.client_repository.get_client_order_by_number(order_number)
-        if client_order_status != 200:
-            return client_order, client_order_status
         
         if agency_id < 4:
-            tracking_order, tracking_order_status = self.tracking_repository.get_tracking_order(client_order.id)
+            tracking_order, tracking_order_status = self.tracking_repository.get_tracking_order_by_id(order_id)
             if tracking_order_status != 200:
                 return tracking_order, tracking_order_status
             
-            order_history, order_history_status = self.tracking_repository.get_order_history(tracking_order.id)
-            if order_history_status != 200:
-                return order_history, order_history_status
+            tracking_history, tracking_history_status = self.tracking_repository.get_tracking_history(tracking_order.id)
+            if tracking_history_status != 200:
+                return tracking_history, tracking_history_status
 
             history_data = []
-            for history in order_history:
+            for history in tracking_history:
                 history_data.append({
-                    #'status_id': history.status_id,
                     'status_name': history.status.name,
+                    'status_id': history.status_id,
                     'register_at': history.register_at.strftime("%d-%m-%Y %I:%M %p"),
                 })
 
@@ -198,24 +231,44 @@ class TrackingService:
                 'code2': tracking_order.code2,
                 'origin_agency': tracking_order.origin_agency,
                 'destination_agency': tracking_order.destination_agency,
-                'last_status_name': tracking_order.status.name,
-                'last_status_id': tracking_order.status_id,
                 'status_history': history_data
             }
             return result, 200
         
-        logistic_order, logistic_order_status = self.logistic_repository.get_logistic_order(client_order.id)
-        if logistic_order_status != 200:
-            return logistic_order, logistic_order_status
+        shipping_order, shipping_order_status = self.logistic_repository.get_shipping_order_by_id(order_id)
+        if shipping_order_status != 200:
+            return shipping_order, shipping_order_status
+        
+        shipping_history, shipping_history_status = self.logistic_repository.get_shipping_history(shipping_order.id)
+        if shipping_history_status != 200:
+            return shipping_history, shipping_history_status
+        
+        history_data = []
+        STATUS_MAPPING = {
+            "PENDING": (1, "Registrado"),
+            "SCHEDULED": (1, "Programado"),
+            "ON_THE_WAY": (2, "En ruta"),
+            "DELIVERED": (3, "Entregado"),
+            "NOT_DELIVERED": (4, "No entregado"),
+        }
+        for history in shipping_history:
+            if not history.status:
+                continue
+
+            status_id, status_name = STATUS_MAPPING.get(history.status.value, (None, None))
+            history_data.append({
+                'status_name': status_name,
+                'status_id': status_id,
+                'register_at': history.created_at.strftime("%d-%m-%Y %I:%M %p") if history.status.value != "SCHEDULED" else shipping_order.delivery_date.strftime("%d-%m-%Y"),
+            })
         
         result = {
-            'agency_name': "Krear 3D",
+            'agency_name': f"Krear 3D - {shipping_order.method.name}",
             'agency_id': 4,
             'origin_agency': "Lima",
-            'destination_agency': logistic_order.district.name,
-            'last_status_name': logistic_order.status.name,
-            'last_status_id': logistic_order.status_id,
-            #'status_history': history_data
+            'order_number': shipping_order.client_order.number,
+            'destination_agency': shipping_order.district.name,
+            'status_history': history_data
         }
         return result, 200
     

@@ -59,9 +59,9 @@ class UserRepository:
     @handle_db_exceptions
     def get_support_leader(self):
         leader =  g.db_session.query(Users).filter(
-                Users.department_id == self.support_department,
-                Users.level_id == self.admin_level
-            ).first()
+            Users.department_id == self.support_department,
+            Users.level_id == self.admin_level
+        ).first()
         
         if not leader:
             leader = g.db_session.query(Users).filter(

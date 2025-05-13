@@ -343,6 +343,7 @@ class TrackingOrders(BaseModel):
     destination_agency = db.Column(db.String(100))
     external_id = db.Column(db.String(25))
     register_at = db.Column(db.DATETIME, server_default=db.func.current_timestamp())
+    updated_at = db.Column(db.DATETIME)
 
     client_order = db.relationship("ClientOrders", lazy="joined", foreign_keys=[client_order_id])
     agency = db.relationship("TrackingAgencies", lazy="joined", foreign_keys=[agency_id])

@@ -581,6 +581,7 @@
 						this.process_shipping.client_id = '';
 						this.process_shipping.client_name = '';
 						this.process_shipping.client_phone = '';
+						this.process_shipping.client_email = '';
 						this.client_found = false;
 						return;
 					}
@@ -590,6 +591,7 @@
 						this.process_shipping.client_id = data.data.id;
 						this.process_shipping.client_name = data.data.name;
 						this.process_shipping.client_phone = data.data.phone;
+						this.process_shipping.client_email = data.data.email;
 						this.client_found = true;
 					} else {
 						console.warn('Respuesta de API no exitosa.');

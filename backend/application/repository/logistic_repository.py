@@ -166,7 +166,7 @@ class LogisticRepository:
     
 
     @handle_db_exceptions
-    def get_logistic_order(self, client_order_id):
+    def get_shipping_order(self, client_order_id):
         logistic_order = (
             g.db_session.query(ShippingOrders)
             .filter(ShippingOrders.client_order_id == client_order_id)
@@ -177,6 +177,48 @@ class LogisticRepository:
 
         return logistic_order, 200
     
+
+    @handle_db_exceptions
+    def get_shipping_order_by_id(self, id):
+        logistic_order = (
+            g.db_session.query(ShippingOrders)
+            .filter(ShippingOrders.id == id)
+            .first()
+        )
+        if not logistic_order:
+            return 'Logistic Orden no localizada', 400
+
+        return logistic_order, 200
+    
+
+    @handle_db_exceptions
+    def get_shipping_history(self, shipping_order_id):
+        order_history = (
+            g.db_session.query(ShippingHistory)
+            .filter(ShippingHistory.shipping_order_id == shipping_order_id)
+            .all()
+        )
+        if not order_history:
+            return [], 400
+
+        return order_history, 200
+    
+
+    @handle_db_exceptions
+    def get_shipping_date(self, shipping_order_id, status):
+        get_shipping_date = (
+            g.db_session.query(ShippingHistory)
+            .filter(ShippingHistory.shipping_order_id == shipping_order_id)
+            .filter(ShippingHistory.status == status)
+            .order_by(ShippingHistory.created_at)
+            .first()
+        )
+
+        if not get_shipping_date:
+            return None, 200
+
+        return get_shipping_date, 200
+
 
     @handle_db_exceptions
     def add_shipping_order(self, data):

@@ -20,9 +20,9 @@ class ClientsService:
         
         key = f"client_data:{document}"
         cache = redis_client.get(key)
-        if cache:
-            logging.info('User data loaded from cache')
-            return json.loads(cache), 200
+        #if cache:
+        #    logging.info('User data loaded from cache')
+        #    return json.loads(cache), 200
         
         user_data, user_status = self.client_repository.get_client_by_document(document)
         if user_status == 500:

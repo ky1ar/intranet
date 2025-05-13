@@ -10,11 +10,16 @@ def add():
     return controller.tracking_add(request.get_json())
 
 
-@tracking_bp.route("/list", methods=["POST"])
-def list():
-    return controller.tracking_list(request.get_json())
+@tracking_bp.route("/client", methods=["POST"])
+def client_list():
+    return controller.tracking_client_list(request.get_json())
 
 
-@tracking_bp.route("/order_number", methods=["POST"])
+@tracking_bp.route("/all", methods=["POST"])
+def all_list():
+    return controller.tracking_all_list()
+
+
+@tracking_bp.route("/order", methods=["POST"])
 def get_order():
     return controller.tracking_get_order(request.get_json())

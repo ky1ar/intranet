@@ -107,10 +107,9 @@ class ClientRepository:
 
     @handle_db_exceptions
     def update_client(self, client, data):
+        logging.info(data)
         client.phone = f'51{data.get("phone")}'
-        
-        if "email" in data:
-            client.email = data.get("email")
+        client.email = data.get("email")
         
         g.db_session.add(client)
         g.db_session.flush()
