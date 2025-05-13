@@ -116,7 +116,7 @@ class TrackingService:
             "client_name": name.title(),
             "order_number": order_number,
             "agency": agency.name,
-            "agency": agency_id,
+            "agency_id": agency_id,
             "code1": data.get("code1"),
             "code2": data.get("code2"),
             "code3": data.get("code3", ""),

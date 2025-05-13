@@ -20,7 +20,7 @@ class Whatsapp:
         }
         response = requests.post(url, headers=headers, data=json.dumps(payload))
         response_data = response.json()
-        logging.info(response_data)
+        #logging.info(response_data)
         if response.status_code != 200:
             return f"Error {response_data}", response.status_code
         
@@ -33,6 +33,7 @@ class Whatsapp:
         code1 = None
         code2 = None
         code3 = None
+
 
         if agency_id == 1: # Shalom
             code1 = f"N° de Orden: *{data.get('code1')}*"
