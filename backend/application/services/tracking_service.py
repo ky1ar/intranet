@@ -1,7 +1,6 @@
 import logging
 import threading
 
-from datetime import date, datetime, timezone, timedelta
 from application.handlers import handle_exceptions
 from application.repository.tracking_repository import TrackingRepository
 from application.repository.user_repository import UserRepository
@@ -12,6 +11,7 @@ from application.proxy.shalom import Shalom
 from application.proxy.olva import Olva
 from application.proxy.marvisur import Marvisur
 from application.proxy.whatsapp import Whatsapp
+from application import socketio
 
 
 class TrackingService:
@@ -24,7 +24,6 @@ class TrackingService:
         self.olva = Olva()
         self.marvisur = Marvisur()
         self.whatsapp = Whatsapp()
-
 
 
     @handle_exceptions
@@ -124,7 +123,7 @@ class TrackingService:
 
         threading.Thread(target=self.whatsapp.tracking_alert, args=(payload,)).start()
             
-        #socketio.emit("update_schedule", {})
+        socketio.emit("update_tracking_orders", {})
         history, history_status = self.tracking_repository.add_tracking_history(tracking_order, tracking_data.get("status_data"))
         if history_status != 200:
             return history, history_status

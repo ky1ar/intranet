@@ -376,27 +376,18 @@
 			async init() {
 				console.log('Inicializando Logistics...');
 
-                this.initSocket();
-
-				const fetchDataIfNeeded = !Alpine.store('cache').isLoaded('drivers') ? this.fetchData() : Promise.resolve();
-				await Promise.all([fetchDataIfNeeded, this.getPending(), this.getDashboard()]);
-			},
-
-			async initSocket() {
-				try {
-					this.socket = io(Alpine.store('cache').api +"/");
-
-					this.socket.on("update_dashboard", async () => {
+				// Socket
+                const socket = Alpine.store('cache').socket;
+				if (socket) {
+					socket.off("update_dashboard");
+					socket.on("update_dashboard", async () => {
 						await Promise.all([this.getPending(), this.getDashboard()]);
 					});
-
-					this.socket.on("connect_error", (err) => {
-						console.error("Error en la conexión del socket:", err.message);
-					});
-
-				} catch (error) {
-					console.error("Error inicializando WebSocket:", error);
 				}
+
+				// Load data
+				const fetchDataIfNeeded = !Alpine.store('cache').isLoaded('drivers') ? this.fetchData() : Promise.resolve();
+				await Promise.all([fetchDataIfNeeded, this.getPending(), this.getDashboard()]);
 			},
 
 			async fetchData() {

@@ -280,26 +280,19 @@
 			async init() {
 				console.log('Inicializando Support...');
 
-                this.initSocket();
-				const fetchDataIfNeeded = !Alpine.store('cache').isLoaded('service_status') ? this.fetchData() : Promise.resolve();
-				await Promise.all([fetchDataIfNeeded, this.getDashboard()]);
-			},
-
-			async initSocket() {
-				try {
-					this.socket = io(Alpine.store('cache').api +"/");
-
-					this.socket.on("support_dashboard_update", async () => {
+                // Socket
+                const socket = Alpine.store('cache').socket;
+				if (socket) {
+					socket.off("support_dashboard_update");
+					socket.on("support_dashboard_update", async () => {
 						await this.getDashboard();
 					});
-
-					this.socket.on("connect_error", (err) => {
-						console.error("Error en la conexión del socket:", err.message);
-					});
-
-				} catch (error) {
-					console.error("Error inicializando WebSocket:", error);
 				}
+
+				// Load data
+				const fetchDataIfNeeded = !Alpine.store('cache').isLoaded('service_status') ? this.fetchData() : Promise.resolve();
+				await Promise.all([fetchDataIfNeeded, this.getDashboard()]);
+
 			},
 
 			async fetchData() {

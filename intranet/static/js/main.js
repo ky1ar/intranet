@@ -1,3 +1,11 @@
+window.addEventListener('beforeunload', () => {
+    const socket = Alpine.store('cache')?.socket;
+    if (socket && typeof socket.disconnect === 'function') {
+        console.log("Cerrando socket antes de recargar");
+        socket.disconnect();
+    }
+});
+
 document.addEventListener('alpine:init', () => {
     Alpine.data('data',() => ({
         async init() {
@@ -77,8 +85,8 @@ document.addEventListener('alpine:init', () => {
         },
 
         getPages() {
-            const department_id = Alpine.store('cache').user.department_id;
-            const level_id = Alpine.store('cache').user.level_id;
+            const department_id = this.user.department_id;
+            const level_id = this.user.level_id;
 
             if (level_id === 4) {
                 return [...this.common_pages, ...this.restricted_pages];
@@ -112,8 +120,9 @@ document.addEventListener('alpine:init', () => {
 
         logout() {
             console.log('Logout');
+            this.closeSocket(); // Ya limpia el socket correctamente
             this.unsetUser();
-            Alpine.store('cache').sidebarOff();
+            this.sidebarOff();
             localStorage.removeItem('user_data');
             window.PineconeRouter.context.navigate('/');
         },
@@ -140,6 +149,36 @@ document.addEventListener('alpine:init', () => {
             console.log(`Los datos de '${key}' se encuentran en el Store`);
             return true;
         },
+
+        initSocket() {
+            if (!this.user?.id) {
+                console.warn("❌ No se puede crear socket sin user.id");
+                return;
+            }
+
+            if (!this.socket) {
+                console.log("Creando socket para:", this.user.id);
+                const socket = io(this.api + "/", {
+                    query: {
+                        user_id: this.user.id,
+                    }
+                });
+
+                socket.on("connect_error", (err) => {
+                    console.error("Error en la conexión del socket:", err.message);
+                });
+
+                this.socket = socket;
+            }
+        },
+
+        closeSocket() {
+            if (this.socket) {
+                this.socket.disconnect();
+                this.socket = null;
+            }
+        },
+        
     });
 });
 
@@ -185,7 +224,10 @@ async function loginVerify(context) {
             const userData = JSON.parse(storedData);
             Alpine.store('cache').setUser(userData);
         }
+
+        Alpine.store('cache').initSocket();
         Alpine.store('cache').sidebarOn();
+        
         if (context.route == '/') {
             console.log('Sesión iniciada. Redirigiendo a default...');
             window.PineconeRouter.context.navigate(Alpine.store('cache').user.default_page);

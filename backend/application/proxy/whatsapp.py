@@ -9,7 +9,7 @@ class Whatsapp:
         self.token = API.TOKEN
         self.url = API.URL
         self.terms = API.SUPPORT_TERMS
-        self.tracking_url = "http://tiendakrear3d.com/rastrear-pedido"
+        self.tracking_url = "http://tiendakrear3d.com/rastrear-pedidos"
 
 
     def post(self, payload):
@@ -36,7 +36,7 @@ class Whatsapp:
 
 
         if agency_id == 1: # Shalom
-            code1 = f"N° de Orden: *{data.get('code1')}*"
+            code1 = f"N° de Orden Shalom: *{data.get('code1')}*"
             code2 = f"Código: *{data.get('code2')}*"
             code3 = f"Clave de recojo: *{data.get('code3')}*"
     

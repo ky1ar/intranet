@@ -6,14 +6,14 @@
 			</div>
 			<div class="title hover-opacity" @click="addTracking()">+ Añadir tracking</div>
 		</div>
-		<div class="container-tracking">
+		<div class="container-tracking main glass">
 			<!-- AGENCIA -->
 			<div class="cont agencia">
 				<h1 class="title"><img class="icon" src="/static/images/tracking/op1-house.svg" alt="">En Agencia</h1>
 				<div class="data">
 					<template x-if="orders.agencia.length > 0">
 						<template x-for="order in orders.agencia" :key="order.order_number">
-							<div class="order">
+							<div class="order white">
 								<div class="f1">
 									<p class="orderId" x-text="order.order_number"></p>
 									<img :src="order.agency_image" alt="">
@@ -43,7 +43,7 @@
 				<div class="data">
 					<template x-if="orders.ruta.length > 0">
 						<template x-for="order in orders.ruta" :key="order.order_number">
-							<div class="order">
+							<div class="order white">
 								<div class="f1">
 									<p class="orderId" x-text="order.order_number"></p>
 									<img :src="order.agency_image" alt="">
@@ -73,7 +73,7 @@
 				<div class="data">
 					<template x-if="orders.entregado.length > 0">
 						<template x-for="order in orders.entregado" :key="order.order_number">
-							<div class="order">
+							<div class="order white">
 								<div class="f1">
 									<p class="orderId" x-text="order.order_number"></p>
 									<img :src="order.agency_image" alt="">
@@ -98,41 +98,55 @@
 			</div>
 		</div>
 	</div>
+
     <div
 		x-show="$store.cache.isVisibleModal('add')"
 		@mousedown.self="$store.cache.hideLastModal()"
 		x-transition.duration.300ms
 		class="modal-wrap"
 		id="modal-add"
-		x-cloak
-	>
-		<div id="registerTrackings" class="modal" @click.stop>
-			<form  x-ref="form" method="POST" class="form" @submit.prevent="processTracking">
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-					<img alt="close" src="static/images/x.svg" width="12" height="12">
-				</div>
-				<h1 class="title">Registro de Tracking</h1>
-				<div class="order">
+		x-cloak>
+
+		<form id="registerTrackings" x-ref="form" method="POST" class="modal glass2" @click.stop @submit.prevent="processTracking">
+			<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
+				<img alt="close" src="static/images/x.svg" width="12" height="12">
+			</div>
+
+			<input
+				class="percent40 title"
+				type="text"
+				x-model="order_number"
+				placeholder="Número de orden"
+				maxlength="6" 
+				@input="order_number = $event.target.value.toUpperCase()"
+				@blur="fetchOrderData()"
+				required>
+			
+			<div class="fields">
+				<label class="white">
+					<select name="agency" id="agency" x-model="agency" @change="updateFields">
+						<option value="1">Shalom</option>
+						<option value="2">Olva</option>
+						<option value="3">Marvisur</option>
+					</select>
+				</label>
+
+				<label class="white">
+					<img alt="user" src="static/images/id.svg" width="16" height="16">
 					<input
-						x-model="order_number"
-						type="text" 
-						placeholder="N° Orden" 
-						maxlength="6" 
-						@input="order_number = $event.target.value.toUpperCase()"
-						@blur="fetchOrderData()"
+						type="text"
+						maxlength="15"
+						placeholder="DNI / RUC"
+						x-model="document"
+						x-bind:disabled="disableDoc"
+						@blur="fetchDocumentData()"
 						required>
-				</div>
-				<div class="doc">
-					<input 
-					x-model="document"
-					type="text"
-					placeholder="DNI o RUC" 
-					maxlength="15"
-					x-bind:disabled="disableDoc"
-					@blur="fetchDocumentData()" 
-					required>
-				</div>
-				<div class="name">
+				</label>
+			</div>
+
+			<div class="fields">
+				<label :class="disableName ? 'glass2' : 'white'">
+					<img alt="user" src="static/images/user.svg" width="16" height="16">
 					<input 
 						x-model="name"
 						type="text"
@@ -140,8 +154,12 @@
 						maxlength="40" 
 						x-bind:disabled="disableName"
 						required>
-				</div>
-				<div class="phone">
+				</label>
+			</div>
+			
+			<div class="fields">
+				<label class="white">
+					<img alt="phone" src="static/images/phone.svg" width="16" height="16">
 					<input 
 						x-model="phone"
 						type="tel" 
@@ -155,80 +173,93 @@
 							}
 							phone = val;
 						"
-						required
-					>
-				</div>
-				<div class="email">
-					<input 
-					x-model="email"
-					type="email" 
-					placeholder="Correo"
-					maxlength="60">
-				</div>
-				<div class="agen-tit">
-					<p>Agencia</p>
-				</div>
-				<div class="agen">
-					<select name="agency" id="agency" x-model="agency" @change="updateFields">
-						<option value="1">Shalom</option>
-						<option value="2">Olva</option>
-						<option value="3">Marvisur</option>
-					</select>
-				</div>
-				<div class="track">
-					<input 
-						type="text" 
-						:placeholder="config[agency].p1" 
-						x-model="code1" 
-						x-on:input="
-							if (agency === '3') {
-								code1 = $event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-								if (!code1.startsWith('V')) {
-									code1 = '';
-								}
-							} else {
-								code1 = $event.target.value.replace(/[^0-9]/g, '');
-							}
-						" 
-						:maxlength="config[agency].m1" 
 						required>
+				</label>
+
+				<label class="white">
+					<img alt="email" src="static/images/email.svg" width="16" height="16">
+					<input 
+						x-model="email"
+						type="email" 
+						placeholder="Correo"
+						maxlength="60">
+				</label>
+			</div>
+
+			<div class="fields">
+				<label class="white">
+					<input 
+					type="text" 
+					:placeholder="config[agency].p1" 
+					x-model="code1" 
+					x-on:input="
+						if (agency === '3') {
+							code1 = $event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+							if (!code1.startsWith('V')) {
+								code1 = '';
+							}
+						} else {
+							code1 = $event.target.value.replace(/[^0-9]/g, '');
+						}
+					" 
+					:maxlength="config[agency].m1" 
+					required>
+				</label>
 				
-					<template x-if="config[agency].type2 === 'select'">
+				<template x-if="config[agency].type2 === 'select'">
+					<label class="white">
 						<select class="sp" x-model="code2" required>
 							<template x-for="opt in config[agency].options" :key="opt">
-							  <option :value="opt" x-text="opt"></option>
+								<option :value="opt" x-text="opt"></option>
 							</template>
-						  </select>
-					</template>
-				
-					<template x-if="config[agency].type2 === 'text'">
+						</select>
+					</label>
+				</template>
+			
+				<template x-if="config[agency].type2 === 'text'">
+					<label class="white">
 						<input 
-						  type="text" 
-						  x-model="code2"
-						  x-on:input="
+							type="text" 
+							x-model="code2"
+							x-on:input="
 							if (agency === '3') {
-							  code2 = $event.target.value.replace(/[^0-9]/g, '');
+								code2 = $event.target.value.replace(/[^0-9]/g, '');
 							} else {
-							  code2 = $event.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+								code2 = $event.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
 							}
-						  "
-						  :placeholder="config[agency].p2" 
-						  :maxlength="config[agency].m2" 
-						  required>
-					  </template>
-					<template x-if="agency === '1'">
+							"
+							:placeholder="config[agency].p2" 
+							:maxlength="config[agency].m2" 
+							required>
+					</label>
+				</template>
+
+				<template x-if="agency === '1'">
+					<label class="white">
 						<input 
 							type="text" 
 							x-model="code3"
-							placeholder="Clave" 
+							placeholder="Clave de recojo" 
 							maxlength="4">
-					</template>
-				</div>
-				<div id="error-register"></div>
-				<button class="ins hover-opacity" type="submit">Agregar Registro</button>
-			</form>
-		</div>
+					</label>
+				</template>
+			</div>
+
+			<div class="fields">
+				<button class="button hover-opacity" type="submit" :class="buttons.add.class" x-text="buttons.add.text"></button>
+			</div>
+		</form>
 	</div>
+
+
+
+
+
+
+
+
+
+
 	<script>
 		Alpine.data('tracking_data', () => ({
 			order_number: "",    
@@ -254,10 +285,26 @@
 				2: { p1: "N° de Tracking", m1: 7, type2: "select", options: ["25", "24", "23", "22"] },
 				3: { p1: "V001", m1: 4, type2: "text", p2: "0000001", m2: 7 }
 			},
-		
-			init() {
-				this.loadOrders();
+			buttons: {
+                add: { class: '', text: 'Añadir' },
+            },
+
+			async init() {
+				console.log('Inicializando Tracking...');
+
+				// Socket
+				const socket = Alpine.store('cache').socket;
+				if (socket) {
+					socket.off("update_tracking_orders");
+					socket.on("update_tracking_orders", async () => {
+						await this.loadOrders();
+					});
+				}
+
+				// Load data
+				await this.loadOrders();
 			},
+
 			updateFields() {
 				this.code1 = "";
 				this.code2 = "";
@@ -353,12 +400,13 @@
 
 			getLineColor(agency_id) {
 				switch (agency_id) {
-					case 1: return '#ff0000';
-					case 2: return '#ffd800'; 
-					case 3: return '#ff6e00'; 
+					case 1: return '#f2473e';
+					case 2: return '#ffb625'; 
+					case 3: return '#f58a39'; 
 					default: return '#cdcdcd';
 				}
 			},
+
 			resetForm() {
 				this.order_number = "";
 				this.document = "";
@@ -369,12 +417,14 @@
 				this.client_id = null;
 				this.disableDoc = false;
 				this.disableName = false;
+				this.updateFields();
 			},
 
-			processTracking() {
+			async processTracking() {
 				if (!this.$refs.form.checkValidity()) {
 					return;
 				}
+                NProgress.start();
 
 				const payload = {
 					order_number: this.order_number,
@@ -392,43 +442,26 @@
 					},
 				};
 
-				fetch(Alpine.store('cache').api + "/tracking/add", {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify(payload),
-				})
-				.then(res => res.json())
-				.then(data => {
-					const errorContainer = document.getElementById("error-register");
-					if (data.success) {
-						errorContainer.innerHTML = `<p class="true success-register">Registro Exitoso</p>`;
-						errorContainer.style.display = "block";
-						setTimeout(() => {
-							errorContainer.style.display = "none";
-						}, 1500);
+				try {
+					const response = await fetch(Alpine.store('cache').api + '/tracking/add', {
+						method: 'POST',
+						headers: {'Content-Type': 'application/json'},
+						body: JSON.stringify(payload),
+					});
 
-						this.resetForm();
-						this.agency = "1";
-						this.updateFields();
-					} else {
-						errorContainer.innerHTML = `<p>${data.data?.message || "Error al registrar el tracking."}</p>`;
-						errorContainer.style.display = "block";
-						setTimeout(() => {
-							errorContainer.style.display = "none";
-						}, 1500);
-					}
-				})
-				.catch(() => {
-					const errorContainer = document.getElementById("error-register");
-					errorContainer.innerHTML = `<p>Error</p>`;
-					errorContainer.style.display = "block";
-					setTimeout(() => {
-						errorContainer.style.display = "none";
-					}, 1500);
-				});
+                    const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+					
+					Alpine.store('cache').hideModal('add');
+					this.resetForm();
+					
+				} catch (error) {
+					this.showError('add', error.message);
+                } finally {
+                    NProgress.done();
+                }
 			},
+
 			async loadOrders() {
 				try {
 					const response = await fetch(Alpine.store('cache').api + "/tracking/all", {
@@ -448,19 +481,27 @@
 					console.error("Error al cargar las órdenes:", error);
 				}
 			},
+
 			addTracking() {
-			Alpine.store('cache').showModal('add');
+				Alpine.store('cache').showModal('add');
 			}
+
 		}));
 	  </script>
 	
 	
+
+
+
+
+
+
 	<style>
         #tracking-dashboard {
 			width: 100%;
 			user-select: none;
 			padding: 1rem;
-			min-height: calc(100vh - 6.5rem);
+			min-height: 100vh;
 			display: flex;
 			flex-direction: column;
 			gap: 1rem;
@@ -495,8 +536,7 @@
 		}
 		#tracking-dashboard .container-tracking{
 			display: flex;
-			border: .1rem solid var(--white);
-			border-radius: 2rem;
+			flex: 1;
 		}
 		#tracking-dashboard .container-tracking .cont{
 			flex: 1;
@@ -512,32 +552,21 @@
 			width: 1.3rem;
 			margin-right: .5rem;
 		}
-		#tracking-dashboard .container-tracking .cont.agencia .title .icon{
-			filter: invert(49%) sepia(96%) saturate(747%) hue-rotate(196deg) brightness(104%) contrast(101%);
-		}
 		#tracking-dashboard .container-tracking .cont.ruta{
 			border-left: .1rem solid var(--white);
 			border-right: .1rem solid var(--white);
-		}
-		#tracking-dashboard .container-tracking .cont.ruta .title .icon {
-			filter: invert(82%) sepia(45%) saturate(800%) hue-rotate(330deg) brightness(100%) contrast(95%);
-		}
-		#tracking-dashboard .container-tracking .cont.entregado .title .icon {
-			filter: hue-rotate(30deg);
 		}
 		#tracking-dashboard .container-tracking .cont .data{
 			display: flex;
 			flex-direction: column;
 			gap: 1rem;
 		}
-		#tracking-dashboard .container-tracking .cont .data .no-orders{
+		#tracking-dashboard .container-tracking .cont .data .no-orders {
 			text-align: center;
 		}
-		#tracking-dashboard .container-tracking .cont .data .order{
+		#tracking-dashboard .container-tracking .cont .data .order {
 			display: flex;
 			flex-direction: column;
-			background-color: var(--white);
-			border-radius: 1rem;
 			padding: 1rem;
 		}
 		#tracking-dashboard .container-tracking .cont .data .order p{
@@ -606,50 +635,45 @@
 				background-position: -200% 0;
 			}
 		}
-		#registerTrackings .form {
-			display: flex;
-			position: relative;
-			flex-wrap: wrap;
+		#registerTrackings {
 			width: 40rem;
-			background-color: var(--white);
-			box-shadow: 0.1rem 0.1rem 0.5rem 0.2rem #dddddd;
-			padding: 2rem;
-			border-radius: 1rem;
-			justify-content: space-between;
 		}
-		#registerTrackings .form div {
+		#registerTrackings div {
 			display: flex;
 		}
-		#registerTrackings .form .title {
-			font-size: 1.4rem;
-			width: 100%;
-			text-align: center;
-			margin: 0 0 2rem 0;
+		#registerTrackings .title {
+			font-family: inherit;
+			border: none;
+			border-radius: 0.75rem;
+			padding: 0 0.75rem;
+			margin: 0;
+			line-height: 2.5rem;
+			outline: none;
 		}
-		#registerTrackings .form .order,
-		#registerTrackings .form .phone {
+		#registerTrackings .order,
+		#registerTrackings .phone {
 			width: 40%;
 			margin-bottom: 1rem;
 		}
-		#registerTrackings .form .doc,
-		#registerTrackings .form .name {
+		#registerTrackings .doc,
+		#registerTrackings .name {
 			width: 58%;
 			margin-bottom: 1rem;
 		}
-		#registerTrackings .form .email{
+		#registerTrackings .email{
 			width: 100%;
 		}
-		#registerTrackings .form .agen {
+		#registerTrackings .agen {
 			width: 20%;
 		}
-		#registerTrackings .form .track {
+		#registerTrackings .track {
 			width: calc(80% - 1rem);
 			gap: 1rem;
 		}
-		#registerTrackings .form #error-register{
+		#registerTrackings #error-register{
 			width: 100%;
 		}
-		#registerTrackings .form #error-register p{
+		#registerTrackings #error-register p{
 			text-align: center;
 			color: red;
 			font-size: .9rem;
@@ -657,17 +681,17 @@
 			margin: 1rem auto -1rem auto;
 			line-height: 1;
 		}
-		#registerTrackings .form #error-register p.true{
+		#registerTrackings #error-register p.true{
 			color: rgb(11, 199, 73);
 		}
-		#registerTrackings .form .order input,
-		#registerTrackings .form .doc input,
-		#registerTrackings .form .name input,
-		#registerTrackings .form .phone input,
-		#registerTrackings .form .email input,
-		#registerTrackings .form .agen select,
-		#registerTrackings .form .track .sp,
-		#registerTrackings .form .track input {
+		#registerTrackings .order input,
+		#registerTrackings .doc input,
+		#registerTrackings .name input,
+		#registerTrackings .phone input,
+		#registerTrackings .email input,
+		#registerTrackings .agen select,
+		#registerTrackings .track .sp,
+		#registerTrackings .track input {
 			border: 0.1rem solid var(--newgray);
 			padding: 0.5rem;
 			border-radius: 0.5rem;
@@ -675,18 +699,18 @@
 			width: 100%;
 			font-size: 0.9rem;
 		}
-		#registerTrackings .form .track input,
-		#registerTrackings .form .track .sp {
+		#registerTrackings .track input,
+		#registerTrackings .track .sp {
 			flex: 1;
 		}
-		#registerTrackings .form .agen-tit {
+		#registerTrackings .agen-tit {
 			font-size: 1rem;
 			font-weight: 1rem;
 			width: 100%;
 			margin: 0;
 			font-weight: 500;
 		}
-		#registerTrackings .form .ins {
+		#registerTrackings .ins {
 			width: 100%;
 			margin: 2rem 0 0 0;
 			border: 0;

@@ -198,25 +198,17 @@
 			async init() {
 				console.log('Inicializando Driver...');
 
-                this.initSocket();
-				await this.getDashboard();
-			},
-
-			async initSocket() {
-				try {
-					this.socket = io(Alpine.store('cache').api +"/");
-
-					this.socket.on("update_dashboard", async () => {
+                // Socket
+				const socket = Alpine.store('cache').socket;
+                if (socket) {
+					socket.off("update_dashboard");
+					socket.on("update_dashboard", async () => {
 						await this.getDashboard();
 					});
-
-					this.socket.on("connect_error", (err) => {
-						console.error("Error en la conexión del socket:", err.message);
-					});
-
-				} catch (error) {
-					console.error("Error inicializando WebSocket:", error);
 				}
+
+				// Load data
+				await this.getDashboard();
 			},
 
 			async getDashboard() {
