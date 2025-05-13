@@ -734,13 +734,16 @@
 			cursor: pointer;
 		}
 
-		@media only screen and (max-width: 75rem) {
-
-		}
-		@media only screen and (max-width: 62rem) {
-
-		}
 		@media only screen and (max-width: 48rem) {
+			#tracking-dashboard .container-tracking {
+    			flex-direction: column;
+			}
+			#tracking-dashboard .container-tracking .cont.ruta {
+				border-left: none;
+    			border-right: none;
+				border-bottom: .1rem solid var(--white);
+    			border-top: .1rem solid var(--white);
+			}
 
 		}
 	</style>
