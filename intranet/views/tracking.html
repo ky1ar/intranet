@@ -4,8 +4,11 @@
 			<div class="titles">
 				<span class="range">Panel de Trackings</span>
 			</div>
-			<div class="title hover-opacity" @click="addTracking()">+ Añadir tracking</div>
+			<template x-if="editAllowed()">
+				<div class="title hover-opacity" @click="addTracking()">+ Añadir tracking</div>
+			</template>
 		</div>
+
 		<div class="container-tracking main glass">
 			<!-- AGENCIA -->
 			<div class="cont agencia">
@@ -303,6 +306,14 @@
 
 				// Load data
 				await this.loadOrders();
+			},
+
+			editAllowed() {
+				const user = Alpine.store('cache').user;
+				return (
+					(user.department_id === 2 && user.shipping_app_level !== 4) ||
+					user.level_id === 4
+				);
 			},
 
 			updateFields() {
