@@ -1,9 +1,13 @@
 import logging
+import threading
+import secrets
+
 from application import bcrypt
 from application.handlers import handle_exceptions
 from application.repository.user_repository import UserRepository
 from application.services.general_service import GeneralService
 from application.proxy.apiperu import ApiPeru
+from application.proxy.whatsapp import Whatsapp
 from flask_jwt_extended import create_access_token
 
 
@@ -12,6 +16,7 @@ class UserService:
         self.user_repository = UserRepository()
         self.general_service = GeneralService()
         self.apiperu = ApiPeru()
+        self.whatsapp = Whatsapp()
         
 
     @handle_exceptions
@@ -116,3 +121,14 @@ class UserService:
             return f"{words[0]} {words[3]}"
         return "Texto no válido"
         
+
+    def generate_otp(self, length=6):
+        return ''.join([str(secrets.randbelow(10)) for _ in range(length)])
+
+
+    @handle_exceptions
+    def send_otp(self, phone):
+        otp_code = self.generate_otp()
+        threading.Thread(target=self.whatsapp.otp, args=(phone, otp_code)).start()
+        return True, 200
+    

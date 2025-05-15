@@ -1,4 +1,5 @@
 import logging, requests, json
+from datetime import datetime
 from application.handlers import handle_exceptions
 from config import WABA as API
 from config import Config
@@ -12,6 +13,31 @@ class Whatsapp:
         self.tracking_url = "http://tiendakrear3d.com/rastrear-pedidos"
 
 
+    dias_semana = {
+        0: 'lunes',
+        1: 'martes',
+        2: 'miércoles',
+        3: 'jueves',
+        4: 'viernes',
+        5: 'sábado',
+        6: 'domingo'
+    }
+
+    meses = {
+        1: 'enero',
+        2: 'febrero',
+        3: 'marzo',
+        4: 'abril',
+        5: 'mayo',
+        6: 'junio',
+        7: 'julio',
+        8: 'agosto',
+        9: 'septiembre',
+        10: 'octubre',
+        11: 'noviembre',
+        12: 'diciembre'
+    }
+
     def post(self, payload):
         url = f"{self.url}"
         headers = {
@@ -20,7 +46,7 @@ class Whatsapp:
         }
         response = requests.post(url, headers=headers, data=json.dumps(payload))
         response_data = response.json()
-        #logging.info(response_data)
+        logging.info(response.text)
         if response.status_code != 200:
             return f"Error {response_data}", response.status_code
         
@@ -68,6 +94,42 @@ class Whatsapp:
                 "name": "tracking_alert",
                 "language": {"code": "es_PE"},
                 "components": [{"type": "body", "parameters": parameters}]
+            }
+        }
+        return self.post(payload)
+    
+
+    @handle_exceptions
+    def otp(self, phone, otp_code):
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "template",
+            "template": {
+                "name": "krear3dotp",
+                "language": {"code": "es_PE"},
+                "components": [
+                    {
+                        "type": "body",
+                        "parameters": [
+                            {
+                                "type": "text",
+                                "text": otp_code
+                            }
+                        ]
+                    },
+                    {
+                        "type": "button",
+                        "sub_type": "url",
+                        "index": 0,
+                        "parameters": [
+                            {
+                                "type": "text",
+                                "text": otp_code 
+                            }
+                        ]
+                    }
+                ]
             }
         }
         return self.post(payload)
@@ -155,9 +217,11 @@ class Whatsapp:
         username = data.get("username")
         order_number = data.get("order_number")
         schedule_id = data.get("schedule_id")
+        delivery_date = data.get("delivery_date")
         file = data.get("file")
 
         template_list = {
+            2: "logistica_agendado",
             3: "entrega",
             4: "entrega_exitosa_img",
             6: "no_entrega_img",
@@ -176,7 +240,16 @@ class Whatsapp:
         base_url = Config.BASE_URL
         parameters = [{"type": "text", "parameter_name": "username", "text": username}]
 
-        if status_id == 3:
+        if status_id == 2:
+            fecha_obj = datetime.strptime(delivery_date, "%Y-%m-%d")
+            dia_semana = self.dias_semana[fecha_obj.weekday()]
+            mes = self.meses[fecha_obj.month]
+            dia = fecha_obj.day
+            parameters.extend([
+                {"type": "text", "parameter_name": "order_number", "text": order_number},
+                {"type": "text", "parameter_name": "delivery_date", "text": f"{dia_semana} {dia} de {mes}"},
+            ])
+        elif status_id == 3:
             parameters.extend([
                 {"type": "text", "parameter_name": "order_number", "text": order_number},
                 {"type": "text", "parameter_name": "start", "text": start},

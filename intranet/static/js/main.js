@@ -19,7 +19,7 @@ document.addEventListener('alpine:init', () => {
         active_page: window.location.pathname,
         common_pages: [
             //{ name: 'Home', label: 'Inicio', image: 'home', title: 'Krear 3D - Inicio' }
-            { name: 'logistics', label: 'Envíos', image: 'logistics', title: 'Krear 3D - Logística' },
+            { name: 'logistics', label: 'Envíos', image: 'logistics', title: 'Krear 3D - Envíos' },
             { name: 'tracking', label: 'Tracking', image: 'tracking', title: 'Krear 3D - Trackings' },
             //{ name: 'support', label: 'Soporte', image: 'support', title: 'Krear 3D - Soporte' },
             //{ name: 'training', label: 'Capacitaciones', image: 'training', title: 'Krear 3D - Capacitaciones' },
@@ -31,7 +31,7 @@ document.addEventListener('alpine:init', () => {
         modals: new Set(),
         sidebar: false,
         sidebar_menu: false,
-
+        
         sidebarOn() {
             this.sidebar = true;
         },
@@ -120,7 +120,7 @@ document.addEventListener('alpine:init', () => {
 
         logout() {
             console.log('Logout');
-            this.closeSocket(); // Ya limpia el socket correctamente
+            this.closeSocket();
             this.unsetUser();
             this.sidebarOff();
             localStorage.removeItem('user_data');
@@ -182,6 +182,15 @@ document.addEventListener('alpine:init', () => {
     });
 });
 
+function logisticsHandler({ params }) {
+    const client_order_id = params.client_order_id;
+    //console.log("client_order_id:", client_order_id);
+    // Puedes guardarlo en Alpine store si lo usarás en la vista
+    Alpine.store('cache').client_order_id = client_order_id;
+    const currentPath = window.location.pathname;
+    const newPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+    history.replaceState(null, '', newPath);
+}
 
 async function loginVerify(context) {
     console.log('Verificando Login...');

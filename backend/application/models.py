@@ -86,7 +86,7 @@ class FireCloudTokens(BaseModel):
     created_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp())
     updated_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp())
 
-    admin = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
+    user = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
 
 
 
@@ -147,17 +147,6 @@ class ShippingDistricts(BaseModel):
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
     name = db.Column(db.String(255))
-
-
-class ShippingContact(BaseModel):
-    __tablename__ = 'shipping_contact'
-
-    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
-    order_id = db.Column(db.Integer, db.ForeignKey('shipping_orders.id'), nullable=False)
-    client_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-
-    order = db.relationship("ShippingOrders", lazy="joined", foreign_keys=[order_id])
-    client = db.relationship("Users", lazy="joined", foreign_keys=[client_id])
 
 
 class ShippingOrders(BaseModel):
@@ -260,7 +249,7 @@ class ServiceOrders(BaseModel):
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
     order_number = db.Column(db.Integer, nullable=False, unique=True)
     machine_id = db.Column(db.Integer, db.ForeignKey('machines.id'), nullable=False)
-    client_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
     technician_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     method_id = db.Column(db.Integer, db.ForeignKey('service_method.id'))
     origin_id = db.Column(db.Integer, db.ForeignKey('service_origin.id'))
@@ -271,7 +260,7 @@ class ServiceOrders(BaseModel):
     paid = db.Column(db.Boolean, default=0)
 
     machine = db.relationship("Machines", lazy="joined", foreign_keys=[machine_id])
-    client = db.relationship("Users", lazy="joined", foreign_keys=[client_id])
+    client = db.relationship("Clients", lazy="joined", foreign_keys=[client_id])
     technician = db.relationship("Users", lazy="joined", foreign_keys=[technician_id])
     method = db.relationship("ServiceMethod", lazy="joined", foreign_keys=[method_id])
     origin = db.relationship("ServiceOrigin", lazy="joined", foreign_keys=[origin_id])
@@ -284,12 +273,12 @@ class ServiceOrderStatus(BaseModel):
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
     service_order_id = db.Column(db.Integer, db.ForeignKey('service_orders.id'), nullable=False)
     status_id = db.Column(db.Integer, db.ForeignKey('service_status.id'), nullable=False)
-    admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     register_at = db.Column(db.DATETIME, nullable=False)
     notes = db.Column(db.Text)
 
     service_order = db.relationship("ServiceOrders", lazy="joined", foreign_keys=[service_order_id])
-    admin = db.relationship("Users", lazy="joined", foreign_keys=[admin_id])
+    user = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
     status = db.relationship("ServiceStatus", lazy="joined", foreign_keys=[status_id])
 
 
@@ -303,7 +292,7 @@ class TrainingCalendar(BaseModel):
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
     machine_id = db.Column(db.Integer, db.ForeignKey('machines.id'), nullable=False)
     technician_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    client_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
     status_id = db.Column(db.Integer, db.ForeignKey('training_status.id'), nullable=False)
     purchase_receipt = db.Column(db.String(255))
     cancel_proof = db.Column(db.String(255))
@@ -314,7 +303,7 @@ class TrainingCalendar(BaseModel):
 
     machine = db.relationship("Machines", lazy="joined", foreign_keys=[machine_id])
     technician = db.relationship("Users", lazy="joined", foreign_keys=[technician_id])
-    client = db.relationship("Users", lazy="joined", foreign_keys=[client_id])
+    client = db.relationship("Clients", lazy="joined", foreign_keys=[client_id])
     status = db.relationship("TrainingStatus", lazy="joined", foreign_keys=[status_id])
 
 

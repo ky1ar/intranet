@@ -79,11 +79,11 @@ class SupportRepository:
     
     
     @handle_db_exceptions
-    def new_order_status(self, service_order_id, current_status_id, admin_id, stamp, notes):
+    def new_order_status(self, service_order_id, current_status_id, user_id, stamp, notes):
         new_order_status = ServiceOrderStatus(
             service_order_id=service_order_id,
             status_id=current_status_id + 1,
-            admin_id=admin_id,
+            user_id=user_id,
             register_at=stamp,
             notes=notes
         )
@@ -169,7 +169,7 @@ class SupportRepository:
         new_order_status = ServiceOrderStatus(
             service_order_id=service_order_id,
             status_id=data.get("status_id"),
-            admin_id=data.get("admin_id"),
+            user_id=data.get("user_id"),
             register_at=data.get("register_at"),
             notes=data.get("notes"),
         )

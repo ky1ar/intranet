@@ -18,45 +18,53 @@ class UserController:
     
 
     @handle_logs_and_exceptions
-    def user_find(self, request):
-        if validation := validate_request(request, {"document"}):
+    def user_find(self, data):
+        if validation := validate_request(data, {"document"}):
             return validation, 400
         
-        document = request.get("document")
+        document = data.get("document")
         return self.user.get_user_by_document(document)
     
 
     @handle_logs_and_exceptions
-    def user_create_pin(self, request):
-        if validation := validate_request(request, {"document", "pin"}):
+    def user_create_pin(self, data):
+        if validation := validate_request(data, {"document", "pin"}):
             return validation, 400
         
-        document = request.get("document")
-        pin = request.get("pin")
+        document = data.get("document")
+        pin = data.get("pin")
         return self.user.create_pin(document, pin)
     
 
     @handle_logs_and_exceptions
-    def user_login(self, request):
-        if validation_error := validate_request(request, {"document", "password"}):
+    def user_login(self, data):
+        if validation_error := validate_request(data, {"document", "password"}):
             return validation_error, 400
         
-        document = request.get("document")
-        password = request.get("password")
-        fcm_token = request.get("fcm_token")
+        document = data.get("document")
+        password = data.get("password")
+        fcm_token = data.get("fcm_token")
 
         return self.user.login(document, password, fcm_token)
     
         
     @handle_logs_and_exceptions
-    def user_logout(self, request):
-        if validation_error := validate_request(request, {"fcm_token"}):
+    def user_logout(self, data):
+        if validation_error := validate_request(data, {"fcm_token"}):
             return validation_error, 400
         
         return True, 200
-        #fcm_token = request.get("fcm_token")
+        #fcm_token = data.get("fcm_token")
         #stored_token, stored_token_status = self.service.get_fcm_token(fcm_token)
             
         #if stored_token_status == 200:
         #    return self.service.revome_fcm_token(stored_token)
         
+
+    @handle_logs_and_exceptions
+    def user_send_otp(self, data):
+        if validation_error := validate_request(data, {"phone"}):
+            return validation_error, 400
+        phone = data.get("phone")
+        
+        return self.user.send_otp(phone)

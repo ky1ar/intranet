@@ -91,7 +91,7 @@
 			<button class="hover-opacity button" @click="updateStatus()">Actualizar</button>
 
 			<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-				<img alt="close" src="static/images/x.svg" width="12" height="12">
+				<img alt="close" src="/static/images/x.svg" width="12" height="12">
 			</div>
 		</div>
 	</div>
@@ -110,11 +110,11 @@
 			<div class="header">
 				<div class="left">
 					<span class="item">
-						<img alt="user" src="static/images/user.svg" width="12" height="12">
+						<img alt="user" src="/static/images/user.svg" width="12" height="12">
 						<span x-text="service_order?.technician_name"></span>
 					</span>
 					<span class="item">
-						<img alt="maps" src="static/images/location.svg" width="12" height="12">
+						<img alt="maps" src="/static/images/location.svg" width="12" height="12">
 						<span x-text="service_order?.origin_name"></span>
 					</span>
 				</div>
@@ -132,11 +132,11 @@
 
 				<div class="icons">
 					<a :href="'https://api.whatsapp.com/send?phone=' + service_order?.client_phone" target="_blank" class="hover-opacity" rel="noopener noreferrer">
-						<img alt="phone" src="static/images/whatsapp.svg" width="16" height="16">
+						<img alt="phone" src="/static/images/whatsapp.svg" width="16" height="16">
 					</a>
 
 					<button @click="show_document = !show_document" class="hover-opacity">
-						<img alt="document" src="static/images/document.svg" width="16" height="16">
+						<img alt="document" src="/static/images/document.svg" width="16" height="16">
 					</button>
 				</div>
 			</div>
@@ -161,7 +161,7 @@
 			</div>
 
 			<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-				<img alt="close" src="static/images/x.svg" width="12" height="12">
+				<img alt="close" src="/static/images/x.svg" width="12" height="12">
 			</div>
 		</div>
 	</div>
@@ -179,7 +179,7 @@
 			
 			<div class="fields">
 				<label class="white">
-					<select x-model="add_service_order.method_id">
+					<select x-model="process_service.method_id">
 						<template x-if="$store.cache.service_methods?.length !== 1">
 							<option value="">Tipo de servicio</option>
 						</template>
@@ -191,36 +191,37 @@
 				</label>
 
 				<label class="white">
-					<input type="date" x-model="add_service_order.register_date">
+					<input type="date" x-model="process_service.register_date">
 				</label>
 
 				<label class="white">
-					<img alt="user" src="static/images/id.svg" width="16" height="16">
-					<input type="text" maxlength="11" @input="add_service_order.document = add_service_order.document.replace(/\D/g, '')" placeholder="DNI / RUC" x-model="add_service_order.document" @blur="fetchUserData()">
-					<input type="hidden" x-model="add_service_order.document_id">
+					<img alt="user" src="/static/images/id.svg" width="16" height="16">
+					<input type="text" maxlength="11" @input="process_service.client_document = process_service.client_document.replace(/\D/g, '')" placeholder="DNI / RUC" x-model="process_service.client_document" @blur="fetchClientData()">
 				</label>
 			</div>
 
-			<div class="white">
-				<label class="percent100">
-					<img alt="user" src="static/images/user.svg" width="16" height="16">
-					<input type="text" placeholder="Nombre o Razón Social" x-model="add_service_order.name">
-				</label>
-
-				<label class="percent66">
-					<img alt="email" src="static/images/email.svg" width="16" height="16">
-					<input type="text" placeholder="Email" x-model="add_service_order.email">
-				</label>
-
-				<label class="percent33">
-					<img alt="phone" src="static/images/phone.svg" width="16" height="16">
-					<input type="text" maxlength="9" @input="add_service_order.phone = add_service_order.phone.replace(/\D/g, '')" placeholder="Celular" x-model="add_service_order.phone">
+			<div class="fields">
+				<label :class="client_found ? 'glass2' : 'white'">
+					<img alt="user" src="/static/images/user.svg" width="16" height="16">
+					<input :disabled="client_found" type="text" placeholder="Nombre o Razón Social" x-model="process_service.client_name">
 				</label>
 			</div>
 
 			<div class="fields">
 				<label class="white">
-                	<input type="text" x-model="service_order.machine" placeholder="Nombre del equipo" @input="getMachine()">
+					<img alt="phone" src="/static/images/phone.svg" width="16" height="16">
+					<input type="text" maxlength="9" @input="process_service.client_phone = process_service.client_phone.replace(/\D/g, '')" placeholder="Celular" x-model="process_service.client_phone">
+				</label>
+
+				<label class="white">
+					<img alt="email" src="/static/images/email.svg" width="16" height="16">
+					<input type="text" placeholder="Email" x-model="process_service.client_email">
+				</label>
+			</div>
+
+			<div class="fields">
+				<label class="white">
+                	<input type="text" x-model="process_service.machine" placeholder="Nombre del equipo" @input="getMachine()">
 				</label>
 
 				<div class="white machines">
@@ -228,9 +229,9 @@
 						<span
 						x-text="machine.name"
 						@click="
-							service_order.machine = machine.name;
-							service_order.machine_id = machine.id;
-							service_order.machine_image = machine.image;
+							process_service.machine = machine.name;
+							process_service.machine_id = machine.id;
+							process_service.machine_image = machine.image;
 							machines = [];
 						">
 						</span>
@@ -238,12 +239,12 @@
 				</div>
             </div>
 
-			<textarea x-model="status_notes" class="text-area" placeholder="Problema reportado"></textarea>
+			<textarea x-model="process_service.status_notes" class="text-area" placeholder="Problema reportado"></textarea>
 
 			<button class="button hover-opacity" @click="newOrder()" :class="buttons.add.class" x-text="buttons.add.text"></button>
 
 			<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-				<img alt="close" src="static/images/x.svg" width="12" height="12">
+				<img alt="close" src="/static/images/x.svg" width="12" height="12">
 			</div>
 		</div>
 	</div>
@@ -260,22 +261,14 @@
 			dashboard: [],
 			service_order: [],
 			machines: [],
-			add_service_order: {
-                document: '',
-                id: null,
-                name: '',
-                phone: '',
-                notes: '',
-                machine: null,
-                machine_id: null,
-                machine_image: null,
-            },
 			selected_service: null,
 			status_notes: '',
 			show_document: false,
 			buttons: {
                 add: { class: '', text: 'Añadir' },
             },
+			process_service: {},
+			client_found: false,
 
 			async init() {
 				console.log('Inicializando Support...');
@@ -323,9 +316,10 @@
 			},
 
 			async getMachine() {
-                const machine_search = this.service_order.machine;
+                const machine_search = this.process_service.machine;
+				NProgress.start();
+
                 try {
-                    NProgress.start();
                     if (machine_search.length < 3) {
                         this.machines = [];
                         return;
@@ -349,22 +343,22 @@
             },
 
 			async newOrder() {
+                const payload = { 
+                    user_id: Alpine.store('cache').user.id,
+                    machine_id: this.process_service.machine_id,
+                    notes: this.process_service.status_notes || "Notes",
+                    client_id: this.process_service.client_id,
+                    client: {
+						document: this.process_service.client_document,
+						email: this.process_service.client_email,
+						name: this.process_service.client_name,
+						phone: this.process_service.client_phone,
+					},
+                }
                 NProgress.start();
 
-                const payload = { 
-                    machine_id: this.add_service_order.machine_id,
-                    admin_id: Alpine.store('cache').user.id,
-                    notes: this.add_service_order.notes,
-                    client_id: this.add_service_order.id,
-                    client: {
-                        document: this.add_service_order.document,
-                        name: this.add_service_order.name,
-                        phone: this.add_service_order.phone,
-                    },
-                }
-
                 try {
-                    const response = await fetch(Alpine.store('cache').api + '/support/order/new', {
+                    const response = await fetch(Alpine.store('cache').api + '/support/process', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload),
@@ -376,6 +370,7 @@
                     //this.$refs.terms.scrollTop = 0;
                     //this.step++;
                     this.resetOrder();
+					Alpine.store('cache').hideModal('add');
 
                 } catch (error) {
                     this.showError('new', error.message);
@@ -401,16 +396,7 @@
             },
 
 			resetOrder() {
-                this.add_service_order = {
-                    document: '',
-                    id: null,
-                    name: '',
-                    phone: '',
-                    notes: '',
-                    machine: null,
-                    machine_id: null,
-                    machine_image: null,
-                };
+                this.process_service = {};
             },
 
 			async getDashboard() {
@@ -477,43 +463,50 @@
 				Alpine.store('cache').showModal('add');
 			},
 
-			async fetchUserData() {
-				const document = this.add_service_order.document;
+			async fetchClientData() {
+				const document = this.process_service.client_document;
 				if (!document) {
-					this.add_service_order.document_id = '';
-					this.add_service_order.name = '';
-					this.add_service_order.phone = '';
+					this.process_service.client_id = '';
+					this.process_service.client_name = '';
+					this.process_service.client_phone = '';
+					this.client_found = false;
 					return;
 				}
 
+                NProgress.start();
 				try {
 					const response = await fetch(Alpine.store('cache').api + `/client/data/${document}`);
 					if (!response.ok) {
-						this.add_service_order.document_id = '';
-						this.add_service_order.name = '';
-						this.add_service_order.phone = '';
+						this.process_service.client_id = '';
+						this.process_service.client_name = '';
+						this.process_service.client_phone = '';
+						this.process_service.client_email = '';
+						this.client_found = false;
 						return;
 					}
 
 					const data = await response.json();
 					if (data.success) {
-						this.add_service_order.document_id = data.data.id;
-						this.add_service_order.name = data.data.name;
-						this.add_service_order.phone = data.data.phone;
-						//this.process_shipping.disabled = true;
+						this.process_service.client_id = data.data.id;
+						this.process_service.client_name = data.data.name;
+						this.process_service.client_phone = data.data.phone;
+						this.process_service.client_email = data.data.email;
+						this.client_found = true;
 					} else {
 						console.warn('Respuesta de API no exitosa.');
 					}
 				} catch (error) {
 					console.error('Error al obtener datos del usuario:', error);
-				}
+				} finally {
+                    NProgress.done();
+                }
 			},
 
 			async updateStatus() {
 				NProgress.start();
 				const payload = {
 					order_number: this.selected_service.order_number,
-					admin_id: Alpine.store('cache').user.id,
+					user_id: Alpine.store('cache').user.id,
 					notes: this.status_notes,
 				};
 			
@@ -910,6 +903,9 @@
 			text-align: justify;
 		}
 		/***********************************************************************************/
+		#modal-add .modal {
+			max-width: 36rem;
+		}
 		#modal-add .modal .title {
 			align-items: center;
 			gap: 0.5rem;

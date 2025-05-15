@@ -89,6 +89,7 @@ body.modal-open {
 .hover-opacity:hover {
     opacity: 0.75;
 }
+
 /***************************************************************************/
 .modal-wrap {
     position: fixed;
@@ -231,6 +232,9 @@ body.modal-open {
     border: none;
     outline: none;
     background-color: transparent;
+}
+.modal label.flex2-3 {
+    flex: 2.25;
 }
 .modal .percent33 {
     width: 33.33%;

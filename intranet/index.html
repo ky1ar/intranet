@@ -11,10 +11,10 @@
     <meta name="theme-color" content="#F07E46">
     <title>Krear 3D</title>
 
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="static/images/logo-256a.png">
-    <link rel="apple-touch-startup-image" href="static/images/logo-256a.png">
-    <link rel="icon" href="static/images/favw.png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/static/images/logo-256a.png">
+    <link rel="apple-touch-startup-image" href="/static/images/logo-256a.png">
+    <link rel="icon" href="/static/images/favw.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
@@ -27,11 +27,11 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
     
     <!--<link rel="stylesheet" href="static/css/style.css?v=0.1.0.7215">-->
-    <link rel="stylesheet" href="static/css/new.css?v=0.2.3.1">
+    <link rel="stylesheet" href="/static/css/new.css?v=0.2.4.2">
 </head>
 
 <body class="container" x-data="data" :class="{'modal-open': $store.cache.hasActiveModals()}">
-    <script src="static/js/main.js?v=0.2.3.1"></script>
+    <script src="/static/js/main.js?v=0.2.4.2"></script>
 
     <template x-route="/" x-handler="loginVerify" x-template.preload.target.content="/views/login.html"></template>
     <template x-route="/home" x-handler="loginVerify" x-template.preload.target.content="/views/home.html"></template>
@@ -40,6 +40,7 @@
     <template x-route="/support" x-handler="loginVerify" x-template.preload.target.content="/views/support.html"></template>
     <template x-route="/tracking" x-handler="loginVerify" x-template.preload.target.content="/views/tracking.html"></template>
     <template x-route="/logistics" x-handler="loginVerify" x-template.preload.target.content="/views/logistics.html"></template>
+    <template x-route="/logistics/:client_order_id" x-handler="[loginVerify, logisticsHandler]" x-template.preload.target.content="/views/logistics.html"></template>
     <template x-route="/driver" x-handler="loginVerify" x-template.preload.target.content="/views/driver.html"></template>
     <template x-route="/clients" x-handler="loginVerify" x-template.preload.target.content="/views/clients.html"></template>
     <template x-route="/machines" x-handler="loginVerify" x-template.preload.target.content="/views/machines.html"></template>
@@ -48,7 +49,7 @@
     <template x-if="$store.cache.user.id">
         <div id="sidebar">
             <span href="/home">
-                <img class="home" src="static/images/single-logo.svg" alt="Logo" width="32" height="32">
+                <img class="home" src="/static/images/single-logo.svg" alt="Logo" width="32" height="32">
             </span>
             
             <ul>
@@ -64,7 +65,7 @@
 
             <div class="config">
                 <div class="notification hover-opacity">
-                    <img alt="notification" src="static/images/notifications.svg" width="18" height="18">
+                    <img alt="notification" src="/static/images/notifications.svg" width="18" height="18">
                     <div class="dot"></div>
                 </div>
 
@@ -81,12 +82,12 @@
 
                         <div class="controls">
                             <!--<div class="image hover-opacity">
-                                <img alt="controls" src="static/images/settings.svg" width="16" height="16">
+                                <img alt="controls" src="/static/images/settings.svg" width="16" height="16">
                             </div>-->
 
                             <div class="image hover-opacity" @click="$store.cache.logout()">
                                 Cerrar sesión
-                                <img alt="controls" src="static/images/logout.svg" width="16" height="16">
+                                <img alt="controls" src="/static/images/logout.svg" width="16" height="16">
                             </div>
                         </div>
                     </div>

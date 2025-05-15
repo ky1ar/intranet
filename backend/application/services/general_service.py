@@ -1,9 +1,7 @@
-import logging, requests, os
+import logging
 
-from datetime import datetime, timedelta
 from application.handlers import handle_exceptions
 from application.repository.general_repository import GeneralRepository
-from flask import g
 
 
 class GeneralService:
@@ -76,6 +74,22 @@ class GeneralService:
         return result, 200
     
     
+    @handle_exceptions
+    def get_tracking_status(self):
+        tracking_status, tracking_code = self.repository.get_tracking_status() 
+        if tracking_code != 200:
+            return tracking_status, tracking_code
+        
+        result = [
+            {
+                "id": status.id,
+                "name": status.name,
+            }
+            for status in tracking_status
+        ]
+        return result, 200
+    
+
     @handle_exceptions
     def get_drivers(self):
         drivers, drivers_status = self.repository.get_drivers() 

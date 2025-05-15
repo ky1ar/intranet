@@ -112,7 +112,7 @@
 
 		<form id="registerTrackings" x-ref="form" method="POST" class="modal glass2" @click.stop @submit.prevent="processTracking">
 			<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-				<img alt="close" src="static/images/x.svg" width="12" height="12">
+				<img alt="close" src="/static/images/x.svg" width="12" height="12">
 			</div>
 
 			<input
@@ -135,7 +135,7 @@
 				</label>
 
 				<label class="white">
-					<img alt="user" src="static/images/id.svg" width="16" height="16">
+					<img alt="user" src="/static/images/id.svg" width="16" height="16">
 					<input
 						type="text"
 						maxlength="15"
@@ -149,7 +149,7 @@
 
 			<div class="fields">
 				<label :class="disableName ? 'glass2' : 'white'">
-					<img alt="user" src="static/images/user.svg" width="16" height="16">
+					<img alt="user" src="/static/images/user.svg" width="16" height="16">
 					<input 
 						x-model="name"
 						type="text"
@@ -162,7 +162,7 @@
 			
 			<div class="fields">
 				<label class="white">
-					<img alt="phone" src="static/images/phone.svg" width="16" height="16">
+					<img alt="phone" src="/static/images/phone.svg" width="16" height="16">
 					<input 
 						x-model="phone"
 						type="tel" 
@@ -180,7 +180,7 @@
 				</label>
 
 				<label class="white">
-					<img alt="email" src="static/images/email.svg" width="16" height="16">
+					<img alt="email" src="/static/images/email.svg" width="16" height="16">
 					<input 
 						x-model="email"
 						type="email" 
@@ -647,7 +647,7 @@
 			}
 		}
 		#registerTrackings {
-			width: 40rem;
+			width: 36rem;
 		}
 		#registerTrackings div {
 			display: flex;

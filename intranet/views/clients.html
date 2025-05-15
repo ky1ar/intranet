@@ -44,7 +44,7 @@
 				try {
 					console.log('Obteniendo datos desde API')
 					const [clientsRes, serviceMethodsRes, techniciansRes] = await Promise.all([
-						fetch(Alpine.store('cache').api + '/clients/all').then(res => res.json()),
+						fetch(Alpine.store('cache').api + '/client/all').then(res => res.json()),
 					]);
 
 					this.clients = clientsRes.data;

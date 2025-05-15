@@ -70,7 +70,7 @@ class ClientsService:
     def clients_all(self, data):
         page = data.get("page")
         per_page = data.get("per_page")
-        result, status = self.user_repository.get_all_clients(page=page, per_page=per_page)
+        result, status = self.client_repository.get_all_clients(page=page, per_page=per_page)
         if status != 200:
             return result, status
         
@@ -99,7 +99,7 @@ class ClientsService:
     
 
     @handle_exceptions
-    def get_user_order(self, order_number):
+    def get_client_order(self, order_number):
         #key = f"client_data:{document}"
         #cache = redis_client.get(key)
         #if cache:

@@ -10,11 +10,11 @@
 
 				<div class="navigation">
 					<div class="button white hover-opacity" @click="prev">
-						<img alt="prev" src="static/images/arrow.svg" width="16" height="16">
+						<img alt="prev" src="/static/images/arrow.svg" width="16" height="16">
 					</div>
 					<div class="button white middle hover-opacity" @click="today">Semana actual</div>
 					<div class="button white hover-opacity" @click="next">
-						<img alt="next" src="static/images/arrow.svg" width="16" height="16">
+						<img alt="next" src="/static/images/arrow.svg" width="16" height="16">
 					</div>
 				</div>
 			</div>
@@ -78,7 +78,7 @@
 													<span class="address" x-text="shipping.address"></span>
 												</div>
 												<a class="phone" @click.stop :href="'https://api.whatsapp.com/send?phone=' + shipping.client_phone" target="_blank" rel="nofollow">
-													<img src="static/images/wsp.svg" width="16" height="16" alt="phone">
+													<img src="/static/images/wsp.svg" width="16" height="16" alt="phone">
 												</a>
 												<template x-if="shipping.status_id > 2">
 													<span class="status" 
@@ -128,7 +128,7 @@
 					</label>
 
 					<label :class="client_order_found || edit ? 'glass2' : 'white'">
-						<img alt="user" src="static/images/id.svg" width="16" height="16">
+						<img alt="user" src="/static/images/id.svg" width="16" height="16">
 						<input
 							type="text"
 							maxlength="11"
@@ -143,27 +143,36 @@
 
 				<div class="fields">
 					<label :class="client_order_found || client_found || edit ? 'glass2' : 'white'">
-						<img alt="user" src="static/images/user.svg" width="16" height="16">
+						<img alt="user" src="/static/images/user.svg" width="16" height="16">
 						<input :disabled="client_order_found || client_found || edit" type="text" placeholder="Nombre o Razón Social" x-model="process_shipping.client_name">
-					</label>
-
-					<label class="white">
-						<img alt="email" src="static/images/email.svg" width="16" height="16">
-						<input type="text" placeholder="Email" x-model="process_shipping.client_email">
-					</label>
-
-					<label class="white">
-						<img alt="phone" src="static/images/phone.svg" width="16" height="16">
-						<input type="text" maxlength="9" @input="process_shipping.client_phone = process_shipping.client_phone.replace(/\D/g, '')" placeholder="Celular" x-model="process_shipping.client_phone">
 					</label>
 				</div>
 
 				<div class="fields">
 					<label class="white">
-						<img alt="user" src="static/images/location.svg" width="16" height="16">
+						<img alt="phone" src="/static/images/phone.svg" width="16" height="16">
+						<input type="text" maxlength="9" @input="process_shipping.client_phone = process_shipping.client_phone.replace(/\D/g, '')" placeholder="Celular" x-model="process_shipping.client_phone">
+					</label>
+
+					<label class="white">
+						<img alt="email" src="/static/images/email.svg" width="16" height="16">
+						<input type="text" placeholder="Email" x-model="process_shipping.client_email">
+					</label>
+				</div>
+
+				<div class="fields">
+					<label class="white flex2-3">
+						<img alt="user" src="/static/images/location.svg" width="16" height="16">
 						<input type="text" placeholder="Dirección" x-model="process_shipping.address">
 					</label>
 
+					<label class="white">
+						<img alt="user" src="/static/images/maps.svg" width="16" height="16">
+						<input type="text" placeholder="Link de Maps" x-model="process_shipping.maps">
+					</label>
+				</div>
+
+				<div class="fields">
 					<label class="white">
 						<select x-model="process_shipping.district_id">
 							<template x-if="$store.cache.districts?.length !== 1">
@@ -174,13 +183,6 @@
 								<option :value="district.id" x-text="district.name"></option>
 							</template>
 						</select>
-					</label>
-				</div>
-
-				<div class="fields">
-					<label class="white">
-						<img alt="user" src="static/images/maps.svg" width="16" height="16">
-						<input type="text" placeholder="Link de Maps" x-model="process_shipping.maps">
 					</label>
 
 					<label class="white">
@@ -214,7 +216,7 @@
 				</div>
 
 				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()" >
-					<img alt="close" src="static/images/x.svg" width="12" height="12">
+					<img alt="close" src="/static/images/x.svg" width="12" height="12">
 				</div>
 			</div>
 		</div>
@@ -249,12 +251,12 @@
 							</div>
 
 							<a class="message hover-opacity" :href="'https://api.whatsapp.com/send?phone=' + process_shipping.client_phone" target="_blank" rel="nofollow">
-								<img width="16" height="16" alt="client_phone" src="static/images/whatsapp.svg">
+								<img width="16" height="16" alt="client_phone" src="/static/images/whatsapp.svg">
 							</a>
 						</div>
 						
 						<div class="white user">
-							<img width="16" height="16" alt="client_phone" src="static/images/location.svg">
+							<img width="16" height="16" alt="client_phone" src="/static/images/location.svg">
 
 							<div class="data">
 								<span x-text="process_shipping.address"></span>
@@ -265,7 +267,7 @@
 								<a class="message hover-opacity" 
 									:href="process_shipping.maps" 
 									target="_blank" rel="nofollow">
-									<img width="16" height="16" alt="notification" src="static/images/maps.svg">
+									<img width="16" height="16" alt="notification" src="/static/images/maps.svg">
 								</a>
 							</template>
 						</div>
@@ -315,7 +317,7 @@
 				</div>
 				
 				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()" >
-					<img alt="close" src="static/images/x.svg" width="12" height="12">
+					<img alt="close" src="/static/images/x.svg" width="12" height="12">
 				</div>
 			</div>
 		</div>
@@ -388,6 +390,13 @@
 				// Load data
 				const fetchDataIfNeeded = !Alpine.store('cache').isLoaded('drivers') ? this.fetchData() : Promise.resolve();
 				await Promise.all([fetchDataIfNeeded, this.getPending(), this.getDashboard()]);
+
+				const external_view_id = Alpine.store('cache').client_order_id;
+				console.log(external_view_id);
+				if (external_view_id) {
+					this.processShippingModal(external_view_id);
+					Alpine.store('cache').client_order_id = null;
+				}
 			},
 
 			async fetchData() {
@@ -770,9 +779,17 @@
 
 			async processShippingModal(shipping_order_id){
 				this.client_order_found = false;
+
 				if (shipping_order_id){
-					await this.getShipping(shipping_order_id);
-					if (this.process_shipping.status_id > 3 || (Alpine.store('cache').user.department_id != 2 && Alpine.store('cache').user.level_id != 4) || Alpine.store('cache').user.shipping_app_level == 4){
+					const found = await this.getShipping(shipping_order_id);
+					if (!found) return;
+
+					if (
+						this.process_shipping.status_id > 3 ||
+						(Alpine.store('cache').user.department_id != 2 &&
+						Alpine.store('cache').user.level_id != 4) ||
+						Alpine.store('cache').user.shipping_app_level == 4
+					){
 						Alpine.store('cache').showModal('finish');
 					} else {
 						Alpine.store('cache').showModal('process');
@@ -787,12 +804,22 @@
 				NProgress.start();
 
 				try {
-					const response = await fetch(Alpine.store('cache').api + `/logistic/shipping_order_id/${shipping_order_id}`).then(res => res.json());
-					this.process_shipping = response.data || {};
+					const response = await fetch(
+						Alpine.store('cache').api + `/logistic/shipping_order_id/${shipping_order_id}`
+					).then(res => res.json());
+
+					if (!response || !response.success || !response.data) {
+						console.warn('No se encontró el pedido.');
+						return false;
+					}
+					
+					this.process_shipping = response.data;
 					this.edit = true;
+					return true;
 
 				} catch (error) {
 					console.error('Error fetching order:', error);
+					return false;
                 } finally {
                     NProgress.done();
                 }
@@ -872,6 +899,7 @@
 		}
 		
 		/***********************************************************************************/
+		
 		#logistics .main {
 			padding: 1.5rem;
 			display: flex;
@@ -1107,6 +1135,9 @@
 			display: flex;
 			flex-direction: column;
 			gap: 1rem;
+		}
+		#modal-shipping .modal {
+			max-width: 36rem;
 		}
 		#modal-shipping .title {
 			font-family: inherit;

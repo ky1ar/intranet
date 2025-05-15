@@ -54,8 +54,8 @@ class ClientRepository:
     @handle_db_exceptions
     def get_all_clients(self, page=1, per_page=20):
         query = (
-            g.db_session.query(clients)
-            .order_by(clients.name)
+            g.db_session.query(Clients)
+            .order_by(Clients.name)
         )
 
         total = query.count()

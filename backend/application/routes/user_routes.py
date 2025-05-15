@@ -37,3 +37,7 @@ def user_verify():
 def user_logout():
     return controller.user_logout(request.get_json())
 
+
+@user_bp.route("/send_otp", methods=["POST"])
+def user_send_otp():
+    return controller.user_send_otp(request.get_json())

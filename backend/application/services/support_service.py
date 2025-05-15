@@ -6,6 +6,7 @@ from application.repository.support_repository import SupportRepository
 from application.repository.machine_repository import MachineRepository
 from application.repository.user_repository import UserRepository
 from application.repository.general_repository import GeneralRepository
+from application.repository.client_repository import ClientRepository
 from application.proxy.whatsapp import Whatsapp
 from application import socketio
 
@@ -16,6 +17,7 @@ class SupportService:
         self.machine_repository = MachineRepository()
         self.user_repository = UserRepository()
         self.general_repository = GeneralRepository()
+        self.client_repository = ClientRepository()
         self.whatsapp = Whatsapp()
 
 
@@ -63,7 +65,7 @@ class SupportService:
     
 
     @handle_exceptions
-    def service_order_next(self, order_number, admin_id, notes):
+    def service_order_next(self, order_number, user_id, notes):
         service_order, service_order_status = self.support_repository.get_service_order_by_number(order_number) 
         if service_order_status != 200:
             return service_order, service_order_status
@@ -79,7 +81,7 @@ class SupportService:
         if next_order_status != 200:
             return next_order, next_order_status
         
-        new_order_status, new_order_status_code = self.support_repository.new_order_status(service_order_id, current_status_id, admin_id, stamp, notes) 
+        new_order_status, new_order_status_code = self.support_repository.new_order_status(service_order_id, current_status_id, user_id, stamp, notes) 
         if new_order_status_code != 200:
             return new_order_status, new_order_status_code
         
@@ -91,7 +93,7 @@ class SupportService:
     
 
     @handle_exceptions
-    def service_order_prev(self, order_number, admin_id):
+    def service_order_prev(self, order_number, user_id):
         service_order, service_order_status = self.support_repository.get_service_order_by_number(order_number) 
         if service_order_status != 200:
             return service_order, service_order_status
@@ -166,7 +168,7 @@ class SupportService:
         history_dict = [
             {
                 "status_id": row.status_id,
-                "admin_name": row.admin.name.split()[0],
+                "user_name": row.user.name.split()[0],
                 "notes": row.notes,
                 #"register_at": self.format_date_to_string(row.register_at),
                 "register_at":  row.register_at.strftime("%d-%m-%y")
@@ -246,7 +248,7 @@ class SupportService:
     @handle_exceptions
     def service_order_new(self, data):
         machine_id = data.get("machine_id")
-        admin_id = data.get("admin_id")
+        user_id = data.get("user_id")
         notes = data.get("notes").strip()
         client_id = data.get("client_id")
 
@@ -261,18 +263,18 @@ class SupportService:
             return "Describe el problema", 400
         
         if client_id:
-            client, client_status = self.general_repository.get_user_by_id(client_id)
+            client, client_status = self.client_repository.get_client_by_id(client_id)
             if client_status != 200:
                 return client, client_status
             client_name = client.name
-            self.general_repository.update_client(client, client_data)
+            self.client_repository.update_client(client, client_data)
         else:
             if not phone or len(phone) != 9:
                 return "Ingresa un celular válido", 400
             if not name:
                 return "Ingresa un nombre del cliente", 400
             
-            client, client_status = self.general_repository.add_client(client_data)
+            client, client_status = self.client_repository.add_client(client_data)
             if client_status != 200:
                 return client, client_status
             client_name = client.name
@@ -289,7 +291,7 @@ class SupportService:
             "technician_id": leader.id,
             "machine_id": machine_id,
             "client_id": client_id,
-            "admin_id": admin_id,
+            "user_id": user_id,
             "status_id": 1,
             "notes": notes,
             "phone": phone,
@@ -312,7 +314,7 @@ class SupportService:
         threading.Thread(target=self.whatsapp.new_order, args=(payload, client_name, machine_name)).start()
         threading.Thread(target=self.whatsapp.new_order_alert, args=("946887982", order_number, machine_name)).start()
         #self.whatsapp.new_order(payload, client_name, machine_name)
-        #socketio.emit("update_schedule", {})
+        socketio.emit("support_dashboard_update", {})
         return "Orden registrada correctamente", 200
 
 

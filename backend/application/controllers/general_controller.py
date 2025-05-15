@@ -31,6 +31,11 @@ class GeneralController:
 
 
     @handle_logs_and_exceptions
+    def general_tracking_status(self):
+        return self.general_service.get_tracking_status()
+    
+
+    @handle_logs_and_exceptions
     def general_drivers(self):
         return self.general_service.get_drivers()
     

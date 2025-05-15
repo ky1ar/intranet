@@ -22,23 +22,23 @@ class SupportController:
 
     @handle_logs_and_exceptions
     def support_service_order_next(self, request):
-        if validation := validate_request(request, {"order_number", "notes", "admin_id"}):
+        if validation := validate_request(request, {"order_number", "notes", "user_id"}):
             return validation, 400
         
         order_number = request.get("order_number")
-        admin_id = request.get("admin_id")
+        user_id = request.get("user_id")
         notes = request.get("notes")
-        return self.support.service_order_next(order_number, admin_id, notes)
+        return self.support.service_order_next(order_number, user_id, notes)
     
 
     @handle_logs_and_exceptions
     def support_service_order_prev(self, request):
-        if validation := validate_request(request, {"order_number", "admin_id"}):
+        if validation := validate_request(request, {"order_number", "user_id"}):
             return validation, 400
         
         order_number = request.get("order_number")
-        admin_id = request.get("admin_id")
-        return self.support.service_order_prev(order_number, admin_id)
+        user_id = request.get("user_id")
+        return self.support.service_order_prev(order_number, user_id)
     
 
     @handle_logs_and_exceptions
@@ -47,8 +47,8 @@ class SupportController:
 
 
     @handle_logs_and_exceptions
-    def support_service_order_new(self, request):
-        if validation_error := validate_request(request, {"admin_id", "machine_id", "notes"}):
+    def support_service_process(self, request):
+        if validation_error := validate_request(request, {"user_id", "machine_id", "notes"}):
             return validation_error, 400
 
         return self.support.service_order_new(request)

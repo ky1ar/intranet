@@ -222,17 +222,19 @@ class LogisticService:
     @handle_exceptions
     def order_set(self, shipping_order, data):
         user_id = data.get("user_id")
+        delivery_date = data.get("delivery_date")
         shipping_order_id = data.get("shipping_order_id")
         status_id = data.get("status_id")
         client = shipping_order.client_order.client
 
-        if status_id in (3, 4, 6):
+        if status_id in (2, 3, 4, 6):
             payload = {
                 "phone": client.phone,
                 "username": client.name.title(),
                 "order_number": shipping_order.client_order.number,
                 "schedule_id": shipping_order.schedule_id,
                 "file": shipping_order.proof_photo,
+                "delivery_date": delivery_date,
             }
             if shipping_order.method_id < 3:
                 threading.Thread(target=self.whatsapp.logistic_status_change, args=(payload, status_id)).start()

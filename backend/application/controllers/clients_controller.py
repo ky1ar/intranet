@@ -31,6 +31,6 @@ class ClientsController:
     def order_get_user_order(self, order_number):
         if not order_number:
             return 'Número de orden inválido', 400
-        return self.clients.get_user_order(order_number)
+        return self.clients.get_client_order(order_number)
     
     

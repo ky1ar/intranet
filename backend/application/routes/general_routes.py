@@ -27,6 +27,11 @@ def tracking_agencies():
     return controller.general_tracking_agencies()
 
 
+@general_bp.route("/tracking_status", methods=["GET"])
+def tracking_status():
+    return controller.general_tracking_status()
+
+
 @general_bp.route("/drivers", methods=["GET"])
 def general_drivers():
     return controller.general_drivers()

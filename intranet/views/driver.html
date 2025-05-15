@@ -7,11 +7,11 @@
 		<div class="main glass">
 			<div class="navigation">
 				<div class="button white hover-opacity" @click="prev">
-					<img alt="prev" src="static/images/arrow.svg" width="16" height="16">
+					<img alt="prev" src="/static/images/arrow.svg" width="16" height="16">
 				</div>
 				<div class="button white middle hover-opacity" @click="today" x-text="schedule.day_name">Hoy</div>
 				<div class="button white hover-opacity" @click="next">
-					<img alt="next" src="static/images/arrow.svg" width="16" height="16">
+					<img alt="next" src="/static/images/arrow.svg" width="16" height="16">
 				</div>
 			</div>
 
@@ -33,7 +33,7 @@
 												<span class="address" x-text="shipping.address"></span>
 											</div>
 											<a class="phone" @click.stop :href="'https://api.whatsapp.com/send?phone=' + shipping.client_phone" target="_blank" rel="nofollow">
-												<img src="static/images/wsp.svg" width="16" height="16" alt="phone">
+												<img src="/static/images/wsp.svg" width="16" height="16" alt="phone">
 											</a>
 											<template x-if="shipping.status_id > 2">
 												<span class="status" 
@@ -73,7 +73,7 @@
 						</div>
 						
 						<a class="white contact" :href="'tel:+51'+process_shipping.client_phone">
-							<img width="20" height="20" alt="client_phone" src="static/images/call.svg">
+							<img width="20" height="20" alt="client_phone" src="/static/images/call.svg">
 							<div class="data">
 								<div class="title" x-text="process_shipping.client_name"></div>
 								<div class="subtitle" x-text="process_shipping.client_phone"></div>
@@ -83,7 +83,7 @@
 						<a class="white contact" 
 							:href="`https://maps.google.com/maps?q=${encodeURIComponent(process_shipping.address)}`" 
 							target="_blank">
-							<img width="20" height="20" alt="notification" src="static/images/location.svg">
+							<img width="20" height="20" alt="notification" src="/static/images/location.svg">
 							<div class="data">
 								<div class="title" x-text="process_shipping.address"></div>
 								<div class="subtitle" x-text="process_shipping.district_name"></div>
@@ -94,7 +94,7 @@
 							<a class="white contact" 
 								:href="process_shipping.maps" 
 								target="_blank">
-								<img width="20" height="20" alt="notification" src="static/images/maps.svg">
+								<img width="20" height="20" alt="notification" src="/static/images/maps.svg">
 								<div class="data">
 									<div class="title">Google Maps</div>
 									<div class="subtitle">Link disponible</div>
@@ -147,7 +147,7 @@
 				</div>
 					
 				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()" >
-					<img alt="close" src="static/images/x.svg" width="12" height="12">
+					<img alt="close" src="/static/images/x.svg" width="12" height="12">
 				</div>
 			</div>
 		</div>
