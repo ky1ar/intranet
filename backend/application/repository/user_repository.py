@@ -1,7 +1,7 @@
 import logging
 from datetime import date, datetime, timezone, timedelta
 from application.handlers import handle_db_exceptions
-from application.models import Users, ClientOrders
+from application.models import Users, UserCodes
 from flask import g
 
 
@@ -21,12 +21,46 @@ class UserRepository:
         
 
     @handle_db_exceptions
-    def get_user_by_id(self, id):
-        user = g.db_session.query(Users).filter_by(id=id).first()
+    def get_user_by_id(self, user_id):
+        user = g.db_session.query(Users).filter_by(id=user_id).first()
         if not user:
             return 'Usuario no encontrado', 404
 
         return user, 200
+    
+
+    @handle_db_exceptions
+    def get_otp(self, user_id, phone):
+        otp_code = (
+            g.db_session.query(UserCodes)
+            .filter(
+                UserCodes.user_id == user_id,
+                UserCodes.phone == phone,
+            )
+            .order_by(UserCodes.created_at.desc())
+            .first()
+        )
+
+        if not otp_code:
+            return 'Código inválido', 422
+
+        return otp_code, 200
+
+
+    @handle_db_exceptions
+    def add_otp(self, user_id, phone, otp_code):
+        utc_now = datetime.now(timezone.utc)
+        peru_time = utc_now - timedelta(hours=5)
+
+        new_otp = UserCodes(
+            user_id=user_id,
+            phone=phone,
+            otp=otp_code,
+            created_at=peru_time
+        )
+        g.db_session.add(new_otp)
+        g.db_session.commit()
+        return True, 200
     
 
     @handle_db_exceptions
@@ -48,8 +82,9 @@ class UserRepository:
     
     
     @handle_db_exceptions
-    def set_user_pin(self, user, pin):
+    def set_user_pin(self, user, pin, phone):
         user.password = pin
+        user.phone = f"51{phone}"
 
         g.db_session.add(user)
         g.db_session.commit()

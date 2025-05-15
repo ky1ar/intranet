@@ -28,12 +28,13 @@ class UserController:
 
     @handle_logs_and_exceptions
     def user_create_pin(self, data):
-        if validation := validate_request(data, {"document", "pin"}):
+        if validation := validate_request(data, {"document", "pin", "phone"}):
             return validation, 400
         
         document = data.get("document")
         pin = data.get("pin")
-        return self.user.create_pin(document, pin)
+        phone = data.get("phone")
+        return self.user.create_pin(document, pin, phone)
     
 
     @handle_logs_and_exceptions
@@ -63,8 +64,18 @@ class UserController:
 
     @handle_logs_and_exceptions
     def user_send_otp(self, data):
-        if validation_error := validate_request(data, {"phone"}):
+        if validation_error := validate_request(data, {"user_id", "phone"}):
             return validation_error, 400
+        user_id = data.get("user_id")
         phone = data.get("phone")
-        
-        return self.user.send_otp(phone)
+        return self.user.send_otp(user_id, phone)
+    
+
+    @handle_logs_and_exceptions
+    def user_validate_otp(self, data):
+        if validation_error := validate_request(data, {"user_id", "phone", "otp_code"}):
+            return validation_error, 400
+        otp_code = data.get("otp_code")
+        user_id = data.get("user_id")
+        phone = data.get("phone")
+        return self.user.validate_otp(user_id, phone, otp_code)

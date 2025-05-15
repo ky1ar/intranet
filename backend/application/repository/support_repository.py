@@ -9,7 +9,10 @@ class SupportRepository:
     def get_service_order_by_number_and_document(self, order_number, document):
         service_order = (
             g.db_session.query(ServiceOrders)
-            .filter(ServiceOrders.order_number == order_number, ServiceOrders.client.has(document=document))
+            .filter(
+                ServiceOrders.order_number == order_number,
+                ServiceOrders.client.has(document=document)
+            )
             .first()
         )
 

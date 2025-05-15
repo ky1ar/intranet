@@ -8,22 +8,28 @@ window.addEventListener('beforeunload', () => {
 
 document.addEventListener('alpine:init', () => {
     Alpine.data('data',() => ({
-        async init() {
+        init() {
             console.log('Inicializando Alpine...');
+            const APP_VERSION = '0.2.5.0';
+
+            if (localStorage.getItem('app_version') !== APP_VERSION) {
+                localStorage.clear();
+                localStorage.setItem('app_version', APP_VERSION);
+            }
         },
     }));
 
     Alpine.store('cache', {
-        api: 'https://api.krear3d.com',
+        api: 'https://devapi.krear3d.com',
         user: {},
         active_page: window.location.pathname,
         common_pages: [
             //{ name: 'Home', label: 'Inicio', image: 'home', title: 'Krear 3D - Inicio' }
             { name: 'logistics', label: 'Envíos', image: 'logistics', title: 'Krear 3D - Envíos' },
             { name: 'tracking', label: 'Tracking', image: 'tracking', title: 'Krear 3D - Trackings' },
-            //{ name: 'support', label: 'Soporte', image: 'support', title: 'Krear 3D - Soporte' },
-            //{ name: 'training', label: 'Capacitaciones', image: 'training', title: 'Krear 3D - Capacitaciones' },
-            //{ name: 'clients', label: 'Clientes', image: 'clients', title: 'Krear 3D - Clientes' },
+            { name: 'support', label: 'Soporte', image: 'support', title: 'Krear 3D - Soporte' },
+            { name: 'training', label: 'Capacitaciones', image: 'training', title: 'Krear 3D - Capacitaciones' },
+            { name: 'clients', label: 'Clientes', image: 'clients', title: 'Krear 3D - Clientes' },
         ],
         restricted_pages: [
             { name: 'driver', label: 'Conductor', image: 'driver', title: 'Krear 3D - Conductor' },
@@ -119,7 +125,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         logout() {
-            console.log('Logout');
+            console.log('Logout...');
             this.closeSocket();
             this.unsetUser();
             this.sidebarOff();

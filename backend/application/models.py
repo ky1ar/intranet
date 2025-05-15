@@ -60,6 +60,19 @@ class Users(BaseModel):
     department = db.relationship("UserDepartment", lazy="joined", foreign_keys=[department_id])
 
 
+class UserCodes(BaseModel):
+    __tablename__ = 'user_codes'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    phone = db.Column(db.String(9))
+    otp = db.Column(db.String(6))
+    status = db.Column(db.String(25), default="pending")
+    created_at = db.Column(db.DATETIME, nullable=False, server_default=db.func.current_timestamp())
+
+    user = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
+
+
 class UserLevel(BaseModel):
     __tablename__ = 'user_level'
 

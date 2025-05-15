@@ -2,10 +2,10 @@ import logging
 import threading
 import secrets
 
+from datetime import date, datetime, timezone, timedelta
 from application import bcrypt
 from application.handlers import handle_exceptions
 from application.repository.user_repository import UserRepository
-from application.services.general_service import GeneralService
 from application.proxy.apiperu import ApiPeru
 from application.proxy.whatsapp import Whatsapp
 from flask_jwt_extended import create_access_token
@@ -14,7 +14,6 @@ from flask_jwt_extended import create_access_token
 class UserService:
     def __init__(self):
         self.user_repository = UserRepository()
-        self.general_service = GeneralService()
         self.apiperu = ApiPeru()
         self.whatsapp = Whatsapp()
         
@@ -37,7 +36,6 @@ class UserService:
                 "id": teammate.id,
                 "name": teammate.name,
                 "image": teammate.image if teammate.image else 'user_default.jpg',
-
             } for teammate in team
         ]
         return team_dict, 200
@@ -51,10 +49,12 @@ class UserService:
         
         if user.level_id == 1:
             return "No cuentas con acceso al sistema", 400
-        name = self.format_name(user.name)
+        
+        name = self.format_name(user.name).split()
         response = {
+            "id": user.id,
             "image": user.image if user.image else 'user_default.jpg',
-            "name": name,
+            "name": name[0],
             "department_name": user.department.name,
         }
 
@@ -65,13 +65,13 @@ class UserService:
     
 
     @handle_exceptions
-    def create_pin(self, document, pin):
+    def create_pin(self, document, pin, phone):
         user, user_status = self.user_repository.get_user_by_document(document)
         if user_status != 200:
             return user, user_status
         
         hashed_pin = bcrypt.generate_password_hash(pin).decode("utf-8")
-        return self.user_repository.set_user_pin(user, hashed_pin)
+        return self.user_repository.set_user_pin(user, hashed_pin, phone)
     
     
     @handle_exceptions
@@ -99,7 +99,8 @@ class UserService:
                 "department_name": user.department.name,
                 "shipping_app_level": user.shipping_app_level,
                 "document": user.document,
-                "name": self.general_service.format_name(user.name),
+                "name": self.format_name(user.name),
+                "phone": user.phone[2:],
                 "image": user.image if user.image else 'user_default.jpg',
                 "default_page": user.default_page or "logistics",
                 "token": access_token
@@ -127,8 +128,42 @@ class UserService:
 
 
     @handle_exceptions
-    def send_otp(self, phone):
+    def send_otp(self, user_id, phone):
+        user, user_status = self.user_repository.get_user_by_id(user_id)
+        if user_status != 200:
+            return user, user_status
+        
+        if user.level_id == 1:
+            return "No cuentas con acceso al sistema", 400
+        
         otp_code = self.generate_otp()
+        add_otp, add_otp_status = self.user_repository.add_otp(user_id, phone, otp_code)
+        if add_otp_status != 200:
+            return add_otp, add_otp_status
+        
         threading.Thread(target=self.whatsapp.otp, args=(phone, otp_code)).start()
-        return True, 200
+        return "OTP Enviado correctamente", 200
     
+
+    @handle_exceptions
+    def validate_otp(self, user_id, phone, otp_code):
+        user, user_status = self.user_repository.get_user_by_id(user_id)
+        if user_status != 200:
+            return user, user_status
+        
+        if user.level_id == 1:
+            return "No cuentas con acceso al sistema", 400
+        
+        current_otp, current_otp_status = self.user_repository.get_otp(user_id, phone)
+        if current_otp_status != 200:
+            return current_otp, current_otp_status
+        
+        utc_now = datetime.now(timezone.utc)
+        peru_time = (utc_now - timedelta(hours=5)).replace(tzinfo=None)
+        if current_otp.created_at < peru_time - timedelta(minutes=10):
+            return "Código expirado", 422
+        
+        if otp_code != current_otp.otp:
+            return "Código inválido", 422
+
+        return "Código validado correctamente", 200

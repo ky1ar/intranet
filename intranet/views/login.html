@@ -4,15 +4,18 @@
 
         <div x-show="!temp_auth.name" class="content">
             <div class="top">
-                <h1>Bienvenido</h1>
-                <p>Ingresa tu DNI para comenzar</p>
+                <div class="banner">
+                    <img alt="user" src="/static/images/uploads/users/00000000.jpg" width="64" height="64">
+                    <h1>¡Hola! Soy Fabrix</h1>
+                </div>
+                <p>El asistente virtual de Krear 3D.</p>
             </div>
 
             <form @submit.prevent="find()" class="bottom">
                 <input type="text"
                     x-model="temp_auth.document"
                     required
-                    placeholder="Número de DNI"
+                    placeholder="Ingresa tu DNI para empezar."
                     pattern="\d{8}" 
                     maxlength="8"
                     inputmode="numeric"
@@ -24,50 +27,106 @@
         <div x-show="temp_auth.name" class="content">
             <div class="top">
                 <div class="banner">
-                    <h1 x-text="temp_auth.name"></h1>
-                    <img @click="clean_temp()" class="hover-opacity" alt="user" :src="temp_auth.image" width="64" height="64">
-                </div>
-                <p x-text="first_login ? (!new_pin ? 'Crea tu clave secreta' : 'Confirma tu clave secreta') : 'Ingresa tu clave para acceder'"></p>
-            </div>
-            
-            <form x-show="first_login" @submit.prevent="createPin()" class="bottom">
-                <input type="password" 
-                    x-show="!new_pin" 
-                    x-model="temp_auth.pin" 
-                    required 
-                    placeholder="Ingresa 4 números"
-                    pattern="\d{4}" 
-                    maxlength="4"
-                    inputmode="numeric"
-                    oninput="this.value = this.value.replace(/\D/g, '').slice(0, 4)">
-                    
-                <input type="password" 
-                    x-show="new_pin" 
-                    x-model="temp_auth.confirm_pin" 
-                    required 
-                    placeholder="Vuelve a ingresar tu clave"
-                    pattern="\d{4}" 
-                    maxlength="4"
-                    inputmode="numeric"
-                    oninput="this.value = this.value.replace(/\D/g, '').slice(0, 4)">
-                <button class="hover-opacity" x-show="!new_pin" :class="buttons.new_pin.class" x-text="buttons.new_pin.text" @click="new_pin = true"></button>
-                <button class="hover-opacity" x-show="new_pin" :class="buttons.create_pin.class" x-text="buttons.create_pin.text" type="submit"></button>
-            </form>
+                    <img alt="user" src="/static/images/uploads/users/00000000.jpg" width="64" height="64">
+                    <template x-if="first_login">
+                        <div>
+                            <h1 x-show="step == 0" x-text="`¡Genial, ${temp_auth.name}!`"></h1>
+                            <h1 x-show="step == 1" x-text="`¡Código en camino, ${temp_auth.name}!`"></h1>
+                            <h1 x-show="step == 2" x-text="`¡Casi listo, ${temp_auth.name}!`"></h1>
+                            <h1 x-show="step == 3" x-text="`¡Un paso más, ${temp_auth.name}!`"></h1>
+                        </div>
+                    </template>
 
-            <form x-show="!first_login" @submit.prevent="login()" class="bottom">
-                <input type="password"
-                    x-model="temp_auth.pin"
-                    required
-                    placeholder="Clave secreta"
-                    pattern="\d{4}" 
-                    maxlength="4"
-                    inputmode="numeric"
-                    autocomplete="off"
-                    autocorrect="off"
-                    spellcheck="false"
-                    oninput="this.value = this.value.replace(/\D/g, '').slice(0, 4)">
-                <button class="hover-opacity" :class="buttons.login.class" x-text="buttons.login.text" type="submit"></button>
-            </form>
+                    <template x-if="!first_login">
+                        <h1 x-text="`¡Hola de nuevo, ${temp_auth.name}!`"></h1>
+                    </template>
+                </div>
+
+                <template x-if="first_login">
+                    <div>
+                        <p x-show="step == 0">Solo necesito tu número de celular para enviarte un código.</p>
+                        <p x-show="step == 1">Revisa tu WhatsApp y pon aquí los 6 dígitos que te mandé.</p>
+                        <p x-show="step == 2">Elige 4 números para crear tu clave secreta.</p>
+                        <p x-show="step == 3">Vuelve a escribir tu clave para confirmarla.</p>
+                    </div>
+                </template>
+
+                <template x-if="!first_login">
+                    <p>Ingresa tu clave para acceder</p>
+                </template>
+            </div>
+
+            <template x-if="first_login">
+                <div>
+                    <form x-show="step == 0" @submit.prevent="sendOTP()" class="bottom">
+                        <input type="tel" 
+                            x-model="temp_auth.phone" 
+                            required 
+                            placeholder="Ej. 912345678"
+                            pattern="\d{9}" 
+                            maxlength="9"
+                            inputmode="numeric"
+                            oninput="this.value = this.value.replace(/\D/g, '').slice(0, 9)">
+
+                        <button class="hover-opacity" :class="buttons.add_phone.class" x-text="buttons.add_phone.text" type="submit"></button>
+                    </form>
+
+                    <form x-show="step == 1" @submit.prevent="validateOTP()" class="bottom">
+                        <input type="tel" 
+                            x-model="temp_auth.otp" 
+                            required 
+                            placeholder="Ingresa el código"
+                            pattern="\d{6}" 
+                            maxlength="6"
+                            inputmode="numeric"
+                            oninput="this.value = this.value.replace(/\D/g, '').slice(0, 6)">
+
+                        <button class="hover-opacity" :class="buttons.validate_otp.class" x-text="buttons.validate_otp.text" type="submit"></button>
+                    </form>
+
+                    <form x-show="step == 2" @submit.prevent="step = 3" class="bottom">
+                        <input type="password" 
+                            x-model="temp_auth.pin" 
+                            required 
+                            placeholder="Ingresa 4 números"
+                            pattern="\d{4}" 
+                            maxlength="4"
+                            inputmode="numeric"
+                            oninput="this.value = this.value.replace(/\D/g, '').slice(0, 4)">
+                        <button class="hover-opacity" type="submit">Continuar</button>
+                    </form>
+
+                    <form x-show="step == 3" @submit.prevent="register()" class="bottom">
+                        <input type="password" 
+                            x-model="temp_auth.confirm_pin" 
+                            required 
+                            placeholder="Repite los 4 números"
+                            pattern="\d{4}" 
+                            maxlength="4"
+                            inputmode="numeric"
+                            oninput="this.value = this.value.replace(/\D/g, '').slice(0, 4)">
+                        <button class="hover-opacity" :class="buttons.register.class" x-text="buttons.register.text" type="submit"></button>
+                    </form>
+                </div>
+            </template>
+            
+            <template x-if="!first_login">
+                <form @submit.prevent="login()" class="bottom">
+                    <input type="password"
+                        x-model="temp_auth.pin"
+                        required
+                        placeholder="Clave secreta"
+                        pattern="\d{4}" 
+                        maxlength="4"
+                        inputmode="numeric"
+                        autocomplete="off"
+                        autocorrect="off"
+                        spellcheck="false"
+                        oninput="this.value = this.value.replace(/\D/g, '').slice(0, 4)">
+                    <button class="hover-opacity" :class="buttons.login.class" x-text="buttons.login.text" type="submit"></button>
+                </form>
+            </template>
+            <button class="hover-opacity clean" @click="clean_temp()" x-text="`No soy ${temp_auth.name}`"></button>
         </div>
         <span class="copy">Krear 3D © 2025. Todos los derechos reservados</span>
     </div>
@@ -96,12 +155,64 @@
             buttons: {
                 find: { class: '', text: 'Siguiente' },
                 login: { class: '', text: 'Acceder' },
-                new_pin: { class: '', text: 'Continuar' },
-                create_pin: { class: '', text: 'Crear clave' },
+                register: { class: '', text: 'Acceder' },
+                add_phone: { class: '', text: 'Continuar' },
+                validate_otp: { class: '', text: 'Verificar' },
             },
-
             first_login: false,
-            new_pin: false,
+            pin_creation: false,
+            step: 0,
+
+            async sendOTP() {
+                NProgress.start();
+                const payload = {
+                    user_id: this.temp_auth.id,
+                    phone: this.temp_auth.phone
+                };
+
+                try {
+                    const response = await fetch(Alpine.store('cache').api + '/user/send_otp', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+                    this.step = 1;
+
+                } catch (error) {
+                    this.showError('add_phone', error.message);
+                } finally {
+                    NProgress.done();
+                }
+            }, 
+
+            async validateOTP() {
+                NProgress.start();
+                const payload = {
+                    user_id: this.temp_auth.id,
+                    phone: this.temp_auth.phone,
+                    otp_code: this.temp_auth.otp
+                };
+
+                try {
+                    const response = await fetch(Alpine.store('cache').api + '/user/validate_otp', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+                    this.step = 2;
+
+                } catch (error) {
+                    this.showError('validate_otp', error.message);
+                } finally {
+                    NProgress.done();
+                }
+            }, 
 
             async find() {
                 NProgress.start();
@@ -117,9 +228,10 @@
                     const jsonData = await response.json();
                     if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
 
-                    const { name, image, first_login } = jsonData.data;
+                    const { name, id, image, first_login } = jsonData.data;
 
                     this.temp_auth.name = name;
+                    this.temp_auth.id = id;
                     this.first_login = first_login ?? false;
 
                     if (image) this.temp_auth.image = `/static/images/uploads/users/${image}`;
@@ -186,19 +298,24 @@
                 }, 2000);
             },
 
-            async createPin() {
+            async register() {
                 pin = this.temp_auth.pin;
                 confirm_pin = this.temp_auth.confirm_pin;
 
                 if (pin != confirm_pin) {
-                    this.showError('new_pin', "Las claves son distintas");
+                    this.showError('register', "Las claves son distintas");
                     this.temp_auth.pin = ''
                     this.temp_auth.confirm_pin = '';
-                    this.new_pin = false;
+                    this.step = 2;
                     return;
                 }
 
-                const payload = { document: this.temp_auth.document, pin: this.temp_auth.pin }
+                const payload = {
+                    phone: this.temp_auth.phone,
+                    document: this.temp_auth.document,
+                    pin: this.temp_auth.pin
+                }
+
                 try {
                     const response = await fetch(Alpine.store('cache').api + '/user/create_pin', {
                         method: 'POST',
@@ -207,19 +324,21 @@
                     });
                     
                     const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
 
-                    if (!response.ok) {
-                        if (response.status === 400) {
-                            this.showError('create_pin', jsonData.data.message)
-                        }
-                        return false;
+                    const saveToLocal = {
+                        image: this.temp_auth.image,
+                        document: this.temp_auth.document,
+                        name: this.temp_auth.name
                     }
-                    localStorage.setItem('temp_auth', JSON.stringify(this.temp_auth));
+                    
+                    localStorage.setItem('temp_auth', JSON.stringify(saveToLocal));
                     await this.login();
                     this.first_login = false;
-                    this.new_pin = false;
-                } catch (e) {
-                    console.error('Error during createPin:', e.message);
+                    this.step = 0;
+                } catch (error) {
+                    this.showError('register', error.message);
+                    this.step = 2;
                 }
             },
             
@@ -230,6 +349,7 @@
                     image: '/static/images/uploads/users/user_default.jpg',
                 },
                 this.first_login = false;
+                this.step = 0;
                 localStorage.removeItem('temp_auth'); 
             },
 
@@ -255,10 +375,21 @@
             flex-direction: column;
             gap: 5rem;
             padding: 2rem 3rem;
+            max-width: 24rem;
         }
         #new-login .copy {
             opacity: 0.5;
             font-size: 0.7rem;
+        }
+        #new-login .clean {
+            border: none;
+            outline: none;
+            background-color: transparent;
+            font-family: inherit;
+            font-weight: 500;
+            color: var(--primary);
+            font-size: 0.85rem;
+            padding: 0;
         }
         #new-login .content {
             display: flex;
@@ -284,7 +415,7 @@
             justify-content: center;
             gap: 0.5rem;
             align-items: center;
-            flex-direction: column-reverse;
+            flex-direction: column;
         }
         #new-login .content .top .banner img {
             border-radius: 2rem;
