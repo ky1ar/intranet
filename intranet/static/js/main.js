@@ -10,7 +10,7 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('data',() => ({
         init() {
             console.log('Inicializando Alpine...');
-            const APP_VERSION = '0.2.5.0';
+            const APP_VERSION = '0.2.5.2';
 
             if (localStorage.getItem('app_version') !== APP_VERSION) {
                 localStorage.clear();
@@ -20,7 +20,7 @@ document.addEventListener('alpine:init', () => {
     }));
 
     Alpine.store('cache', {
-        api: 'https://devapi.krear3d.com',
+        api: 'https://api.krear3d.com',
         user: {},
         active_page: window.location.pathname,
         common_pages: [
