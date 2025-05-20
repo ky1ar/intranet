@@ -64,21 +64,15 @@ class UserRepository:
     
 
     @handle_db_exceptions
-    def get_department_team(self, admin_id, department_id):
-        team = (
-            g.db_session.query(Users)
-            .filter(
-                Users.department_id == department_id,
-                Users.level_id != 1,
-                Users.id != admin_id
-            )
-            .order_by(Users.name)
-            .all()
-        )
-        if not team:
-            return [], 200
+    def get_department_team(self, department_id):
+        query = g.db_session.query(Users).filter(Users.level_id != 1)
 
-        return team, 200
+        if department_id != 7:
+            query = query.filter(Users.department_id == department_id)
+
+        team = query.order_by(Users.name).all()
+
+        return team or [], 200
     
     
     @handle_db_exceptions

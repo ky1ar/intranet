@@ -7,14 +7,24 @@ user_bp = Blueprint("user", __name__, url_prefix="/user")
 controller = UserController()
 
 
+@user_bp.route("/webhook", methods=["GET"])
+def webhook():
+    return controller.webhook(request.args)
+
+
+@user_bp.route("/webhook", methods=["POST"])
+def webhook_data():
+    return controller.webhook_data(request.get_json())
+
+
 @user_bp.route("/find", methods=["POST"])
 def user_find():
     return controller.user_find(request.get_json())
 
 
-@user_bp.route("/team", methods=["POST"])
-def user_team():
-    return controller.user_team(request.get_json())
+@user_bp.route("/team/<user_id>", methods=["GET"])
+def user_team(user_id):
+    return controller.user_team(user_id)
 
 
 @user_bp.route("/create_pin", methods=["POST"])

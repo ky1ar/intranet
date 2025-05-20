@@ -140,6 +140,7 @@ class SupportService:
         
         order_data = {
             "order_number": service_order.order_number,
+            "technician_id": service_order.technician_id,
             "technician_name": service_order.technician.name.split()[0],
             "machine": f"{service_order.machine.brand.name} {service_order.machine.model}",
             "machine_image": service_order.machine.image,
@@ -247,61 +248,69 @@ class SupportService:
 
     @handle_exceptions
     def service_order_new(self, data):
+        data["status_id"] = 1
         machine_id = data.get("machine_id")
         user_id = data.get("user_id")
         notes = data.get("notes").strip()
-        client_id = data.get("client_id")
+        register_at = data.get("register_at")
 
+        client_id = data.get("client_id")
         client_data = data.pop("client")
+
         document = client_data.get("document", "").strip()
         name = client_data.get("name", "").strip()
         phone = client_data.get("phone", "").strip()
+        is_from_bot = int(user_id) == 21
 
         if not machine_id:
             return "Selecciona un equipo", 400
         if not notes:
             return "Describe el problema", 400
-        
+        if not is_from_bot:
+            if not register_at:
+                return "Selecciona la fecha de ingreso", 400
+        else:
+            utc_now = datetime.now(timezone.utc)
+            peru_time = utc_now - timedelta(hours=5)
+            data["register_at"] = peru_time
+
         if client_id:
             client, client_status = self.client_repository.get_client_by_id(client_id)
             if client_status != 200:
                 return client, client_status
-            client_name = client.name
             self.client_repository.update_client(client, client_data)
         else:
+            if not document:
+                return "Ingrese un documento", 400
+            if not name:
+                return "Ingrese el nombre", 400
             if not phone or len(phone) != 9:
                 return "Ingresa un celular válido", 400
-            if not name:
-                return "Ingresa un nombre del cliente", 400
             
-            client, client_status = self.client_repository.add_client(client_data)
-            if client_status != 200:
+            client, client_status = self.client_repository.get_client_by_document(document)
+            if client_status == 500:
                 return client, client_status
-            client_name = client.name
-            client_id = client.id
+            if client_status == 404:
+                added_client, added_client_status = self.client_repository.add_client(client_data)
+                if added_client_status != 200:
+                    return added_client, added_client_status
+                client_id = added_client
+            else:
+                client_id = client.id
         
-        utc_now = datetime.now(timezone.utc)
-        register_at = utc_now - timedelta(hours=5)
         order_number = self.support_repository.get_next_order_number()
         leader = self.user_repository.get_support_leader()
 
-        payload = {
-            "order_number": order_number,
-            "register_at": register_at,
-            "technician_id": leader.id,
-            "machine_id": machine_id,
-            "client_id": client_id,
-            "user_id": user_id,
-            "status_id": 1,
-            "notes": notes,
-            "phone": phone,
-        }
-        
-        shipping_order_id, service_order_status = self.support_repository.new_service_order(payload)
+        service_order_id, service_order_status = self.support_repository.new_service_order(
+            order_number,
+            leader.id,
+            data
+        )
         if service_order_status != 200:
-            return shipping_order_id, service_order_status
+            return service_order_id, service_order_status
         
-        order_status, service_status = self.support_repository.add_order_status(shipping_order_id, payload)
+        socketio.emit("support_dashboard_update", {})
+        order_status, service_status = self.support_repository.add_order_status(service_order_id, user_id, data)
         if service_status != 200:
             return order_status, service_status
         
@@ -310,14 +319,30 @@ class SupportService:
             return machine, machine_status
         
         machine_name = machine.full_name
+        #threading.Thread(target=self.whatsapp.new_order, args=(phone, notes, name, machine_name)).start()
+        if is_from_bot:
+            #threading.Thread(target=self.whatsapp.new_order_alert, args=("946887982", order_number, machine_name)).start()
+            pass
 
-        threading.Thread(target=self.whatsapp.new_order, args=(payload, client_name, machine_name)).start()
-        threading.Thread(target=self.whatsapp.new_order_alert, args=("946887982", order_number, machine_name)).start()
-        #self.whatsapp.new_order(payload, client_name, machine_name)
-        socketio.emit("support_dashboard_update", {})
         return "Orden registrada correctamente", 200
 
 
+    @handle_exceptions
+    def service_order_update(self, data):
+        order_number = data.get("order_number")
+        user_id = data.get("user_id")
+
+        service_order, service_order_status = self.support_repository.get_service_order_by_number(order_number) 
+        if service_order_status != 200:
+            return service_order, service_order_status
+
+        update_order, update_order_status = self.support_repository.update_service_order(service_order, data) 
+        if update_order_status != 200:
+            return update_order, update_order_status
+        
+        socketio.emit("support_dashboard_update", {})
+
+        return "Order de servicio actualizada correctamente", 200
 
 
 

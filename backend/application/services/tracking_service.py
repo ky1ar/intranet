@@ -121,7 +121,7 @@ class TrackingService:
             "code3": data.get("code3", ""),
         }
 
-        threading.Thread(target=self.whatsapp.tracking_alert, args=(payload,)).start()
+        #threading.Thread(target=self.whatsapp.tracking_alert, args=(payload,)).start()
             
         socketio.emit("update_tracking_orders", {})
         history, history_status = self.tracking_repository.add_tracking_history(tracking_order, tracking_data.get("status_data"))

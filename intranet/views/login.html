@@ -31,7 +31,7 @@
                     <template x-if="first_login">
                         <div>
                             <h1 x-show="step == 0" x-text="`¡Genial, ${temp_auth.name}!`"></h1>
-                            <h1 x-show="step == 1" x-text="`¡Código en camino, ${temp_auth.name}!`"></h1>
+                            <h1 x-show="step == 1" x-text="`¡Revisa tu WhatsApp, ${temp_auth.name}!`"></h1>
                             <h1 x-show="step == 2" x-text="`¡Casi listo, ${temp_auth.name}!`"></h1>
                             <h1 x-show="step == 3" x-text="`¡Un paso más, ${temp_auth.name}!`"></h1>
                         </div>
@@ -267,6 +267,18 @@
                     });
                     
                     const jsonData = await response.json();
+                    if (!response.ok) {
+                        if (response.status === 422) {
+                            this.showError('login', jsonData?.data?.message || 'Datos inválidos');
+                            localStorage.removeItem('temp_auth'); 
+                            setTimeout(() => {
+                                window.PineconeRouter.context.navigate('/')
+                            }, 1000);
+                            return;
+                        }
+                        throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+                    }
+                    
                     if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
                     
                     const user = jsonData.data;

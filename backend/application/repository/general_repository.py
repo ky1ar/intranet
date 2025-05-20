@@ -1,6 +1,6 @@
 from datetime import date, datetime, timezone, timedelta
 from application.handlers import handle_db_exceptions
-from application.models import ServiceStatus, ServiceMethod, Users, TrackingAgencies, ShippingDistricts, ShippingMethod, TrackingStatus
+from application.models import ServiceStatus, ServiceMethod, Users, TrackingAgencies, ShippingDistricts, ShippingMethod, TrackingStatus, BoardPriority, BoardStatuses, ServiceOrigin
 from flask import g
 
 
@@ -26,6 +26,15 @@ class GeneralRepository:
         
         return service_methods, 200
     
+
+    @handle_db_exceptions
+    def get_service_origin(self):
+        service_origin = g.db_session.query(ServiceOrigin).order_by(ServiceOrigin.name).all()
+        if not service_origin:
+            return [], 400
+        
+        return service_origin, 200
+
 
     @handle_db_exceptions
     def get_agencies(self):
@@ -92,4 +101,22 @@ class GeneralRepository:
         if not vendors:
             return [], 400
         return vendors, 200
+    
+
+    @handle_db_exceptions
+    def get_board_priority(self):
+        priority = (g.db_session.query(BoardPriority).all())
+        if not priority:
+            return [], 404
+
+        return priority, 200
+    
+
+    @handle_db_exceptions
+    def get_board_statuses(self):
+        statuses = (g.db_session.query(BoardStatuses).all())
+        if not statuses:
+            return [], 404
+
+        return statuses, 200
     

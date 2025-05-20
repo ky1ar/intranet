@@ -25,18 +25,34 @@ def service_order_prev():
     return controller.support_service_order_prev(request.get_json())
 
 
+@support_bp.route("/order/update", methods=["POST"])
+def service_order_update():
+    return controller.support_service_order_update(request.get_json())
+
+
 @support_bp.route("/process", methods=["POST"])
 def service_process():
     return controller.support_service_process(request.get_json())
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @support_bp.route("/order/process", methods=["POST"])
 def service_order_process():
     return controller.support_service_order_process(request.get_json())
-
-
-
-
 
 
 @support_bp.route("/order/consult", methods=["POST"])

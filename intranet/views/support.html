@@ -29,7 +29,7 @@
 										@dragstart="dragService(item)"
 										@click="viewOrder(item.order_number)">
 										<div class="row">
-											<span class="order-number" x-text="item.order_number + ' ' +  (item.method_letter || '')"></span>
+											<span class="order-number" x-text="`${item.method_letter}-${item.order_number}`"></span>
 											<div class="passed-days">
 												<!--<span class="updated-days" x-text="item.updated_days"></span>-->
 												<span class="register-day" x-text="item.register_days"></span>
@@ -105,21 +105,35 @@
 		id="modal-view"
 		x-cloak>
 		<div class="modal glass2" @click.stop>
-			<span class="title" x-text="service_order?.order_number + (service_order?.method_name ? (' - ' + service_order?.method_name) : '')"></span>
+			<div>
+				<span class="title" x-text="`Orden ${service_order?.order_number}`"></span>
+				<span class="glass2" x-text="`${service_order?.passed_days}`"></span>
+			</div>
 
-			<div class="header">
-				<div class="left">
-					<span class="item">
-						<img alt="user" src="/static/images/user.svg" width="12" height="12">
-						<span x-text="service_order?.technician_name"></span>
-					</span>
-					<span class="item">
-						<img alt="maps" src="/static/images/location.svg" width="12" height="12">
-						<span x-text="service_order?.origin_name"></span>
-					</span>
-				</div>
-				
-				<span class="days" x-text="service_order?.passed_days"></span>
+			<div class="fields">
+				<label class="white">
+					<select x-model="service_order.method_id" @change="updateOrder('method_id')">
+						<template x-for="method in $store.cache.service_methods" :key="method.id">
+							<option :value="method.id" x-text="method.name"></option>
+						</template>
+					</select>
+				</label>
+
+				<label class="white flex1-5">
+					<select x-model="service_order.technician_id" @change="updateOrder('technician_id')">
+						<template x-for="technician in $store.cache.technicians" :key="technician.id">
+							<option :value="technician.id" x-text="technician.name"></option>
+						</template>
+					</select>
+				</label>
+
+				<label class="white">
+					<select x-model="service_order.origin_id" @change="updateOrder('origin_id')">
+						<template x-for="origin in $store.cache.service_origin" :key="origin.id">
+							<option :value="origin.id" x-text="origin.name"></option>
+						</template>
+					</select>
+				</label>
 			</div>
 
 			<div class="client">
@@ -150,7 +164,7 @@
 							<div class="head">
 								<span class="name" x-text="$store.cache.service_status[history.status_id].name"></span>
 								<div class="right">
-									<span class="admin" x-text="history.admin_name"></span>
+									<!--<span class="admin" x-text="history.user_name"></span>-->
 									<span class="date" x-text="history.register_at"></span>
 								</div>
 							</div>
@@ -181,7 +195,7 @@
 				<label class="white">
 					<select x-model="process_service.method_id">
 						<template x-if="$store.cache.service_methods?.length !== 1">
-							<option value="">Tipo de servicio</option>
+							<option value="">Tipo</option>
 						</template>
 
 						<template x-for="method in $store.cache.service_methods" :key="method.id">
@@ -220,23 +234,34 @@
 			</div>
 
 			<div class="fields">
-				<label class="white">
+				<label class="white flex2-3">
+					<img alt="phone" src="/static/images/icons/printer.svg" width="16" height="16">
                 	<input type="text" x-model="process_service.machine" placeholder="Nombre del equipo" @input="getMachine()">
+					<div class="white machines">
+						<template x-for="machine in machines" :key="machine.id">
+							<span
+							x-text="machine.name"
+							@click="
+								process_service.machine = machine.name;
+								process_service.machine_id = machine.id;
+								process_service.machine_image = machine.image;
+								machines = [];
+							">
+							</span>
+						</template>
+					</div>
+					
 				</label>
 
-				<div class="white machines">
-					<template x-for="machine in machines" :key="machine.id">
-						<span
-						x-text="machine.name"
-						@click="
-							process_service.machine = machine.name;
-							process_service.machine_id = machine.id;
-							process_service.machine_image = machine.image;
-							machines = [];
-						">
-						</span>
-					</template>
-				</div>
+				
+				<label class="white">
+					
+					<select x-model="process_service.origin_id">
+						<template x-for="origin in $store.cache.service_origin" :key="origin.id">
+							<option :value="origin.id" x-text="origin.name"></option>
+						</template>
+					</select>
+				</label>
             </div>
 
 			<textarea x-model="process_service.status_notes" class="text-area" placeholder="Problema reportado"></textarea>
@@ -295,6 +320,7 @@
 					const endpoints = [
 						{ url: '/general/service_status', key: 'service_status' },
 						{ url: '/general/service_methods', key: 'service_methods' },
+						{ url: '/general/service_origin', key: 'service_origin' },
 						{ url: '/general/technicians', key: 'technicians' },
 					];
 
@@ -345,8 +371,11 @@
 			async newOrder() {
                 const payload = { 
                     user_id: Alpine.store('cache').user.id,
-                    machine_id: this.process_service.machine_id,
-                    notes: this.process_service.status_notes || "Notes",
+                    machine_id: this.process_service.machine_id || null,
+                    method_id: this.process_service.method_id || 3,
+                    notes: this.process_service.status_notes || "",
+                    origin_id: this.process_service.origin_id || 1,
+                    register_at: this.process_service.register_date,
                     client_id: this.process_service.client_id,
                     client: {
 						document: this.process_service.client_document,
@@ -373,11 +402,42 @@
 					Alpine.store('cache').hideModal('add');
 
                 } catch (error) {
-                    this.showError('new', error.message);
+                    this.showError('add', error.message);
                 } finally {
                     NProgress.done();
                 }
             }, 
+
+			
+			async updateOrder(field) {
+				const value = this.service_order[field];
+				if (!value) {
+					console.warn(`El campo ${field} está vacío`);
+					return;
+				}
+
+				const payload = {
+					order_number: this.service_order.order_number,
+					[field]: value,
+					user_id: Alpine.store('cache').user.id,
+				};
+
+				NProgress.start();
+				try {
+					const response = await fetch(Alpine.store('cache').api + '/support/order/update', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(payload),
+					});
+
+					if (!response.ok) throw new Error('Error al actualizar');
+					console.log(`Campo ${field} actualizado correctamente`);
+				} catch (error) {
+					console.error('Error actualizando:', error);
+				} finally {
+					NProgress.done();
+				}
+			},
 			
 			showError(btnKey, errorMsg) {
                 const originalText = this.buttons[btnKey].text;
@@ -524,7 +584,10 @@
 					}
 
 					Alpine.store('cache').hideModal('status');
-					this.selected_service = null;
+					setTimeout(() => {
+						this.selected_service = null;
+					}, 350);
+					//this.selected_service = null;
 					//await this.getDashboard();
 
 				} catch (error) {

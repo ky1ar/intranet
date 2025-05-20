@@ -42,6 +42,21 @@ class GeneralService:
 
 
     @handle_exceptions
+    def service_origin(self):
+        service_origin, origin_status = self.repository.get_service_origin() 
+        if origin_status != 200:
+            return service_origin, origin_status
+        
+        result = [
+            {   
+                "id": origin.id,
+                "name": origin.name,
+            }
+            for origin in service_origin
+        ]
+        return result, 200
+
+    @handle_exceptions
     def get_technicians(self):
         technicians, technicians_status = self.repository.get_technicians() 
         if technicians_status != 200:
@@ -157,3 +172,34 @@ class GeneralService:
             return f"{words[0]} {words[3]}"
         return "Texto no válido"
         
+
+    @handle_exceptions
+    def board_priority(self):
+        priority, priority_status = self.repository.get_board_priority()
+        if priority_status != 200:
+            return priority, priority_status
+        
+        result = []
+        for status in priority:
+            result.append({
+                "id": status.id,
+                "name": status.name,
+                "image": status.image,
+            })
+        return result, 200
+
+
+    @handle_exceptions
+    def board_statuses(self):
+        statuses, statuses_status = self.repository.get_board_statuses()
+        if statuses_status != 200:
+            return statuses, statuses_status
+        
+        result = []
+        for status in statuses:
+            result.append({
+                "id": status.id,
+                "name": status.name,
+                "image": status.image,
+            })
+        return result, 200

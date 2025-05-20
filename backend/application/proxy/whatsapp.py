@@ -136,10 +136,7 @@ class Whatsapp:
     
 
     @handle_exceptions
-    def new_order(self, data, client_name, machine_name):
-        notes = data.get("notes")
-        phone = data.get("phone")
-
+    def new_order(self, phone, notes, client_name, machine_name):
         parameters = [
             {"type": "text", "parameter_name": "username", "text": client_name},
             {"type": "text", "parameter_name": "machine", "text": machine_name},

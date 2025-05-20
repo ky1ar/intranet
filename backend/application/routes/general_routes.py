@@ -17,6 +17,11 @@ def service_methods():
     return controller.general_service_methods()
 
 
+@general_bp.route("/service_origin", methods=["GET"])
+def service_origin():
+    return controller.general_service_origin()
+
+
 @general_bp.route("/technicians", methods=["GET"])
 def general_technicians():
     return controller.general_technicians()
@@ -50,4 +55,14 @@ def general_districts():
 @general_bp.route("/shipping_types", methods=["GET"])
 def general_shipping_types():
     return controller.general_shipping_types()
+
+
+@general_bp.route("/board_priority", methods=["GET"])
+def general_board_priority():
+    return controller.general_board_priority()
+
+
+@general_bp.route("/board_statuses", methods=["GET"])
+def general_board_statuses():
+    return controller.general_board_statuses()
 

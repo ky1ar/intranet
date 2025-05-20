@@ -35,6 +35,7 @@ from application.routes.support_routes import support_bp
 from application.routes.training_routes import training_bp
 from application.routes.tracking_routes import tracking_bp
 from application.routes.general_routes import general_bp
+from application.routes.board_routes import board_bp
 
 
 app.register_blueprint(dev_bp)
@@ -46,6 +47,7 @@ app.register_blueprint(support_bp)
 app.register_blueprint(training_bp)
 app.register_blueprint(tracking_bp)
 app.register_blueprint(general_bp)
+app.register_blueprint(board_bp)
 
 
 def api_key_required():

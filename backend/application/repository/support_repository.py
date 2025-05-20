@@ -1,3 +1,5 @@
+import logging
+from datetime import date, datetime, timezone, timedelta
 from application.handlers import handle_db_exceptions
 from application.models import ServiceOrders, ServiceOrderStatus
 from sqlalchemy import func
@@ -67,6 +69,23 @@ class SupportRepository:
         g.db_session.commit()
         return True, 200
     
+
+    @handle_db_exceptions
+    def update_service_order(self, service_order, data):
+        allowed_fields = {'method_id', 'technician_id', 'origin_id'}
+        updated_fields = []
+
+        for key in allowed_fields:
+            if key in data:
+                setattr(service_order, key, data[key])
+                updated_fields.append(key)
+
+        if updated_fields:
+            g.db_session.add(service_order)
+            g.db_session.commit()
+            return "Updated fields", 200
+        return "No fields updated", 200
+
 
     @handle_db_exceptions
     def prev_service_order(self, service_order, current_status_id, stamp):
@@ -142,19 +161,20 @@ class SupportRepository:
         return shipping_order_id, 200
     
 
-    @handle_db_exceptions
     def get_next_order_number(self):
         last_order = g.db_session.query(func.max(ServiceOrders.order_number)).scalar()
         return int(last_order or 0) + 1
 
 
     @handle_db_exceptions
-    def new_service_order(self, data):
+    def new_service_order(self, order_number, leader_id, data):
         new_service_order = ServiceOrders(
-            order_number=data.get("order_number"),
+            order_number=order_number,
             machine_id=data.get("machine_id"),
-            technician_id=data.get("technician_id"),
             client_id=data.get("client_id"),
+            technician_id=leader_id,
+            method_id=data.get("method_id"),
+            origin_id=data.get("origin_id"),
             status_id=data.get("status_id"),
             register_at=data.get("register_at"),
             comments="",
@@ -168,11 +188,11 @@ class SupportRepository:
     
 
     @handle_db_exceptions
-    def add_order_status(self, service_order_id, data):
+    def add_order_status(self, service_order_id, user_id, data):
         new_order_status = ServiceOrderStatus(
             service_order_id=service_order_id,
             status_id=data.get("status_id"),
-            user_id=data.get("user_id"),
+            user_id=user_id,
             register_at=data.get("register_at"),
             notes=data.get("notes"),
         )

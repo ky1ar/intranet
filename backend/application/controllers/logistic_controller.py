@@ -127,27 +127,6 @@ class LogisticController:
         return self.logistic_service.send_message(data, template=3)
 
 
-    
-
-
-    def webhook(self, request):
-        mode = request.get('hub.mode')
-        challenge = request.get('hub.challenge')
-        verify_token = request.get('hub.verify_token')
-        logging.info(f"Webhook received - mode: {mode}, challenge: {challenge}, verify_token: {verify_token}")
-
-        if verify_token == WABA.WEBHOOK_TOKEN:
-            return challenge, 200
-        else:
-            return "Invalid token", 403
-        
-
-    @handle_logs_and_exceptions
-    def webhook_data(self, request):
-        #logging.info(request)
-        return True, 200
-
-
     @handle_logs_and_exceptions
     def register_token(self, request):
         if validation_error := validate_request(

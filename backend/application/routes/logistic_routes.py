@@ -113,16 +113,6 @@ def uploads_machines(filename):
     return send_from_directory(Config.UPLOAD_MACHINES_FOLDER, filename)
 
 
-@logistic_bp.route("/webhook", methods=["GET"])
-def webhook():
-    return controller.webhook(request.args)
-
-
-@logistic_bp.route("/webhook", methods=["POST"])
-def webhook_data():
-    return controller.webhook_data(request.get_json())
-
-
 @logistic_bp.route("/register_token", methods=["POST"])
 def register_token():
     return controller.register_token(request.get_json())

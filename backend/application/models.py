@@ -16,6 +16,13 @@ class ShippingStatusList(Enum):
     NOT_DELIVERED = "NOT_DELIVERED"
 
 
+class HistoryType(Enum):
+    ADDED = "ADDED"
+    STATUS_CHANGE = "STATUS_CHANGE"
+    UPDATED = "UPDATED"
+    DELETED = "DELETED"
+
+    
 class BaseModel(db.Model):
     __abstract__ = True
 
@@ -377,3 +384,65 @@ class TrackingOrderStatus(BaseModel):
 
     tracking_order = db.relationship("TrackingOrders", lazy="joined", foreign_keys=[tracking_order_id])
     status = db.relationship("TrackingStatus", lazy="joined", foreign_keys=[status_id])
+
+
+
+
+
+# BOARD
+class BoardIssues(BaseModel):
+    __tablename__ = 'board_issues'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    status_id = db.Column(db.Integer, db.ForeignKey('board_statuses.id'), nullable=False)
+    priority_id = db.Column(db.Integer, db.ForeignKey('board_priority.id'), nullable=False, default=3)
+    reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    assignee_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    type_id = db.Column(db.Integer, db.ForeignKey('board_types.id'), nullable=False)
+    title = db.Column(db.String(150), nullable=False)
+    description = db.Column(db.Text)
+    created_at = db.Column(db.DATETIME, nullable=False)
+    updated_at = db.Column(db.DATETIME)
+
+    status = db.relationship("BoardStatuses", lazy="joined", foreign_keys=[status_id])
+    priority = db.relationship("BoardPriority", lazy="joined", foreign_keys=[priority_id])
+    reporter = db.relationship("Users", lazy="joined", foreign_keys=[reporter_id])
+    assignee = db.relationship("Users", lazy="joined", foreign_keys=[assignee_id])
+    type = db.relationship("BoardTypes", lazy="joined", foreign_keys=[type_id])
+
+
+class BoardStatuses(BaseModel):
+    __tablename__ = 'board_statuses'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    image = db.Column(db.String(100), nullable=False)
+
+
+class BoardPriority(BaseModel):
+    __tablename__ = 'board_priority'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    image = db.Column(db.String(100), nullable=False)
+
+
+class BoardTypes(BaseModel):
+    __tablename__ = 'board_types'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+
+
+class BoardHistory(BaseModel):
+    __tablename__ = 'board_history'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    issue_id = db.Column(db.Integer, db.ForeignKey('board_issues.id'), nullable=False)
+    type = db.Column(db.Enum(HistoryType), nullable=False)
+    data = db.Column(db.JSON)
+    created_at = db.Column(db.DATETIME, nullable=False)
+
+    issue = db.relationship("BoardIssues", lazy="joined", foreign_keys=[issue_id])
+    user = db.relationship("Users", lazy="joined", foreign_keys=[user_id])

@@ -107,7 +107,7 @@ class ClientRepository:
 
     @handle_db_exceptions
     def update_client(self, client, data):
-        logging.info(data)
+        #logging.info(data)
         client.phone = f'51{data.get("phone")}'
         client.email = data.get("email")
         

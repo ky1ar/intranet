@@ -473,6 +473,22 @@
                 }
 			},
 
+			showError(btnKey, errorMsg) {
+                const originalText = this.buttons[btnKey].text;
+                const originalClass = this.buttons[btnKey].class;
+
+                if (originalClass == 'error') {
+                    return;
+                }
+                this.buttons[btnKey].text = errorMsg;
+                this.buttons[btnKey].class = 'error';
+
+                setTimeout(() => {
+                    this.buttons[btnKey].text = originalText;
+                    this.buttons[btnKey].class = originalClass;
+                }, 1000);
+            },
+			
 			async loadOrders() {
 				try {
 					const response = await fetch(Alpine.store('cache').api + "/tracking/all", {

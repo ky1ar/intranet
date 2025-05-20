@@ -235,6 +235,10 @@ body.modal-open {
 }
 .modal label.flex2-3 {
     flex: 2.25;
+    position: relative;
+}
+.modal label.flex1-5 {
+    flex: 1.5;
 }
 .modal .percent33 {
     width: 33.33%;
@@ -479,6 +483,7 @@ body.modal-open {
         padding: 1rem;
         background: linear-gradient(315deg, hsl(20deg 22% 85% / 80%), hsl(211deg 22% 85% / 80%));
         backdrop-filter: blur(2px);
+        gap: 1rem;
     }
     #sidebar .home {
         margin: 0;

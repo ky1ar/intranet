@@ -10,11 +10,12 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('data',() => ({
         init() {
             console.log('Inicializando Alpine...');
-            const APP_VERSION = '0.2.5.2';
+            const APP_VERSION = '0.2.5.8';
 
             if (localStorage.getItem('app_version') !== APP_VERSION) {
                 localStorage.clear();
                 localStorage.setItem('app_version', APP_VERSION);
+                window.location.reload();
             }
         },
     }));
@@ -25,11 +26,12 @@ document.addEventListener('alpine:init', () => {
         active_page: window.location.pathname,
         common_pages: [
             //{ name: 'Home', label: 'Inicio', image: 'home', title: 'Krear 3D - Inicio' }
+            { name: 'board', label: 'Actividades', image: 'board', title: 'Krear 3D - Actividades' },
             { name: 'logistics', label: 'Envíos', image: 'logistics', title: 'Krear 3D - Envíos' },
             { name: 'tracking', label: 'Tracking', image: 'tracking', title: 'Krear 3D - Trackings' },
-            { name: 'support', label: 'Soporte', image: 'support', title: 'Krear 3D - Soporte' },
-            { name: 'training', label: 'Capacitaciones', image: 'training', title: 'Krear 3D - Capacitaciones' },
-            { name: 'clients', label: 'Clientes', image: 'clients', title: 'Krear 3D - Clientes' },
+            //{ name: 'support', label: 'Soporte', image: 'support', title: 'Krear 3D - Soporte' },
+            //{ name: 'training', label: 'Capacitaciones', image: 'training', title: 'Krear 3D - Capacitaciones' },
+            //{ name: 'clients', label: 'Clientes', image: 'clients', title: 'Krear 3D - Clientes' },
         ],
         restricted_pages: [
             { name: 'driver', label: 'Conductor', image: 'driver', title: 'Krear 3D - Conductor' },
@@ -113,9 +115,10 @@ document.addEventListener('alpine:init', () => {
             this.user = data;
         },
 
-        unsetUser() {
+        unsetData() {
             console.log('Datos de usuario limpiados del store');
             this.user = {};
+            this.team = {};
         },
 
         getUserData() {
@@ -127,7 +130,7 @@ document.addEventListener('alpine:init', () => {
         logout() {
             console.log('Logout...');
             this.closeSocket();
-            this.unsetUser();
+            this.unsetData();
             this.sidebarOff();
             localStorage.removeItem('user_data');
             window.PineconeRouter.context.navigate('/');

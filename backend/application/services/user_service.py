@@ -19,6 +19,36 @@ class UserService:
         
 
     @handle_exceptions
+    def extract_data(self, payload):
+        entry = payload.get("entry", [])[0]
+        change = entry.get("changes", [])[0]
+        value = change.get("value", {})
+
+        contacts = value.get("contacts", [])
+        wa_id = contacts[0].get("wa_id") if contacts else None
+
+        messages = value.get("messages", [])
+        message_text = messages[0].get("text", {}).get("body") if messages else None
+
+        if not wa_id or not message_text:
+            return "Missing 'wa_id' or 'message'", 400
+        
+        return {
+            "phone": wa_id,
+            "message": message_text
+        }, 200
+
+
+    @handle_exceptions
+    def process_webhook(self, data):
+        extract, extract_status = self.extract_data(data)
+        if extract_status != 200:
+            return extract, extract_status
+        
+        return extract, 200
+        
+
+    @handle_exceptions
     def get_department_team(self, admin_id):
         user, user_status = self.user_repository.get_user_by_id(admin_id)
         if user_status != 200:
@@ -27,14 +57,14 @@ class UserService:
         if user.level_id == 1:
             return "Usuario sin acceso al sistema", 400
         
-        team, team_status = self.user_repository.get_department_team(admin_id, user.department_id)
+        team, team_status = self.user_repository.get_department_team(user.department_id)
         if team_status != 200:
             return team, team_status
         
         team_dict = [
             {
                 "id": teammate.id,
-                "name": teammate.name,
+                "name": self.format_name(teammate.name),
                 "image": teammate.image if teammate.image else 'user_default.jpg',
             } for teammate in team
         ]
@@ -84,7 +114,7 @@ class UserService:
             return "No cuentas con acceso al sistema", 400
 
         if user.password == "password":
-            return "Crea una clave antes de continuar", 400
+            return "Contraseña reseteada", 422
 
         if bcrypt.check_password_hash(user.password.encode('utf-8'), password.encode('utf-8')):
             access_token = create_access_token(identity=str(user.id))
@@ -114,6 +144,10 @@ class UserService:
     def format_name(self, full_name):
         words = full_name.strip().split()
 
+        if len(words) == 1:
+            return f"{words[0]}"
+        if len(words) == 2:
+            return f"{words[0]} {words[1]}"
         if len(words) == 3:
             return f"{words[0]} {words[1]}"
         elif len(words) == 4:
