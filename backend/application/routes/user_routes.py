@@ -40,7 +40,9 @@ def user_login():
 @user_bp.route("/verify", methods=["GET"])
 @jwt_required()
 def user_verify():
-    return jsonify({"message": "Token válido"}), 200
+    return jsonify({
+        "app_version": "0.2.6.4"
+    }), 200
 
 
 @user_bp.route("/logout", methods=["POST"])

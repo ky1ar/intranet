@@ -115,15 +115,21 @@
 				<img alt="close" src="/static/images/x.svg" width="12" height="12">
 			</div>
 
-			<input
-				class="percent40 title"
-				type="text"
-				x-model="order_number"
-				placeholder="Número de orden"
-				maxlength="6" 
-				@input="order_number = $event.target.value.toUpperCase()"
-				@blur="fetchOrderData()"
-				required>
+			<div class="header">
+				<input
+					class="percent40 title"
+					type="text"
+					x-model="order_number"
+					placeholder="N° de Orden"
+					maxlength="6" 
+					@input="order_number = $event.target.value.toUpperCase()"
+					@blur="fetchOrderData()"
+					required>
+				<div class="hover-opacity button black" @click="readQR()">
+					<img alt="qr" src="/static/images/icons/qr.svg" width="16" height="16">
+				</div>
+			</div>
+			
 			
 			<div class="fields">
 				<label class="white">
@@ -255,7 +261,25 @@
 	</div>
 
 
+	<div
+		x-show="$store.cache.isVisibleModal('read')"
+		@mousedown.self="$store.cache.hideLastModal(); stopScan();"
+		x-transition.duration.300ms
+		class="modal-wrap"
+		id="modal-qr"
+		x-cloak>
 
+		<div class="modal glass2" @click.stop >
+			<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal(); stopScan();">
+				<img alt="close" src="/static/images/x.svg" width="12" height="12">
+			</div>
+
+			<div class="white" id="scannerBox">
+				<video id="cameraFrame"></video>
+				<div class="scannerDots"></div>
+			</div>
+		</div>
+	</div>
 
 
 
@@ -291,11 +315,13 @@
 			buttons: {
                 add: { class: '', text: 'Añadir' },
             },
-
+        	codeReader: null,
+			scannerRunning: false,
+			
 			async init() {
+                this.codeReader = new ZXingBrowser.BrowserQRCodeReader();
 				console.log('Inicializando Tracking...');
 
-				// Socket
 				const socket = Alpine.store('cache').socket;
 				if (socket) {
 					socket.off("update_tracking_orders");
@@ -304,8 +330,77 @@
 					});
 				}
 
-				// Load data
 				await this.loadOrders();
+			},
+
+			async startScan() {
+				try {
+					this.scannerRunning = true;
+
+					await this.codeReader.decodeFromVideoDevice(null, 'cameraFrame', async (result, err, controls) => {
+						if (!this.scannerRunning) return;
+
+						if (result) {
+							const readed = result.text;
+							//console.log("QR escaneado:", ose_id);
+							const payload = {
+								ose_id: readed.split('/')[0],
+							};
+							NProgress.start();
+
+							try {
+								const response = await fetch(Alpine.store('cache').api + '/tracking/qr_data', {
+									method: 'POST',
+									headers: {'Content-Type': 'application/json'},
+									body: JSON.stringify(payload),
+								});
+
+								const jsonData = await response.json();
+								if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+								const data = jsonData.data;
+								
+								this.agency = data.agency;
+								this.code1 = data.codigo_orden;
+								this.code2 = data.numero_orden;
+
+								this.document = data.client_document;
+								this.client_id = data.client_id;
+								this.name = data.client_name;
+								this.phone = data.client_phone;
+								this.email = data.client_email;
+
+							} catch (error) {
+								this.showError('add', error.message);
+							} finally {
+								NProgress.done();
+							}
+							
+							this.stopScan();
+
+							if (controls?.stop) {
+								controls.stop();
+							}
+
+							Alpine.store('cache').hideModal('read');
+						}
+					});
+				} catch (e) {
+					console.error("❌ Error accediendo a la cámara:", e);
+				}
+			},
+
+            stopScan() {
+				this.scannerRunning = false;
+
+				if (this.codeReader?.reset) {
+					this.codeReader.reset();
+				}
+
+				const video = document.getElementById('cameraFrame');
+				if (video?.srcObject) {
+					video.srcObject.getTracks().forEach(track => track.stop());
+					video.srcObject = null;
+				}
 			},
 
 			editAllowed() {
@@ -511,8 +606,12 @@
 
 			addTracking() {
 				Alpine.store('cache').showModal('add');
-			}
+			},
 
+			readQR() {
+				Alpine.store('cache').showModal('read');
+				this.startScan();
+			},
 		}));
 	  </script>
 	
@@ -648,7 +747,6 @@
 			background-size: initial;
 		}
 
-		/* Parpadeo suave */
 		@keyframes blink {
 			0%, 100% { opacity: 1; }
 			50% { opacity: 0.2; }
@@ -662,11 +760,24 @@
 				background-position: -200% 0;
 			}
 		}
-		#registerTrackings {
-			width: 36rem;
+
+		#modal-add .modal {
+			max-width: 36rem;
 		}
-		#registerTrackings div {
+		#modal-qr .modal {
+			align-items: center;
+		}
+		#registerTrackings .header {
 			display: flex;
+			gap: 1rem;
+			margin-top: 1rem;
+		}
+		#registerTrackings .header .button {
+			padding: 0 2rem;
+			width: initial;
+		}
+		#registerTrackings .header .button img {
+			filter: invert(1);
 		}
 		#registerTrackings .title {
 			font-family: inherit;
@@ -676,6 +787,7 @@
 			margin: 0;
 			line-height: 2.5rem;
 			outline: none;
+			flex: 1;
 		}
 		#registerTrackings .order,
 		#registerTrackings .phone {
@@ -750,6 +862,42 @@
 			cursor: pointer;
 		}
 
+		/************************************************************************/
+		#scannerBox {
+			position: relative;
+			width: 20rem;
+			height: 20rem;
+			margin: 1rem 0;
+		}
+		#scannerBox .scannerDots {
+			position: absolute;
+			top: 20%;
+			left: 20%;
+			width: 60%;
+			height: 60%;
+			border: 2px dashed var(--primary);
+			border-radius: 0.75rem;
+		}
+		#cameraFrame {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+		#scanning {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			background-color: rgba(0, 0, 0, 0.5);
+			color: white;
+			padding: 0.5rem 1rem;
+			border-radius: 1rem;
+			display: none;
+			font-size: 0.85rem;
+			opacity: 0.5;
+			font-family: monospace;
+		}
+
 		@media only screen and (max-width: 48rem) {
 			#tracking-dashboard .container-tracking {
     			flex-direction: column;
@@ -760,7 +908,11 @@
 				border-bottom: .1rem solid var(--white);
     			border-top: .1rem solid var(--white);
 			}
-
+			#scannerBox {
+				width: initial;
+				aspect-ratio: 1 / 1;
+        		height: initial;
+			}
 		}
 	</style>
 </div>

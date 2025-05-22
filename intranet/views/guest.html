@@ -1,12 +1,20 @@
 <div x-data="guest_data" class="fixed" id="guest">
-
     <div class="modal glass">
+        <div x-show="step > 0 && step <9" class="hover-opacity modal-back" @click="step--;">
+            <img alt="close" src="/static/images/back.svg" width="20" height="20">
+        </div>
+
+        <div x-show="step > 0 && step <9" class="hover-opacity modal-home" @click="resetOrder()">
+            <img alt="close" src="/static/images/icons/home2.svg" width="20" height="20">
+        </div>
+
         <div x-show="step == 0" class="content">
             <div class="top">
-                <img alt="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
+                <img alt="user" :src="bot_image" width="80" height="80">
                 <h1>¡Hola! Vamos a empezar</h1>
                 <p>Solo necesito tu DNI o RUC para comenzar.</p>
             </div>
+
             <div class="bottom">
                 <input type="text"
                     x-model="service_order.document"
@@ -21,14 +29,12 @@
 
 
         <div x-show="step == 1" class="content">
-            <div class="hover-opacity modal-back" @click="resetOrder(); step--;">
-				<img alt="close" src="/static/images/back.svg" width="20" height="20">
-			</div>
             <div class="top">
-                <img alt="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
+                <img alt="user" :src="bot_image" width="80" height="80">
                 <h1>¿Está bien el nombre?</h1>
                 <p>Encontré el siguiente nombre, si todo está bien, ¡continuemos!</p>
             </div>
+
             <div class="bottom">
                 <h2 x-text="service_order.name"></h2>
                 <button class="button hover-opacity" @click="step++">Sí, está bien</button>
@@ -37,14 +43,12 @@
 
 
         <div x-show="step == 2" class="content">
-            <div class="hover-opacity modal-back" @click="step--">
-				<img alt="close" src="/static/images/back.svg" width="20" height="20">
-			</div>
             <div class="top">
-                <img alt="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
+                <img alt="user" :src="bot_image" width="80" height="80">
                 <h1 x-text="!service_order.phone ? '¿Cuál es tu número de celular?' : '¿Tu número de celular es éste?'"></h1>
                 <p x-text="!service_order.phone ? 'Por favor, ingresa tu número de celular para mantenernos en contacto.' : 'Hallé este número, si deseas puedes actualizarlo.'"></p>
             </div>
+
             <div class="bottom">
                 <input type="text"
                     x-model="service_order.phone"
@@ -57,16 +61,13 @@
             </div>
         </div>
 
-
         <div x-show="step == 3" class="content">
-            <div class="hover-opacity modal-back" @click="step--">
-				<img alt="close" src="/static/images/back.svg" width="20" height="20">
-			</div>
             <div class="top">
-                <img alt="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
+                <img alt="user" :src="bot_image" width="80" height="80">
                 <h1>¿Qué equipo estás registrando?</h1>
                 <p>Selecciona el equipo y marca si es una compra interna.</p>
             </div>
+
             <div class="bottom">
                 <input type="text"
                     x-model="service_order.machine"
@@ -85,8 +86,6 @@
                                 machines = [];
                             ">
                             </span>
-                            
-                        
                         </template>
                     </div>
                 <button class="button hover-opacity" @click="validateMachine()" :class="buttons.machine.class" x-text="buttons.machine.text"></button>
@@ -95,14 +94,12 @@
 
 
         <div x-show="step == 4" class="content">
-            <div class="hover-opacity modal-back" @click="step--">
-				<img alt="close" src="/static/images/back.svg" width="20" height="20">
-			</div>
             <div class="top">
-                <img alt="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
+                <img alt="user" :src="bot_image" width="80" height="80">
                 <h1>¿Qué problema estás reportando?</h1>
                 <p>Cuéntanos brevemente el problema que estás teniendo con el equipo.</p>
             </div>
+
             <div class="bottom">
                 <textarea class="textarea"
                     x-model="service_order.notes"
@@ -110,22 +107,20 @@
                 <button class="button hover-opacity" @click="validateText()" :class="buttons.notes.class" x-text="buttons.notes.text"></button>
             </div>
         </div>
-        
+
 
         <div x-show="step == 5" class="content">
-            <div class="hover-opacity modal-back" @click="step--">
-				<img alt="close" src="/static/images/back.svg" width="20" height="20">
-			</div>
             <div class="top">
-                <img alt="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
+                <img alt="user" :src="bot_image" width="80" height="80">
                 <h1>¿Qué accesorios incluyes?</h1>
                 <p>Selecciona los accesorios que estás entregando junto al equipo.</p>
             </div>
+
             <div class="bottom">
                 <div class="checkbox-group">
                     <template x-for="item in ['Cable de poder', 'Memorias', 'Herramientas', 'Filamento']" :key="item">
                         <label class="pretty-checkbox">
-                            <input type="checkbox" :value="item" x-model="service_order.accessories">
+                            <input type="checkbox" :value="item" x-model="accessories">
                             <span class="checkmark"></span>
                             <span x-text="item"></span>
                         </label>
@@ -136,11 +131,10 @@
                     <input type="text"
                     class="input"
                     placeholder="Otros accesorios (opcional)"
-                    x-model="service_order.other_accessories"
+                    x-model="other_accessories"
                     @input="updateAccessories()"
                 >
                 </label>
-                
         
                 <button class="button hover-opacity" @click="validateAccessories()" :class="buttons.accessories.class" x-text="buttons.accessories.text"></button>
             </div>
@@ -148,48 +142,44 @@
 
 
         <div x-show="step == 6" class="content">
-            <div class="hover-opacity modal-back" @click="step--">
-				<img alt="close" src="/static/images/back.svg" width="20" height="20">
-			</div>
             <div class="top">
-                <img alt="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
+                <img alt="user" :src="bot_image" width="80" height="80">
                 <h1>¿Todo está correcto?</h1>
                 <p>Aquí tienes un resumen de lo que ingresaste.</p>
             </div>
+
             <div class="bottom">
                 <div class="card review">
                     <img alt="machine" :src="'/static/images/machines/' + service_order.machine_image" width="64" height="64">
                     <div class="text">
                         <span class="machine" x-text="service_order.machine"></span>
                         <span class="name" x-text="service_order.name"></span>
-                        <span x-text="service_order.phone.replace(/(.{3})/g, '$1 ').trim()"></span>
+                        <span x-text="service_order.phone?.replace(/(.{3})/g, '$1 ').trim()"></span>
                     </div>
                 </div>
-                <p class="review-notes" x-text="service_order.notes"></p>
-                <template x-if="service_order.accessories?.length">
-                    <div class="review-accessories">
-                        <h3>Accesorios incluidos:</h3>
-                        <ul>
-                            <template x-for="item in service_order.accessories" :key="item">
-                                <li x-text="item"></li>
-                            </template>
-                        </ul>
+
+                <template x-if="accessories?.length">
+                    <div class="review-accessories white">
+                        <template x-for="item in accessories" :key="item">
+                            <span x-text="item"></span>
+                        </template>
                     </div>
                 </template>
+
+                <p class="review-notes glass2" x-text="service_order.notes"></p>
+
                 <button class="button hover-opacity" @click="step++"> Continuar</button>
             </div>
         </div>
 
 
         <div x-show="step == 7" class="content">
-            <div class="hover-opacity modal-back" @click="step--">
-				<img alt="close" src="/static/images/back.svg" width="20" height="20">
-			</div>
             <div class="top">
-                <img alt="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
+                <img alt="user" :src="bot_image" width="80" height="80">
                 <h1>¿Estás de acuerdo con los términos?</h1>
                 <p>Para continuar, necesitamos que aceptes nuestros términos y condiciones.</p>
             </div>
+
             <div class="bottom">
                 <div class="card page" x-ref="terms">
                     <h1 style="text-align: center;"><strong>Políticas de Garantía y Soporte Técnico</strong></h1>
@@ -256,25 +246,29 @@
                     <p><strong>Recomendaciones</strong></p>
                     <p>Krear3D recomienda revisar los manuales de usuario, tutoriales, guía de inicio y las instrucciones provistas con el producto debido a que son dispositivos electrónicos sofisticados. Asimismo, debido a la alta precisión mecánica y piezas electrónicas se recomienda realizar el mantenimiento preventivo cada 3 meses a efectos de estar coberturados por la garantía.</p>
                 </div>
-                <button class="button hover-opacity" @click="step=7">Acepto los términos y condiciones</button>
+                <button
+                    class="button hover-opacity"
+                    :disabled="!termsScrolledToBottom"
+                    :class="!termsScrolledToBottom ? 'opacity-50 cursor-not-allowed' : ''"
+                    @click="step=8"
+                >
+                    Acepto los términos y condiciones
+                </button>
             </div>
         </div>
 
 
         <div x-show="step == 8" class="content">
-            <div class="hover-opacity modal-back" @click="step--">
-				<img alt="close" src="/static/images/back.svg" width="20" height="20">
-			</div>
             <div class="top">
-                <img alt="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
+                <img alt="user" :src="bot_image" width="80" height="80">
                 <h1>Por último, dibuja tu firma</h1>
                 <p>Utiliza el recuadro blanco para firmar.</p>
             </div>
+
             <div class="bottom">
-                <canvas x-ref="canvas"></canvas>
-                
+                <canvas class="white" x-ref="canvas"></canvas>
                 <div class="buttons">
-                    <button @click="clear" class="button hover-opacity gray">Limpiar</button>
+                    <button @click="clear" class="button hover-opacity black">Limpiar</button>
                     <button class="button hover-opacity" @click="newOrder()" :class="buttons.new.class" x-text="buttons.new.text"></button>
                 </div>
             </div>
@@ -283,12 +277,12 @@
 
         <div x-show="step == 9" class="content">
             <div class="top">
-                <img alt="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
+                <img alt="user" :src="bot_image" width="80" height="80">
                 <h1>¡Gracias! He registrado tu orden</h1>
                 <p>Te he enviado un mensaje con los datos que ingresaste.</p>
             </div>
             <div class="bottom">
-                <button class="button hover-opacity" @click="step = 0"> Ir al inicio</button>
+                <button class="button hover-opacity" @click="resetOrder()"> Ir al inicio</button>
             </div>
         </div>
     </div>
@@ -310,19 +304,9 @@
         let signaturePad;
 
         Alpine.data('guest_data',() => ({
+            bot_image: '/static/images/uploads/users/00000000.jpg',
             step: 0,
-            service_order: {
-                document: '',
-                id: null,
-                name: '',
-                phone: '',
-                notes: '',
-                machine: null,
-                machine_id: null,
-                machine_image: null,
-                accessories: [],
-                other_accessories: '',
-            },
+            service_order: {},
             machines: [],
             buttons: {
                 find: { class: '', text: 'Siguiente' },
@@ -331,6 +315,17 @@
                 notes: { class: '', text: 'Siguiente' },
                 new: { class: '', text: 'Completar' },
                 accessories: { class: '', text: 'Siguiente' },
+            },
+            accessories: [],
+            other_accessories: '',
+            termsScrolledToBottom: false,
+
+            initScrollWatcher() {
+                const el = this.$refs.terms;
+                el.addEventListener('scroll', () => {
+                    const bottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+                    this.termsScrolledToBottom = bottom;
+                });
             },
 
             init() {
@@ -359,6 +354,7 @@
                 });
 
                 resizeCanvas(); 
+                this.initScrollWatcher();
             },
 
             clear() {
@@ -366,30 +362,26 @@
             },
             
             resetOrder() {
-                this.service_order = {
-                    document: '',
-                    id: null,
-                    name: '',
-                    phone: '',
-                    notes: '',
-                    machine: null,
-                    machine_id: null,
-                    machine_image: null,
-                };
+                this.service_order = {};
+                this.accessories = [];
+                this.other_accessories = '';
+                this.step = 0;
+                this.$refs.terms.scrollTop = 0;
+
             },
 
             updateAccessories() {
-                const others = this.service_order.other_accessories?.trim();
-                this.service_order.accessories = this.service_order.accessories.filter(item =>
+                const others = this.other_accessories?.trim();
+                this.accessories = this.accessories.filter(item =>
                     !item.startsWith('Otro:')
                 );
                 if (others) {
-                    this.service_order.accessories.push(`Otro: ${others}`);
+                    this.accessories.push(`Otro: ${others}`);
                 }
             },
 
             validateAccessories() {
-                if (this.service_order.accessories.length === 0) {
+                if (this.accessories.length === 0) {
                     this.showError('accessories', 'Selecciona al menos uno');
                     return;
                 }
@@ -398,6 +390,10 @@
 
             validatePhone() {
                 const phone = this.service_order.phone;
+                if (!phone){
+                    this.showError('phone', 'Ingresa un número válido');
+                    return;
+                }
                 if (phone.length < 9) {
                     this.showError('phone', 'Ingresa un número válido');
                     return;
@@ -414,6 +410,10 @@
             },
 
             validateText() {
+                if (!this.service_order.notes) {
+                    this.showError('notes', 'Describe el problema');
+                    return;
+                }
                 if (this.service_order.notes.trim() == '') {
                     this.showError('notes', 'Describe el problema');
                     return;
@@ -423,14 +423,14 @@
 
             async findName() {
                 const document = this.service_order.document;
+                if (document.trim() == '') {
+                    this.showError('find', 'Ingresa el documento');
+                    return;
+                }
+                
+                NProgress.start();
 
                 try {
-                    NProgress.start();
-                    if (document.trim() == '') {
-                        this.showError('find', 'Ingresa el documento');
-                        return;
-                    }
-                    
                     const response = await fetch(Alpine.store('cache').api + `/client/data/${document}`, {
                         method: 'GET',
                         headers: { 'Content-Type': 'application/json' },
@@ -455,26 +455,28 @@
 
             async newOrder() {
                 if (signaturePad.isEmpty()) {
-                    this.showError('new', 'Debe firmar.');
+                    this.showError('new', 'Ingresa tu firma');
                     return;
                 }
-                NProgress.start();
-                
 
-                const payload = { 
-                    machine_id: this.service_order.machine_id,
-                    admin_id: Alpine.store('cache').user.id,
+                NProgress.start();
+                const payload = {
+                    accessories: this.accessories,
+                    user_id: 21,
+                    machine_id: this.service_order.machine_id || null,
+                    method_id: 3,
                     notes: this.service_order.notes,
+                    origin_id: 1,
                     client_id: this.service_order.id,
                     client: {
-                        document: this.service_order.document,
-                        name: this.service_order.name,
-                        phone: this.service_order.phone,
-                    },
+						document: this.service_order.document,
+						name: this.service_order.name,
+						phone: this.service_order.phone,
+					},
                 }
 
                 try {
-                    const response = await fetch(Alpine.store('cache').api + '/support/order/new', {
+                    const response = await fetch(Alpine.store('cache').api + '/support/process', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload),
@@ -483,9 +485,7 @@
                     const jsonData = await response.json();
                     if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
                     
-                    this.$refs.terms.scrollTop = 0;
                     this.step++;
-                    this.resetOrder();
 
                 } catch (error) {
                     this.showError('new', error.message);
@@ -640,9 +640,8 @@
         }
         #guest .content .bottom .review-notes {
             font-size: 1rem;
-            border: 2px dashed var(--graydarkest);
             padding: 1rem;
-            border-radius: 1rem;
+            border-radius: 0.75rem;
             margin: 0;
             text-align: left;
         }
@@ -677,9 +676,6 @@
             width: 100%;
         }
         #guest .content .bottom canvas {
-            background-color: white;
-            box-shadow: 0 0 1rem hsl(0deg 0% 0% / 2.5%);
-            border-radius: 0.75rem;
             cursor: crosshair;
             height: 12rem;
             width: 100%;
@@ -728,31 +724,26 @@
             transform: rotate(45deg);
         }   
         #guest .review-accessories {
-            background: #f9f9f9;
             padding: 1rem;
-            margin-top: 1rem;
-            border-radius: 0.75rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-direction: column;
         }
-        #guest .review-accessories h3 {
-            margin-bottom: 0.5rem;
-            font-size: 1.1rem;
-            font-weight: bold;
-        }
-        #guest .review-accessories ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        #guest .review-accessories li {
-            margin-bottom: 0.25rem;
-            padding-left: 1rem;
+        #guest .review-accessories span {
+            font-size: 1rem;
+            text-align: left;
+            padding-left: 1.125rem;
             position: relative;
         }
-        #guest .review-accessories li::before {
-            content: "•";
+        #guest .review-accessories span::before {
+            content: "";
             position: absolute;
+            width: 0.5rem;
+            height: 0.5rem;
+            background-color: var(--primary);
             left: 0;
-            color: #666;
+            top: 6px;
+            border-radius: 0.125rem;
         }
         /****************************************************	100rem	1600px	 ***************************************************/ 
         @media only screen and (max-width: 100rem) {

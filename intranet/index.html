@@ -17,21 +17,22 @@
     <link rel="icon" href="/static/images/favw.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
+    
+    <script src="/static/js/zxing-browser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pinecone-router@6.2.1/dist/router.min.js" ></script>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.5/dist/signature_pad.umd.min.js"></script>
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+    <!--<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>-->
     
     <!--<link rel="stylesheet" href="static/css/style.css?v=0.1.0.7215">-->
-    <link rel="stylesheet" href="/static/css/new.css?v=0.2.5.8">
+    <link rel="stylesheet" href="/static/css/new.css?v=0.2.6.4">
 </head>
 
 <body class="container" x-data="data" :class="{'modal-open': $store.cache.hasActiveModals()}">
-    <script src="/static/js/main.js?v=0.2.5.8"></script>
+    <script src="/static/js/main.js?v=0.2.6.4"></script>
 
     <template x-route="/" x-handler="loginVerify" x-template.preload.target.content="/views/login.html"></template>
     <template x-route="/home" x-handler="loginVerify" x-template.preload.target.content="/views/home.html"></template>

@@ -137,6 +137,14 @@ body.modal-open {
     padding: 0.75rem;
     display: flex;
 }
+.modal .modal-home {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.5rem;
+    cursor: pointer;
+    padding: 0.75rem;
+    display: flex;
+}
 .modal .title {
     position: relative;
     font-weight: 500;
@@ -191,6 +199,13 @@ body.modal-open {
     padding: 0;
     width: 100%;
     outline: none;
+}
+.modal .button:disabled {
+    font-size: 1rem;
+    background-color: var(--graydarkest);
+    color: var(--black);
+    cursor: auto;
+    opacity: 1 !important;
 }
 .modal .button.black {
     background-color: var(--secondary);
@@ -492,6 +507,8 @@ body.modal-open {
         flex-direction: row;
         margin-right: auto;
         padding: 0.5rem 0.75rem;
+        min-width: 11rem;
+        overflow: auto;
     }
     #sidebar .config {
         flex-direction: row;
@@ -511,6 +528,10 @@ body.modal-open {
     }
     .modal {
         width: calc(100% - 2rem);
+        min-width: initial;
+    }
+    .modal .fields {
+        flex-direction: column;
     }
 }
 /****************************************************	36rem	576px	 ***************************************************/ 

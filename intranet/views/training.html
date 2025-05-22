@@ -1,55 +1,58 @@
 <div x-data="training_data">
-	<div id="training-calendar">
-		<div class="header">
-			<div class="titles">
-				<span class="range">Panel de Capacitaciones</span>
+	<div id="training">
+		<div class="main glass">
+
+			<div class="header">
+				<div class="titles">
+					<span class="range">Panel de Capacitaciones</span>
+				</div>
+
+				<div class="title hover-opacity" @click="serviceModal()">+ Añadir orden</div>
 			</div>
 
-			<div class="title hover-opacity" @click="serviceModal()">+ Añadir orden</div>
-		</div>
+			<div class="board white">
+				<div class="calendar">
+					<li class="day">dom</li>
+					<li class="day">lun</li>
+					<li class="day">mar</li>
+					<li class="day">mié</li>
+					<li class="day">jue</li>
+					<li class="day">vie</li>
+					<li class="day">sáb</li>
+				</div>
 
-		<div class="board">
-			<div class="calendar">
-				<li class="day">dom</li>
-				<li class="day">lun</li>
-				<li class="day">mar</li>
-				<li class="day">mié</li>
-				<li class="day">jue</li>
-				<li class="day">vie</li>
-				<li class="day">sáb</li>
-			</div>
-
-			<div class="calendar">
-				<template x-for="empty_day in calendar_data.empty_days" :key="empty_day">
-					<div class="day">
-						<div class="item"></div>
-					</div>
-				</template>
-
-				<template x-for="date in calendar_data.calendar" :key="date.day">
-					<div class="day">
-						<span x-text="date.day"></span>
-						<div class="item">
-							<template x-for="item in date.trainings" :key="item.id">
-								<div class="box">
-									<div class="row">
-										<span class="order-number" x-text="item.training_start"></span>
-										<div class="passed-days">
-										</div>
-									</div>
-
-									<div class="row">
-										<div>
-											<span class="machine" x-text="item.machine_model"></span>
-											<span class="admin-name" x-text="item.technician_name"></span>
-										</div>
-										<img width="48" height="48" :src="'/static/images/machines/'+item.machine_image" alt="">
-									</div>
-								</div>
-							</template>
+				<div class="calendar">
+					<template x-for="empty_day in calendar_data.empty_days" :key="empty_day">
+						<div class="day">
+							<div class="item"></div>
 						</div>
-					</div>
-				</template>
+					</template>
+
+					<template x-for="date in calendar_data.calendar" :key="date.day">
+						<div class="day">
+							<span x-text="date.day"></span>
+							<div class="item">
+								<template x-for="item in date.trainings" :key="item.id">
+									<div class="box">
+										<div class="row">
+											<span class="order-number" x-text="item.training_start"></span>
+											<div class="passed-days">
+											</div>
+										</div>
+
+										<div class="row">
+											<div>
+												<span class="machine" x-text="item.machine_model"></span>
+												<span class="admin-name" x-text="item.technician_name"></span>
+											</div>
+											<img width="48" height="48" :src="'/static/images/machines/'+item.machine_image" alt="">
+										</div>
+									</div>
+								</template>
+							</div>
+						</div>
+					</template>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -94,35 +97,40 @@
 
 
 	<style>
-		#training-calendar {
-			width: 100%;
+		#training {
 			user-select: none;
 			padding: 1rem;
-			min-height: calc(100vh - 6.5rem);
 			display: flex;
-			flex-direction: column;
 			gap: 1rem;
 			margin: 0 auto;
 			max-width: 118rem;
+			flex-direction: column;
 		}
-		#training-calendar .header {
+		#training .main {
+			padding: 1.5rem;
+			display: flex;
+			min-height: calc(100vh - 2rem);
+			flex-direction: column;
+			gap: 1rem;
+		}
+		#training .header {
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
 		}
-		#training-calendar .header .title {
+		#training .header .title {
 			background-color: var(--black);
 			color: var(--white);
 			padding: 0.75rem 1.5rem;
 			border-radius: 2rem;
 			font-weight: 300;
 		}
-		#training-calendar .header .title img {
+		#training .header .title img {
 			padding: 0.5rem;
 			border-radius: 0.5rem;
 			border: 2px solid #eee;
 		}
-		#training-calendar .header .range {
+		#training .header .range {
 			font-size: 1rem;
 			font-weight: 600;
 			text-transform: capitalize;
@@ -131,16 +139,13 @@
 			gap: 0.5rem;
 			position: relative;
 		}
-		#training-calendar .board {
+		#training .board {
 			display: flex;
 			height: 100%;
 			user-select: none;
-			background-color: #ffffff4a;
-			border: 2px solid #ffffff52;
-			border-radius: 1.5rem;
 			flex-direction: column;
 		}
-		#training-calendar .group {
+		#training .group {
 			flex: 1;
 			display: flex;
 			flex-direction: column;
@@ -148,7 +153,7 @@
 			gap: 0.25rem;
 			transition: var(--transition);
 		}
-		#training-calendar .calendar {
+		#training .calendar {
 			padding: 0;
 			margin: 0;
 			list-style: none;
@@ -157,7 +162,7 @@
 			font-size: 1rem;
 			width: 100%;
 		}
-		#training-calendar .calendar .day {
+		#training .calendar .day {
 			width: 14.25%;
 			padding: 0.5rem;
 			display: flex;
@@ -171,7 +176,7 @@
 			gap: 0.5rem;
 
 		}
-		#training-calendar .calendar .item {
+		#training .calendar .item {
 			display: flex;
 			min-height: 8rem;
 			align-items: center;
@@ -181,7 +186,7 @@
 			width: 100%;
 			height: 100%;
 		}
-		#training-calendar .calendar .box {
+		#training .calendar .box {
 			border-radius: 0.75rem;
 			cursor: pointer;
 			padding: 0.75rem;
@@ -195,39 +200,39 @@
 			box-shadow: 0 0 1rem hsl(0deg 0% 0% / 2.5%);
 			width: 100%;
 		}
-		#training-calendar .calendar .box .row {
+		#training .calendar .box .row {
 			display: flex;
 			justify-content: space-between;
 			width: 100%;
 			align-items: center;
 		}
-		#training-calendar .calendar .box .order-number {
+		#training .calendar .box .order-number {
 			font-size: 1rem;
 			font-weight: 600;
 			line-height: 1rem;
 		}
-		#training-calendar .calendar .box .passed-days {
+		#training .calendar .box .passed-days {
 			display: flex;
 			gap: 0.5rem;
 		}
-		#training-calendar .calendar .box .register-day {
+		#training .calendar .box .register-day {
 			font-size: 1rem;
 			font-weight: 700;
 		}
-		#training-calendar .calendar .box .admin-name {
+		#training .calendar .box .admin-name {
 			font-size: 0.75rem;
 			opacity: 0.75;
 			display: block;
 			line-height: 0.8rem;
 			margin-top: 0.5rem;
 		}
-		#training-calendar .calendar .box .machine {
+		#training .calendar .box .machine {
 			font-weight: 600;
 			font-size: 0.75rem;
 			line-height: 1rem;
 			display: block;
 		}
-		#training-calendar .calendar .box img {
+		#training .calendar .box img {
 			mix-blend-mode: darken;
 			position: absolute;
 			bottom: 0.5rem;
@@ -235,7 +240,7 @@
 			width: 2rem;
 			pointer-events: none;
 		}
-		#training-calendar .group .name {
+		#training .group .name {
 			display: flex;
 			justify-content: center;
 			font-size: 0.9rem;
@@ -243,7 +248,7 @@
 			gap: 0.5rem;
 			align-items: center;
 		}
-		#training-calendar ul {
+		#training ul {
 			margin: 0;
 			list-style: none;
 			display: flex;
@@ -252,17 +257,17 @@
 			padding: 0.75rem;
 			flex: 1;
 		}
-		#training-calendar ul li .buttons {
+		#training ul li .buttons {
 			display: flex;
 			gap: 0.5rem;
 		}
-		#training-calendar ul li.low .register-day {
+		#training ul li.low .register-day {
 			color: #6fcc85;
 		}
-		#training-calendar ul li.mid .register-day {
+		#training ul li.mid .register-day {
 			color: #ff9600;
 		}
-		#training-calendar ul li.high .register-day {
+		#training ul li.high .register-day {
 			color: #f96161;
 		}
 		/***********************************************************************************/

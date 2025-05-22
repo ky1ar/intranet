@@ -10,13 +10,6 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('data',() => ({
         init() {
             console.log('Inicializando Alpine...');
-            const APP_VERSION = '0.2.5.8';
-
-            if (localStorage.getItem('app_version') !== APP_VERSION) {
-                localStorage.clear();
-                localStorage.setItem('app_version', APP_VERSION);
-                window.location.reload();
-            }
         },
     }));
 
@@ -237,7 +230,19 @@ async function loginVerify(context) {
             await Alpine.store('cache').logout();
             return false;
         }
+
+        const result = await response.json();
+        const serverVersion = result.app_version;
+        const localVersion = localStorage.getItem('app_version');
+
+        if (localVersion !== serverVersion) {
+            localStorage.setItem('app_version', serverVersion);
+            window.location.reload();
+            return;
+        } 
+
         console.log('Usuario logeado');
+        
         if (storedData && !Alpine.store('cache').user.token) {
             const userData = JSON.parse(storedData);
             Alpine.store('cache').setUser(userData);

@@ -5,6 +5,7 @@ from application.handlers import handle_exceptions
 from application.repository.tracking_repository import TrackingRepository
 from application.repository.user_repository import UserRepository
 from application.repository.client_repository import ClientRepository
+from application.services.clients_service import ClientsService
 from application.repository.logistic_repository import LogisticRepository
 from application.models import ShippingStatusList
 from application.proxy.shalom import Shalom
@@ -18,6 +19,7 @@ class TrackingService:
     def __init__(self):
         self.user_repository = UserRepository()
         self.client_repository = ClientRepository()
+        self.clients_service = ClientsService()
         self.tracking_repository = TrackingRepository()
         self.logistic_repository = LogisticRepository()
         self.shalom = Shalom()
@@ -292,4 +294,22 @@ class TrackingService:
             'status_history': history_data
         }
         return result, 200
+    
+
+    @handle_exceptions
+    def get_qr_data(self, ose_id):
+        tracking_data, tracking_status = self.shalom.tracking_ose_id(ose_id)
+        if tracking_status != 200:
+            return tracking_data, tracking_status
+        
+        client_data, tracking_status = self.clients_service.get_data(tracking_data.get("client_document"))
+        if tracking_status == 200:
+            tracking_data.update({
+                "client_name": client_data.get("name"),
+                "client_email": client_data.get("email"),
+                "client_id": client_data.get("id"),
+                "client_phone": client_data.get("phone"),
+            })
+
+        return tracking_data, 200
     

@@ -23,3 +23,8 @@ def all_list():
 @tracking_bp.route("/order", methods=["POST"])
 def get_order():
     return controller.tracking_get_order(request.get_json())
+
+
+@tracking_bp.route("/qr_data", methods=["POST"])
+def get_qr_data():
+    return controller.tracking_get_qr_data(request.get_json())

@@ -49,6 +49,8 @@ class SupportService:
         if service_order_status != 200:
             return service_order, service_order_status
         
+        register_days = self.calculate_passed_days(service_order.register_at)
+
         order_data = {
             "order_number": f"00{service_order.order_number}",
             "technician_name": service_order.technician.name.title(),
@@ -59,7 +61,7 @@ class SupportService:
             "status_id": service_order.status_id,
             "origin_name": service_order.origin.name,
             "method_name": service_order.method.name,
-            "passed_days": f"{self.calculate_passed_days(service_order.register_at)} días"
+            "passed_days": f"{register_days} " + ("días" if register_days > 1 else "día")
         }
         return order_data, 200
     
@@ -138,6 +140,8 @@ class SupportService:
         if service_order_status != 200:
             return service_order, service_order_status
         
+        register_days = self.calculate_passed_days(service_order.register_at)
+        
         order_data = {
             "order_number": service_order.order_number,
             "technician_id": service_order.technician_id,
@@ -154,8 +158,9 @@ class SupportService:
             "method_name": service_order.method.name if service_order.method else None,
             "method_id": service_order.method_id,
             "paid": service_order.paid,
+            "priority": self.get_priority(service_order.status_id, register_days),
             #"status_text": f"Estado actual de la orden: {service_order.status.name}",
-            "passed_days": f"{self.calculate_passed_days(service_order.register_at)} días"
+            "passed_days": f"{register_days} " + ("días" if register_days > 1 else "día")
         }
 
         history, history_status = self.support_repository.get_service_order_history(service_order.id) 
@@ -264,7 +269,7 @@ class SupportService:
 
         if not machine_id:
             return "Selecciona un equipo", 400
-        if not notes:
+        if is_from_bot and not notes:
             return "Describe el problema", 400
         if not is_from_bot:
             if not register_at:

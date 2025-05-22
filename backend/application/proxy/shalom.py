@@ -41,6 +41,30 @@ class Shalom:
         return result, 200
 
 
+    def tracking_ose_id(self, ose_id):
+        payload = {
+            "ose_id": ose_id
+        }
+        response = requests.post(self.tracking_url, data=payload)
+        if response.status_code != 200:
+            return "Error al consultar Shalom API", 502
+
+        shalom_response = response.json()
+        logging.info(shalom_response.get("data"))
+
+        if shalom_response.get('success') == False:
+            return "Códigos de tracking incorrectos", 404
+        
+        data = shalom_response.get("data")
+        result = {
+            "client_document": data.get("destinatario", {}).get("documento"),
+            "numero_orden": data.get("numero_orden"),
+            "codigo_orden": data.get("codigo_orden"),
+            "agency": "1",
+        }
+        return result, 200
+    
+
     def tracking_status(self, external_id):
         payload = {
             'ose_id': external_id
