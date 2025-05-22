@@ -533,6 +533,9 @@ body.modal-open {
     .modal .fields {
         flex-direction: column;
     }
+    .hover-opacity:hover {
+        opacity: 1;
+    }
 }
 /****************************************************	36rem	576px	 ***************************************************/ 
 @media only screen and (max-width: 36rem) {

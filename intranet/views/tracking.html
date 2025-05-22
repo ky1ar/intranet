@@ -274,7 +274,7 @@
 				<img alt="close" src="/static/images/x.svg" width="12" height="12">
 			</div>
 
-			<div class="white" id="scannerBox">
+			<div id="scannerBox">
 				<video id="cameraFrame"></video>
 				<div class="scannerDots"></div>
 			</div>
@@ -358,10 +358,10 @@
 								const jsonData = await response.json();
 								if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
 								const data = jsonData.data;
-								
+
 								this.agency = data.agency;
-								this.code1 = data.codigo_orden;
-								this.code2 = data.numero_orden;
+								this.code1 = data.numero_orden;
+								this.code2 = data.codigo_orden;
 
 								this.document = data.client_document;
 								this.client_id = data.client_id;
@@ -766,6 +766,18 @@
 		}
 		#modal-qr .modal {
 			align-items: center;
+			padding: 0;
+			overflow: hidden;
+			border: none;
+		}
+		#modal-qr .modal .modal-close {
+			background-color: #ffffff;
+			padding: 1rem;
+			top: 0px;
+			right: 0px;
+			border-radius: 0 1rem;
+			align-items: center;
+			z-index: 1;
 		}
 		#registerTrackings .header {
 			display: flex;
@@ -867,7 +879,6 @@
 			position: relative;
 			width: 20rem;
 			height: 20rem;
-			margin: 1rem 0;
 		}
 		#scannerBox .scannerDots {
 			position: absolute;
