@@ -206,6 +206,24 @@ class TrackingService:
         if tracking_list_status != 200:
             return tracking_list, tracking_list_status
         
+        agency_clients = {
+            1: self.shalom,
+            2: self.olva,
+            3: self.marvisur
+        }
+            
+        for track in tracking_list:
+            tracking_client = agency_clients.get(track.agency_id)
+            if track.status_id < 3:
+                tracking_data, tracking_status = tracking_client.tracking(track.code1, track.code2)
+                if tracking_status == 200:
+                    self.tracking_repository.update_tracking_order(track.id, tracking_data)
+                    self.tracking_repository.add_tracking_history(track.id, tracking_data.get("status_data"), track.status_id)
+
+        tracking_list, tracking_list_status = self.tracking_repository.get_all_list()
+        if tracking_list_status != 200:
+            return tracking_list, tracking_list_status
+        
         data = []
         for track in tracking_list:
             data.append({

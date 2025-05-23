@@ -108,20 +108,30 @@ class TrackingRepository:
 
 
     @handle_db_exceptions
-    def get_tracking_order_by_id(self, tracking_order_id):
-        tracking_order = (
-            g.db_session.query(TrackingOrders)
-            .filter(TrackingOrders.id == tracking_order_id)
-            .first()
-        )
-        if not tracking_order:
-            return 'Tracking Orden no localizada', 400
+    def update_tracking_order(self, tracking_id, tracking_data):
+        last_status_date = None
+        status_data = tracking_data.get("status_data")
+        last_status_id = tracking_data.get("last_status_id")
+        if last_status_id == 1:
+            last_status_date = status_data.get("agency_at")
+        elif last_status_id == 2:
+            last_status_date = status_data.get("onway_at")
+        elif last_status_id == 3:
+            last_status_date = status_data.get("delivered_at")
 
-        return tracking_order, 200
+        tracking = g.db_session.query(TrackingOrders).filter_by(id=tracking_id).first()
+        if not tracking:
+            return "Tracking no encontrado", 404
+
+        tracking.status_id = last_status_id
+        tracking.updated_at = last_status_date
+        
+        g.db_session.commit()
+        return True, 200
 
 
     @handle_db_exceptions
-    def add_tracking_history(self, tracking_order_id, status_data):
+    def add_tracking_history(self, tracking_order_id, status_data, status_id=None):
         status_mapping = {
             'agency_at': 1,
             'onway_at': 2,
@@ -130,6 +140,10 @@ class TrackingRepository:
             
         for key, timestamp in status_data.items():
             if not timestamp:
+                continue
+
+            mapped_status = status_mapping.get(key)
+            if mapped_status <= status_id:
                 continue
 
             g.db_session.add(TrackingOrderStatus(
