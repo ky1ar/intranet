@@ -16,8 +16,8 @@
 						@dragleave="onDragLeave($event)"
 						@drop="dropService(group.status_id)">
 						<div class="name">
-							<img width="20" height="20" :src="'/static/images/support/' + $store.cache.service_status[group.status_id].image" alt="">
-							<span x-text="$store.cache.service_status[group.status_id].name"></span>
+							<img width="20" height="20" :src="'/static/images/support/' + $store.cache.service_status?.[group.status_id].image" alt="">
+							<span x-text="$store.cache.service_status?.[group.status_id].name"></span>
 						</div>
 
 						<ul>
@@ -88,7 +88,7 @@
 				</label>
 			</div>
 
-			<button class="hover-opacity button" @click="updateStatus()">Actualizar</button>
+			<button class="hover-opacity button" @click="updateStatus()" x-text="selected_service?.status_id == 8 ? 'Finalizar orden':'Actualizar'"></button>
 
 			<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
 				<img alt="close" src="/static/images/x.svg" width="12" height="12">
@@ -108,6 +108,7 @@
 			<div class="top">
 				<span class="title" x-text="`Orden n° ${service_order?.order_number}`"></span>
 				<span class="days" :class="service_order?.priority" x-text="`${service_order?.passed_days}`"></span>
+				<div class="hover-opacity finish" @click="finish(service_order)" x-show="service_order?.status_id == 8">Finalizar</div>
 			</div>
 
 			<div class="client">
@@ -158,17 +159,17 @@
 			<div class="history">
 				<template x-for="history in service_order?.history" :key="history.status_id">
 					<div class="row">
-						<img width="20" height="20" :src="'/static/images/support/' + $store.cache.service_status[history.status_id].image" alt="">
+						<img width="20" height="20" :src="'/static/images/support/' + $store.cache.service_status?.[history.status_id].image" alt="">
 
 						<div class="left">
 							<div class="head">
-								<span class="name" x-text="$store.cache.service_status[history.status_id].name"></span>
+								<span class="name" x-text="$store.cache.service_status?.[history.status_id].name"></span>
 								<div class="right">
 									<!--<span class="admin" x-text="history.user_name"></span>-->
 									<span class="date" x-text="history.register_at"></span>
 								</div>
 							</div>
-							<span class="notes" x-text="history.notes"></span>
+							<span class="notes" x-html="history.notes.replace(/\n/g, '<br>')"></span>
 						</div>
 					</div>
 				</template>
@@ -506,6 +507,12 @@
 				Alpine.store('cache').showModal('status');
 			},
 			
+			finish(service) {
+				this.selected_service = service;
+				this.status_notes = '';
+				Alpine.store('cache').showModal('status');
+			},
+
 			async viewOrder(order_number) {
 				NProgress.start();
 				try {
@@ -582,6 +589,11 @@
 			
 					if (!response.ok) {
 						throw new Error('Error al asignar la orden.');
+					}
+					if (this.selected_service.status_id == 8) {
+						Alpine.store('cache').hideAllModals();
+					} else {
+						Alpine.store('cache').hideModal('status');
 					}
 
 					Alpine.store('cache').hideModal('status');
@@ -764,6 +776,9 @@
 			color: #f96161;
 		}
 		/***********************************************************************************/
+		#modal-status {
+			z-index: 30;
+		}
 		#modal-status .update {
 			display: flex;
 			justify-content: center;
@@ -944,10 +959,22 @@
 			background-color: #fee3e1;
 			border: 2px solid #ffceca;
 		}
+		#modal-view .top .finish {
+			margin-left: auto;
+			margin-right: 1rem;
+			padding: 0.25rem 1.25rem;
+			border: 2px solid var(--primary);
+			background-color: var(--primary);
+			color: var(--white);
+			border-radius: 1rem;
+		}
 		#modal-view .history {
 			display: flex;
 			flex-direction: column;
 			margin-bottom: -0.75rem;
+			overflow-y: auto;
+			margin-right: -1rem;
+			padding-right: 0.5rem;
 		}
 		#modal-view .history .row {
 			align-items: start;
@@ -1037,6 +1064,16 @@
 			}
 			#modal-view .modal {
 				min-width: initial;
+			}
+			#modal-view .top {
+				flex-wrap: wrap;
+			}
+			#modal-view .top .finish {
+				margin-top: -0.5rem;
+				margin-left: initial;
+				width: 100%;
+				text-align: center;
+				margin-right: 0px;
 			}
         }
 	</style>

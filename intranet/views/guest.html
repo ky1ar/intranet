@@ -388,6 +388,13 @@
                 this.step++;
             },
 
+            getAccessoriesText() {
+                if (!this.accessories.length) return '';
+
+                const lines = this.accessories.map(item => `- ${item}`);
+                return 'Accesorios:\n' + lines.join('\n');
+            },
+
             validatePhone() {
                 const phone = this.service_order.phone;
                 if (!phone){
@@ -423,7 +430,7 @@
 
             async findName() {
                 const document = this.service_order.document;
-                if (document.trim() == '') {
+                if (!document || document.trim() == '') {
                     this.showError('find', 'Ingresa el documento');
                     return;
                 }
@@ -459,13 +466,14 @@
                     return;
                 }
 
+                const signatureImage = signaturePad.toDataURL('image/png');
+
                 NProgress.start();
                 const payload = {
-                    accessories: this.accessories,
                     user_id: 21,
                     machine_id: this.service_order.machine_id || null,
                     method_id: 3,
-                    notes: this.service_order.notes,
+                    notes: this.service_order.notes + (this.accessories.length ? '\n' + this.getAccessoriesText() : ''),
                     origin_id: 1,
                     client_id: this.service_order.id,
                     client: {
@@ -473,6 +481,7 @@
 						name: this.service_order.name,
 						phone: this.service_order.phone,
 					},
+                    signature: signatureImage,
                 }
 
                 try {

@@ -6,7 +6,7 @@ from flask import g
 
 class GeneralRepository:
     @handle_db_exceptions
-    def get_service_status(self, full=None):
+    def get_service_status(self, full=False):
         query = g.db_session.query(ServiceStatus).order_by(ServiceStatus.id)
 
         if not full:

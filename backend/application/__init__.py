@@ -1,9 +1,8 @@
 import logging
-import eventlet
+from gevent import monkey
+monkey.patch_all()
+
 import redis
-
-eventlet.monkey_patch()
-
 from config import Config, Redis
 from flask import Flask, g, request
 from flask_socketio import SocketIO
@@ -14,6 +13,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy import text
 from flask_cors import CORS
 
+
 app = Flask(__name__)
 app.config.from_object(Config)
 
@@ -21,7 +21,7 @@ app.config.from_object(Config)
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
-socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins='*')
+socketio = SocketIO(app, async_mode='gevent', cors_allowed_origins='*')
 redis_client = redis.StrictRedis.from_url(Redis.URL, decode_responses=True)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
@@ -84,3 +84,8 @@ def teardown_request(exception=None):
     db_session = getattr(g, 'db_session', None)
     if db_session:
         db_session.remove()
+
+
+@socketio.on_error_default
+def default_error_handler(e):
+    logging.info(f"[SocketIO ERROR] {str(e)}")

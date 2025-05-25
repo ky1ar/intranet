@@ -16,7 +16,7 @@ class Config:
         "pool_timeout": 30,
     }
     API_HOST = os.getenv("API_HOST")
-    API_PORT = os.getenv("API_PORT")
+    API_PORT = int(os.getenv("API_PORT"))
 
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
     JWT_ACCESS_TOKEN_EXPIRES = False #int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES"))

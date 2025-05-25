@@ -1,5 +1,7 @@
 import logging
 import threading
+import base64
+import uuid
 from datetime import datetime, timezone, timedelta
 from application.handlers import handle_exceptions
 from application.repository.support_repository import SupportRepository
@@ -305,6 +307,18 @@ class SupportService:
         
         order_number = self.support_repository.get_next_order_number()
         leader = self.user_repository.get_support_leader()
+
+        signature_data = data.get('signature')
+        if signature_data:
+            header, encoded = signature_data.split(",", 1)
+            binary_data = base64.b64decode(encoded)
+            filename = f"signature_{uuid.uuid4().hex}.png"
+
+            with open(f"/shared_uploads/client_signatures/{filename}", "wb") as f:
+                f.write(binary_data)
+
+            data['signature'] = filename
+            logging.info(f"Firma guardada como: {filename}")
 
         service_order_id, service_order_status = self.support_repository.new_service_order(
             order_number,

@@ -177,7 +177,7 @@ class SupportRepository:
             origin_id=data.get("origin_id"),
             status_id=data.get("status_id"),
             register_at=data.get("register_at"),
-            comments="",
+            comments=data.get("signature", ""),
         )
 
         g.db_session.add(new_service_order)

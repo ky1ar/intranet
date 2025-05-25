@@ -11,7 +11,7 @@ class GeneralService:
 
     @handle_exceptions
     def service_status(self):
-        service_status, service_order_status = self.repository.get_service_status() 
+        service_status, service_order_status = self.repository.get_service_status(True) 
         if service_order_status != 200:
             return service_status, service_order_status
         
