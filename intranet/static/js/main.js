@@ -22,7 +22,7 @@ document.addEventListener('alpine:init', () => {
             { name: 'board', label: 'Actividades', image: 'board', title: 'Krear 3D - Actividades' },
             { name: 'logistics', label: 'Envíos', image: 'logistics', title: 'Krear 3D - Envíos' },
             { name: 'tracking', label: 'Tracking', image: 'tracking', title: 'Krear 3D - Trackings' },
-            //{ name: 'support', label: 'Soporte', image: 'support', title: 'Krear 3D - Soporte' },
+            { name: 'support', label: 'Soporte', image: 'support', title: 'Krear 3D - Soporte' },
             //{ name: 'training', label: 'Capacitaciones', image: 'training', title: 'Krear 3D - Capacitaciones' },
             //{ name: 'clients', label: 'Clientes', image: 'clients', title: 'Krear 3D - Clientes' },
         ],
