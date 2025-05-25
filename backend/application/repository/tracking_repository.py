@@ -143,7 +143,7 @@ class TrackingRepository:
                 continue
 
             mapped_status = status_mapping.get(key)
-            if mapped_status <= status_id:
+            if status_id and mapped_status <= status_id:
                 continue
 
             g.db_session.add(TrackingOrderStatus(

@@ -202,7 +202,7 @@ class TrackingService:
 
     @handle_exceptions
     def all_list(self):
-        tracking_list, tracking_list_status = self.tracking_repository.get_all_list()
+        """tracking_list, tracking_list_status = self.tracking_repository.get_all_list()
         if tracking_list_status != 200:
             return tracking_list, tracking_list_status
         
@@ -218,7 +218,7 @@ class TrackingService:
                 tracking_data, tracking_status = tracking_client.tracking(track.code1, track.code2)
                 if tracking_status == 200:
                     self.tracking_repository.update_tracking_order(track.id, tracking_data)
-                    self.tracking_repository.add_tracking_history(track.id, tracking_data.get("status_data"), track.status_id)
+                    self.tracking_repository.add_tracking_history(track.id, tracking_data.get("status_data"), track.status_id)"""
 
         tracking_list, tracking_list_status = self.tracking_repository.get_all_list()
         if tracking_list_status != 200:
