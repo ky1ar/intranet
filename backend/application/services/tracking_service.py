@@ -331,3 +331,27 @@ class TrackingService:
 
         return tracking_data, 200
     
+
+    @handle_exceptions
+    def force(self, order_id):
+        tracking_order, tracking_order_status = self.tracking_repository.get_tracking_order_by_id(order_id)
+        if tracking_order_status != 200:
+            return tracking_order, tracking_order_status
+        
+        agency_clients = {
+            1: self.shalom,
+            2: self.olva,
+            3: self.marvisur
+        }
+            
+        tracking_client = agency_clients.get(tracking_order.agency_id)
+        if tracking_order.status_id < 3:
+            tracking_data, tracking_status = tracking_client.tracking(tracking_order.code1, tracking_order.code2)
+            if tracking_status == 200:
+                self.tracking_repository.update_tracking_order(tracking_order.id, tracking_data)
+                self.tracking_repository.add_tracking_history(tracking_order.id, tracking_data.get("status_data"), tracking_order.status_id)
+                return "Orden actualizada", 200
+
+        return "Nada que actualizar", 200
+        
+       

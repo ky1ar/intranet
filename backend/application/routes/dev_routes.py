@@ -32,8 +32,8 @@ def handle_connect():
     #emit("server_response", {"message": "Conectado al servidor"})
 
 
-@socketio.on("disconnect")
-def handle_disconnect():
+@socketio.on("disconnect") 
+def handle_disconnect(e=None):
     sid = request.sid
     for user_id, sids in connected_users.items():
         if sid in sids:
@@ -44,7 +44,7 @@ def handle_disconnect():
             break
 
 
-@socketio.on("support_dashboard_update")
+"""@socketio.on("support_dashboard_update")
 def handle_update(data):
     #controller.send_message(data)
-    emit("support_dashboard_update", {}, broadcast=True)
+    emit("support_dashboard_update", {}, broadcast=True)"""

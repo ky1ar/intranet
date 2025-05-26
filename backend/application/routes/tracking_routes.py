@@ -28,3 +28,8 @@ def get_order():
 @tracking_bp.route("/qr_data", methods=["POST"])
 def get_qr_data():
     return controller.tracking_get_qr_data(request.get_json())
+
+
+@tracking_bp.route("/force", methods=["POST"])
+def force():
+    return controller.tracking_force(request.get_json())

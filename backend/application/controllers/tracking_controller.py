@@ -45,4 +45,13 @@ class TrackingController:
             return validation_error, 400
         ose_id = data.get("ose_id")
         return self.tracking.get_qr_data(ose_id)
+    
+
+    @handle_logs_and_exceptions
+    def tracking_force(self, data):
+        if validation_error := validate_request(data, {"order_id"}):
+            return validation_error, 400
+        order_id = data.get("order_id")
+        return self.tracking.force(order_id)
+    
 

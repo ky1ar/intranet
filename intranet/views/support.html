@@ -5,7 +5,9 @@
 				<span class="range">Panel de Soporte</span>
 			</div>
 
-			<div class="title hover-opacity" @click="addOrder()">+ Añadir orden</div>
+			<template x-if="editAllowed()">
+				<div class="title hover-opacity" @click="addOrder()">+ Añadir orden</div>
+			</template>
 		</div>
 
 		<div class="board">
@@ -25,7 +27,7 @@
 								<template x-for="item in group.service_order" :key="item.order_number">
 									<li
 										:class="item.priority"
-										:draggable="true"
+										:draggable="editAllowed()"
 										@dragstart="dragService(item)"
 										@click="viewOrder(item.order_number)">
 										<div class="row">
@@ -80,8 +82,7 @@
 			<textarea x-model="status_notes" class="text-area" placeholder="Notas internas"></textarea>
 
 			<div class="send-whatsapp">
-				<span class="dot"></span>
-				Se notificará al cliente
+				Enviar Whatsapp
 				<label class="box">
 					<input id="send-whatsapp" type="checkbox" name="check" checked>
 					<span class="slider"></span>
@@ -108,8 +109,17 @@
 			<div class="top">
 				<span class="title" x-text="`Orden n° ${service_order?.order_number}`"></span>
 				<span class="days" :class="service_order?.priority" x-text="`${service_order?.passed_days}`"></span>
-				<div class="hover-opacity finish" @click="finish(service_order)" x-show="service_order?.status_id == 8">Finalizar</div>
+				<template x-if="editAllowed()">
+					<div class="hover-opacity finish" @click="finish(service_order)" x-show="service_order?.status_id == 8">Finalizar</div>
+				</template>
 			</div>
+
+			<template x-if="!editAllowed()">
+				<div class="fields no-edit">
+					<div class="glass2" x-text="service_order.method_name"></div>
+					<div class="glass2" x-text="service_order.origin_name"></div>
+				</div>
+			</template>
 
 			<div class="client">
 				<img width="48" height="48" :src="'/static/images/machines/'+service_order?.machine_image" alt="">
@@ -130,31 +140,33 @@
 				</div>
 			</div>
 
-			<div class="fields">
-				<label class="white">
-					<select x-model="service_order.method_id" @change="updateOrder('method_id')">
-						<template x-for="method in $store.cache.service_methods" :key="method.id">
-							<option :value="method.id" x-text="method.name"></option>
-						</template>
-					</select>
-				</label>
+			<template x-if="editAllowed()">
+				<div class="fields">
+					<label class="white">
+						<select x-model="service_order.method_id" @change="updateOrder('method_id')">
+							<template x-for="method in $store.cache.service_methods" :key="method.id">
+								<option :value="method.id" x-text="method.name"></option>
+							</template>
+						</select>
+					</label>
 
-				<label class="white flex1-5">
-					<select x-model="service_order.technician_id" @change="updateOrder('technician_id')">
-						<template x-for="technician in $store.cache.technicians" :key="technician.id">
-							<option :value="technician.id" x-text="technician.name"></option>
-						</template>
-					</select>
-				</label>
+					<label class="white flex1-5">
+						<select x-model="service_order.technician_id" @change="updateOrder('technician_id')">
+							<template x-for="technician in $store.cache.technicians" :key="technician.id">
+								<option :value="technician.id" x-text="technician.name"></option>
+							</template>
+						</select>
+					</label>
 
-				<label class="white">
-					<select x-model="service_order.origin_id" @change="updateOrder('origin_id')">
-						<template x-for="origin in $store.cache.service_origin" :key="origin.id">
-							<option :value="origin.id" x-text="origin.name"></option>
-						</template>
-					</select>
-				</label>
-			</div>
+					<label class="white">
+						<select x-model="service_order.origin_id" @change="updateOrder('origin_id')">
+							<template x-for="origin in $store.cache.service_origin" :key="origin.id">
+								<option :value="origin.id" x-text="origin.name"></option>
+							</template>
+						</select>
+					</label>
+				</div>
+			</template>
 
 			<div class="history">
 				<template x-for="history in service_order?.history" :key="history.status_id">
@@ -531,6 +543,11 @@
 				Alpine.store('cache').showModal('add');
 			},
 
+			editAllowed() {
+				const user = Alpine.store('cache').user;
+				return (user.department_id === 5 || user.level_id === 4);
+			},
+
 			async fetchClientData() {
 				const document = this.process_service.client_document;
 				if (!document) {
@@ -813,6 +830,7 @@
 			gap: 0.5rem;
 			align-items: center;
 			font-size: 0.75rem;
+			justify-content: center;
 		}
 		#modal-status .send-whatsapp .dot {
 			width: 0.5rem;
@@ -821,10 +839,10 @@
 			border-radius: 1rem;
 		}
 		#modal-status .send-whatsapp .box {
-			display: none;
 			position: relative;
 			width: 2.5rem;
 			height: 1.5rem;
+			flex: initial;
 		}
 		#modal-status .send-whatsapp .box input {
 			opacity: 0;
@@ -862,6 +880,7 @@
 		/***********************************************************************************/
 		#modal-view .modal {
 			min-width: 29rem;
+			max-width: 36rem;
 		}
 		#modal-view .header {
 			display: flex;
@@ -935,6 +954,14 @@
 			outline: none;
 			border: none;
 			cursor: pointer;
+		}
+		#modal-view .no-edit .glass2 {
+			flex: 1;
+			justify-content: center;
+			display: flex;
+			padding: 0.25rem;
+			font-weight: 500;
+			border-radius: 0.75rem;
 		}
 		#modal-view .top {
 			display: flex;
@@ -1015,7 +1042,6 @@
 		#modal-view .history .row .notes {
 			font-size: 0.8rem;
 			opacity: 0.75;
-			text-align: justify;
 		}
 		/***********************************************************************************/
 		#modal-add .modal {

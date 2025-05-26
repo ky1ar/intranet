@@ -49,8 +49,8 @@ class UserService:
         
 
     @handle_exceptions
-    def get_department_team(self, admin_id):
-        user, user_status = self.user_repository.get_user_by_id(admin_id)
+    def get_department_team(self, user_id):
+        user, user_status = self.user_repository.get_user_by_id(user_id)
         if user_status != 200:
             return user, user_status
         

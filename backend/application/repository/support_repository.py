@@ -163,7 +163,7 @@ class SupportRepository:
 
     def get_next_order_number(self):
         last_order = g.db_session.query(func.max(ServiceOrders.order_number)).scalar()
-        return int(last_order or 0) + 1
+        return max(int(last_order or 0) + 1, 10001)
 
 
     @handle_db_exceptions
