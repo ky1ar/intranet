@@ -84,7 +84,7 @@
 			<div class="send-whatsapp">
 				Enviar Whatsapp
 				<label class="box">
-					<input id="send-whatsapp" type="checkbox" name="check" checked>
+					<input id="send-whatsapp" type="checkbox" x-model="sendWhatsapp">
 					<span class="slider"></span>
 				</label>
 			</div>
@@ -296,6 +296,7 @@
 
 	<script>
 		Alpine.data('support_data',() => ({
+			sendWhatsapp: true,
 			dashboard: [],
 			service_order: [],
 			machines: [],
@@ -516,6 +517,7 @@
 					return;
 				}
 				this.status_notes = '';
+				this.sendWhatsapp = true;
 				Alpine.store('cache').showModal('status');
 			},
 			
@@ -593,6 +595,7 @@
 					order_number: this.selected_service.order_number,
 					user_id: Alpine.store('cache').user.id,
 					notes: this.status_notes,
+					send: this.sendWhatsapp,
 				};
 			
 				try {

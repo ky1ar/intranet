@@ -25,6 +25,7 @@ class Config:
 
     BASE_URL = os.getenv("BASE_URL")
     CONTACT_PHONE = os.getenv("CONTACT_PHONE")
+    SUPPORT_CONTACT_PHONE = os.getenv("SUPPORT_CONTACT_PHONE")
     REVIEW_URL = os.getenv("REVIEW_URL")
     T1_START = os.getenv("T1_START")
     T1_END = os.getenv("T1_END")

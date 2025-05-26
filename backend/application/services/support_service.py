@@ -69,7 +69,7 @@ class SupportService:
     
 
     @handle_exceptions
-    def service_order_next(self, order_number, user_id, notes):
+    def service_order_next(self, order_number, user_id, notes, send):
         service_order, service_order_status = self.support_repository.get_service_order_by_number(order_number) 
         if service_order_status != 200:
             return service_order, service_order_status
@@ -92,7 +92,8 @@ class SupportService:
         socketio.emit("support_dashboard_update", {})
         
         #self.whatsapp.status_change(current_status_id, client_phone, client_name)
-        #threading.Thread(target=self.whatsapp.status_change, args=(current_status_id, client_phone, client_name)).start()
+        if send:
+            threading.Thread(target=self.whatsapp.status_change, args=(current_status_id, client_phone, client_name)).start()
         return "Order de servicio actualizada correctamente", 200
     
 
@@ -338,10 +339,9 @@ class SupportService:
             return machine, machine_status
         
         machine_name = machine.full_name
-        #threading.Thread(target=self.whatsapp.new_order, args=(phone, notes, name, machine_name)).start()
-        if is_from_bot:
-            #threading.Thread(target=self.whatsapp.new_order_alert, args=("946887982", order_number, machine_name)).start()
-            pass
+        threading.Thread(target=self.whatsapp.new_order, args=(phone, notes, name, machine_name)).start()
+        if is_from_bot and leader.phone:
+            threading.Thread(target=self.whatsapp.new_order_alert, args=(leader.phone, order_number, machine_name)).start()
 
         return "Orden registrada correctamente", 200
 

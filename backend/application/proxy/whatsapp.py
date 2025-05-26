@@ -140,7 +140,7 @@ class Whatsapp:
         parameters = [
             {"type": "text", "parameter_name": "username", "text": client_name},
             {"type": "text", "parameter_name": "machine", "text": machine_name},
-            {"type": "text", "parameter_name": "notes", "text": notes},
+            {"type": "text", "parameter_name": "notes", "text": f"🛠️ _Problema reportado fue: '{notes}'._" if notes else "🛠️"},
             {"type": "text", "parameter_name": "terms_link", "text": self.terms},
         ]
 
@@ -194,6 +194,13 @@ class Whatsapp:
         parameters = [
             {"type": "text", "parameter_name": "username", "text": client_name},
         ]
+
+        if current_status_id == 3:
+            parameters.append({
+                "type": "text", 
+                "parameter_name": "number", 
+                "text": Config.SUPPORT_CONTACT_PHONE
+            })
 
         payload = {
             "messaging_product": "whatsapp",

@@ -22,13 +22,14 @@ class SupportController:
 
     @handle_logs_and_exceptions
     def support_service_order_next(self, data):
-        if validation := validate_request(data, {"order_number", "notes", "user_id"}):
+        if validation := validate_request(data, {"order_number", "notes", "user_id", "send"}):
             return validation, 400
         
         order_number = data.get("order_number")
         user_id = data.get("user_id")
         notes = data.get("notes")
-        return self.support.service_order_next(order_number, user_id, notes)
+        send = data.get("send")
+        return self.support.service_order_next(order_number, user_id, notes, send)
     
 
     @handle_logs_and_exceptions
