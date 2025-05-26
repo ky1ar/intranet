@@ -301,8 +301,6 @@
 
 
     <script>
-        let signaturePad;
-
         Alpine.data('guest_data',() => ({
             bot_image: '/static/images/uploads/users/00000000.jpg',
             step: 0,
@@ -319,6 +317,7 @@
             accessories: [],
             other_accessories: '',
             termsScrolledToBottom: false,
+            signaturePad: null,
 
             initScrollWatcher() {
                 const el = this.$refs.terms;
@@ -340,12 +339,12 @@
                     canvas.height = rect.height * ratio;
                     canvas.getContext("2d").scale(ratio, ratio);
 
-                    if (signaturePad) {
-                        signaturePad.clear();
+                    if (this.signaturePad) {
+                        this.signaturePad.clear();
                     }
                 };
 
-                signaturePad = new SignaturePad(canvas, {
+                this.signaturePad = new SignaturePad(canvas, {
                     backgroundColor: 'rgb(255,255,255)',
                 });
 
@@ -358,7 +357,7 @@
             },
 
             clear() {
-                signaturePad.clear();
+                this.signaturePad?.clear();
             },
             
             resetOrder() {
@@ -461,12 +460,12 @@
             }, 
 
             async newOrder() {
-                if (signaturePad.isEmpty()) {
+                if (!this.signaturePad || this.signaturePad.isEmpty()) {
                     this.showError('new', 'Ingresa tu firma');
                     return;
                 }
 
-                const signatureImage = signaturePad.toDataURL('image/png');
+                const signatureImage = this.signaturePad.toDataURL('image/png');
 
                 NProgress.start();
                 const payload = {
