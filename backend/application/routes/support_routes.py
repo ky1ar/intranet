@@ -35,29 +35,7 @@ def service_process():
     return controller.support_service_process(request.get_json())
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@support_bp.route("/order/process", methods=["POST"])
-def service_order_process():
-    return controller.support_service_order_process(request.get_json())
-
-
-@support_bp.route("/order/consult", methods=["POST"])
+@support_bp.route("/consult", methods=["POST"])
 def order_consult():
     return controller.support_order_consult(request.get_json())
-
-
 

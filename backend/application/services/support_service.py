@@ -8,6 +8,7 @@ from application.repository.support_repository import SupportRepository
 from application.repository.machine_repository import MachineRepository
 from application.repository.user_repository import UserRepository
 from application.repository.general_repository import GeneralRepository
+from application.services.general_service import GeneralService
 from application.repository.client_repository import ClientRepository
 from application.proxy.whatsapp import Whatsapp
 from application import socketio
@@ -19,8 +20,14 @@ class SupportService:
         self.machine_repository = MachineRepository()
         self.user_repository = UserRepository()
         self.general_repository = GeneralRepository()
+        self.general_service = GeneralService()
         self.client_repository = ClientRepository()
         self.whatsapp = Whatsapp()
+        self.months = {
+            1: "enero", 2: "febrero", 3: "marzo", 4: "abril",
+            5: "mayo", 6: "junio", 7: "julio", 8: "agosto",
+            9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre"
+        }
 
 
     @handle_exceptions
@@ -54,17 +61,39 @@ class SupportService:
         register_days = self.calculate_passed_days(service_order.register_at)
 
         order_data = {
-            "order_number": f"00{service_order.order_number}",
-            "technician_name": service_order.technician.name.title(),
+            "order_number": f"{service_order.order_number}",
+            "technician_name": self.general_service.format_name(service_order.technician.name),
             "machine": f"{service_order.machine.brand.name} {service_order.machine.model}",
+            "machine_image": service_order.machine.image,
             "client_name": service_order.client.name.title(),
             "client_email": service_order.client.email,
-            "status_text": f"Estado actual de la orden: {service_order.status.name}",
+            "status_text": f"Estado actual de la orden: <b>{service_order.status.name}</b>",
             "status_id": service_order.status_id,
             "origin_name": service_order.origin.name,
             "method_name": service_order.method.name,
             "passed_days": f"{register_days} " + ("días" if register_days > 1 else "día")
         }
+
+        history, history_status = self.support_repository.get_service_order_history(service_order.id) 
+        if history_status != 200:
+            return history, history_status
+        
+        service_status, service_order_status = self.general_repository.get_service_status() 
+        if service_order_status != 200:
+            return service_status, service_order_status
+        
+        
+        history_dict = [
+            {
+                "status_name": row.status.name,
+                # "user_name": row.user.name.split()[0],
+                # "notes": row.notes if row.notes else "",
+                "register_at": f"{row.register_at.day} de {self.months[row.register_at.month]} de {row.register_at.year}"
+            } for row in history
+        ]
+
+        order_data["history"] = history_dict
+
         return order_data, 200
     
 
