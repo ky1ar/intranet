@@ -38,7 +38,7 @@
                     </template>
 
                     <template x-if="!first_login">
-                        <h1 x-text="`¡Hola de nuevo, ${temp_auth.name}!`"></h1>
+                        <h1 x-text="temp_auth.id != 21 ? `¡Hola de nuevo, ${temp_auth.name}!`: '¡Listo para inicar sesión!'"></h1>
                     </template>
                 </div>
 
@@ -52,7 +52,7 @@
                 </template>
 
                 <template x-if="!first_login">
-                    <p>Ingresa tu clave para acceder</p>
+                    <p x-text="temp_auth.id != 21 ? `Ingresa tu clave para acceder`: 'Ingresa mi clave para acceder'"></p>
                 </template>
             </div>
 
@@ -126,7 +126,12 @@
                     <button class="hover-opacity" :class="buttons.login.class" x-text="buttons.login.text" type="submit"></button>
                 </form>
             </template>
-            <button class="hover-opacity clean" @click="clean_temp()" x-text="`No soy ${temp_auth.name}`"></button>
+
+            <button
+                class="hover-opacity clean"
+                @click="clean_temp()"
+                x-text="`No soy ${temp_auth.name}`">
+            </button>
         </div>
         <span class="copy">Krear 3D © 2025. Todos los derechos reservados</span>
     </div>

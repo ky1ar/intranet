@@ -28,6 +28,11 @@ document.addEventListener('alpine:init', () => {
         ],
         restricted_pages: [
             { name: 'driver', label: 'Conductor', image: 'driver', title: 'Krear 3D - Conductor' },
+            { name: 'guest', label: 'Fabrix', image: 'fabrix', title: 'Krear 3D - Fabrix' },
+        ],
+
+        fabrix_pages: [
+            { name: 'guest', label: 'Fabrix', image: 'fabrix', title: 'Krear 3D - Fabrix' },
         ],
         modals: new Set(),
         sidebar: false,
@@ -88,6 +93,11 @@ document.addEventListener('alpine:init', () => {
         getPages() {
             const department_id = this.user.department_id;
             const level_id = this.user.level_id;
+            const user_id = this.user.id;
+
+            if (user_id === 21) {
+                return this.fabrix_pages;
+            }
 
             if (level_id === 4) {
                 return [...this.common_pages, ...this.restricted_pages];
