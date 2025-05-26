@@ -302,9 +302,10 @@ class SupportService:
                 added_client, added_client_status = self.client_repository.add_client(client_data)
                 if added_client_status != 200:
                     return added_client, added_client_status
-                client_id = added_client
+                data["client_id"] = added_client
             else:
-                client_id = client.id
+
+                data["client_id"] = client.id
         
         order_number = self.support_repository.get_next_order_number()
         leader = self.user_repository.get_support_leader()
