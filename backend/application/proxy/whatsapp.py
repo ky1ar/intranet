@@ -137,10 +137,13 @@ class Whatsapp:
 
     @handle_exceptions
     def new_order(self, phone, notes, client_name, machine_name):
+        clean_notes = (notes or "").replace("\n", " ").replace("\t", " ").strip()
+        clean_notes = ' '.join(clean_notes.split())
+
         parameters = [
             {"type": "text", "parameter_name": "username", "text": client_name},
             {"type": "text", "parameter_name": "machine", "text": machine_name},
-            {"type": "text", "parameter_name": "notes", "text": f"🛠️ _Problema reportado fue: '{notes}'._" if notes else "🛠️"},
+            {"type": "text", "parameter_name": "notes", "text": f"🛠️ _Problema reportado fue: '{clean_notes}'._" if clean_notes else "🛠️"},
             {"type": "text", "parameter_name": "terms_link", "text": self.terms},
         ]
 
