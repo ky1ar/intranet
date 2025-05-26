@@ -11,6 +11,7 @@ class Whatsapp:
         self.url = API.URL
         self.terms = API.SUPPORT_TERMS
         self.tracking_url = "http://tiendakrear3d.com/rastrear-pedidos"
+        self.support_url = "https://soporte.krear3d.com/consultas"
 
 
     dias_semana = {
@@ -136,15 +137,15 @@ class Whatsapp:
     
 
     @handle_exceptions
-    def new_order(self, phone, notes, client_name, machine_name):
+    def new_order(self, phone, notes, order_number, machine_name):
         clean_notes = (notes or "").replace("\n", " ").replace("\t", " ").strip()
         clean_notes = ' '.join(clean_notes.split())
 
         parameters = [
-            {"type": "text", "parameter_name": "username", "text": client_name},
-            {"type": "text", "parameter_name": "machine", "text": machine_name},
-            {"type": "text", "parameter_name": "notes", "text": f"🛠️ _Problema reportado fue: '{clean_notes}'._" if clean_notes else "🛠️"},
-            {"type": "text", "parameter_name": "terms_link", "text": self.terms},
+            #{"type": "text", "parameter_name": "username", "text": client_name},
+            {"type": "text", "parameter_name": "device_model", "text": machine_name},
+            {"type": "text", "parameter_name": "order_number", "text": order_number},
+            {"type": "text", "parameter_name": "url", "text": self.support_url},
         ]
 
         payload = {
@@ -152,7 +153,7 @@ class Whatsapp:
             "to": phone,
             "type": "template",
             "template": {
-                "name": "soporte_0_ingreso",
+                "name": "soporte_0_registro",
                 "language": {"code": "es_PE"},
                 "components": [{"type": "body", "parameters": parameters}]
             }
@@ -181,11 +182,9 @@ class Whatsapp:
     
 
     @handle_exceptions
-    def status_change(self, current_status_id, client_phone, client_name):
-        if current_status_id == 1:
-            return False, 200
-        
+    def status_change(self, current_status_id, client_phone, client_name, machine_name):
         templates = {
+            1: "soporte_0_ingreso",
             2: "soporte_1_revision",
             3: "soporte_2_diagnostico",
             4: "soporte_3_repuesto",
@@ -197,6 +196,23 @@ class Whatsapp:
         parameters = [
             {"type": "text", "parameter_name": "username", "text": client_name},
         ]
+
+        if current_status_id == 1:
+            parameters.append({
+                "type": "text", 
+                "parameter_name": "machine", 
+                "text": machine_name
+            })
+            parameters.append({
+                "type": "text", 
+                "parameter_name": "notes", 
+                "text": "🛠️"
+            })
+            parameters.append({
+                "type": "text", 
+                "parameter_name": "terms_link", 
+                "text": self.terms
+            })
 
         if current_status_id == 3:
             parameters.append({
