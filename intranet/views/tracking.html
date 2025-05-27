@@ -23,7 +23,7 @@
 								<li class="white" @click="viewOrder(item.id)">
 									<div class="row">
 										<span class="order-number" x-text="item.order_number"></span>
-										<img width="72" height="16" :src="'/static/images/tracking/' + $store.cache.tracking_agencies?.[item.agency_id].icon" alt="">
+										<img width="72" height="16" :src="'/static/images/tracking/' + $store.cache.tracking_agencies?.[item.agency_id - 1].icon" alt="">
 									</div>
 
 									<div class="row">
@@ -243,7 +243,7 @@
 			<div class="top">
 				<span class="order" x-text="tracking_order.order_number"></span>
 				<div class="code3" x-show="tracking_order.code3" x-text="'Clave: ' +tracking_order.code3"></div>
-				<img class="agency" width="80" height="22" :src="'/static/images/tracking/' + $store.cache.tracking_agencies?.[tracking_order.agency_id]?.icon" alt="">
+				<img class="agency" width="80" height="22" :src="'/static/images/tracking/' + $store.cache.tracking_agencies?.[tracking_order.agency_id - 1]?.icon" alt="">
 			</div>
 
 			<div class="content">
