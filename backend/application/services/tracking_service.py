@@ -7,6 +7,7 @@ from application.repository.user_repository import UserRepository
 from application.repository.client_repository import ClientRepository
 from application.services.clients_service import ClientsService
 from application.repository.logistic_repository import LogisticRepository
+from application.repository.general_repository import GeneralRepository
 from application.models import ShippingStatusList
 from application.proxy.shalom import Shalom
 from application.proxy.olva import Olva
@@ -22,6 +23,7 @@ class TrackingService:
         self.clients_service = ClientsService()
         self.tracking_repository = TrackingRepository()
         self.logistic_repository = LogisticRepository()
+        self.general_repository = GeneralRepository()
         self.shalom = Shalom()
         self.olva = Olva()
         self.marvisur = Marvisur()
@@ -201,47 +203,81 @@ class TrackingService:
 
 
     @handle_exceptions
-    def all_list(self):
-        """tracking_list, tracking_list_status = self.tracking_repository.get_all_list()
-        if tracking_list_status != 200:
-            return tracking_list, tracking_list_status
+    def dashboard(self):
+        tracking_orders, tracking_orders_status = self.tracking_repository.get_all_list()
+        if tracking_orders_status != 200:
+            return tracking_orders, tracking_orders_status
         
-        agency_clients = {
-            1: self.shalom,
-            2: self.olva,
-            3: self.marvisur
-        }
-            
-        for track in tracking_list:
-            tracking_client = agency_clients.get(track.agency_id)
-            if track.status_id < 3:
-                tracking_data, tracking_status = tracking_client.tracking(track.code1, track.code2)
-                if tracking_status == 200:
-                    self.tracking_repository.update_tracking_order(track.id, tracking_data)
-                    self.tracking_repository.add_tracking_history(track.id, tracking_data.get("status_data"), track.status_id)"""
+        tracking_status, tracking_code = self.general_repository.get_tracking_status() 
+        if tracking_code != 200:
+            return tracking_status, tracking_code
+        
+        result = []
+        for status in tracking_status:
+            status_order = [tracking_order for tracking_order in tracking_orders if tracking_order.status_id == status.id]
 
-        tracking_list, tracking_list_status = self.tracking_repository.get_all_list()
-        if tracking_list_status != 200:
-            return tracking_list, tracking_list_status
-        
-        data = []
-        for track in tracking_list:
-            data.append({
-                'id': track.id,
-                'order_number': track.client_order.number,
-                'client_name': track.client_order.client.name,
-                'client_document': track.client_order.client.document,
-                'agency_image': track.agency.image if track.agency else None,
-                'agency_id': track.agency_id,
-                'codes': f"{track.code1} / {track.code2}",
-                'origin_agency': track.origin_agency,
-                'destination_agency': track.destination_agency,
-                'last_status': track.status.name if track.status else None,
-                'last_status_id': track.status.id if track.status else None,
-                'last_status_date': track.updated_at.strftime("%d %B %Y %I:%M %p") if track.updated_at else None
+            status_orders = []
+            for order in status_order:
+                tracking_order_data = {
+                    'id': order.id,
+                    'order_number': order.client_order.number,
+                    'client_name': order.client_order.client.name,
+                    #'client_document': order.client_order.client.document,
+                    #'agency_image': order.agency.image if order.agency else None,
+                    'agency_id': order.agency_id,
+                    #'codes': f"{order.code1} / {order.code2}",
+                    #'origin_agency': order.origin_agency,
+                    'destination_agency': order.destination_agency,
+                    #'last_status': order.status.name if order.status else None,
+                    #'last_status_id': order.status.id if order.status else None,
+                    #'last_status_date': order.updated_at.strftime("%d %B %Y %I:%M %p") if order.updated_at else None
+                }
+                status_orders.append(tracking_order_data)
+
+            #status_orders.sort(key=lambda x: x["register_days_int"], reverse=True)
+
+            result.append({
+                "status_id": status.id,
+                "status_name": status.name,
+                "tracking_order": status_orders
             })
-        return data, 200
+        return result, 200
 
+
+    @handle_exceptions
+    def get_order_by_id(self, order_id):
+        tracking_order, tracking_order_status = self.tracking_repository.get_tracking_order_by_id(order_id)
+        if tracking_order_status != 200:
+            return tracking_order, tracking_order_status
+        
+        tracking_history, tracking_history_status = self.tracking_repository.get_tracking_history(tracking_order.id)
+        if tracking_history_status != 200:
+            return tracking_history, tracking_history_status
+
+        history_data = []
+        for history in tracking_history:
+            history_data.append({
+                'status_name': history.status.name,
+                'status_id': history.status_id,
+                'register_at': history.register_at.strftime("%d-%m-%Y %I:%M %p"),
+            })
+
+        result = {
+            #'agency_name': tracking_order.agency.name,
+            'agency_id': tracking_order.agency_id,
+            'code1': tracking_order.code1,
+            'code2': tracking_order.code2,
+            'code3': tracking_order.code3,
+            'origin_agency': tracking_order.origin_agency,
+            'client_name': tracking_order.client_order.client.name,
+            'order_number': tracking_order.client_order.number,
+            'client_document': tracking_order.client_order.client.document,
+            'client_phone': tracking_order.client_order.client.phone,
+            'destination_agency': tracking_order.destination_agency,
+            'status_history': history_data
+        }
+        return result, 200
+        
 
     @handle_exceptions
     def get_order(self, data):

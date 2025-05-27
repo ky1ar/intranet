@@ -365,6 +365,7 @@ class TrackingAgencies(BaseModel):
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
     name = db.Column(db.String(255), nullable=False)
     image = db.Column(db.String(255), nullable=False)
+    icon = db.Column(db.String(100), nullable=False)
 
 
 class TrackingStatus(BaseModel):
@@ -372,6 +373,7 @@ class TrackingStatus(BaseModel):
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
     name = db.Column(db.String(255), nullable=False)
+    image = db.Column(db.String(255), nullable=False)
 
 
 class TrackingOrderStatus(BaseModel):

@@ -10,19 +10,14 @@ def add():
     return controller.tracking_add(request.get_json())
 
 
-@tracking_bp.route("/client", methods=["POST"])
-def client_list():
-    return controller.tracking_client_list(request.get_json())
+@tracking_bp.route("/dashboard", methods=["GET"])
+def dashboard():
+    return controller.tracking_dashboard()
 
 
-@tracking_bp.route("/all", methods=["POST"])
-def all_list():
-    return controller.tracking_all_list()
-
-
-@tracking_bp.route("/order", methods=["POST"])
-def get_order():
-    return controller.tracking_get_order(request.get_json())
+@tracking_bp.route("/order_id/<order_id>", methods=["GET"])
+def get_order_by_id(order_id):
+    return controller.tracking_get_order_by_id(order_id)
 
 
 @tracking_bp.route("/qr_data", methods=["POST"])
@@ -33,3 +28,13 @@ def get_qr_data():
 @tracking_bp.route("/force", methods=["POST"])
 def force():
     return controller.tracking_force(request.get_json())
+
+
+@tracking_bp.route("/client", methods=["POST"])##
+def client_list():
+    return controller.tracking_client_list(request.get_json())
+
+
+@tracking_bp.route("/order", methods=["POST"])##
+def get_order():
+    return controller.tracking_get_order(request.get_json())

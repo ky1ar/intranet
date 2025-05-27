@@ -83,6 +83,7 @@ class GeneralService:
                 "id": agency.id,
                 "name": agency.name,
                 "image": agency.image,
+                "icon": agency.icon,
             }
             for agency in agencies
         ]
@@ -99,6 +100,7 @@ class GeneralService:
             {
                 "id": status.id,
                 "name": status.name,
+                "image": status.image,
             }
             for status in tracking_status
         ]
