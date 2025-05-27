@@ -38,7 +38,7 @@ class GeneralRepository:
 
     @handle_db_exceptions
     def get_agencies(self):
-        agencies = g.db_session.query(TrackingAgencies).order_by(TrackingAgencies.name).all()
+        agencies = g.db_session.query(TrackingAgencies).order_by(TrackingAgencies.id).all()
         
         if not agencies:
             return [], 400
