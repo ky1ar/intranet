@@ -6,9 +6,15 @@
 			</div>
 
 			<template x-if="editAllowed()">
-				<div>
-					<div class="title hover-opacity" @click="addOrder()">+ Añadir orden</div>
-					<!--<div class="title hover-opacity" @click="viewHistory()">Historial</div>-->
+				<div class="controllers">
+					<div class="button hover-opacity" @click="viewHistory()">
+						<img width="16" height="16" :src="'/static/images/icons/history.svg'" alt="">
+						Historial
+					</div>
+					<div class="button hover-opacity" @click="addOrder()">
+						<img width="16" height="16" :src="'/static/images/icons/add.svg'" alt="">
+						Añadir
+					</div>
 				</div>
 			</template>
 		</div>
@@ -309,14 +315,18 @@
 				<span class="title">Historial de equipos</span>
 
 				<div class="pagination">
-					<template x-for="(item, index) in visiblePages()" :key="`${item}-${index}`">
-						<span
-							class="hover-opacity white"
-							:class="{ 'bg-blue-500 text-white': item === current_page, 'text-gray-500': item === '...'}"
-							@click="changePage(item)"
-							x-text="item"
-						></span>
-					</template>
+					<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstPage()">
+						<img src="/static/images/icons/rightfull.svg" width="20" height="20">
+					</span>
+					<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevPage()">
+						<img src="/static/images/icons/right.svg" width="20" height="20">
+					</span>
+					<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextPage()">
+						<img src="/static/images/icons/right.svg" width="20" height="20">
+					</span>
+					<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastPage()">
+						<img src="/static/images/icons/rightfull.svg" width="20" height="20">
+					</span>
 				</div>
 
 			</div>
@@ -335,7 +345,7 @@
 					<tbody>
 						<template x-for="history in history_list" :key="history.id">
 							<tr @click="viewOrder(history.order_number)">
-								<td>
+								<td class="order">
 									<div class="machine">
 										<b x-text="history.method_letter"></b>
 										<div class="model">
@@ -344,7 +354,7 @@
 										</div>
 									</div>
 								</td>
-								<td>
+								<td class="machine_box">
 									<div class="machine">
 										<img width="40" height="40" :src="'/static/images/machines/'+history.machine_image" alt="">
 										<div class="model">
@@ -353,8 +363,8 @@
 										</div>
 									</div>
 								</td>
-								<td x-text="history.client_name"></td>
-								<td>
+								<td class="client" x-text="history.client_name"></td>
+								<td class="order">
 									<span class="finished" :class="!history.finished ? 'active' : ''" x-text="history.finished ? 'Finalizado':'Activo'"></span>
 								</td>
 								<td x-text="history.register_at"></td>
@@ -559,7 +569,7 @@
 
 			async getDashboard() {
 				try {
-					const response = await fetch(Alpine.store('cache').api + '/support/dashboard');
+					const response = await fetch(Alpine.store('cache').api + `/support/dashboard?user_id=${Alpine.store('cache').user.id}`);
 					const data = await response.json();
 					this.dashboard = data.data || [];
 				} catch (error) {
@@ -629,14 +639,14 @@
 			},
 
 			async viewHistory() {
-				await this.getHistory();
+				await this.firstPage();
 				Alpine.store('cache').showModal('history');
 			},
 			
-			async getHistory(page=1) {
+			async getHistory() {
 				NProgress.start();
 				try {
-					const response = await fetch(Alpine.store('cache').api + `/support/history?page=${page}`);
+					const response = await fetch(Alpine.store('cache').api + `/support/history?page=${this.current_page}`);
 					const data = await response.json();
 					const jsonData = data.data || [];
 
@@ -650,35 +660,32 @@
 				}
 			},
 
-			visiblePages() {
-				const pages = [];
-				const current = this.current_page;
-				const total = this.total_pages;
-
-				if (total <= 7) {
-					for (let i = 1; i <= total; i++) pages.push(i);
-				} else {
-					pages.push(1);
-					if (current > 4) pages.push('...');
-					
-					const start = Math.max(2, current - 1);
-					const end = Math.min(total - 1, current + 1);
-
-					for (let i = start; i <= end; i++) pages.push(i);
-
-					if (current < total - 3) pages.push('...');
-					pages.push(total);
-				}
-
-				return pages;
+			async firstPage() {
+				this.current_page = 1;
+				await this.getHistory();
 			},
 
-			changePage(page) {
-				if (page === '...') return;
-				this.current_page = page;
-				this.getHistory(page);
+			async lastPage() {
+				this.current_page = this.total_pages;
+				await this.getHistory();
 			},
-			
+
+			async nextPage() {
+				const new_page = this.current_page + 1;
+				if (new_page > this.total_pages)
+					return;
+				this.current_page = new_page;
+				await this.getHistory();
+			},
+
+			async prevPage() {
+				const new_page = this.current_page - 1;
+				if (new_page < 1)
+					return;
+				this.current_page = new_page;
+				await this.getHistory();
+			},
+
 			editAllowed() {
 				const user = Alpine.store('cache').user;
 				return (user.department_id === 5 || user.level_id === 4);
@@ -754,8 +761,6 @@
 					setTimeout(() => {
 						this.selected_service = null;
 					}, 350);
-					//this.selected_service = null;
-					//await this.getDashboard();
 
 				} catch (error) {
 					console.error('Error en la asignación:', error);
@@ -782,6 +787,13 @@
 		#modal-history .pagination {
 			display: flex;
 			gap: 0.75rem;
+		}
+		#modal-history .pagination .disabled {
+			opacity: 0.5;
+    		cursor: default !important;
+		}
+		#modal-history .pagination .left img {
+			transform: rotate(180deg);
 		}
 		#modal-history .pagination span {
 			width: 2rem;
@@ -814,7 +826,15 @@
 			white-space: nowrap;
 			overflow: hidden;
 			text-overflow: ellipsis;
-			max-width: 20rem;
+		}
+		#modal-history table td.order {
+			width: 8rem;
+		}
+		#modal-history table td.machine_box {
+			width: 12rem;
+		}
+		#modal-history table td.client {
+			width: 20rem;
 		}
 		#modal-history table .machine {
 			display: flex;
@@ -900,6 +920,26 @@
 			align-items: center;
 			gap: 0.5rem;
 			position: relative;
+		}
+		#support-dashboard .controllers {
+			display: flex;
+			gap: 0.75rem;
+		}
+		#support-dashboard .controllers .button {
+			background-color: var(--secondary);
+			color: white;
+			padding: 0 1.5rem;
+			line-height: 2.5rem;
+			border-radius: 2rem;
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		#support-dashboard .controllers .button + .button{
+			background-color: var(--primary);
+		}
+		#support-dashboard .controllers .button img {
+			filter: invert(1);
 		}
 		#support-dashboard .board {
 			display: flex;

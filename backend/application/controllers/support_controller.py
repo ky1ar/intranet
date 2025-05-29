@@ -56,8 +56,8 @@ class SupportController:
     
 
     @handle_logs_and_exceptions
-    def support_dashboard(self):
-        return self.support.support_dashboard()
+    def support_dashboard(self, user_id):
+        return self.support.support_dashboard(user_id)
 
 
     @handle_logs_and_exceptions

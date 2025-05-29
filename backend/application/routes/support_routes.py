@@ -7,7 +7,8 @@ controller = SupportController()
 
 @support_bp.route("/dashboard", methods=["GET"])
 def dashboard():
-    return controller.support_dashboard()
+    user_id = request.args.get("user_id")
+    return controller.support_dashboard(user_id)
 
 
 @support_bp.route("/order_number/<number>", methods=["GET"])

@@ -1,5 +1,4 @@
 import logging
-from datetime import date, datetime, timezone, timedelta
 from application.handlers import handle_db_exceptions
 from application.models import ServiceOrders, ServiceOrderStatus
 from sqlalchemy import func
@@ -128,12 +127,14 @@ class SupportRepository:
 
 
     @handle_db_exceptions
-    def get_working_service_order(self):
-        service_order = (
-            g.db_session.query(ServiceOrders)
-            .filter(ServiceOrders.status_id != 9)
-            .all()
-        )
+    def get_working_service_order(self, leader, user):
+        query = g.db_session.query(ServiceOrders).filter(ServiceOrders.status_id != 9)
+
+        if user.department_id == 5 and user.id != leader.id:
+            query = query.filter(ServiceOrders.technician_id == user.id)
+
+        service_order = query.all()
+
         if not service_order:
             return [], 200
 

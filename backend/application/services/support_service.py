@@ -254,8 +254,13 @@ class SupportService:
 
 
     @handle_exceptions
-    def support_dashboard(self):
-        service_orders, service_order_status = self.support_repository.get_working_service_order() 
+    def support_dashboard(self, user_id):
+        leader = self.user_repository.get_support_leader()
+        user, user_status = self.user_repository.get_user_by_id(user_id)
+        if user_status != 200:
+            return user, user_status
+        
+        service_orders, service_order_status = self.support_repository.get_working_service_order(leader, user) 
         if service_order_status != 200:
             return service_orders, service_order_status
 
@@ -386,6 +391,9 @@ class SupportService:
         if machine_status != 200:
             return machine, machine_status
         
+        if not phone.startswith("51"):
+            phone = f"51{phone}"
+            
         machine_name = machine.full_name
         threading.Thread(target=self.whatsapp.new_order, args=(phone, notes, order_number, machine_name)).start()
         if is_from_bot and leader.phone:

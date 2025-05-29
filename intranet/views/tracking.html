@@ -242,7 +242,7 @@
 		<div class="modal glass2" @click.stop>
 			<div class="top">
 				<span class="order" x-text="tracking_order.order_number"></span>
-				<div class="code3" x-show="tracking_order.code3" x-text="'Clave: ' +tracking_order.code3"></div>
+				<div class="code3" x-show="tracking_order.code3" x-text="'Clave de recojo: ' +tracking_order.code3"></div>
 				<img class="agency" width="80" height="22" :src="'/static/images/tracking/' + $store.cache.tracking_agencies?.[tracking_order.agency_id - 1]?.icon" alt="">
 			</div>
 
