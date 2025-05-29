@@ -23,11 +23,24 @@ class SupportService:
         self.general_service = GeneralService()
         self.client_repository = ClientRepository()
         self.whatsapp = Whatsapp()
+        self.days = {
+            1: "lunes", 2: "martes", 3: "miércoles", 4: "jueves",
+            5: "viernes", 6: "sábado", 7: "domingo"
+        }
         self.months = {
             1: "enero", 2: "febrero", 3: "marzo", 4: "abril",
             5: "mayo", 6: "junio", 7: "julio", 8: "agosto",
             9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre"
         }
+
+
+    def date_format(self, fecha):
+        dia_semana = self.days[fecha.isoweekday()]
+        dia = fecha.day
+        mes = self.months[fecha.month]
+        
+
+        return f"{dia} de {mes} del {fecha.year}"
 
 
     @handle_exceptions
@@ -399,7 +412,42 @@ class SupportService:
         return "Order de servicio actualizada correctamente", 200
 
 
+    @handle_exceptions
+    def history(self, data):
+        page = data.get("page")
+        per_page = data.get("per_page")
+        service_orders, service_orders_status = self.support_repository.get_all_service_orders(page=page, per_page=per_page)
+        if service_orders_status != 200:
+            return service_orders, service_orders_status
+        
+        list = []
+        for order in service_orders["list"]:
+            order_data = {
+                "id": order.id,
+                "order_number": order.order_number,
+                "client_name": order.client.name.title(),
+                #"technician_name": order.technician.name.title(),
+                "method_name": order.method.name,
+                "method_letter": order.method.name[0] if order.method.name else None,
+                "origin_name": order.origin.name,
+                "finished": False if order.status_id < 9 else True,
+                "machine": order.machine.model,
+                "brand": order.machine.brand.name,
+                "machine_image": order.machine.image,
+                "register_at": self.date_format(order.register_at)
+            }
+            list.append(order_data)
 
+        return {
+            "list": list,
+            "pagination": {
+                "total": service_orders["total"],
+                "page": service_orders["page"],
+                "per_page": service_orders["per_page"],
+                "pages": service_orders["pages"],
+            }
+        }, 200
+    
 
 
 

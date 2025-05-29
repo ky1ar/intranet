@@ -78,3 +78,7 @@ class SupportController:
 
         return self.support.service_order_update(data)
 
+
+    @handle_logs_and_exceptions
+    def support_history(self, data):
+        return self.support.history(data)

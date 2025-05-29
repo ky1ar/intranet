@@ -39,3 +39,11 @@ def service_process():
 def order_consult():
     return controller.support_order_consult(request.get_json())
 
+
+@support_bp.route("/history", methods=["GET"])
+def history():
+    payload = {
+        "page": int(request.args.get("page", 1)),
+        "per_page": int(request.args.get("per_page", 12))
+    }
+    return controller.support_history(payload)

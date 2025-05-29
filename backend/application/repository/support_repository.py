@@ -161,6 +161,25 @@ class SupportRepository:
         return shipping_order_id, 200
     
 
+    @handle_db_exceptions
+    def get_all_service_orders(self, page=1, per_page=20):
+        query = (
+            g.db_session.query(ServiceOrders)
+            .order_by(ServiceOrders.id.desc())
+        )
+
+        total = query.count()
+        list = query.offset((page - 1) * per_page).limit(per_page).all()
+
+        return {
+            "list": list,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "pages": (total + per_page - 1) // per_page 
+        }, 200
+    
+
     def get_next_order_number(self):
         last_order = g.db_session.query(func.max(ServiceOrders.order_number)).scalar()
         return max(int(last_order or 0) + 1, 10001)

@@ -114,6 +114,9 @@ class TrackingService:
         if agency_status != 200:
             return agency, agency_status
         
+        if not phone.startswith("51"):
+            phone = f"51{phone}"
+
         payload = {
             "phone": phone,
             "client_name": name.title(),
