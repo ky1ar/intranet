@@ -40,6 +40,7 @@ class Whatsapp:
     }
 
     def post(self, payload):
+        logging.info(payload)
         url = f"{self.url}"
         headers = {
             "Authorization": f"Bearer {self.token}",

@@ -175,6 +175,9 @@ class UserService:
         if add_otp_status != 200:
             return add_otp, add_otp_status
         
+        if not phone.startswith("51"):
+            phone = f"51{phone}"
+            
         threading.Thread(target=self.whatsapp.otp, args=(phone, otp_code)).start()
         return "OTP Enviado correctamente", 200
     
