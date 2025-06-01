@@ -391,6 +391,8 @@ class TrackingService:
                 self.tracking_repository.add_tracking_history(tracking_order.id, tracking_data.get("status_data"), tracking_order.status_id)
                 return "Orden actualizada", 200
 
+        socketio.emit("update_tracking_orders", {})
+
         return "Nada que actualizar", 200
         
        

@@ -46,7 +46,7 @@
 											<span class="id" x-text="issue.created_at"></span>
 										</div>
 										<div class="right">
-											<img width="16" height="16" :src="'/static/images/icons/' + $store.cache.getById('board_priority', issue.priority_id-1)?.image" alt="users">
+											<img width="16" height="16" :src="'/static/images/icons/' + $store.cache.getById('board_priority', issue.priority_id)?.image" alt="users">
 											<img class="thumb" width="24" height="24" :src="'/static/images/uploads/users/'+issue.assignee_image" :title="issue.assignee_name">
 										</div>
 									</div>
