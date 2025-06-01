@@ -3,10 +3,10 @@
 		<div class="main glass">
 			<div class="top">
 				<template x-if="editAllowed()">
-					<span class="pendings hover-opacity" @click="pendings_open = !pendings_open" x-text="'Pendientes de agendar ' + pendings_total"></span>
+					<span class="pendings hover-opacity" @click="pendings_open = !pendings_open" x-text="'Pendientes de agendar ' + ($store.cache.getData('logistics_pendings')?.length|| 0)"></span>
 				</template>
 
-				<span class="range" x-text="schedule_range"></span>
+				<span class="range" x-text="getDateRange($store.cache.getData('logistics_dashboard'))"></span>
 
 				<div class="navigation">
 					<div class="button white hover-opacity" @click="prev">
@@ -28,8 +28,8 @@
 						@dragleave="onDragLeave($event)"
 						@drop="onDropPending()"
 					>
-						<template x-if="pending.length > 0">
-							<template x-for="shipping in pending" :key="shipping.order_number">
+						<template x-if="$store.cache.getData('logistics_pendings')?.length > 0">
+							<template x-for="shipping in $store.cache.getData('logistics_pendings')" :key="shipping.order_number">
 								<div class="item-card"
 									:style="`background-color: ${shipping.method_background}; border: 2px solid ${shipping.method_border}`"
 									:class="shipping.method_slug"
@@ -47,12 +47,12 @@
 								</div>
 							</template>
 						</template>
-						<span class="empty" x-show="!Array.isArray(pending)">No hay órdenes pendientes.</span>
+						<span class="empty" x-show="!Array.isArray($store.cache.getData('logistics_pendings'))">No hay órdenes pendientes.</span>
 					</div>
 				</div>
 
 				<div class="schedule white">
-					<template x-for="day in schedule" :key="day.date">
+					<template x-for="day in $store.cache.getData('logistics_dashboard')" :key="day.date">
 						<div class="day-container">
 							<span x-text="day.day_name" class="day-name"></span>
 
@@ -113,11 +113,11 @@
 				<div class="fields">
 					<label class="white">
 						<select x-model="process_shipping.method_id">
-							<template x-if="$store.cache.shipping_method?.length !== 1">
+							<template x-if="$store.cache.getData('shipping_method')?.length !== 1">
 								<option value="">Tipo de envío</option>
 							</template>
 
-							<template x-for="type in $store.cache.shipping_method" :key="type.id">
+							<template x-for="type in $store.cache.getData('shipping_method')" :key="type.id">
 								<option :value="type.id" x-text="type.name"></option>
 							</template>
 						</select>
@@ -175,11 +175,11 @@
 				<div class="fields">
 					<label class="white">
 						<select x-model="process_shipping.district_id">
-							<template x-if="$store.cache.districts?.length !== 1">
+							<template x-if="$store.cache.getData('districts')?.length !== 1">
 								<option value="">Distrito</option>
 							</template>
 							
-							<template x-for="district in $store.cache.districts" :key="district.id">
+							<template x-for="district in $store.cache.getData('districts')" :key="district.id">
 								<option :value="district.id" x-text="district.name"></option>
 							</template>
 						</select>
@@ -187,11 +187,11 @@
 
 					<label class="white">
 						<select x-model="process_shipping.assigned_id">
-							<template x-if="$store.cache.shipping_method?.length !== 1">
+							<template x-if="$store.cache.getData('shipping_method')?.length !== 1">
 								<option value=null>Responsable</option>
 							</template>
 
-							<template x-for="vendor in $store.cache.vendors" :key="vendor.id">
+							<template x-for="vendor in $store.cache.getData('vendors')" :key="vendor.id">
 								<option :value="vendor.id" x-text="vendor.name"></option>
 							</template>
 						</select>   
@@ -199,7 +199,7 @@
 
 					<label class="white">
 						<select x-model="process_shipping.driver_id">
-							<template x-for="driver in $store.cache.drivers" :key="driver.id">
+							<template x-for="driver in $store.cache.getData('drivers')" :key="driver.id">
 								<option :value="driver.id" x-text="driver.name"></option>
 							</template>
 						</select>
@@ -381,42 +381,26 @@
 				// Socket
                 const socket = Alpine.store('cache').socket;
 				if (socket) {
-					socket.off("update_dashboard");
-					socket.on("update_dashboard", async () => {
-						await Promise.all([this.getPending(), this.getDashboard()]);
+					socket.off("logistics_update_dashboard");
+					socket.on("logistics_update_dashboard", async () => {
+						await Alpine.store('cache').refresh(['logistics_dashboard', 'logistics_pendings']);
 					});
 				}
 
-				// Load data
-				const fetchDataIfNeeded = !Alpine.store('cache').isLoaded('drivers') ? this.fetchData() : Promise.resolve();
-				await Promise.all([fetchDataIfNeeded, this.getPending(), this.getDashboard()]);
-
+				await Alpine.store('cache').fetchData([
+					{ key: 'logistics_dashboard', url: `/logistic/dashboard/week?offset=${this.offset}` },
+					{ key: 'logistics_pendings', url: '/logistic/pending' },
+					{ key: 'drivers', url: '/general/drivers' },
+					{ key: 'vendors', url: '/general/vendors' },
+					{ key: 'districts', url: '/general/districts' },
+					{ key: 'shipping_method', url: '/general/shipping_types' },
+				]);
+				
 				const external_view_id = Alpine.store('cache').client_order_id;
 				console.log(external_view_id);
 				if (external_view_id) {
 					this.processShippingModal(external_view_id);
 					Alpine.store('cache').client_order_id = null;
-				}
-			},
-
-			async fetchData() {
-				try {
-					const [drivers, vendors, districts, shippingMethod] = await Promise.all([
-						fetch(Alpine.store('cache').api + '/general/drivers').then(res => res.json()),
-						fetch(Alpine.store('cache').api + '/general/vendors').then(res => res.json()),
-						fetch(Alpine.store('cache').api + '/general/districts').then(res => res.json()),
-						fetch(Alpine.store('cache').api + '/general/shipping_types').then(res => res.json())
-					]);
-
-					Alpine.store('cache').setData('drivers', drivers.data);
-					Alpine.store('cache').setData('vendors', vendors.data);
-					Alpine.store('cache').setData('districts', districts.data);
-					Alpine.store('cache').setData('shipping_method', shippingMethod.data);
-
-					//this.process_shipping.driver_id = this.selectFirstOption(this.drivers);
-					//await Promise.all([this.getPending(), this.getDashboard()]);
-				} catch (error) {
-					console.error('Error fetching data', error);
 				}
 			},
 
@@ -534,31 +518,7 @@
                     NProgress.done();
                 }
 			},
-			
-			async getPending() {
-				try {
-					const response = await fetch(Alpine.store('cache').api + '/logistic/pending').then(res => res.json());
-					this.pending = response.data || [];
-					this.pendings_total = Array.isArray(this.pending) ? this.pending.length : 0;
 
-				} catch (error) {
-					console.error('Error fetching schedule', error);
-				}
-			},
-
-			async getDashboard() {
-				NProgress.start();
-
-				try {
-					const scheduleRes = await fetch(Alpine.store('cache').api + `/logistic/dashboard/week?offset=${this.offset}`).then(res => res.json());
-					this.schedule = scheduleRes.data || [];
-					this.schedule_range = this.getDateRange(this.schedule)
-				} catch (error) {
-					console.error('Error fetching schedule', error);
-				} finally {
-                    NProgress.done();
-                }
-			},
 
 			async fetchClientData() {
 				if (this.client_order_found) {
@@ -570,6 +530,7 @@
 					this.process_shipping.client_id = '';
 					this.process_shipping.client_name = '';
 					this.process_shipping.client_phone = '';
+					this.process_shipping.client_email = '';
 					this.client_found = false;
 					return;
 				}
@@ -753,6 +714,7 @@
             },
 			
 			getDateRange(data) {
+				if (!data) return;
 				const dates = data.map(item => new Date(item.date));
 				const startDate = dates[0];
 				const endDate = dates[dates.length - 1];
@@ -827,38 +789,26 @@
 
 			async next() {
 				this.offset++;
-				await this.getDashboard();
-
-				/*if (this.auth.app_level == 4) {
-					await this.getShippingDay();
-				} else {
-					await this.getDashboard();
-				}*/
+				await Alpine.store('cache').refresh([
+					{ key: 'logistics_dashboard', url: `/logistic/dashboard/week?offset=${this.offset}` }
+				]);
 			},
 
 			async prev() {
 				this.offset--;
-				await this.getDashboard();
-
-				/*if (this.auth.app_level == 4) {
-					await this.getShippingDay();
-				} else {
-					await this.getDashboard();
-				}*/
+				await Alpine.store('cache').refresh([
+					{ key: 'logistics_dashboard', url: `/logistic/dashboard/week?offset=${this.offset}` }
+				]);
 			},
 
 			async today() {
-				if (this.offset == 0) {
+				/*if (this.offset == 0) {
 					return;
-				}
-				this.offset = 0;
-				await this.getDashboard();
-				/*
-				if (this.auth.app_level == 4) {
-					await this.getShippingDay();
-				} else {
-					await this.getSchedule();
 				}*/
+				this.offset = 0;
+				await Alpine.store('cache').refresh([
+					{ key: 'logistics_dashboard', url: `/logistic/dashboard/week` }
+				]);
 			},
 			
 			isFutureOrToday(dateString) {

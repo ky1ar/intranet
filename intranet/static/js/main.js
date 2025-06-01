@@ -10,6 +10,28 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('data',() => ({
         init() {
             console.log('Inicializando Alpine...');
+
+            let token = Alpine.store('cache').user.token;
+            const storedData = localStorage.getItem('user_data');
+            if (!token) {
+                console.log('Ventana reiniciada...');
+                if (storedData) {
+                    console.log('Obteniendo data desde el cache...');
+                    const userData = JSON.parse(storedData);
+                    Alpine.store('cache').setUser(userData);
+                    Alpine.store('cache').initSocket();
+                    Alpine.store('cache').sidebarOn();
+                } else {
+                    console.log('No estás logueado...');
+                    if (window.location.pathname !== '/') {
+                        window.location.href = '/';
+                    }
+                    return false;
+                }
+            } else {
+                console.log('Cambiando de routa...');
+            }
+            
         },
     }));
 
@@ -139,27 +161,96 @@ document.addEventListener('alpine:init', () => {
             window.PineconeRouter.context.navigate('/');
         },
 
-        setData(key, data) {
-            if (!this.hasOwnProperty(key)) {
-                console.log(`La clave '${key}' no existe. Creándola automáticamente en el store.`);
-                this[key] = [];
-            }
-            console.log(`Datos de ${key} almacenados en el store`);
-            this[key] = data;
+        setData(key, value, url) {
+            this[key] = { data: value, url: url || (this[key]?.url) };
         },
-    
+        getData(key) {
+            return this[key]?.data;
+        },
         isLoaded(key) {
-            console.log(`Verificando datos de ${key}...`);
-            if (!this.hasOwnProperty(key)) {
-                console.log(`La clave '${key}' no existe en el store`);
-                return false;
+            const value = this[key]?.data;
+
+            if (Array.isArray(value)) {
+                return value.length > 0; // array no vacío
             }
-            if (!Array.isArray(this[key]) || this[key].length === 0) {
-                console.log(`Los datos de '${key}' no se encuentran en el Store`);
-                return false;
+            if (typeof value === 'object' && value !== null) {
+                return Object.keys(value).length > 0; // objeto no vacío
             }
-            console.log(`Los datos de '${key}' se encuentran en el Store`);
-            return true;
+            return false;
+        },
+        getUrl(key) {
+            return this[key]?.url;
+        },
+
+        _normalizeEndpoints(requests) {
+            return requests.map(item => {
+                if (typeof item === "string") {
+                    const url = this.getUrl(item);
+                    if (!url) {
+                        console.warn(`No URL found for key: ${item}. Skipping.`);
+                        return null;
+                    }
+                    return { key: item, url };
+                }
+                if (item && typeof item === "object" && item.key && item.url) {
+                    return item;
+                }
+                console.warn("Elemento inválido en fetchData/refresh:", item);
+                return null;
+            }).filter(Boolean);
+        },
+
+        async _fetchEndpoints(requests, ignoreCache = false) {
+            if (!Array.isArray(requests)) throw new Error("fetchData debe recibir un array.");
+            const endpoints = this._normalizeEndpoints(requests);
+            const toFetch = ignoreCache
+                ? endpoints
+                : endpoints.filter(ep => !this.isLoaded(ep.key));
+            if (!toFetch.length) return;
+
+            try {
+                const responses = await Promise.all(
+                    toFetch.map(ep =>
+                        fetch(this.api + ep.url)
+                            .then(res => res.json())
+                            .then(data => ({ key: ep.key, data: data.data, url: ep.url }))
+                    )
+                );
+                responses.forEach(({ key, data, url }) => this.setData(key, data, url));
+            } catch (error) {
+                console.error('Error fetching endpoints:', error);
+            }
+        },
+
+        async fetchData(requests) {
+            await this._fetchEndpoints(requests, false);
+        },
+
+        async refresh(keys) {
+            if (!Array.isArray(keys)) keys = [keys];
+            const normalized = keys.map(item => {
+                if (typeof item === "string") {
+                    const url = this.getUrl(item);
+                    if (!url) {
+                        console.warn(`No URL found for key: ${item}. Skipping.`);
+                        return null;
+                    }
+                    return { key: item, url };
+                }
+                if (item && typeof item === "object" && item.key && item.url) {
+                    // Actualiza el url para el futuro
+                    this.setData(item.key, this.getData(item.key), item.url);
+                    return item;
+                }
+                console.warn("Elemento inválido en refresh:", item);
+                return null;
+            }).filter(Boolean);
+
+            await this._fetchEndpoints(normalized, true);
+        },
+
+        getById(key, id) {
+            return (this.getData(key) || []).find(item => item.id === id);
         },
 
         initSocket() {
@@ -190,6 +281,7 @@ document.addEventListener('alpine:init', () => {
                 this.socket = null;
             }
         },
+
         
     });
 });
@@ -279,12 +371,12 @@ async function loginVerify(context) {
 }
 
 document.addEventListener('pinecone-start', () => {
-    NProgress.start();
+    //NProgress.start();
 });
 
 document.addEventListener('pinecone-end', () => {
     Alpine.store('cache').setActivePage(window.location.pathname);
-    NProgress.done();
+    //NProgress.done();
 });
 
 document.addEventListener('fetch-error', (err) =>

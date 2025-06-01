@@ -20,46 +20,46 @@
 		</div>
 
 		<div class="board">
-			<template x-if="dashboard.length > 0">
-				<template x-for="group in dashboard" :key="group.status_id">
-					<div class="group"
-						@dragover="onDragOver($event, group.status_id)" 
-						@dragleave="onDragLeave($event)"
-						@drop="dropService(group.status_id)">
-						<div class="name">
-							<img width="20" height="20" :src="'/static/images/support/' + $store.cache.service_status?.[group.status_id].image" alt="">
-							<span x-text="$store.cache.service_status?.[group.status_id].name"></span>
-						</div>
-
-						<ul>
-							<template x-if="group.service_order.length > 0">
-								<template x-for="item in group.service_order" :key="item.order_number">
-									<li
-										:class="item.priority"
-										:draggable="editAllowed()"
-										@dragstart="dragService(item)"
-										@click="viewOrder(item.order_number)">
-										<div class="row">
-											<span class="order-number" x-text="`${item.method_letter}-${item.order_number}`"></span>
-											<div class="passed-days">
-												<!--<span class="updated-days" x-text="item.updated_days"></span>-->
-												<span class="register-day" x-text="item.register_days"></span>
-											</div>
-										</div>
-	
-										<div class="row">
-											<div>
-												<span class="machine" x-text="item.machine"></span>
-												<span class="admin-name" x-text="item.technician_name"></span>
-											</div>
-											<img width="48" height="48" :src="'/static/images/machines/'+item.machine_image" alt="">
-										</div>
-									</li>
-								</template>
-							</template>
-						</ul>
+			<template x-for="group in $store.cache.getData('support_dashboard')" :key="group.status_id">
+				<div class="group"
+					@dragover="onDragOver($event, group.status_id)" 
+					@dragleave="onDragLeave($event)"
+					@drop="dropService(group.status_id)">
+					<div class="name">
+						<img width="20" height="20"
+							:src="'/static/images/support/' + ($store.cache.getById('service_status', group.status_id)?.image || 'default.png')"
+							alt="">
+						<span x-text="$store.cache.getById('service_status', group.status_id)?.name || ''"></span>
 					</div>
-				</template>
+
+					<ul>
+						<template x-if="group.service_order.length > 0">
+							<template x-for="item in group.service_order" :key="item.order_number">
+								<li
+									:class="item.priority"
+									:draggable="editAllowed()"
+									@dragstart="dragService(item)"
+									@click="viewOrder(item.order_number)">
+									<div class="row">
+										<span class="order-number" x-text="`${item.method_letter}-${item.order_number}`"></span>
+										<div class="passed-days">
+											<!--<span class="updated-days" x-text="item.updated_days"></span>-->
+											<span class="register-day" x-text="item.register_days"></span>
+										</div>
+									</div>
+
+									<div class="row">
+										<div>
+											<span class="machine" x-text="item.machine"></span>
+											<span class="admin-name" x-text="item.technician_name"></span>
+										</div>
+										<img width="48" height="48" :src="'/static/images/machines/'+item.machine_image" alt="">
+									</div>
+								</li>
+							</template>
+						</template>
+					</ul>
+				</div>
 			</template>
 		</div>
 	</div>
@@ -77,13 +77,17 @@
 
 			<div class="update">
 				<div class="box">
-					<img width="20" height="20" :src="'/static/images/support/' + $store.cache.service_status?.[selected_service?.status_id]?.image" alt="from">
-					<span x-text="$store.cache.service_status?.[selected_service?.status_id]?.name"></span>
+					<img width="20" height="20"
+						:src="'/static/images/support/' + ($store.cache.getById('service_status', selected_service?.status_id)?.image)"
+						alt="from">
+					<span x-text="($store.cache.getById('service_status', selected_service?.status_id))?.name"></span>
 				</div>
 
 				<div class="box">
-					<img width="20" height="20" :src="'/static/images/support/' + $store.cache.service_status?.[selected_service?.status_id + 1]?.image" alt="to">
-					<span x-text="$store.cache.service_status?.[selected_service?.status_id + 1]?.name"></span>
+					<img width="20" height="20"
+						:src="'/static/images/support/' + ($store.cache.getById('service_status', selected_service?.status_id + 1)?.image)"
+						alt="to">
+					<span x-text="($store.cache.getById('service_status', selected_service?.status_id + 1))?.name"></span>
 				</div>
 				<img class="arrow" width="16" height="16" src="/static/images/arrownext.svg">
 			</div>
@@ -153,7 +157,7 @@
 				<div class="fields">
 					<label class="white">
 						<select x-model="service_order.method_id" @change="updateOrder('method_id')">
-							<template x-for="method in $store.cache.service_methods" :key="method.id">
+							<template x-for="method in $store.cache.getData('service_methods')" :key="method.id">
 								<option :value="method.id" x-text="method.name"></option>
 							</template>
 						</select>
@@ -161,7 +165,7 @@
 
 					<label class="white flex1-5">
 						<select x-model="service_order.technician_id" @change="updateOrder('technician_id')">
-							<template x-for="technician in $store.cache.technicians" :key="technician.id">
+							<template x-for="technician in $store.cache.getData('technicians')" :key="technician.id">
 								<option :value="technician.id" x-text="technician.name"></option>
 							</template>
 						</select>
@@ -169,7 +173,7 @@
 
 					<label class="white">
 						<select x-model="service_order.origin_id" @change="updateOrder('origin_id')">
-							<template x-for="origin in $store.cache.service_origin" :key="origin.id">
+							<template x-for="origin in $store.cache.getData('service_origin')" :key="origin.id">
 								<option :value="origin.id" x-text="origin.name"></option>
 							</template>
 						</select>
@@ -180,11 +184,11 @@
 			<div class="history">
 				<template x-for="history in service_order?.history" :key="history.status_id">
 					<div class="row">
-						<img width="20" height="20" :src="'/static/images/support/' + $store.cache.service_status?.[history.status_id].image" alt="">
+						<img width="20" height="20" :src="'/static/images/support/' + $store.cache.getById('service_status', history.status_id)?.image" alt="">
 
 						<div class="left">
 							<div class="head">
-								<span class="name" x-text="$store.cache.service_status?.[history.status_id].name"></span>
+								<span class="name" x-text="$store.cache.getById('service_status', history.status_id)?.name"></span>
 								<div class="right">
 									<!--<span class="admin" x-text="history.user_name"></span>-->
 									<span class="date" x-text="history.register_at"></span>
@@ -216,11 +220,11 @@
 			<div class="fields">
 				<label class="white">
 					<select x-model="process_service.method_id">
-						<template x-if="$store.cache.service_methods?.length !== 1">
+						<template x-if="$store.cache.getData('service_methods')?.length !== 1">
 							<option value="">Tipo</option>
 						</template>
 
-						<template x-for="method in $store.cache.service_methods" :key="method.id">
+						<template x-for="method in $store.cache.getData('service_methods')" :key="method.id">
 							<option :value="method.id" x-text="method.name"></option>
 						</template>
 					</select>
@@ -279,7 +283,7 @@
 				<label class="white">
 					
 					<select x-model="process_service.origin_id">
-						<template x-for="origin in $store.cache.service_origin" :key="origin.id">
+						<template x-for="origin in $store.cache.getData('service_origin')" :key="origin.id">
 							<option :value="origin.id" x-text="origin.name"></option>
 						</template>
 					</select>
@@ -410,42 +414,18 @@
 				if (socket) {
 					socket.off("support_dashboard_update");
 					socket.on("support_dashboard_update", async () => {
-						await this.getDashboard();
+						await Alpine.store('cache').refresh('support_dashboard');
 					});
-				}
+				}	
 
-				// Load data
-				const fetchDataIfNeeded = !Alpine.store('cache').isLoaded('service_status') ? this.fetchData() : Promise.resolve();
-				await Promise.all([fetchDataIfNeeded, this.getDashboard()]);
+				await Alpine.store('cache').fetchData([
+					{ key: 'support_dashboard', url: `/support/dashboard?user_id=${Alpine.store('cache').user.id}` },
+					{ key: 'service_methods', url: '/general/service_methods' },
+					{ key: 'service_status', url: '/general/service_status' },
+					{ key: 'service_origin', url: '/general/service_origin' },
+					{ key: 'technicians', url: '/general/technicians' },
+				]);
 
-			},
-
-			async fetchData() {
-				try {
-					console.log('Obteniendo datos desde API');
-					
-					const endpoints = [
-						{ url: '/general/service_status', key: 'service_status' },
-						{ url: '/general/service_methods', key: 'service_methods' },
-						{ url: '/general/service_origin', key: 'service_origin' },
-						{ url: '/general/technicians', key: 'technicians' },
-					];
-
-					const responses = await Promise.all(
-						endpoints.map(ep => 
-							fetch(Alpine.store('cache').api + ep.url)
-								.then(res => res.json())
-								.then(data => ({ key: ep.key, data: data.data }))
-						)
-					);
-
-					responses.forEach(({ key, data }) => {
-						Alpine.store('cache').setData(key, data);
-					});
-
-				} catch (error) {
-					console.error('Error fetching data:', error);
-				}
 			},
 
 			async getMachine() {
@@ -567,16 +547,6 @@
                 this.process_service = {};
             },
 
-			async getDashboard() {
-				try {
-					const response = await fetch(Alpine.store('cache').api + `/support/dashboard?user_id=${Alpine.store('cache').user.id}`);
-					const data = await response.json();
-					this.dashboard = data.data || [];
-				} catch (error) {
-					console.error('Error fetching dashboard', error);
-				}
-			},
-			
 			dragService(service) {
 				this.selected_service = service;
 			},

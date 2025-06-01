@@ -251,7 +251,8 @@ class LogisticService:
         if update_status != 200:
             return update_shipping, update_status
         
-        socketio.emit("update_dashboard", {})
+        socketio.emit("logistics_update_dashboard", {})
+        socketio.emit("logistics_update_driver", {})
 
         history, history_status = self.logistic_repository.add_shipping_history(user_id, shipping_order_id, HistoryType.STATUS_CHANGE, status, data=update_shipping)
         if history_status != 200:
@@ -289,7 +290,8 @@ class LogisticService:
             return client, client_status
         self.client_repository.update_client(client, client_data)
 
-        socketio.emit("update_dashboard", {})
+        socketio.emit("logistics_update_dashboard", {})
+        socketio.emit("logistics_update_driver", {})
 
         history, history_status = self.logistic_repository.add_shipping_history(user_id, shipping_order_id, HistoryType.UPDATED, data=update_shipping)
         if history_status != 200:
@@ -376,7 +378,8 @@ class LogisticService:
         if shipping_order_status != 200:
             return shipping_order_id, shipping_order_status
 
-        socketio.emit("update_dashboard", {})
+        socketio.emit("logistics_update_dashboard", {})
+        socketio.emit("logistics_update_driver", {})
         history, history_status = self.logistic_repository.add_shipping_history(user_id, shipping_order_id, HistoryType.ADDED, ShippingStatusList.PENDING, data=data)
         if history_status != 200:
             return history, history_status
@@ -391,7 +394,8 @@ class LogisticService:
         if delete_shipping_status != 200:
             return delete_shipping, delete_shipping_status
         
-        socketio.emit("update_dashboard", {})
+        socketio.emit("logistics_update_dashboard", {})
+        socketio.emit("logistics_update_driver", {})
         history, history_status = self.logistic_repository.add_shipping_history(user_id, shipping_order_id, HistoryType.DELETED)
         if history_status != 200:
             return history, history_status
@@ -440,8 +444,8 @@ class LogisticService:
         if update_status != 200:
             return update_shipping, update_status
         
-        socketio.emit("update_dashboard", {})
-
+        socketio.emit("logistics_update_dashboard", {})
+        socketio.emit("logistics_update_driver", {})
         history, history_status = self.logistic_repository.add_shipping_history(user_id, shipping_order_id, HistoryType.UPDATED, data=update_shipping)
         if history_status != 200:
             return history, history_status

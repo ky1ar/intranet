@@ -15,13 +15,14 @@ class GeneralService:
         if service_order_status != 200:
             return service_status, service_order_status
         
-        result = {
-            status.id: {
+        result = [
+            {
+                "id": status.id,
                 "name": status.name,
                 "image": status.image,
             }
             for status in service_status
-        }
+        ]
         return result, 200
     
 

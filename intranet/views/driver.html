@@ -9,7 +9,7 @@
 				<div class="button white hover-opacity" @click="prev">
 					<img alt="prev" src="/static/images/arrow.svg" width="16" height="16">
 				</div>
-				<div class="button white middle hover-opacity" @click="today" x-text="schedule.day_name">Hoy</div>
+				<div class="button white middle hover-opacity" @click="today" x-text="$store.cache.getData('logistics_driver')?.day_name">Hoy</div>
 				<div class="button white hover-opacity" @click="next">
 					<img alt="next" src="/static/images/arrow.svg" width="16" height="16">
 				</div>
@@ -20,8 +20,8 @@
 					<div class="day-container">
 						<template x-for="schedule_index in [1, 2]" :key="schedule_index">
 							<div class="order-container">
-								<template x-if="schedule.orders && schedule.orders['schedule_' + schedule_index]?.length > 0">
-									<template x-for="shipping in schedule.orders['schedule_' + schedule_index]" :key="shipping.order_number">
+								<template x-if="$store.cache.getData('logistics_driver')?.orders && $store.cache.getData('logistics_driver')?.orders['schedule_' + schedule_index]?.length > 0">
+									<template x-for="shipping in $store.cache.getData('logistics_driver')?.orders['schedule_' + schedule_index]" :key="shipping.order_number">
 										<div class="item-card"
 											:style="`background-color: ${shipping.method_background}; border: 2px solid ${shipping.method_border}`"
 											@click="processShippingModal(shipping.shipping_order_id)"
@@ -201,27 +201,16 @@
                 // Socket
 				const socket = Alpine.store('cache').socket;
                 if (socket) {
-					socket.off("update_dashboard");
-					socket.on("update_dashboard", async () => {
-						await this.getDashboard();
+					socket.off("logistics_update_driver");
+					socket.on("logistics_update_driver", async () => {
+						await Alpine.store('cache').refresh('logistics_driver');
 					});
 				}
 
-				// Load data
-				await this.getDashboard();
-			},
+				await Alpine.store('cache').fetchData([
+					{ key: 'logistics_driver', url: `/logistic/dashboard/day?offset=${this.offset}` },
+				]);
 
-			async getDashboard() {
-				NProgress.start();
-
-				try {
-					const scheduleRes = await fetch(Alpine.store('cache').api + `/logistic/dashboard/day?offset=${this.offset}`).then(res => res.json());
-					this.schedule = scheduleRes.data || [];
-				} catch (error) {
-					console.error('Error fetching schedule', error);
-				} finally {
-                    NProgress.done();
-                }
 			},
 
 			resetOrder() {
@@ -265,20 +254,23 @@
 
 			async next() {
 				this.offset++;
-				await this.getDashboard();
+				await Alpine.store('cache').refresh([
+					{ key: 'logistics_driver', url: `/logistic/dashboard/day?offset=${this.offset}` }
+				]);
 			},
 
 			async prev() {
 				this.offset--;
-				await this.getDashboard();
+				await Alpine.store('cache').refresh([
+					{ key: 'logistics_driver', url: `/logistic/dashboard/day?offset=${this.offset}` }
+				]);
 			},
 
 			async today() {
-				if (this.offset == 0) {
-					return;
-				}
 				this.offset = 0;
-				await this.getDashboard();
+				await Alpine.store('cache').refresh([
+					{ key: 'logistics_driver', url: `/logistic/dashboard/day` }
+				]);
 			},
 
 			async onTheWay(){

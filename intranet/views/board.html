@@ -2,7 +2,7 @@
 	<div id="board">
 		<div class="header">
 			<div class="thumbs">
-				<template x-for="users in $store.cache.team" :key="users.id">
+				<template x-for="users in $store.cache.getData('user_team')" :key="users.id">
 					<img
 						class="hover-opacity"
 						width="40" height="40"
@@ -17,14 +17,13 @@
 		</div>
 
 		<div class="board">
-			<template x-for="group in board" :key="group.status_id">
+			<template x-for="group in $store.cache.getData('board_dashboard')" :key="group.status_id">
 				<div class="group"
 					@dragover="onDragOver($event, group.status_id)" 
 					@dragleave="onDragLeave($event)"
 					@drop="dropService($event, group.status_id)">
 					<div class="name">
-						<!--<img width="20" height="20" :src="'/static/images/icons/' + $store.cache.statuses?.[group.status_id-1].image" alt="">-->
-						<span x-text="$store.cache.statuses?.[group.status_id-1].name"></span>
+						<span x-text="$store.cache.getById('board_statuses', group.status_id)?.name"></span>
 					</div>
 
 					<ul>
@@ -47,7 +46,7 @@
 											<span class="id" x-text="issue.created_at"></span>
 										</div>
 										<div class="right">
-											<img width="16" height="16" :src="'/static/images/icons/' + $store.cache.priority?.[issue.priority_id-1].image" alt="users">
+											<img width="16" height="16" :src="'/static/images/icons/' + $store.cache.getById('board_priority', issue.priority_id-1)?.image" alt="users">
 											<img class="thumb" width="24" height="24" :src="'/static/images/uploads/users/'+issue.assignee_image" :title="issue.assignee_name">
 										</div>
 									</div>
@@ -84,7 +83,7 @@
 						</div>
 
 						<div x-show="option_priority_active" x-transition.duration.300ms @click.outside="hidePriorityOption()" class="select_options">
-							<template x-for="priority in $store.cache.priority" :key="priority.id">
+							<template x-for="priority in $store.cache.getData('board_priority')" :key="priority.id">
 								<div class="option" @click="option_priority = priority; hidePriorityOption()">
 									<img width="16" height="16" :src="'/static/images/icons/' + priority.image" alt="priority">
 									<span x-text="'Prioridad ' + priority.name"></span>
@@ -101,7 +100,7 @@
 						</div>
 
 						<div x-show="option_user_active" x-transition.duration.300ms @click.outside="hideUserOption()" class="select_options">
-							<template x-for="user in $store.cache.team" :key="user.id">
+							<template x-for="user in $store.cache.getData('user_team')" :key="user.id">
                                 <div 
                                     class="option" 
                                     :class="{ 'pick': option_user?.id === user.id }" 
@@ -146,7 +145,7 @@
 						</div>
 
 						<div x-show="option_priority_active" x-transition.duration.300ms @click.outside="hidePriorityOption()" class="select_options">
-							<template x-for="priority in $store.cache.priority" :key="priority.id">
+							<template x-for="priority in $store.cache.getData('board_priority')" :key="priority.id">
 								<div class="option" @click="option_priority = priority; hidePriorityOption()">
 									<img width="16" height="16" :src="'/static/images/icons/' + priority.image" alt="priority">
 									<span x-text="'Prioridad ' + priority.name"></span>
@@ -167,7 +166,7 @@
                         </div>
 
 						<div x-show="option_user_active" x-transition.duration.300ms @click.outside="hideUserOption()" class="select_options">
-							<template x-for="user in $store.cache.team" :key="user.id">
+							<template x-for="user in $store.cache.getData('user_team')" :key="user.id">
 								<div 
                                     class="option" 
                                     :class="{ 'pick': option_user?.id === user.id }" 
@@ -235,25 +234,26 @@
 			async init() {
 				console.log('Inicializando board...');
 
-                // Socket
                 const socket = Alpine.store('cache').socket;
 				if (socket) {
 					socket.off("update_board");
 					socket.on("update_board", async () => {
-                        console.log('update_board')
-						await this.getBoard();
+						await Alpine.store('cache').refresh('board_dashboard');
 					});
 				}
 
-                const fetchDataIfNeeded = !Alpine.store('cache').isLoaded('team') ? this.fetchData() : Promise.resolve();
-				await Promise.all([fetchDataIfNeeded, this.getBoard()]);
+				await Alpine.store('cache').fetchData([
+					{ key: 'board_dashboard', url: `/board/dashboard/${Alpine.store('cache').user.department_id}` },
+					{ key: 'board_statuses', url: '/general/board_statuses' },
+					{ key: 'board_priority', url: '/general/board_priority' },
+					{ key: 'user_team', url: `/user/team/${Alpine.store('cache').user.id}` },
+				]);
 
-				//this.add_issue.priority_id = 3;
 			},
 
 			addIssueModal() {
 				this.option_user = null;
-				this.option_priority = Alpine.store('cache').priority.find(u => u.id === 3);
+				this.option_priority = Alpine.store('cache').getById('board_priority', 3);
 				Alpine.store('cache').showModal('add');
 			},
 			
@@ -380,8 +380,8 @@
 					const response = await fetch(Alpine.store('cache').api + `/board/issue/id/${issue_id}`);
 					const data = await response.json();
 					this.view_issue = data.data;
-					this.option_user = Alpine.store('cache').team.find(u => u.id === data.data.assignee_id);
-					this.option_priority = Alpine.store('cache').priority.find(u => u.id === data.data.priority_id);
+					this.option_user = Alpine.store('cache').getById('user_team', data.data.assignee_id);
+					this.option_priority = Alpine.store('cache').getById('board_priority', data.data.priority_id);
 					Alpine.store('cache').showModal('view');
 				} catch (error) {
 					console.error('Error en la asignación:', error);
@@ -473,7 +473,6 @@
 					}
 					
 					this.selected_issue = null;
-					//await this.getBoard();
 
 				} catch (error) {
 					console.error('Error en la asignación:', error);
@@ -489,37 +488,7 @@
 					origin: { y: 0.6 }
 				});
 			},
-
-			async fetchData() {
-				try {
-					const [statuses, priority, team] = await Promise.all([
-						fetch(Alpine.store('cache').api + '/general/board_statuses').then(res => res.json()),
-						fetch(Alpine.store('cache').api + '/general/board_priority').then(res => res.json()),
-						fetch(Alpine.store('cache').api + `/user/team/${Alpine.store('cache').user.id}`).then(res => res.json()),
-					]);
-					/*const users = userListRes.data;
-					users.unshift({
-						id: 0,
-						name: 'No asignado',
-						image: 'user_default.jpg'
-					});*/
-					Alpine.store('cache').setData('statuses', statuses.data);
-					Alpine.store('cache').setData('priority', priority.data);
-					Alpine.store('cache').setData('team', team.data);
-				} catch (error) {
-					console.error('Error fetching data:', error);
-				}
-			},
-
-			async getBoard() {
-				try {
-					const response = await fetch(Alpine.store('cache').api + `/board/dashboard/${Alpine.store('cache').user.department_id}`);
-					const data = await response.json();
-					this.board = data.data || [];
-				} catch (error) {
-					console.error('Error fetching board', error);
-				}
-			},
+			
 		}));
 	</script>
 	

@@ -10,11 +10,11 @@
 		</div>
 
 		<div class="container-tracking main glass">
-			<template x-for="group in dashboard" :key="group.status_id">
+			<template x-for="group in $store.cache.getData('tracking_dashboard')" :key="group.status_id">
 				<div class="group">
 					<div class="name">
-						<img width="20" height="20" :src="'/static/images/tracking/' + $store.cache.tracking_status?.[group.status_id - 1].image" alt="">
-						<span x-text="$store.cache.tracking_status?.[group.status_id - 1].name"></span>
+						<img width="20" height="20" :src="'/static/images/tracking/' + $store.cache.getById('tracking_status', group.status_id)?.image" alt="">
+						<span x-text="$store.cache.getById('tracking_status', group.status_id)?.name"></span>
 					</div>
 
 					<ul>
@@ -23,7 +23,7 @@
 								<li class="white" @click="viewOrder(item.id)">
 									<div class="row">
 										<span class="order-number" x-text="item.order_number"></span>
-										<img width="72" height="16" :src="'/static/images/tracking/' + $store.cache.tracking_agencies?.[item.agency_id - 1].icon" alt="">
+										<img width="72" height="16" :src="'/static/images/tracking/' + $store.cache.getById('tracking_agencies', item.agency_id)?.icon" alt="">
 									</div>
 
 									<div class="row">
@@ -243,7 +243,7 @@
 			<div class="top">
 				<span class="order" x-text="tracking_order.order_number"></span>
 				<div class="code3" x-show="tracking_order.code3" x-text="'Clave de recojo: ' +tracking_order.code3"></div>
-				<img class="agency" width="80" height="22" :src="'/static/images/tracking/' + $store.cache.tracking_agencies?.[tracking_order.agency_id - 1]?.icon" alt="">
+				<img class="agency" width="80" height="22" :src="'/static/images/tracking/' + $store.cache.getById('tracking_agencies', tracking_order.agency_id)?.icon" alt="">
 			</div>
 
 			<div class="content">
@@ -338,40 +338,18 @@
 				if (socket) {
 					socket.off("update_tracking_orders");
 					socket.on("update_tracking_orders", async () => {
-						await this.getDashboard();
+						await Alpine.store('cache').refresh('tracking_dashboard');
 					});
 				}
 
-				// Load data
-				const fetchDataIfNeeded = !Alpine.store('cache').isLoaded('tracking_status') ? this.fetchData() : Promise.resolve();
-				await Promise.all([fetchDataIfNeeded, this.getDashboard()]);
+				await Alpine.store('cache').fetchData([
+					{ key: 'tracking_dashboard', url: `/tracking/dashboard` },
+					{ key: 'tracking_status', url: '/general/tracking_status' },
+					{ key: 'tracking_agencies', url: '/general/tracking_agencies' },
+				]);
+
 			},
 
-			async fetchData() {
-				try {
-					console.log('Obteniendo datos desde API');
-					
-					const endpoints = [
-						{ url: '/general/tracking_status', key: 'tracking_status' },
-						{ url: '/general/tracking_agencies', key: 'tracking_agencies' },
-					];
-
-					const responses = await Promise.all(
-						endpoints.map(ep => 
-							fetch(Alpine.store('cache').api + ep.url)
-								.then(res => res.json())
-								.then(data => ({ key: ep.key, data: data.data }))
-						)
-					);
-
-					responses.forEach(({ key, data }) => {
-						Alpine.store('cache').setData(key, data);
-					});
-
-				} catch (error) {
-					console.error('Error fetching data:', error);
-				}
-			},
 
 			async viewOrder(order_id) {
 				NProgress.start();
@@ -637,36 +615,6 @@
                     this.buttons[btnKey].class = originalClass;
                 }, 1000);
             },
-			
-			async getDashboard() {
-				try {
-					const response = await fetch(Alpine.store('cache').api + '/tracking/dashboard');
-					const data = await response.json();
-					this.dashboard = data.data || [];
-				} catch (error) {
-					console.error('Error fetching dashboard', error);
-				}
-			},
-
-			/*async getDashboard() {
-				try {
-					const response = await fetch(Alpine.store('cache').api + "/tracking/dashboard", {
-						method: "POST",
-						headers: {
-							"Content-Type": "application/json",
-						},
-						body: JSON.stringify({})
-					});
-					const result = await response.json(); 
-					const data = result.data;
-
-					this.orders.agencia = data.filter(order => order.last_status_id === 1);
-					this.orders.ruta = data.filter(order => order.last_status_id === 2);
-					this.orders.entregado = data.filter(order => order.last_status_id === 3);
-				} catch (error) {
-					console.error("Error al cargar las órdenes:", error);
-				}
-			},*/
 
 			addTracking() {
 				Alpine.store('cache').showModal('add');
