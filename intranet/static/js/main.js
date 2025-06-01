@@ -11,7 +11,7 @@ document.addEventListener('alpine:init', () => {
         init() {
             console.log('Inicializando Alpine...');
 
-            let token = Alpine.store('cache').user.token;
+            const token = Alpine.store('cache').user.token;
             const storedData = localStorage.getItem('user_data');
             if (!token) {
                 console.log('Ventana reiniciada...');
@@ -282,6 +282,38 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        async verify() {
+            try {
+                const response = await fetch(this.api + '/user/verify', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${this.user.token}`,
+                    },
+                });
+
+                if (!response.ok) {
+                    console.error('Error en la verificación del usuario', response.statusText);
+                    await this.logout();
+                    return false;
+                }
+
+                const result = await response.json();
+                const serverVersion = result.app_version;
+                const localVersion = localStorage.getItem('app_version');
+
+                if (localVersion !== serverVersion) {
+                    localStorage.setItem('app_version', serverVersion);
+                    window.location.reload();
+                    return;
+                } 
+                return true;
+
+            } catch (error) {
+                console.error('Error en la verificación del usuario:', error);
+                await this.logout();
+                return false;
+            }
+        },
         
     });
 });

@@ -402,6 +402,8 @@
 					this.processShippingModal(external_view_id);
 					Alpine.store('cache').client_order_id = null;
 				}
+				
+				await Alpine.store('cache').verify();
 			},
 
 			editAllowed() {

@@ -426,6 +426,8 @@
 					{ key: 'technicians', url: '/general/technicians' },
 				]);
 
+				await Alpine.store('cache').verify();
+
 			},
 
 			async getMachine() {

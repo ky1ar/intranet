@@ -249,6 +249,7 @@
 					{ key: 'user_team', url: `/user/team/${Alpine.store('cache').user.id}` },
 				]);
 
+				await Alpine.store('cache').verify();
 			},
 
 			addIssueModal() {

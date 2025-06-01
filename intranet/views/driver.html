@@ -211,6 +211,8 @@
 					{ key: 'logistics_driver', url: `/logistic/dashboard/day?offset=${this.offset}` },
 				]);
 
+				await Alpine.store('cache').verify();
+
 			},
 
 			resetOrder() {
