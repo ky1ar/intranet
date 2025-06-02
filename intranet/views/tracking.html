@@ -336,18 +336,17 @@
 
 				const socket = Alpine.store('cache').socket;
 				if (socket) {
-					socket.off("update_tracking_orders");
+					socket.removeAllListeners();
 					socket.on("update_tracking_orders", async () => {
 						await Alpine.store('cache').refresh('tracking_dashboard');
 					});
 				}
 
 				await Alpine.store('cache').fetchData([
-					{ key: 'tracking_dashboard', url: `/tracking/dashboard` },
+					{ key: 'tracking_dashboard', url: `/tracking/dashboard`, force: true },
 					{ key: 'tracking_status', url: '/general/tracking_status' },
 					{ key: 'tracking_agencies', url: '/general/tracking_agencies' },
 				]);
-
 				await Alpine.store('cache').verify();
 			},
 

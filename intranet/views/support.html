@@ -412,14 +412,14 @@
                 // Socket
                 const socket = Alpine.store('cache').socket;
 				if (socket) {
-					socket.off("support_dashboard_update");
+					socket.removeAllListeners();
 					socket.on("support_dashboard_update", async () => {
 						await Alpine.store('cache').refresh('support_dashboard');
 					});
 				}	
 
 				await Alpine.store('cache').fetchData([
-					{ key: 'support_dashboard', url: `/support/dashboard?user_id=${Alpine.store('cache').user.id}` },
+					{ key: 'support_dashboard', url: `/support/dashboard?user_id=${Alpine.store('cache').user.id}`, force: true },
 					{ key: 'service_methods', url: '/general/service_methods' },
 					{ key: 'service_status', url: '/general/service_status' },
 					{ key: 'service_origin', url: '/general/service_origin' },

@@ -201,14 +201,14 @@
                 // Socket
 				const socket = Alpine.store('cache').socket;
                 if (socket) {
-					socket.off("logistics_update_driver");
+					socket.removeAllListeners();
 					socket.on("logistics_update_driver", async () => {
 						await Alpine.store('cache').refresh('logistics_driver');
 					});
 				}
 
 				await Alpine.store('cache').fetchData([
-					{ key: 'logistics_driver', url: `/logistic/dashboard/day?offset=${this.offset}` },
+					{ key: 'logistics_driver', url: `/logistic/dashboard/day?offset=${this.offset}`, force: true },
 				]);
 
 				await Alpine.store('cache').verify();

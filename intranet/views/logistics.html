@@ -381,15 +381,15 @@
 				// Socket
                 const socket = Alpine.store('cache').socket;
 				if (socket) {
-					socket.off("logistics_update_dashboard");
+					socket.removeAllListeners();
 					socket.on("logistics_update_dashboard", async () => {
 						await Alpine.store('cache').refresh(['logistics_dashboard', 'logistics_pendings']);
 					});
 				}
 
 				await Alpine.store('cache').fetchData([
-					{ key: 'logistics_dashboard', url: `/logistic/dashboard/week?offset=${this.offset}` },
-					{ key: 'logistics_pendings', url: '/logistic/pending' },
+					{ key: 'logistics_dashboard', url: `/logistic/dashboard/week?offset=${this.offset}`, force: true },
+					{ key: 'logistics_pendings', url: '/logistic/pending', force: true },
 					{ key: 'drivers', url: '/general/drivers' },
 					{ key: 'vendors', url: '/general/vendors' },
 					{ key: 'districts', url: '/general/districts' },

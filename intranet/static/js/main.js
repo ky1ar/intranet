@@ -190,10 +190,10 @@ document.addEventListener('alpine:init', () => {
                         console.warn(`No URL found for key: ${item}. Skipping.`);
                         return null;
                     }
-                    return { key: item, url };
+                    return { key: item, url, force: false };
                 }
                 if (item && typeof item === "object" && item.key && item.url) {
-                    return item;
+                    return { ...item, force: !!item.force };
                 }
                 console.warn("Elemento inválido en fetchData/refresh:", item);
                 return null;
@@ -203,9 +203,11 @@ document.addEventListener('alpine:init', () => {
         async _fetchEndpoints(requests, ignoreCache = false) {
             if (!Array.isArray(requests)) throw new Error("fetchData debe recibir un array.");
             const endpoints = this._normalizeEndpoints(requests);
-            const toFetch = ignoreCache
-                ? endpoints
-                : endpoints.filter(ep => !this.isLoaded(ep.key));
+
+            const toFetch = endpoints.filter(ep => 
+                ignoreCache || ep.force || !this.isLoaded(ep.key)
+            );
+
             if (!toFetch.length) return;
 
             try {

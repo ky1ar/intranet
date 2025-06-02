@@ -236,14 +236,14 @@
 
                 const socket = Alpine.store('cache').socket;
 				if (socket) {
-					socket.off("update_board");
+					socket.removeAllListeners();
 					socket.on("update_board", async () => {
 						await Alpine.store('cache').refresh('board_dashboard');
 					});
 				}
 
 				await Alpine.store('cache').fetchData([
-					{ key: 'board_dashboard', url: `/board/dashboard/${Alpine.store('cache').user.department_id}` },
+					{ key: 'board_dashboard', url: `/board/dashboard/${Alpine.store('cache').user.department_id}`, force: true },
 					{ key: 'board_statuses', url: '/general/board_statuses' },
 					{ key: 'board_priority', url: '/general/board_priority' },
 					{ key: 'user_team', url: `/user/team/${Alpine.store('cache').user.id}` },
