@@ -292,9 +292,124 @@
         <div x-show="currentStep == 'success'" class="content">
             <div class="top">
                 <img alt="user" :src="bot_image" width="80" height="80">
-                <h1>¡Gracias! He registrado tu orden</h1>
-                <p>Te he enviado un mensaje con los datos que ingresaste.</p>
+                <h1>¡Registrado, todo listo para enviar!</h1>
+                <p>Imprime o copia esta etiqueta y pégala en tu paquete.</p>
+
+                <template x-if="service_order.origin == 2">
+                    <p class="alert">Importante: Solo se recogerán envíos pagados y a las agencias indicadas, de lo contrario se tendrá que cancelar S/ 25.00 adicionales para el traslado desde la agencia de destino hacia el taller de soporte.</p>
+                </template>
+                <template x-if="service_order.origin == 2">
+                    <span class="key glass2">🔐 Clave 2468</span>
+                </template>
+
             </div>
+            <div class="bottom">
+                <div class="card" id="shipping-label-export" style="background-color: white; padding: 1rem;">
+                    <div class="shipping-label" style=" border: dashed 2px var(--graydarkest); border-radius: 0.5rem; padding: 1.5rem; text-align: left; display: flex; flex-direction: column; gap: 1.5rem;">
+                        <div class="block" style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <h2 style="font-size: 1.125rem; font-weight: 600; color: var(--primary); margin: 0;">Remitente</h2>
+                            <div class="data" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                <div class="line" style="display: flex; flex-direction: column;">
+                                     <strong>Nombres y apellidos:</strong>
+                                     <span x-text="service_order.name"></span>
+                                </div>
+                                <div class="group" style="display: flex; justify-content: space-between;">
+                                    <div class="line" style="display: flex; flex-direction: column;">
+                                        <strong>DNI/RUC:</strong>
+                                        <span x-text="service_order.document"></span>
+                                    </div>
+                                    <div class="line" style="display: flex; flex-direction: column;">
+                                        <strong>Celular:</strong>
+                                        <span x-text="service_order.phone"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="divider" style="border-top: dashed 2px var(--gray);"></div>
+
+                        <template x-if="service_order.origin == 1">
+                            <div class="block" style="display: flex; flex-direction: column; gap: 0.25rem;">
+                                <h2 style="font-size: 1.125rem; font-weight: 600; color: var(--primary); margin: 0;">Destinatario</h2>
+                                <div class="data" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                    <div class="group" style="display: flex; justify-content: space-between;">
+                                        <div class="line" style="display: flex; flex-direction: column;">
+                                            <strong>Nombres y apellidos:</strong>
+                                            <span>Marlon Trejo Jara</span>
+                                        </div>
+                                        <div class="line" style="display: flex; flex-direction: column;">
+                                            <strong>DNI:</strong>
+                                            <span>48832468</span>
+                                        </div>
+                                    </div>
+                                     <div class="line" style="display: flex; flex-direction: column;">
+                                        <strong>Dirección:</strong>
+                                        <span>Calle Javier Fernández 262 Miraflores, Lima</span>
+                                    </div>
+                                    <div class="line" style="display: flex; flex-direction: column;">
+                                        <strong>Horario:</strong>
+                                        <span>Lunes a Sábado 9:00am a 7:00pm</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <template x-if="service_order.origin == 2">
+                            <div class="block" style="display: flex; flex-direction: column; gap: 0.25rem;">
+                                <h2 style="font-size: 1.125rem; font-weight: 600; color: var(--primary); margin: 0;">Destinatario</h2>
+                                <div class="data" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                    <div class="group" style="display: flex; justify-content: space-between;">
+                                        <div class="line" style="display: flex; flex-direction: column;">
+                                            <strong>Nombres y apellidos:</strong>
+                                            <span>
+                                                Marlon Trejo Jara<br>
+                                                Alfredo Garate Mendoza
+                                            </span>
+                                        </div>
+                                        <div class="line" style="display: flex; flex-direction: column;">
+                                            <strong>DNI:</strong>
+                                            <span>
+                                                48832468<br>
+                                                73023671
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="line" style="display: flex; flex-direction: column;">
+                                        <strong>Agencias de recepción:</strong>
+                                        <span>
+                                            Shalom Lima - Santiago de Surco - Higuereta<br>
+                                            Shalom Lima - Surquillo - República de Panamá
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <div class="divider" style="border-top: dashed 2px var(--gray);"></div>
+
+                        <div class="block" style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <h2 style="font-size: 1.125rem; font-weight: 600; color: var(--primary); margin: 0;">Detalles del envío</h2>
+                            <div class="data" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                <div class="group" style="display: flex; justify-content: space-between;">
+                                    <div class="line" style="display: flex; flex-direction: column;">
+                                        <strong>Equipo:</strong>
+                                        <span x-text="service_order.machine"></span>
+                                    </div>
+                                    <div class="line" style="display: flex; flex-direction: column;">
+                                        <strong>N° de Orden:</strong>
+                                        <span x-text="assigned_number"></span>
+                                    </div>
+                                </div>
+                                <div class="line" style="display: flex; flex-direction: column;">
+                                    <strong>Accesorios:</strong>
+                                    <span x-html="getAccessoriesHtml()"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="button hover-opacity" @click="downloadLabelPDF()">Descargar PDF</button>
         </div>
     </div>
     
@@ -344,6 +459,18 @@
             termsScrolledToBottom: false,
             signaturePad: null,
             api: Alpine.store('cache').api,
+
+            downloadLabelPDF() {
+                const element = document.getElementById('shipping-label-export');
+                const opt = {
+                    margin:       0.5,
+                    filename:     'rotulo_envio.pdf',
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2 },
+                    jsPDF:        { unit: 'in', format: 'A5', orientation: 'portrait' }
+                };
+                html2pdf().set(opt).from(element).save();
+            },
 
             next() {
                 const nextStep = this.step_flow[this.currentStep]?.next;
@@ -434,6 +561,12 @@
 
                 const lines = this.accessories.map(item => `- ${item}`);
                 return 'Accesorios:\n' + lines.join('\n');
+            },
+            getAccessoriesHtml() {
+                if (!this.accessories.length) return '';
+
+                const lines = this.accessories.map(item => `- ${item}`);
+                return lines.join('<br>');
             },
 
             validateDocument() {
@@ -527,6 +660,7 @@
                     const jsonData = await response.json();
                     if (!response.ok) window.PineconeRouter.context.navigate("/");
                     
+                    this.assigned_number = jsonData.data.order_number;
                     this.next();
 
                 } catch (error) {
@@ -624,6 +758,19 @@
         #guest .content .top p {
             margin: 0;
             font-size: 1rem;
+        }
+        #guest .content .top .alert {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: var(--primary);
+        }
+        #guest .content .top .key {
+            margin: auto;
+            padding: 0.5rem 1.25rem;
+            font-size: 1rem;
+            border-radius: 2rem;
+            margin-top: 1.5rem;
+            font-weight: 500;
         }
         #guest .content .bottom {
             display: flex;
@@ -875,6 +1022,22 @@
             left: 0;
             top: 6px;
             border-radius: 0.125rem;
+        }
+        #guest .content .shipping-label .divider {
+            border-top: dashed 2px var(--gray);
+        }
+        #guest .content .shipping-label .data {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        #guest .content .shipping-label .group {
+            display: flex;
+            justify-content: space-between;
+        }
+        #guest .content .shipping-label .line {
+            display: flex;
+            flex-direction: column;
         }
         /****************************************************	48rem	768px	 ***************************************************/ 
         @media only screen and (max-width: 48rem) {

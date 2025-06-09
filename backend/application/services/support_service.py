@@ -539,7 +539,7 @@ class SupportService:
             return update_link, update_link_status
         
         socketio.emit("support_link_update", {})
-        return "Orden registrada correctamente", 200
+        return {"order_number": order_number}, 200
     
 
     @handle_exceptions
