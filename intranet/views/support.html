@@ -489,10 +489,10 @@
 									<td>
 										<template x-if="link.order_number == '-' && link.status_id < 3">
 											<div class="controlls">
-												<div class="action hover-opacity" @click="navigator.clipboard.writeText(link.url)">
+												<div class="action hover-opacity" title="Copiar" @click="navigator.clipboard.writeText(link.url)">
 													<img alt="icon" src="/static/images/icons/copy.svg" width="16" height="16">
 												</div>
-												<div class="action hover-opacity" @click="deleteLink(link.id)">
+												<div class="action hover-opacity" title="Eliminar" @click="deleteLink(link.id)">
 													<img alt="icon" src="/static/images/icons/delete.svg" width="16" height="16">
 												</div>
 											</div>

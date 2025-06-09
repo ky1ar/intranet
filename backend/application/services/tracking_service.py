@@ -331,24 +331,43 @@ class TrackingService:
             "DELIVERED": (3, "Entregado"),
             "NOT_DELIVERED": (4, "No entregado"),
         }
-        for history in shipping_history:
-            if not history.status:
-                continue
 
-            status_id, status_name = STATUS_MAPPING.get(history.status.value, (None, None))
-            history_data.append({
-                'status_name': status_name,
-                'status_id': status_id,
-                'register_at': history.created_at.strftime("%d-%m-%Y %I:%M %p") if history.status.value != "SCHEDULED" else shipping_order.delivery_date.strftime("%d-%m-%Y"),
-            })
-        
+        STATUS_ORDER = ["PENDING", "SCHEDULED", "ON_THE_WAY", "DELIVERED", "NOT_DELIVERED"]
+
+        valid_history = [h for h in shipping_history if h.status]
+        valid_history.sort(key=lambda h: h.created_at)
+        last_status_entries = {}
+        for h in valid_history:
+            last_status_entries[h.status.value] = h
+
+        final_status_value = None
+        if valid_history:
+            final_status_value = valid_history[-1].status.value
+
+        show_history = []
+        for status_key in STATUS_ORDER:
+            if status_key in last_status_entries:
+                h = last_status_entries[status_key]
+                status_id, status_name = STATUS_MAPPING[status_key]
+                show_history.append({
+                    'status_name': status_name,
+                    'status_id': status_id,
+                    'register_at': (
+                        h.created_at.strftime("%d-%m-%Y %I:%M %p")
+                        if status_key != "SCHEDULED"
+                        else shipping_order.delivery_date.strftime("%d-%m-%Y")
+                    ),
+                })
+            if status_key == final_status_value:
+                break
+
         result = {
             'agency_name': f"Krear 3D - {shipping_order.method.name}",
             'agency_id': 4,
             'origin_agency': "Lima",
             'order_number': shipping_order.client_order.number,
             'destination_agency': shipping_order.district.name,
-            'status_history': history_data
+            'status_history': show_history
         }
         return result, 200
     
