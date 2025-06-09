@@ -81,7 +81,7 @@
 											<span class="machine" x-text="item.machine"></span>
 											<span class="admin-name" x-text="item.technician_name"></span>
 										</div>
-										<img width="48" height="48" :src="'/static/images/machines/'+item.machine_image" alt="">
+										<img width="48" height="48" :src="'/static/images/uploads/machines/'+item.machine_image" alt="">
 									</div>
 								</li>
 							</template>
@@ -173,7 +173,7 @@
 			</template>
 
 			<div class="client">
-				<img width="48" height="48" :src="'/static/images/machines/'+service_order?.machine_image" alt="">
+				<img width="48" height="48" :src="'/static/images/uploads/machines/'+service_order?.machine_image" alt="">
 				
 				<div class="data">
 					<span class="machine" x-text="service_order?.machine"></span>
@@ -401,7 +401,7 @@
 								</td>
 								<td class="machine_box">
 									<div class="machine">
-										<img width="40" height="40" :src="'/static/images/machines/'+history.machine_image" alt="">
+										<img width="40" height="40" :src="'/static/images/uploads/machines/'+history.machine_image" alt="">
 										<div class="model">
 											<span x-text="history.machine"></span>
 											<span x-text="history.brand"></span>

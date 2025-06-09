@@ -57,7 +57,7 @@
                                         <span class="machine" x-text="item.machine"></span>
                                         <span class="admin-name" x-text="item.client_name"></span>
                                     </div>
-                                    <img width="48" height="48" :src="'/static/images/machines/'+item.machine_image" alt="">
+                                    <img width="48" height="48" :src="'/static/images/uploads/machines/'+item.machine_image" alt="">
                                 </div>
                             </li>
                         </template>
@@ -75,7 +75,7 @@
 
             <div class="bottom">
                 <div class="card review">
-                    <img alt="machine" :src="'/static/images/machines/' + selected_order?.machine_image" width="64" height="64">
+                    <img alt="machine" :src="'/static/images/uploads/machines/' + selected_order?.machine_image" width="64" height="64">
                     <div class="text">
                         <span class="machine" x-text="selected_order?.machine"></span>
                         <span class="name" x-text="selected_order?.client_name"></span>
@@ -267,7 +267,7 @@
 
             <div class="bottom">
                 <div class="card review">
-                    <img alt="machine" :src="'/static/images/machines/' + service_order.machine_image" width="64" height="64">
+                    <img alt="machine" :src="'/static/images/uploads/machines/' + service_order.machine_image" width="64" height="64">
                     <div class="text">
                         <span class="machine" x-text="service_order.machine"></span>
                         <span class="name" x-text="service_order.name"></span>

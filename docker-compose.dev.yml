@@ -58,6 +58,7 @@ services:
       - krear3d
     volumes:
       - ./registro:/usr/share/nginx/html
+      - ./shared_uploads:/usr/share/nginx/html/static/images/uploads
     ports:
       - 7011:80
       - 3011:443
