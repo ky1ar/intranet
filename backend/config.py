@@ -31,6 +31,8 @@ class Config:
     T1_END = os.getenv("T1_END")
     T2_START = os.getenv("T2_START")
     T2_END = os.getenv("T2_END")
+    SUPPORT_TERMS = os.getenv("SUPPORT_TERMS")
+    EXTERNAL_REGISTER_URL = os.getenv("EXTERNAL_REGISTER_URL")
 
 
 class Redis:
@@ -41,7 +43,6 @@ class WABA:
     URL = os.getenv("WABA_URL")
     TOKEN = os.getenv("WABA_TOKEN")
     WEBHOOK_TOKEN = os.getenv("WABA_WEBHOOK_TOKEN")
-    SUPPORT_TERMS = os.getenv("SUPPORT_TERMS")
 
 
 class ApisNet:

@@ -34,20 +34,6 @@ services:
     restart: always
     command: redis-server --requirepass "150723"
 
-  #support:
-  #  build:
-  #    context: ./support
-  #    dockerfile: Dockerfile
-  #  container_name: support
-  #  networks:
-  #    - krear3d
-  #  volumes:
-  #    - ./support:/usr/share/nginx/html
-  #  ports:
-  #   - 8003:80
-  #   - 4003:443
-  #  restart: always
-
   intranet:
     build:
       context: ./intranet
@@ -63,9 +49,24 @@ services:
       - 4010:443
     restart: always
 
+  registro:
+    build:
+      context: ./registro
+      dockerfile: Dockerfile
+    container_name: registro
+    networks:
+      - krear3d
+    volumes:
+      - ./registro:/usr/share/nginx/html
+    ports:
+      - 8011:80
+      - 4011:443
+    restart: always
+
 networks:
   krear3d:
     driver: bridge
 
 volumes:
   shared_uploads:
+  

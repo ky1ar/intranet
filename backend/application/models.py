@@ -277,7 +277,8 @@ class ServiceOrders(BaseModel):
     comments = db.Column(db.String(255))
     register_at = db.Column(db.DATETIME, nullable=False)
     updated_at = db.Column(db.DATETIME)
-    paid = db.Column(db.Boolean, default=0)
+    paid = db.Column(db.Integer, default=0)
+    pay_amount = db.Column(db.FLOAT)
 
     machine = db.relationship("Machines", lazy="joined", foreign_keys=[machine_id])
     client = db.relationship("Clients", lazy="joined", foreign_keys=[client_id])
@@ -300,6 +301,28 @@ class ServiceOrderStatus(BaseModel):
     service_order = db.relationship("ServiceOrders", lazy="joined", foreign_keys=[service_order_id])
     user = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
     status = db.relationship("ServiceStatus", lazy="joined", foreign_keys=[status_id])
+
+
+class ServiceLinks(BaseModel):
+    __tablename__ = 'service_links'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    token = db.Column(db.String(255), unique=True, nullable=False)
+    order_number = db.Column(db.Integer)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'))
+    status_id = db.Column(db.Integer, db.ForeignKey('service_link_status.id'), nullable=False)
+    created_at = db.Column(db.DATETIME, nullable=False)
+    expires_at = db.Column(db.DATETIME)
+
+    status = db.relationship("ServiceLinkStatus", lazy="joined", foreign_keys=[status_id])
+    client = db.relationship("Clients", lazy="joined", foreign_keys=[client_id])
+
+
+class ServiceLinkStatus(BaseModel):
+    __tablename__ = 'service_link_status'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
 
 
 

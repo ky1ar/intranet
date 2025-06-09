@@ -1,6 +1,7 @@
 import logging
+from datetime import datetime, timezone, timedelta
 from application.handlers import handle_db_exceptions
-from application.models import ServiceOrders, ServiceOrderStatus
+from application.models import ServiceOrders, ServiceOrderStatus, ServiceLinks
 from sqlalchemy import func
 from flask import g
 
@@ -58,8 +59,8 @@ class SupportRepository:
 
     @handle_db_exceptions
     def next_service_order(self, service_order, current_status_id, stamp):
-        if current_status_id > 8:
-            return "La orden ha alcanzado el status máximo", 400
+        #if current_status_id > 8:
+        #    return "La orden ha alcanzado el status máximo", 400
 
         service_order.status_id = current_status_id + 1
         service_order.updated_at = stamp
@@ -71,7 +72,7 @@ class SupportRepository:
 
     @handle_db_exceptions
     def update_service_order(self, service_order, data):
-        allowed_fields = {'method_id', 'technician_id', 'origin_id'}
+        allowed_fields = {'method_id', 'technician_id', 'origin_id', 'pay_amount', 'paid'}
         updated_fields = []
 
         for key in allowed_fields:
@@ -112,6 +113,24 @@ class SupportRepository:
         g.db_session.commit()
         return True, 200
     
+
+    @handle_db_exceptions
+    def create_link(self, token):
+        duration_hours = 24
+        utc_now = datetime.now(timezone.utc)
+        created_at = utc_now - timedelta(hours=5)
+        expires_at = created_at + timedelta(hours=duration_hours)
+
+        service_link = ServiceLinks(
+            token=token,
+            status_id=1,
+            created_at=created_at,
+            expires_at=expires_at,
+        )
+        g.db_session.add(service_link)
+        g.db_session.commit()
+        return True, 200
+    
     
     @handle_db_exceptions
     def get_service_order_history(self, service_order_id):
@@ -142,6 +161,17 @@ class SupportRepository:
     
 
     @handle_db_exceptions
+    def get_ready_service_order(self):
+        query = g.db_session.query(ServiceOrders).filter(ServiceOrders.status_id == 8)
+        service_order = query.all()
+
+        if not service_order:
+            return [], 200
+
+        return service_order, 200
+
+
+    @handle_db_exceptions
     def add_service_order(self, data):
         new_service_order = ServiceOrders(
             order_number=data.get("order_number"),
@@ -167,6 +197,25 @@ class SupportRepository:
         query = (
             g.db_session.query(ServiceOrders)
             .order_by(ServiceOrders.id.desc())
+        )
+
+        total = query.count()
+        list = query.offset((page - 1) * per_page).limit(per_page).all()
+
+        return {
+            "list": list,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "pages": (total + per_page - 1) // per_page 
+        }, 200
+    
+
+    @handle_db_exceptions
+    def get_service_links_history(self, page=1, per_page=20):
+        query = (
+            g.db_session.query(ServiceLinks)
+            .order_by(ServiceLinks.id.desc())
         )
 
         total = query.count()
@@ -221,4 +270,70 @@ class SupportRepository:
         g.db_session.commit()
         return new_order_status, 200
     
-        
+    
+    @handle_db_exceptions
+    def get_service_by_id(self, service_order_id):
+        service_order = (
+            g.db_session.query(ServiceOrders)
+            .filter(ServiceOrders.id == service_order_id)
+            .first()
+        )
+
+        if not service_order:
+            return 'Orden no encontrada', 404
+        return service_order, 200
+    
+
+    @handle_db_exceptions
+    def get_link(self, link_id):
+        link = (
+            g.db_session.query(ServiceLinks)
+            .filter(ServiceLinks.id == link_id)
+            .first()
+        )
+
+        if not link:
+            return 'Link no encontrado', 404
+        return link, 200
+    
+
+    @handle_db_exceptions
+    def get_link_by_token(self, token):
+        link = (
+            g.db_session.query(ServiceLinks)
+            .filter(ServiceLinks.token == token)
+            .first()
+        )
+
+        if not link:
+            return 'Link no encontrado', 404
+        return link, 200
+
+
+    @handle_db_exceptions
+    def update_link(self, link):
+        link.status_id = 2
+
+        g.db_session.add(link)
+        g.db_session.commit()
+        return True, 200
+
+
+    @handle_db_exceptions
+    def update_link_client(self, link, order_number, client_id):
+        link.status_id = 3
+        link.order_number = order_number
+        link.client_id = client_id
+
+        g.db_session.add(link)
+        g.db_session.commit()
+        return True, 200
+    
+
+    @handle_db_exceptions
+    def delete_link(self, link):
+        link.status_id = 5
+
+        g.db_session.add(link)
+        g.db_session.commit()
+        return True, 200

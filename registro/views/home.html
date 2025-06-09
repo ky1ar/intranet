@@ -1,0 +1,67 @@
+<div x-data="default_data" class="fixed" id="guest">
+    <div class="modal glass">
+        
+        <div class="content">
+            <div class="top">
+                <img alt="user" src="/static/images/00000000.jpg" width="80" height="80">
+                <h1>El link ingresado no es válido</h1>
+                <p>Si crees que se trata de un error comunicate con soporte.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        Alpine.data('default_data',() => ({
+            async init() {
+				console.log('Inicializando default...');
+            },
+        }));
+    </script>
+
+
+    <style>
+        #guest {
+            text-align: center;
+        }
+        #guest .modal {
+            padding: 4rem 5rem;
+            max-width: 32rem;
+        }
+        #guest .content {
+            display: flex;
+            gap: 2.5rem;
+            flex-direction: column;
+        }
+        #guest .content .top {
+            align-items: center;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        #guest .content .top img {
+            border-radius: 3rem;
+        }
+        #guest .content .top h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        #guest .content .top p {
+            margin: 0;
+            font-size: 1rem;
+        }
+        
+        /****************************************************	48rem	768px	 ***************************************************/ 
+        @media only screen and (max-width: 48rem) {
+            #guest .modal {
+                flex: 1;
+                justify-content: center;
+                padding: 2rem;
+                width: 100%;
+                border-radius: 0;
+                max-height: initial;
+                max-width: inherit;
+            }
+        }
+    </style>
+</div>

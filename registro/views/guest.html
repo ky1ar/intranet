@@ -1,135 +1,17 @@
 <div x-data="guest_data" class="fixed" id="guest">
     <div class="modal glass">
-        <div x-show="currentStep != 'select_type' && currentStep != 'success' && currentStep != 'finish_success'" class="hover-opacity modal-back" @click="prev()">
+        <div x-show="currentStep != 'start' && currentStep != 'success'" class="hover-opacity modal-back" @click="prev()">
             <img alt="close" src="/static/images/icons/back.svg" width="20" height="20">
         </div>
 
-        <div x-show="currentStep != 'select_type' && currentStep != 'success' && currentStep != 'finish_success'" class="hover-opacity modal-home" @click="resetOrder()">
+        <div x-show="currentStep != 'start' && currentStep != 'success'" class="hover-opacity modal-home" @click="resetOrder()">
             <img alt="close" src="/static/images/icons/home.svg" width="20" height="20">
-        </div>
-
-        <div x-show="currentStep == 'select_type'" class="content">
-            <div class="top">
-                <img alt="user" :src="bot_image" width="80" height="80">
-                <h1>¡Hola! Vamos a empezar</h1>
-                <p>¿Qué deseas hacer?</p>
-            </div>
-
-            <div class="bottom">
-                <button class="button hover-opacity" @click="gotoStep('start')"> Registrar</button>
-                <button class="button black hover-opacity" @click="gotoStep('list')" :class="buttons.list.class" x-text="buttons.list.text"></button>
-            </div>
-        </div>
-        
-        <div x-show="currentStep == 'list'" class="content">
-            <template x-if="$store.cache.getData('support_ready')?.length == 0">
-                <div class="top">
-                    <img alt="user" :src="bot_image" width="80" height="80">
-                    <h1>Nada que entregar 🙌</h1>
-                    <p>Todos los equipo han sido despachados</p>
-                </div>
-            </template>
-
-            <template x-if="$store.cache.getData('support_ready')?.length > 0">
-                <div class="content">
-                    <div class="top">
-                        <img alt="user" :src="bot_image" width="80" height="80">
-                        <h1>Elige una orden</h1>
-                        <p>Éstas órdenes están disponibles para ser entregadas</p>
-                    </div>
-
-                    <ul class="ready-list">
-                        <template x-for="item in $store.cache.getData('support_ready')" :key="item.order_number">
-                            <li
-                                :class="item.priority"
-                                class="white"
-                                @click="pickOrder(item)">
-                                <div class="row">
-                                    <span class="order-number" x-text="`${item.method_letter}-${item.order_number}`"></span>
-                                    <div class="passed-days">
-                                        <!--<span class="updated-days" x-text="item.updated_days"></span>-->
-                                        <span class="register-day" x-text="item.register_days"></span>
-                                    </div>
-                                </div>
-
-                                <div class="row">
-                                    <div>
-                                        <span class="machine" x-text="item.machine"></span>
-                                        <span class="admin-name" x-text="item.client_name"></span>
-                                    </div>
-                                    <img width="48" height="48" :src="'/static/images/machines/'+item.machine_image" alt="">
-                                </div>
-                            </li>
-                        </template>
-                    </ul>
-                </div>
-            </template>
-        </div>
-
-        <div x-show="currentStep == 'finish'" class="content">
-            <div class="top">
-                <img alt="user" :src="bot_image" width="80" height="80">
-                <h1 x-text="`Finalizando la orden ${selected_order?.order_number}`"></h1>
-                <p>Toma una foto como evidencia de la entrega.</p>
-            </div>
-
-            <div class="bottom">
-                <div class="card review">
-                    <img alt="machine" :src="'/static/images/machines/' + selected_order?.machine_image" width="64" height="64">
-                    <div class="text">
-                        <span class="machine" x-text="selected_order?.machine"></span>
-                        <span class="name" x-text="selected_order?.client_name"></span>
-                        <span x-text="selected_order?.client_phone?.replace(/(.{3})/g, '$1 ').trim()"></span>
-                    </div>
-                </div>
-
-                <div class="capture-proof">
-                    <label class="dotted-button" x-show="!preview" @click.prevent="openFileInput()">+ Subir foto</label>
-
-                    <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        style="display: none;"
-                        x-ref="fileInput" 
-                        @change="
-                            let file = $event.target.files[0]; 
-                            if (file) { 
-                                proof_photo = file;
-                                let reader = new FileReader();
-                                reader.onload = e => preview = e.target.result;
-                                reader.readAsDataURL(file);
-                            }
-                        "
-                    >
-                    <img
-                        class="thumbnail"
-                        x-show="preview"
-                        :src="preview"
-                        alt="preview" 
-                        @click="openFileInput()"
-                    >
-                </div>
-
-                <button class="button hover-opacity" @click="finishOrder()" :class="buttons.finish.class" x-text="buttons.finish.text"></button>
-            </div>
-        </div>
-
-        <div x-show="currentStep == 'finish_success'" class="content">
-            <div class="top">
-                <img alt="user" :src="bot_image" width="80" height="80">
-                <h1>¡Se ha entregado la orden!</h1>
-                <p>He enviado un mensaje con los detalles.</p>
-            </div>
-            <div class="bottom">
-                <button class="button hover-opacity" @click="resetOrder()"> Ir al inicio</button>
-            </div>
         </div>
 
         <div x-show="currentStep == 'start'" class="content">
             <div class="top">
                 <img alt="user" :src="bot_image" width="80" height="80">
-                <h1>¿Cuál es tu documento?</h1>
+                <h1>¡Hola! Vamos a empezar</h1>
                 <p>Solo necesito tu DNI o RUC.</p>
             </div>
 
@@ -141,20 +23,22 @@
                     maxlength="11"
                     inputmode="numeric"
                     oninput="this.value = this.value.replace(/\D/g, '').slice(0, 11)">
-                <button class="button hover-opacity" @click="findName()" :class="buttons.find.class" x-text="buttons.find.text"></button>
+                <button class="button hover-opacity" @click="validateDocument()" :class="buttons.document.class" x-text="buttons.document.text"></button>
             </div>
         </div>
 
         <div x-show="currentStep == 'confirm_name'" class="content">
             <div class="top">
                 <img alt="user" :src="bot_image" width="80" height="80">
-                <h1>¿Está bien el nombre?</h1>
-                <p>Encontré el siguiente nombre, si todo está bien, ¡continuemos!</p>
+                <h1>¿Cuál es tu nombre?</h1>
+                <p>Ingresa tu nombre completo para continuar</p>
             </div>
 
             <div class="bottom">
-                <h2 x-text="service_order.name"></h2>
-                <button class="button hover-opacity" @click="next()">Sí, está bien</button>
+                <input type="text"
+                    x-model="service_order.name"
+                    placeholder="Ingresa tu nombre">
+                <button class="button hover-opacity" @click="validateName()" :class="buttons.name.class" x-text="buttons.name.text"></button>
             </div>
         </div>
 
@@ -162,8 +46,8 @@
         <div x-show="currentStep == 'phone'" class="content">
             <div class="top">
                 <img alt="user" :src="bot_image" width="80" height="80">
-                <h1 x-text="!service_order.phone ? '¿Cuál es tu número de celular?' : '¿Tu número de celular es éste?'"></h1>
-                <p x-text="!service_order.phone ? 'Por favor, ingresa tu número de celular para mantenernos en contacto.' : 'Hallé este número, si deseas puedes actualizarlo.'"></p>
+                <h1>¿Cuál es tu número de celular?</h1>
+                <p>Por favor, ingresa tu número de celular para mantenernos en contacto.</p>
             </div>
 
             <div class="bottom">
@@ -258,6 +142,19 @@
         </div>
 
 
+        <div x-show="currentStep == 'origin'" class="content">
+            <div class="top">
+                <img alt="user" :src="bot_image" width="80" height="80">
+                <h1>¿Envías desde Lima o provincia?</h1>
+                <p>Cuéntanos desde donde nos envías tu equipo.</p>
+            </div>
+
+            <div class="bottom">
+                <button class="button hover-opacity" @click="service_order.origin = 1; next()">Lima</button>
+                <button class="button black hover-opacity" @click="service_order.origin = 2; next()">Provincia</button>
+            </div>
+        </div>
+
         <div x-show="currentStep == 'review'" class="content">
             <div class="top">
                 <img alt="user" :src="bot_image" width="80" height="80">
@@ -267,7 +164,7 @@
 
             <div class="bottom">
                 <div class="card review">
-                    <img alt="machine" :src="'/static/images/machines/' + service_order.machine_image" width="64" height="64">
+                    <img alt="machine" :src="'https://intranet.krear3d.com/static/images/machines/' + service_order.machine_image" width="64" height="64">
                     <div class="text">
                         <span class="machine" x-text="service_order.machine"></span>
                         <span class="name" x-text="service_order.name"></span>
@@ -398,9 +295,6 @@
                 <h1>¡Gracias! He registrado tu orden</h1>
                 <p>Te he enviado un mensaje con los datos que ingresaste.</p>
             </div>
-            <div class="bottom">
-                <button class="button hover-opacity" @click="resetOrder()"> Ir al inicio</button>
-            </div>
         </div>
     </div>
     
@@ -419,31 +313,26 @@
 
     <script>
         Alpine.data('guest_data',() => ({
-            bot_image: '/static/images/uploads/users/00000000.jpg',
+            bot_image: '/static/images/00000000.jpg',
             step_flow: {
-                select_type:    { next: null, prev: null },
-                list:           { next: 'finish', prev: 'select_type' },
-                finish:         { next: 'finish_success', prev: 'list' },
-                finish_success: { next: null, prev: null },
-
-                start:         { next: 'confirm_name', prev: 'select_type' },
+                start:         { next: 'confirm_name', prev: null },
                 confirm_name:  { next: 'phone', prev: 'start' },
                 phone:         { next: 'machine', prev: 'confirm_name' },
                 machine:       { next: 'problem', prev: 'phone' },
                 problem:       { next: 'accessories', prev: 'machine' },
-                accessories:   { next: 'review', prev: 'problem' },
-                review:        { next: 'terms', prev: 'accessories' },
+                accessories:   { next: 'origin', prev: 'problem' },
+                origin:        { next: 'review', prev: 'accessories' },
+                review:        { next: 'terms', prev: 'origin' },
                 terms:         { next: 'signature', prev: 'review' },
                 signature:     { next: 'success', prev: 'terms' },
                 success:       { next: null, prev: null }
             },
-            currentStep: 'select_type',
+            currentStep: 'start',
             service_order: {},
             machines: [],
             buttons: {
-                find: { class: '', text: 'Siguiente' },
-                list: { class: '', text: 'Entregar' },
-                finish: { class: '', text: 'Finalizar' },
+                document: { class: '', text: 'Siguiente' },
+                name: { class: '', text: 'Continuar' },
                 phone: { class: '', text: 'Siguiente' },
                 machine: { class: '', text: 'Siguiente' },
                 notes: { class: '', text: 'Siguiente' },
@@ -454,10 +343,6 @@
             other_accessories: '',
             termsScrolledToBottom: false,
             signaturePad: null,
-            selected_order: null,
-            preview: null,
-			proof_photo: null,
-			processing: false,
             api: Alpine.store('cache').api,
 
             next() {
@@ -482,19 +367,6 @@
 
             async init() {
 				console.log('Inicializando Guest...');
-                const socket = Alpine.store('cache').socket;
-				if (socket) {
-					socket.removeAllListeners();
-					socket.on("support_dashboard_update", async () => {
-						await Alpine.store('cache').refresh('support_ready');
-					});
-				}	
-
-                await Alpine.store('cache').fetchData([
-					{ key: 'support_ready', url: `/support/ready`, force: true },
-				]);
-
-
                 const canvas = this.$refs.canvas;
                 const resizeCanvas = () => {
                     const ratio = Math.max(window.devicePixelRatio || 1, 1);
@@ -519,20 +391,12 @@
 
                 resizeCanvas(); 
                 this.initScrollWatcher();
-                await Alpine.store('cache').verify();
             },
 
             openFileInput() {
                 this.$refs.fileInput.value = null;
                 this.$refs.fileInput.click();
             },
-
-            pickOrder(item) {
-                this.preview = null;
-                this.proof_photo = null;
-				this.selected_order = item;
-                this.gotoStep('finish');
-			},
 
             clear() {
                 this.signaturePad?.clear();
@@ -542,7 +406,7 @@
                 this.service_order = {};
                 this.accessories = [];
                 this.other_accessories = '';
-                this.gotoStep('select_type');
+                this.gotoStep('start');
                 this.$refs.terms.scrollTop = 0;
                 this.clear();
             },
@@ -557,44 +421,6 @@
                 }
             },
 
-            async finishOrder() {
-				if (this.processing) return;
-				this.processing = true;
-
-				if (!this.proof_photo) {
-					this.showError('finish', 'Sube una foto');
-					this.processing = false;
-					return;
-				}
-			
-				const maxWidth = 1024;
-				const maxHeight = 1024;
-                const resizedImage = await Alpine.store('cache').resizeImage(this.proof_photo, maxWidth, maxHeight);
-                
-                NProgress.start();
-				try {
-					const formData = new FormData();
-					formData.append("image", resizedImage);
-					formData.append("user_id", Alpine.store('cache').user.id);
-					formData.append("order_number", this.selected_order.order_number);
-					formData.append("service_order_id", this.selected_order.service_order_id);
-			
-					const response = await fetch(`${this.api}/support/finish`, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
-                    this.next();
-			
-				} catch (error) {
-                    this.showError('finish', error.message);
-                } finally {
-                    NProgress.done();
-					this.processing = false;
-                }
-			},
-
             validateAccessories() {
                 if (this.accessories.length === 0) {
                     this.showError('accessories', 'Selecciona al menos uno');
@@ -608,6 +434,32 @@
 
                 const lines = this.accessories.map(item => `- ${item}`);
                 return 'Accesorios:\n' + lines.join('\n');
+            },
+
+            validateDocument() {
+                const document = this.service_order.document;
+                if (!document){
+                    this.showError('document', 'Ingresa un documento válido');
+                    return;
+                }
+                if (document.trim() == '') {
+                    this.showError('document', 'Ingresa un documento válido');
+                    return;
+                }
+                this.next();
+            },
+
+            validateName() {
+                const name = this.service_order.name;
+                if (!name){
+                    this.showError('name', 'Ingresa un nombre válido');
+                    return;
+                }
+                if (name.trim() == '') {
+                    this.showError('name', 'Ingresa un nombre válido');
+                    return;
+                }
+                this.next();
             },
 
             validatePhone() {
@@ -643,38 +495,6 @@
                 this.next();
             },
 
-            async findName() {
-                const document = this.service_order.document;
-                if (!document || document.trim() == '') {
-                    this.showError('find', 'Ingresa el documento');
-                    return;
-                }
-                
-                NProgress.start();
-
-                try {
-                    const response = await fetch(`${this.api}/client/data/${document}`, {
-                        method: 'GET',
-                        headers: { 'Content-Type': 'application/json' },
-                    });
-                    
-                    const jsonData = await response.json();
-                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
-
-                    const { id, name, phone } = jsonData.data;
-
-                    this.service_order.id = id;
-                    this.service_order.name = name;
-                    this.service_order.phone = phone;
-                    this.next();
-
-                } catch (error) {
-                    this.showError('find', error.message);
-                } finally {
-                    NProgress.done();
-                }
-            }, 
-
             async newOrder() {
                 if (!this.signaturePad || this.signaturePad.isEmpty()) {
                     this.showError('new', 'Ingresa tu firma');
@@ -685,29 +505,27 @@
 
                 NProgress.start();
                 const payload = {
-                    user_id: 21,
                     machine_id: this.service_order.machine_id || null,
-                    method_id: 3,
                     notes: this.service_order.notes + (this.accessories.length ? '\n' + this.getAccessoriesText() : ''),
-                    origin_id: 1,
-                    client_id: this.service_order.id,
+                    origin_id: this.service_order.origin,
                     client: {
 						document: this.service_order.document,
 						name: this.service_order.name,
 						phone: this.service_order.phone,
 					},
                     signature: signatureImage,
+                    token: Alpine.store('cache').token,
                 }
 
                 try {
-                    const response = await fetch(`${this.api}/support/process`, {
+                    const response = await fetch(`${this.api}/support/link_process`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload),
                     });
                     
                     const jsonData = await response.json();
-                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+                    if (!response.ok) window.PineconeRouter.context.navigate("/");
                     
                     this.next();
 
@@ -722,7 +540,7 @@
                 const machine_search = this.service_order.machine;
                 try {
                     NProgress.start();
-                    if (machine_search.length < 3) {
+                    if (machine_search.length < 2) {
                         this.machines = [];
                         return;
                     }
@@ -1058,23 +876,8 @@
             top: 6px;
             border-radius: 0.125rem;
         }
-        /****************************************************	100rem	1600px	 ***************************************************/ 
-        @media only screen and (max-width: 100rem) {
-
-        }
-        /****************************************************	75rem	1200px	 ***************************************************/ 
-        @media only screen and (max-width: 75rem) {
-            
-        }
-        /****************************************************	62rem	992px	 ***************************************************/ 
-        @media only screen and (max-width: 62rem) {
-
-        }
         /****************************************************	48rem	768px	 ***************************************************/ 
         @media only screen and (max-width: 48rem) {
-            #guest {
-                min-height: calc(100dvh - 5.5rem);
-            }
             #guest .modal {
                 flex: 1;
                 justify-content: center;
@@ -1082,6 +885,7 @@
                 width: 100%;
                 border-radius: 0;
                 max-height: initial;
+                max-width: initial;
             }
             #guest .checkbox-group {
                 flex-direction: column;
@@ -1090,13 +894,6 @@
                 width: initial;
             }
         }
-        /****************************************************	36rem	576px	 ***************************************************/ 
-        @media only screen and (max-width: 36rem) {
-            
-        }
-        /****************************************************	26rem	416px	 ***************************************************/ 
-        @media only screen and (max-width: 26rem) {
-            
-        }
+
     </style>
 </div>

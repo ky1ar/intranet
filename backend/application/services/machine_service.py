@@ -11,7 +11,7 @@ class MachineService:
     
     @handle_exceptions
     def find_machines(self, machine_name):
-        if len(machine_name) < 3:
+        if len(machine_name) < 2:
             return None, 400
         
         machines, machines_status = self.repository.get_machines(machine_name)

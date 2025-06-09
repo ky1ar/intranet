@@ -227,6 +227,7 @@ class LogisticService:
         status_id = data.get("status_id")
         client = shipping_order.client_order.client
 
+        logging.info(shipping_order.assigned.phone)
         if status_id in (2, 3, 4, 6):
             payload = {
                 "phone": client.phone,
@@ -386,7 +387,7 @@ class LogisticService:
         return "Orden registrada correctamente", 200
     
 
-    @handle_db_exceptions
+    @handle_exceptions
     def delete_shipping_order(self, shipping_order, data):
         user_id = data.get("user_id")
         shipping_order_id = data.get("shipping_order_id")
@@ -436,7 +437,7 @@ class LogisticService:
         return result, 200
 
 
-    @handle_db_exceptions
+    @handle_exceptions
     def photo_upload(self, shipping_order, data):
         user_id = data.get("user_id")
         shipping_order_id = data.get("shipping_order_id")

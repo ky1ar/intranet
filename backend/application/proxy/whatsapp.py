@@ -8,10 +8,17 @@ from config import Config
 class Whatsapp:
     def __init__(self):
         self.token = API.TOKEN
-        self.url = API.URL
-        self.terms = API.SUPPORT_TERMS
-        self.tracking_url = "http://tiendakrear3d.com/rastrear-pedidos"
+        self.whatsapp_url = API.URL
+        
+        self.image_base_url = Config.BASE_URL
+        self.review_url = Config.REVIEW_URL
+        self.mantra_phone = Config.CONTACT_PHONE
+
+        self.support_terms = Config.SUPPORT_TERMS
+        self.support_phone = Config.SUPPORT_CONTACT_PHONE
         self.support_url = "https://soporte.krear3d.com/consultas"
+
+        self.tracking_url = "http://tiendakrear3d.com/rastrear-pedidos"
 
 
     dias_semana = {
@@ -41,7 +48,7 @@ class Whatsapp:
 
     def post(self, payload):
         logging.info(payload)
-        url = f"{self.url}"
+        url = f"{self.whatsapp_url}"
         headers = {
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json"
@@ -183,7 +190,7 @@ class Whatsapp:
     
 
     @handle_exceptions
-    def status_change(self, current_status_id, client_phone, client_name, machine_name):
+    def status_change(self, current_status_id, client_phone, client_name, machine_name, filename=None):
         templates = {
             1: "soporte_0_ingreso",
             2: "soporte_1_revision",
@@ -192,6 +199,7 @@ class Whatsapp:
             5: "soporte_4_reparacion",
             6: "soporte_5_pruebas",
             7: "soporte_6_recojo",
+            8: "soporte_7_entrega",
         }
                 
         parameters = [
@@ -212,14 +220,21 @@ class Whatsapp:
             parameters.append({
                 "type": "text", 
                 "parameter_name": "terms_link", 
-                "text": self.terms
+                "text": self.support_terms
             })
 
         if current_status_id == 3:
             parameters.append({
                 "type": "text", 
                 "parameter_name": "number", 
-                "text": Config.SUPPORT_CONTACT_PHONE
+                "text": self.support_phone
+            })
+
+        if current_status_id == 8:
+            parameters.append({
+                "type": "text", 
+                "parameter_name": "link", 
+                "text": self.review_url
             })
 
         payload = {
@@ -232,6 +247,20 @@ class Whatsapp:
                 "components": [{"type": "body", "parameters": parameters}]
             }
         }
+
+        if current_status_id == 8:
+            header_component = {
+                "type": "header",
+                "parameters": [
+                    {
+                        "type": "image",
+                        "image": {
+                            "link": f"{self.image_base_url}{filename}"
+                        }
+                    }
+                ]
+            }
+            payload["template"]["components"].insert(0, header_component)
         return self.post(payload)
     
 
@@ -259,9 +288,6 @@ class Whatsapp:
         start, end = schedules.get(schedule_id)
         timer = 10
 
-        mantra = Config.CONTACT_PHONE
-        link = Config.REVIEW_URL
-        base_url = Config.BASE_URL
         parameters = [{"type": "text", "parameter_name": "username", "text": username}]
 
         if status_id == 2:
@@ -282,8 +308,8 @@ class Whatsapp:
             ])
         elif status_id == 4:
             parameters.extend([
-                {"type": "text", "parameter_name": "number", "text": mantra},
-                {"type": "text", "parameter_name": "link", "text": link}
+                {"type": "text", "parameter_name": "number", "text": self.mantra_phone},
+                {"type": "text", "parameter_name": "link", "text": self.review_url}
             ])
         elif status_id == 6:
             parameters.append({"type": "text", "parameter_name": "order_number", "text": order_number})
@@ -306,7 +332,7 @@ class Whatsapp:
                     {
                         "type": "image",
                         "image": {
-                            "link": f"{base_url}{file}"
+                            "link": f"{self.image_base_url}{file}"
                         }
                     }
                 ]

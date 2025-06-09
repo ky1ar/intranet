@@ -56,9 +56,22 @@ class SupportController:
     
 
     @handle_logs_and_exceptions
+    def support_service_link_process(self, data):
+        if validation_error := validate_request(data, {"machine_id", "notes"}):
+            return validation_error, 400
+
+        return self.support.service_link_order_new(data)
+
+
+    @handle_logs_and_exceptions
     def support_dashboard(self, user_id):
         return self.support.support_dashboard(user_id)
 
+
+    @handle_logs_and_exceptions
+    def support_ready(self):
+        return self.support.ready_list()
+    
 
     @handle_logs_and_exceptions
     def support_service_order_process(self, data):
@@ -82,3 +95,47 @@ class SupportController:
     @handle_logs_and_exceptions
     def support_history(self, data):
         return self.support.history(data)
+
+    
+    @handle_logs_and_exceptions
+    def support_finish(self, data):  
+        service_order, service_order_status = self.support.service_by_id(data.get("service_order_id"))
+        if service_order_status != 200:
+            return service_order, service_order_status
+        
+        return self.support.finish(service_order, data)
+    
+
+    @handle_logs_and_exceptions
+    def support_create_link(self, data):
+        if validation := validate_request(data, {"user_id"}):
+            return validation, 400
+
+        user_id = data.get("user_id")
+        return self.support.create_link(user_id)
+    
+
+    @handle_logs_and_exceptions
+    def support_link_token(self, data):
+        if validation := validate_request(data, {"token"}):
+            return validation, 400
+
+        token = data.get("token")
+        return self.support.verify_token(token)
+    
+
+    @handle_logs_and_exceptions
+    def support_link_delete(self, data):
+        if validation := validate_request(data, {"user_id", "link_id"}):
+            return validation, 400
+
+        return self.support.link_delete(data)
+    
+
+    @handle_logs_and_exceptions
+    def support_link_history(self, data):
+        return self.support.link_history(data)
+    
+
+    def support_pdf(self, order_number):
+        return self.support.create_pdf(order_number)

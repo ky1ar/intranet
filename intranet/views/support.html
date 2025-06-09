@@ -2,10 +2,38 @@
 	<div id="support-dashboard">
 		<div class="header">
 			<div class="titles">
-				<span class="range">Panel de Soporte</span>
+				<span class="range">Soporte</span>
 			</div>
 
-			<template x-if="editAllowed()">
+			<div class="menu">
+				<!--
+				<div class="item" @click="viewHistory()">
+					<div class="button">
+						<img width="20" height="20" src="/static/images/icons/report.svg">
+					</div>
+					<span>Estadísticas</span>
+				</div>-->
+				<div class="item" @click="viewLinks()">
+					<div class="button">
+						<img width="20" height="20" src="/static/images/icons/link.svg">
+					</div>
+					<span>Enlaces</span>
+				</div>
+				<div class="item" @click="viewHistory()">
+					<div class="button">
+						<img width="20" height="20" src="/static/images/icons/history.svg">
+					</div>
+					<span>Historial</span>
+				</div>
+				<div class="item" @click="addOrder()">
+					<div class="button">
+						<img width="20" height="20" src="/static/images/icons/add.svg">
+					</div>
+					<span>Añadir</span>
+				</div>
+            </div>
+
+			<!-- <template x-if="editAllowed()">
 				<div class="controllers">
 					<div class="button hover-opacity" @click="viewHistory()">
 						<img width="16" height="16" :src="'/static/images/icons/history.svg'" alt="">
@@ -16,7 +44,7 @@
 						Añadir
 					</div>
 				</div>
-			</template>
+			</template> -->
 		</div>
 
 		<div class="board">
@@ -120,10 +148,20 @@
 		x-cloak>
 		<div class="modal glass2" @click.stop>
 			<div class="top">
-				<span class="title" x-text="`Orden n° ${service_order?.order_number}`"></span>
+				<span class="title" x-text="`N° ${service_order?.order_number}`"></span>
 				<span class="days" :class="service_order?.priority" x-text="`${service_order?.passed_days}`"></span>
-				<template x-if="editAllowed()">
-					<div class="hover-opacity finish" @click="finish(service_order)" x-show="service_order?.status_id == 8">Finalizar</div>
+				<template x-if="service_order?.status_id > 1">
+					<div class="pay" :class="service_order.paid == 0 ? '' : 'payed'">
+						<span class="hover-opacity" @click="updateOrder('paid')">S/</span>
+						<input
+							type="text"
+							placeholder="0.0"
+							@input="service_order.pay_amount = service_order.pay_amount.replace(/[^0-9.]/g, '')"
+							@blur="updateOrder('pay_amount')"
+							:size="Math.max(1, String(service_order.pay_amount || 0).length)"
+							x-model="service_order.pay_amount"
+						>
+					</div>
 				</template>
 			</div>
 
@@ -199,6 +237,9 @@
 					</div>
 				</template>
 			</div>
+			<template x-if="editAllowed()">
+				<div class="hover-opacity finish" @click="finish(service_order)" x-show="service_order?.status_id == 8">Finalizar</div>
+			</template>
 
 			<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
 				<img alt="close" src="/static/images/x.svg" width="12" height="12">
@@ -383,6 +424,99 @@
 
 
 
+	<div
+		x-show="$store.cache.isVisibleModal('links')"
+		@mousedown.self="$store.cache.hideLastModal()"
+		x-transition.duration.300ms
+		class="modal-wrap"
+		id="modal-history"
+		x-cloak>
+		<div class="modal glass2" @click.stop>
+			<div class="top">
+				<button class="create-link button hover-opacity" @click="newLink()">
+					<img width="16" height="16" src="/static/images/icons/add.svg">
+					Nuevo
+				</button>
+
+				<template x-if="link_list.length !== 0">
+					<div class="pagination">
+						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstLinkPage()">
+							<img src="/static/images/icons/rightfull.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevLinkPage()">
+							<img src="/static/images/icons/right.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextLinkPage()">
+							<img src="/static/images/icons/right.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastLinkPage()">
+							<img src="/static/images/icons/rightfull.svg" width="20" height="20">
+						</span>
+					</div>
+				</template>
+			</div>
+
+			<template x-if="link_list.length == 0">
+				<span style="padding: 1rem;">Aún no has creado enlaces, añade uno y aparecerá aquí.</span>
+			</template>
+
+			<template x-if="link_list.length > 0">
+				<div class="history">
+					<table class="static">
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>Orden asignada</th>
+								<th>Estado</th>
+								<th>Fecha de creación</th>
+								<th></th>
+							</tr>
+						</thead>
+						<tbody>
+							<template x-for="link in link_list" :key="link.id">
+								<tr>
+									<td>
+										<b class="link-id" x-text="link.id"></b>
+									</td>
+									<td>
+										<b x-text="link.order_number"></b>
+									</td>
+									<!--<td x-text="link.client_name"></td>-->
+									<td>
+										<span class="link-status" :class="`status-${link.status_id}`" x-text="link.status"></span>
+									</td>
+									<td x-text="link.register_at"></td>
+									<td>
+										<template x-if="link.order_number == '-' && link.status_id < 3">
+											<div class="controlls">
+												<div class="action hover-opacity" @click="navigator.clipboard.writeText(link.url)">
+													<img alt="icon" src="/static/images/icons/copy.svg" width="16" height="16">
+												</div>
+												<div class="action hover-opacity" @click="deleteLink(link.id)">
+													<img alt="icon" src="/static/images/icons/delete.svg" width="16" height="16">
+												</div>
+											</div>
+										</template>
+										<template x-if="link.order_number != '-'">
+											<div class="controlls">
+												<div class="action hover-opacity" @click="viewOrder(link.order_number)">
+													<img alt="icon" src="/static/images/icons/eye.svg" width="16" height="16">
+												</div>
+											</div>
+										</template>
+									</td>
+								</tr>
+							</template>
+						</tbody>
+					</table>
+				</div>
+			</template>
+		</div>
+	</div>
+
+
+
+
 
 
 
@@ -393,6 +527,7 @@
 			sendWhatsapp: true,
 			dashboard: [],
 			history_list: [],
+			link_list: [],
 			total_pages: null,
 			current_page: 1,
 			service_order: [],
@@ -416,6 +551,9 @@
 					socket.on("support_dashboard_update", async () => {
 						await Alpine.store('cache').refresh('support_dashboard');
 					});
+					socket.on("support_link_update", async () => {
+						await this.getLinkHistory();
+					});
 				}	
 
 				await Alpine.store('cache').fetchData([
@@ -435,7 +573,7 @@
 				NProgress.start();
 
                 try {
-                    if (machine_search.length < 3) {
+                    if (machine_search.length < 2) {
                         this.machines = [];
                         return;
                     }
@@ -456,6 +594,10 @@
                     NProgress.done();
                 }
             },
+
+			payToggle() {
+				this.process_service.payed = !this.process_service.payed
+			},
 
 			async newOrder() {
                 NProgress.start();
@@ -500,8 +642,17 @@
 
 			
 			async updateOrder(field) {
-				const value = this.service_order[field];
-				if (!value) {
+				let value = this.service_order[field];
+				if (field == 'paid') {
+					if (value == 0) {
+						this.service_order.paid = 1
+					} else {
+						this.service_order.paid = 0
+					}
+					value = this.service_order.paid
+				}
+
+				if (!value && field != 'paid') {
 					console.warn(`El campo ${field} está vacío`);
 					return;
 				}
@@ -606,6 +757,30 @@
 				}
 			},
 
+			async processPay() {
+				NProgress.start();
+
+				const payload = {
+					order_number: this.service_order.order_number,
+					pay_amount: this.service_order.pay_amount,
+				};
+
+				try {
+					const response = await fetch(Alpine.store('cache').api + '/support/pay_amount', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(payload)
+					});
+
+				} catch (error) {
+					console.error('Error en la asignación:', error);
+				} finally {
+					NProgress.done();
+				}
+			},
+
 			addOrder() {
 				Alpine.store('cache').showModal('add');
 			},
@@ -615,6 +790,11 @@
 				Alpine.store('cache').showModal('history');
 			},
 			
+			async viewLinks() {
+				await this.firstLinkPage();
+				Alpine.store('cache').showModal('links');
+			},
+
 			async getHistory() {
 				NProgress.start();
 				try {
@@ -627,6 +807,70 @@
 					this.total_pages = jsonData.pagination.pages;
 				} catch (error) {
 					console.error('Error fetching history', error);
+				} finally {
+					NProgress.done();
+				}
+			},
+
+			async getLinkHistory() {
+				NProgress.start();
+				try {
+					const response = await fetch(Alpine.store('cache').api + `/support/link_history?page=${this.current_page}`);
+					const data = await response.json();
+					const jsonData = data.data || [];
+
+					this.link_list = jsonData.list;
+					//this.current_page = jsonData.pagination.page;
+					this.total_pages = jsonData.pagination.pages;
+				} catch (error) {
+					console.error('Error fetching link', error);
+				} finally {
+					NProgress.done();
+				}
+			},
+
+			async deleteLink(link_id) {
+				NProgress.start();
+
+				const payload = {
+					link_id: link_id,
+					user_id: Alpine.store('cache').user.id,
+				};
+			
+				try {
+					const response = await fetch(Alpine.store('cache').api + '/support/link_delete', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(payload)
+					});
+			
+				} catch (error) {
+					console.error('Error en la asignación:', error);
+				} finally {
+					NProgress.done();
+				}
+			},
+
+			async newLink(link_id) {
+				NProgress.start();
+
+				const payload = {
+					user_id: Alpine.store('cache').user.id,
+				};
+			
+				try {
+					const response = await fetch(Alpine.store('cache').api + '/support/link', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(payload)
+					});
+
+				} catch (error) {
+					console.error('Error en la asignación:', error);
 				} finally {
 					NProgress.done();
 				}
@@ -656,6 +900,32 @@
 					return;
 				this.current_page = new_page;
 				await this.getHistory();
+			},
+
+			async firstLinkPage() {
+				this.current_page = 1;
+				await this.getLinkHistory();
+			},
+
+			async lastLinkPage() {
+				this.current_page = this.total_pages;
+				await this.getLinkHistory();
+			},
+
+			async nextLinkPage() {
+				const new_page = this.current_page + 1;
+				if (new_page > this.total_pages)
+					return;
+				this.current_page = new_page;
+				await this.getLinkHistory();
+			},
+
+			async prevLinkPage() {
+				const new_page = this.current_page - 1;
+				if (new_page < 1)
+					return;
+				this.current_page = new_page;
+				await this.getLinkHistory();
 			},
 
 			editAllowed() {
@@ -760,6 +1030,20 @@
 			display: flex;
 			gap: 0.75rem;
 		}
+		#modal-history .create-link {
+			display: flex;
+			gap: 0.25rem;
+			justify-content: center;
+			align-items: center;
+			width: initial;
+			padding: 0 1rem;
+			line-height: 2rem;
+			font-size: 0.8rem;
+			font-weight: 400;
+		}
+		#modal-history .create-link img {
+			filter: invert(1);
+		}
 		#modal-history .pagination .disabled {
 			opacity: 0.5;
     		cursor: default !important;
@@ -799,6 +1083,16 @@
 			overflow: hidden;
 			text-overflow: ellipsis;
 		}
+		#modal-history table.static tbody tr {
+			transition: none;
+		}
+		#modal-history table.static tbody tr:hover {
+			background-color: transparent;
+		}
+		#modal-history table.static td {
+			cursor: default;
+			line-height: 2rem;
+		}
 		#modal-history table td.order {
 			width: 8rem;
 		}
@@ -810,10 +1104,60 @@
 			width: 20rem;
 			max-width: 20rem;
 		}
+		#modal-history table td .controlls {
+			display: flex;
+    		gap: 0.5rem;
+		}
+		#modal-history table td .controlls .action {
+			width: 1.5rem;
+			height: 1.5rem;
+			display: flex;
+			justify-content: center;
+		}
 		#modal-history table .machine {
 			display: flex;
 			align-items: center;
 			gap: 0.75rem;
+		}
+		#modal-history table .link-id {
+			background-color: var(--white);
+			width: 1.75rem;
+			height: 1.75rem;
+			border-radius: 1rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-weight: 500;
+			font-size: 0.8rem;
+			border: 1px solid var(--graydark);
+		}
+		#modal-history table .link-status {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#modal-history table .link-status.status-1 {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		#modal-history table .link-status.status-2 {
+			background-color: #dff5ff;
+    		border: 2px solid #b4e1f2;
+		}
+		#modal-history table .link-status.status-3 {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+		}
+		#modal-history table .link-status.status-4 {
+			background-color: #e4d4fb;
+    		border: 2px solid #d0beeb;
+		}
+		#modal-history table .link-status.status-5 {
+			background-color: #fee3e1;
+    		border: 2px solid #ffceca;
 		}
 		#modal-history table .finished {
 			background-color: #d0f4ea;
@@ -894,6 +1238,38 @@
 			align-items: center;
 			gap: 0.5rem;
 			position: relative;
+		}
+		#support-dashboard .menu {
+			display: flex;
+			background-color: var(--white);
+			border-radius: 2rem;
+			padding: 0.5rem 0.75rem;
+			gap: 0.25rem;
+		}
+		#support-dashboard .menu .item {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			border-radius: 2rem;
+			padding: 0 0.75rem;
+			gap: 0.5rem;
+			cursor: pointer;
+			transition: var(--transition);
+		}
+		#support-dashboard .menu .item:hover {
+			background-color: var(--gray);
+		}
+		#support-dashboard .menu .item .button {
+			border-radius: 2rem;
+			transition: var(--transition);
+			height: 2rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		#support-dashboard .menu .item span {
+			font-size: 0.75rem;
+    		font-weight: 600;
 		}
 		#support-dashboard .controllers {
 			display: flex;
@@ -1211,6 +1587,47 @@
 			gap: 1rem;
 			align-items: center;
 		}
+		#modal-view .top .pay {
+			align-items: center;
+			justify-content: end;
+			display: flex;
+			gap: 0.5rem;
+			margin-left: auto;
+			margin-right: 1.75rem;
+		}
+		#modal-view .top .pay span {
+			transition: var(--transition);
+			width: 1.5rem;
+			height: 1.5rem;
+			background-color: #4BBC66;
+			background-color: var(--graydarkest);
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			color: var(--black);
+			font-size: 0.7rem;
+			font-weight: 600;
+			border-radius: 2rem;
+		}
+		#modal-view .top .pay input {
+			border: none;
+			outline: none;
+			padding: 0;
+			margin: 0;
+			font-weight: 600;
+			font-size: 1rem;
+			text-align: right;
+			background-color: transparent;
+			font-family: inherit;
+			transition: var(--transition);
+		}
+		#modal-view .top .pay.payed span {
+			color: white;
+			background-color: #4BBC66;
+		}
+		#modal-view .top .pay.payed input {
+			color: #4BBC66;
+		}
 		#modal-view .top .days {
 			font-weight: 600;
 			padding: 0.25rem 0.75rem;
@@ -1229,14 +1646,13 @@
 			background-color: #fee3e1;
 			border: 2px solid #ffceca;
 		}
-		#modal-view .top .finish {
-			margin-left: auto;
-			margin-right: 1rem;
-			padding: 0.25rem 1.25rem;
+		#modal-view .hover-opacity.finish {
+			padding: 0.25rem 0;
 			border: 2px solid var(--primary);
 			background-color: var(--primary);
 			color: var(--white);
 			border-radius: 1rem;
+			text-align: center;
 		}
 		#modal-view .history {
 			display: flex;
@@ -1343,6 +1759,16 @@
 				width: 100%;
 				text-align: center;
 				margin-right: 0px;
+			}
+			#support-dashboard .menu .item {
+				padding: 0;
+			}
+			#support-dashboard .menu .item .button {
+				height: 2.5rem;
+    			width: 2.5rem;
+			}
+			#support-dashboard .menu .item span {
+				display: none;
 			}
         }
 	</style>
