@@ -458,18 +458,33 @@
             other_accessories: '',
             termsScrolledToBottom: false,
             signaturePad: null,
+            assigned_number: null,
             api: Alpine.store('cache').api,
 
             downloadLabelPDF() {
                 const element = document.getElementById('shipping-label-export');
-                const opt = {
-                    margin:       0.5,
-                    filename:     'rotulo_envio.pdf',
-                    image:        { type: 'jpeg', quality: 0.98 },
-                    html2canvas:  { scale: 2 },
-                    jsPDF:        { unit: 'in', format: 'A5', orientation: 'portrait' }
-                };
-                html2pdf().set(opt).from(element).save();
+                const rect = element.getBoundingClientRect();
+                const scale = 2;
+
+                html2canvas(element, {
+                    scale: scale,
+                    useCORS: true,
+                }).then(canvas => {
+                    const pdfWidth = rect.width * 0.75;
+                    const pdfHeight = rect.height * 0.75;
+                    const imgWidth = pdfWidth;
+                    const imgHeight = pdfHeight;
+
+                    const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                    const pdf = new window.jspdf.jsPDF({
+                        orientation: imgWidth > imgHeight ? 'landscape' : 'portrait',
+                        unit: 'pt',
+                        format: [imgWidth, imgHeight]
+                    });
+
+                    pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+                    pdf.save("rotulo_envio.pdf");
+                });
             },
 
             next() {
@@ -735,6 +750,7 @@
         #guest .modal {
             padding: 4rem 5rem;
             max-width: 42rem;
+            margin: 1.5rem 0;
         }
         #guest .content {
             display: flex;
