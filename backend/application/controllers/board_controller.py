@@ -11,7 +11,7 @@ class BoardController:
 
     @handle_logs_and_exceptions
     def board_dashboard(self, department_id):
-        return self.board.dashboard(department_id)
+        return self.board.dashboard(int(department_id))
     
 
     @handle_logs_and_exceptions

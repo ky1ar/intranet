@@ -162,15 +162,15 @@
                                 :src="'/static/images/uploads/users/' + (option_user?.image || 'user_default.jpg')" 
                                 alt="user"
                             >
-                            <span x-text="option_user?.name || 'Asignar a…'"></span>
+                            <span x-text="option_user?.name || 'No asignado'"></span>
                         </div>
 
 						<div x-show="option_user_active" x-transition.duration.300ms @click.outside="hideUserOption()" class="select_options">
 							<template x-for="user in $store.cache.getData('user_team')" :key="user.id">
 								<div 
-                                    class="option" 
-                                    :class="{ 'pick': option_user?.id === user.id }" 
-                                    @click="option_user = user; hideUserOption()">
+									class="option" 
+									:class="{ 'pick': option_user?.id === user.id }" 
+									@click="option_user = user; hideUserOption()">
 									<img width="24" height="24" :src="'/static/images/uploads/users/' + user.image" alt="user">
 									<span x-text="user.name"></span>
 								</div>
@@ -246,7 +246,7 @@
 					{ key: 'board_dashboard', url: `/board/dashboard/${Alpine.store('cache').user.department_id}`, force: true },
 					{ key: 'board_statuses', url: '/general/board_statuses' },
 					{ key: 'board_priority', url: '/general/board_priority' },
-					{ key: 'user_team', url: `/user/team/${Alpine.store('cache').user.id}` },
+					{ key: 'user_team', url: `/user/team/${Alpine.store('cache').user.id}`, force: true },
 				]);
 
 				await Alpine.store('cache').verify();
@@ -259,9 +259,15 @@
 			},
 			
 			async addIssue() {
+				const team = Alpine.store('cache').getData('user_team');
+				const default_user = team?.find(item => item.level_id === 5);
+
                 if (!this.option_user) {
-                    this.showError('add', 'Asigne la actividad');
-                    return;
+					if (!default_user) {
+						this.showError('add', 'Asigne la actividad');
+						return;
+					} 
+					this.option_user = default_user;
                 }
 
                 if (this.isSending) return;

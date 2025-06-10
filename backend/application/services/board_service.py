@@ -57,10 +57,13 @@ class BoardService:
         }
 
         today = datetime.now().date()
-        start_of_week = today - timedelta(days=today.weekday())  # lunes
-        end_of_week = start_of_week + timedelta(days=4)  # viernes
+        start_of_week = today - timedelta(days=today.weekday())
+        end_of_week = start_of_week + timedelta(days=4)
         
         for issue in board:
+            if department_id == 7 and issue.assignee and issue.assignee.level_id == 5:
+                continue
+
             if issue.status.id == 4:
                 created_date = issue.updated_at.date()
                 if not (start_of_week <= created_date <= end_of_week):

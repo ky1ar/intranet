@@ -10,7 +10,6 @@ from flask import g
 class BoardRepository:
     @handle_db_exceptions
     def get_board(self, department_id):
-        department_id = int(department_id)
         query = g.db_session.query(BoardIssues)
 
         if department_id != 7:

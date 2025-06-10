@@ -53,21 +53,28 @@ class UserService:
         user, user_status = self.user_repository.get_user_by_id(user_id)
         if user_status != 200:
             return user, user_status
-        
+
         if user.level_id == 1:
             return "Usuario sin acceso al sistema", 400
-        
+
         team, team_status = self.user_repository.get_department_team(user.department_id)
         if team_status != 200:
             return team, team_status
-        
+
+        if user.department_id == 7:
+            team = [t for t in team if t.level_id != 5]
+
         team_dict = [
             {
                 "id": teammate.id,
+                "level_id": teammate.level_id,
                 "name": self.format_name(teammate.name),
                 "image": teammate.image if teammate.image else 'user_default.jpg',
             } for teammate in team
         ]
+
+        team_dict = sorted(team_dict, key=lambda x: 0 if x["level_id"] == 5 else 1)
+
         return team_dict, 200
 
 
