@@ -173,10 +173,11 @@ body.modal-open {
     resize: none;
     outline: none;
     width: 100%;
+    min-width: 24rem;
     background-color: transparent;
     border: 1px dashed hsl(0deg 0% 0% / 45%);
-    height: 3.125rem;
-    min-height: 3.125rem;
+    height: 7rem;
+    min-height: 7rem;
     transition: var(--transition);
     overflow-y: hidden;
 }
@@ -184,7 +185,7 @@ body.modal-open {
     box-shadow: 0 0 2rem hsl(0deg 0% 0% / 5%);
     background-color: white;
     border: 1px dashed white;
-    height: 5rem;
+    height: 10rem;
     overflow-y: auto;
 }
 .modal .button {
@@ -533,6 +534,9 @@ body.modal-open {
     }
     .modal .fields {
         flex-direction: column;
+    }
+    .modal .text-area {
+        min-width: initial;
     }
     .hover-opacity:hover {
         opacity: 1 !important;
