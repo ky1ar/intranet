@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timezone, timedelta
 from application.handlers import handle_db_exceptions
-from application.models import ServiceOrders, ServiceOrderStatus, ServiceLinks
+from application.models import ServiceOrders, ServiceOrderStatus, ServiceLinks, ServiceStatus, Users
 from sqlalchemy import func
 from flask import g
 
@@ -35,6 +35,110 @@ class SupportRepository:
             return 'Orden no localizada, verifique los datos', 400
 
         return service_order, 200
+    
+
+    
+    @handle_db_exceptions
+    def get_orders_by_status(self):
+        orders_by_status = (
+            g.db_session.query(
+                ServiceStatus.id,
+                ServiceStatus.name,
+                func.count(ServiceOrders.id).label("count")
+            )
+            .outerjoin(ServiceOrders, ServiceOrders.status_id == ServiceStatus.id)
+            .group_by(ServiceStatus.id, ServiceStatus.name)
+            .order_by(ServiceStatus.id)
+            .all()
+        )
+        if not orders_by_status:
+            return 'No se encontraron órdenes', 404
+
+        return orders_by_status, 200
+
+
+    @handle_db_exceptions
+    def get_orders_by_month(self):
+        orders_by_month = (
+            g.db_session.query(
+                func.date_format(ServiceOrders.register_at, "%Y-%m").label('period'),
+                func.count(ServiceOrders.id)
+            )
+            .group_by('period')
+            .order_by('period')
+            .all()
+        )
+        if not orders_by_month:
+            return 'No se encontraron órdenes', 404
+
+        return orders_by_month, 200
+    
+
+    @handle_db_exceptions
+    def get_orders_by_tech(self):
+        orders_by_tech = (
+            g.db_session.query(Users.name, func.count(ServiceOrders.id))
+            .join(ServiceOrders, ServiceOrders.technician_id == Users.id)
+            .group_by(Users.name)
+            .all()
+        )
+        if not orders_by_tech:
+            return 'No se encontraron órdenes', 404
+
+        return orders_by_tech, 200
+    
+
+    @handle_db_exceptions
+    def get_total_orders(self):
+        orders = g.db_session.query(func.count(ServiceOrders.id)).scalar()
+        if not orders:
+            return None, 200
+
+        return orders, 200
+
+
+    @handle_db_exceptions
+    def get_today_total_orders(self):
+        today = datetime.today()
+        today_total = (
+            g.db_session.query(func.count(ServiceOrders.id))
+            .filter(func.date(ServiceOrders.register_at) == today.date())
+            .scalar()
+        )
+        if not today_total:
+            return None, 200
+
+        return today_total, 200
+    
+
+    @handle_db_exceptions
+    def get_week_total_orders(self):
+        today = datetime.today()
+        start_of_week = today - timedelta(days=today.weekday())
+        week_total = (
+            g.db_session.query(func.count(ServiceOrders.id))
+            .filter(ServiceOrders.register_at >= start_of_week)
+            .scalar()
+        )
+        if not week_total:
+            return None, 200
+
+        return week_total, 200
+    
+
+    @handle_db_exceptions
+    def get_month_total_orders(self):
+        today = datetime.today()
+        start_of_month = today.replace(day=1)
+        month_total = (
+            g.db_session.query(func.count(ServiceOrders.id))
+            .filter(ServiceOrders.register_at >= start_of_month)
+            .scalar()
+        )
+        if not month_total:
+            return None, 200
+
+        return month_total, 200
     
 
     @handle_db_exceptions

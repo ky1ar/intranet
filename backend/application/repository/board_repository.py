@@ -38,7 +38,7 @@ class BoardRepository:
             priority_id=data.get("priority_id", 3),
             reporter_id=data.get("reporter_id"),
             assignee_id=data.get("assignee_id"),
-            type_id=1,
+            type_id=data.get("type_id"),
             title=data.get("title"),
             description=data.get("description"),
             created_at=peru_time,

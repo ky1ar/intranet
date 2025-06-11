@@ -118,3 +118,8 @@ def link_history():
 @support_bp.route("/pdf/<order_number>", methods=["GET"])
 def pdf(order_number):
     return controller.support_pdf(order_number)
+
+
+@support_bp.route("/statistics", methods=["GET"])
+def statistics():
+    return controller.support_statistics()

@@ -6,13 +6,13 @@
 			</div>
 
 			<div class="menu">
-				<!--
-				<div class="item" @click="viewHistory()">
+				
+				<div class="item" @click="viewStatistics()">
 					<div class="button">
 						<img width="20" height="20" src="/static/images/icons/report.svg">
 					</div>
 					<span>Estadísticas</span>
-				</div>-->
+				</div>
 				<div class="item" @click="viewLinks()">
 					<div class="button">
 						<img width="20" height="20" src="/static/images/icons/link.svg">
@@ -32,19 +32,7 @@
 					<span>Añadir</span>
 				</div>
             </div>
-
-			<!-- <template x-if="editAllowed()">
-				<div class="controllers">
-					<div class="button hover-opacity" @click="viewHistory()">
-						<img width="16" height="16" :src="'/static/images/icons/history.svg'" alt="">
-						Historial
-					</div>
-					<div class="button hover-opacity" @click="addOrder()">
-						<img width="16" height="16" :src="'/static/images/icons/add.svg'" alt="">
-						Añadir
-					</div>
-				</div>
-			</template> -->
+			
 		</div>
 
 		<div class="board">
@@ -248,6 +236,7 @@
 	</div>
 
 
+
 	<div
 		x-show="$store.cache.isVisibleModal('add')"
 		@mousedown.self="$store.cache.hideLastModal()"
@@ -340,8 +329,6 @@
 			</div>
 		</div>
 	</div>
-
-
 
 
 
@@ -511,6 +498,7 @@
 					</table>
 				</div>
 			</template>
+			
 		</div>
 	</div>
 
@@ -518,6 +506,59 @@
 
 
 
+
+	<div
+		x-show="$store.cache.isVisibleModal('statistics')"
+		@mousedown.self="$store.cache.hideLastModal()"
+		x-transition.duration.300ms
+		class="modal-wrap"
+		id="modal-statistics"
+		x-cloak>
+		<div class="modal glass2" @click.stop>
+			<div class="top">
+				<span class="title">Estadísticas</span>
+			</div>
+
+			<div class="kpi">
+				<div class="item white">
+					<p>Total</p>
+					<span x-text="$store.cache.getData('support_statistics')?.count.total"></span>
+				</div>
+				<div class="item white">
+					<p>Hoy</p>
+					<span x-text="$store.cache.getData('support_statistics')?.count.today"></span>
+				</div>
+				<div class="item white">
+					<p>Semana</p>
+					<span x-text="$store.cache.getData('support_statistics')?.count.week"></span>
+				</div>
+				<div class="item white">
+					<p>Mes</p>
+					<span x-text="$store.cache.getData('support_statistics')?.count.month"></span>
+				</div>
+			</div>
+
+			<div class="charts">
+				<div class="glass2 box">
+					<span>Órdenes por Estado</span>
+					<canvas x-ref="ordersByStatusChart" width="160" height="80"></canvas>
+				</div>
+
+				<div class="glass2 box">
+					<span>Órdenes por Mes</span>
+					<canvas x-ref="ordersByMonthChart" width="160" height="80"></canvas>
+				</div>
+
+				<div class="glass2 box">
+					<span>Órdenes por Técnico</span>
+					<canvas x-ref="ordersByTechChart" width="160" height="80"></canvas>
+				</div>
+			</div>
+			<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
+				<img alt="close" src="/static/images/x.svg" width="12" height="12">
+			</div>
+		</div>
+	</div>
 
 
 
@@ -540,7 +581,10 @@
             },
 			process_service: {},
 			client_found: false,
-
+			chartStatus: null,
+			chartMonth: null,
+			chartTech: null,
+			
 			async init() {
 				console.log('Inicializando Support...');
 
@@ -795,6 +839,191 @@
 				Alpine.store('cache').showModal('links');
 			},
 
+			async viewStatistics() {
+				await Alpine.store('cache').fetchData([
+					{ key: 'support_statistics', url: `/support/statistics`, force: true },
+				]);
+				Alpine.store('cache').showModal('statistics');
+				await this.initCharts();
+			},
+
+			async initCharts() {
+				const statistics = Alpine.store('cache').getData('support_statistics');
+				await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)));
+
+				if (this.chartStatus) {
+					this.chartStatus.destroy();
+				}
+				if (this.chartMonth) {
+					this.chartMonth.destroy();
+				}
+				if (this.chartTech) {
+					this.chartTech.destroy();
+				}
+				
+				this.chartStatus = new Chart(this.$refs.ordersByStatusChart, {
+					type: 'bar',
+					data: {
+						labels: statistics.by_status.map(r => r.status),
+						datasets: [{
+							label: 'Órdenes',
+							data: statistics.by_status.map(r => r.count),
+							backgroundColor: 'rgba(255,160,42, 0.75)',
+							borderWidth: 0,
+						}]
+					},
+					options: {
+						responsive: true,
+						plugins: {
+							legend: { display: false }
+						},
+						scales: {
+							x: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: 'transparent',
+								},
+								border: {
+									display: false
+								}
+							},
+							y: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: '#fff',
+								},
+								border: {
+									display: false
+								}
+							}
+						}
+					},
+					
+				});
+
+				this.chartMonth = new Chart(this.$refs.ordersByMonthChart, {
+					type: 'line',
+					data: {
+						labels: statistics.by_month.map(r => r.period),
+						datasets: [{
+							label: 'Órdenes por Mes',
+							data: statistics.by_month.map(r => r.count),
+							fill: true,
+							tension: 0.3,
+							backgroundColor: 'rgba(234,113,52,0.5)',
+							borderWidth: 0
+						}]
+					},
+					options: {
+						responsive: true,
+						plugins: {
+							legend: { display: false }
+						},
+						scales: {
+							x: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: 'transparent',
+								},
+								border: {
+									display: false
+								}
+							},
+							y: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: '#fff',
+								},
+								border: {
+									display: false
+								}
+							}
+						}
+					},
+				});
+
+				this.chartTech =new Chart(this.$refs.ordersByTechChart, {
+					type: 'bar',
+					data: {
+						labels: statistics.by_tech.map(r => r.technician),
+						datasets: [{
+							label: 'Órdenes',
+							data: statistics.by_tech.map(r => r.count),
+							backgroundColor: 'rgba(15, 32, 39, 0.75)',
+							borderWidth: 0
+						}]
+					},
+					options: {
+						responsive: true,
+						plugins: {
+							legend: { display: false }
+						},
+						scales: {
+							x: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: 'transparent',
+								},
+								border: {
+									display: false
+								}
+							},
+							y: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: '#fff',
+								},
+								border: {
+									display: false
+								}
+							}
+						}
+					},
+				});
+			},
+				
 			async getHistory() {
 				NProgress.start();
 				try {
@@ -1022,6 +1251,46 @@
 
 
 	<style>
+		#modal-statistics .kpi {
+			display: flex;
+    		gap: 1rem;
+		}
+		#modal-statistics .kpi .item {
+			flex: 1;
+			width: 8rem;
+			display: flex;
+			padding: 1rem;
+			flex-direction: column;
+			gap: 0.25rem;
+		}
+	
+		#modal-statistics .kpi .item span {
+			font-weight: 500;
+    		font-size: 1.5rem;
+			color: var(--primary);
+		}
+		#modal-statistics .kpi .item p {
+			margin: 0;
+			display: flex;
+			flex: 1;
+			align-items: center;
+			font-weight: 500;
+		}
+		#modal-statistics .charts {
+			display: flex;
+			gap: 1rem;
+			flex-direction: column;
+		}
+		#modal-statistics .charts .box {
+			padding: 1.5rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+		}
+		#modal-statistics .charts .box span {
+			font-weight: 500;
+    		font-size: 1rem;
+		}
 		#modal-history .top {
     		justify-content: space-between;
 			display: flex;

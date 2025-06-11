@@ -139,3 +139,10 @@ class SupportController:
 
     def support_pdf(self, order_number):
         return self.support.create_pdf(order_number)
+    
+    
+    @handle_logs_and_exceptions
+    def support_statistics(self):
+        return self.support.statistics()
+    
+    

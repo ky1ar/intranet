@@ -43,7 +43,6 @@ class SupportService:
         dia_semana = self.days[fecha.isoweekday()]
         dia = fecha.day
         mes = self.months[fecha.month]
-        
 
         return f"{dia} de {mes} del {fecha.year}"
 
@@ -736,3 +735,58 @@ class SupportService:
         response.headers['Content-Type'] = 'application/pdf'
         response.headers['Content-Disposition'] = f'attachment; filename={filename}'
         return response
+    
+
+    @handle_exceptions
+    def statistics(self):
+        total_orders, total_orders_code = self.support_repository.get_total_orders() 
+        if total_orders_code != 200:
+            return total_orders, total_orders_code
+        
+        today_orders, today_orders_code = self.support_repository.get_today_total_orders() 
+        if today_orders_code != 200:
+            return today_orders, today_orders_code
+        
+        week_orders, week_orders_code = self.support_repository.get_week_total_orders() 
+        if week_orders_code != 200:
+            return week_orders, week_orders_code
+
+        month_orders, month_orders_code = self.support_repository.get_month_total_orders() 
+        if month_orders_code != 200:
+            return month_orders, month_orders_code
+
+        orders_by_status, orders_by_status_code = self.support_repository.get_orders_by_status() 
+        if orders_by_status_code != 200:
+            return orders_by_status, orders_by_status_code
+        by_status = [
+            {"status_id": sid, "status": name, "count": count}
+            for sid, name, count in orders_by_status
+        ]
+
+        orders_by_month, orders_by_month_code = self.support_repository.get_orders_by_month() 
+        if orders_by_month_code != 200:
+            return orders_by_month, orders_by_month_code
+        by_month = [
+            {'period': period, 'count': count}
+            for period, count in orders_by_month
+        ]
+        
+        orders_by_tech, orders_by_tech_code = self.support_repository.get_orders_by_tech() 
+        if orders_by_tech_code != 200:
+            return orders_by_tech, orders_by_tech_code
+        by_tech = [
+            {'technician': self.general_service.format_name(name), 'count': count}
+            for name, count in orders_by_tech
+        ]
+        result = {
+            "count":  {
+                "total": total_orders or 0,
+                "today": today_orders or 0,
+                "week": week_orders or 0,
+                "month": month_orders or 0
+            },
+            "by_status": by_status,
+            "by_month": by_month,
+            "by_tech": by_tech,
+        }
+        return result, 200

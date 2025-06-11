@@ -457,6 +457,9 @@ class BoardTypes(BaseModel):
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
     name = db.Column(db.String(100), nullable=False)
+    department_id = db.Column(db.Integer, db.ForeignKey('user_department.id'))
+
+    department = db.relationship("UserDepartment", lazy="joined", foreign_keys=[department_id])
 
 
 class BoardHistory(BaseModel):
