@@ -47,6 +47,7 @@ class SupportRepository:
                 func.count(ServiceOrders.id).label("count")
             )
             .outerjoin(ServiceOrders, ServiceOrders.status_id == ServiceStatus.id)
+            .filter(ServiceOrders.status_id != 9)
             .group_by(ServiceStatus.id, ServiceStatus.name)
             .order_by(ServiceStatus.id)
             .all()
@@ -79,6 +80,8 @@ class SupportRepository:
         orders_by_tech = (
             g.db_session.query(Users.name, func.count(ServiceOrders.id))
             .join(ServiceOrders, ServiceOrders.technician_id == Users.id)
+            .filter(Users.level_id != 1)
+            .filter(Users.id != 21)
             .group_by(Users.name)
             .all()
         )

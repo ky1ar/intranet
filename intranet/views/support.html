@@ -1279,13 +1279,15 @@
 		#modal-statistics .charts {
 			display: flex;
 			gap: 1rem;
-			flex-direction: column;
+			flex-wrap: wrap;
+			justify-content: center;
 		}
 		#modal-statistics .charts .box {
 			padding: 1.5rem;
 			display: flex;
 			flex-direction: column;
 			gap: 0.75rem;
+			min-width: 28rem;
 		}
 		#modal-statistics .charts .box span {
 			font-weight: 500;
@@ -2038,6 +2040,12 @@
 			}
 			#support-dashboard .menu .item span {
 				display: none;
+			}
+			#modal-statistics .charts {
+				flex-direction: column;
+			}
+			#modal-statistics .charts .box {
+				min-width: initial;
 			}
         }
 	</style>
