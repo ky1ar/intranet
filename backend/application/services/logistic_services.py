@@ -19,7 +19,24 @@ class LogisticService:
         self.logistic_repository = LogisticRepository()
         self.client_repository = ClientRepository()
         self.whatsapp = Whatsapp()
+        self.days = {
+            1: "lunes", 2: "martes", 3: "miércoles", 4: "jueves",
+            5: "viernes", 6: "sábado", 7: "domingo"
+        }
+        self.months = {
+            1: "enero", 2: "febrero", 3: "marzo", 4: "abril",
+            5: "mayo", 6: "junio", 7: "julio", 8: "agosto",
+            9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre"
+        }
 
+
+    def date_format(self, fecha):
+        dia_semana = self.days[fecha.isoweekday()]
+        dia = fecha.day
+        mes = self.months[fecha.month]
+
+        return f"{dia} de {mes} del {fecha.year}"
+    
 
     @handle_exceptions
     def get_schedule(self, offset):
@@ -454,7 +471,94 @@ class LogisticService:
         return "Orden actualizada correctamente", 200
     
 
+    @handle_exceptions
+    def history(self, data):
+        page = data.get("page")
+        per_page = data.get("per_page")
+        shipping_orders, shipping_orders_status = self.logistic_repository.get_all_shipping_orders(page=page, per_page=per_page)
+        if shipping_orders_status != 200:
+            return shipping_orders, shipping_orders_status
+        
+        list = []
+        for order in shipping_orders["list"]:
+            order_data = {
+                "id": order.id,
+                "order_number": order.client_order.number,
+                "client_name": order.client_order.client.name.title(),
+                #"technician_name": order.technician.name.title(),
+                "method_id": order.method_id,
+                "method_name": order.method.name,
+                "status_id": order.status_id,
+                "status_name": order.status.name,
+                "finished": False if order.status_id < 4 else True,
+                "register_date": self.date_format(order.register_date)
+            }
+            list.append(order_data)
 
+        return {
+            "list": list,
+            "pagination": {
+                "total": shipping_orders["total"],
+                "page": shipping_orders["page"],
+                "per_page": shipping_orders["per_page"],
+                "pages": shipping_orders["pages"],
+            }
+        }, 200
+
+
+    @handle_exceptions
+    def statistics(self):
+        total_orders, total_orders_code = self.logistic_repository.get_total_orders() 
+        if total_orders_code != 200:
+            return total_orders, total_orders_code
+        
+        today_orders, today_orders_code = self.logistic_repository.get_today_total_orders() 
+        if today_orders_code != 200:
+            return today_orders, today_orders_code
+        
+        week_orders, week_orders_code = self.logistic_repository.get_week_total_orders() 
+        if week_orders_code != 200:
+            return week_orders, week_orders_code
+
+        month_orders, month_orders_code = self.logistic_repository.get_month_total_orders() 
+        if month_orders_code != 200:
+            return month_orders, month_orders_code
+
+        orders_by_type, orders_by_type_code = self.logistic_repository.get_orders_by_type() 
+        if orders_by_type_code != 200:
+            return orders_by_type, orders_by_type_code
+        by_status = [
+            {"status_id": sid, "status": name, "count": count}
+            for sid, name, count in orders_by_type
+        ]
+
+        orders_by_month, orders_by_month_code = self.logistic_repository.get_orders_by_month() 
+        if orders_by_month_code != 200:
+            return orders_by_month, orders_by_month_code
+        by_month = [
+            {'period': period, 'count': count}
+            for period, count in orders_by_month
+        ]
+        
+        orders_by_district, orders_by_district_code = self.logistic_repository.get_orders_by_district() 
+        if orders_by_district_code != 200:
+            return orders_by_district, orders_by_district_code
+        by_tech = [
+            {'technician': name, 'count': count}
+            for name, count in orders_by_district
+        ]
+        result = {
+            "count":  {
+                "total": total_orders or 0,
+                "today": today_orders or 0,
+                "week": week_orders or 0,
+                "month": month_orders or 0
+            },
+            "by_status": by_status,
+            "by_month": by_month,
+            "by_tech": by_tech,
+        }
+        return result, 200
 
 
 

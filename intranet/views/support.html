@@ -1,23 +1,21 @@
 <div x-data="support_data">
 	<div id="support-dashboard">
 		<div class="header">
-			<div class="titles">
-				<span class="range">Soporte</span>
-			</div>
-
-			<div class="menu">
-				
-				<div class="item" @click="viewStatistics()">
-					<div class="button">
-						<img width="20" height="20" src="/static/images/icons/report.svg">
-					</div>
-					<span>Estadísticas</span>
-				</div>
+			<div class="menu primary">
 				<div class="item" @click="viewLinks()">
 					<div class="button">
 						<img width="20" height="20" src="/static/images/icons/link.svg">
 					</div>
 					<span>Enlaces</span>
+				</div>
+            </div>
+
+			<div class="menu">
+				<div class="item" @click="viewStatistics()">
+					<div class="button">
+						<img width="20" height="20" src="/static/images/icons/report.svg">
+					</div>
+					<span>Estadísticas</span>
 				</div>
 				<div class="item" @click="viewHistory()">
 					<div class="button">
@@ -1342,7 +1340,7 @@
 		}
 		#modal-history table tbody tr {
 			transition: var(--transition);
-			border-top: 2px solid #ffffff80;
+			border-top: 3px solid #ffffff80;
 		}
 		#modal-history table tbody tr:hover {
 			background-color: var(--white);
@@ -1365,7 +1363,7 @@
 			line-height: 2rem;
 		}
 		#modal-history table td.order {
-			width: 8rem;
+			width: 6rem;
 		}
 		#modal-history table td.machine_box {
 			width: 12rem;
@@ -1542,6 +1540,16 @@
 			font-size: 0.75rem;
     		font-weight: 600;
 		}
+		#support-dashboard .menu.primary {
+			background-color: var(--secondary);
+			color: var(--white);
+		}
+		#support-dashboard .menu.primary .item:hover {
+			background-color: hsl(0deg 0% 100% / 20%);
+		}
+		#support-dashboard .menu.primary img {
+			filter: invert(1);
+		}
 		#support-dashboard .controllers {
 			display: flex;
 			gap: 0.75rem;
@@ -1576,7 +1584,7 @@
 			flex: 1;
 			display: flex;
 			flex-direction: column;
-			border-right: 2px solid #ffffff80;
+			border-right: 3px solid #ffffff80;
 			gap: 0.25rem;
 			transition: var(--transition);
 			min-width: 10rem;
@@ -2016,7 +2024,7 @@
 			}
             #support-dashboard .group {
 				border-right: none;
-				border-bottom: 2px solid #ffffff80;
+				border-bottom: 3px solid #ffffff80;
 			}
 			#modal-view .modal {
 				min-width: initial;
@@ -2030,6 +2038,9 @@
 				width: 100%;
 				text-align: center;
 				margin-right: 0px;
+			}
+			#support-dashboard .menu {
+				gap: 0.75rem;
 			}
 			#support-dashboard .menu .item {
 				padding: 0;

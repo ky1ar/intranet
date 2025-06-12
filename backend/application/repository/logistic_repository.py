@@ -1,9 +1,9 @@
 
 from datetime import date, datetime, timezone, timedelta
 from application.handlers import handle_db_exceptions
-from application.models import ShippingOrders, ClientOrders, ShippingHistory
+from application.models import ShippingOrders, ClientOrders, ShippingHistory, ShippingMethod, ShippingDistricts
 from sqlalchemy.orm import joinedload
-from sqlalchemy import asc
+from sqlalchemy import asc, func
 from flask import g
 
 
@@ -249,3 +249,128 @@ class LogisticRepository:
         g.db_session.commit()
         return True, 200
     
+
+    @handle_db_exceptions
+    def get_all_shipping_orders(self, page=1, per_page=20):
+        query = (
+            g.db_session.query(ShippingOrders)
+            .filter(ShippingOrders.is_deleted.is_(False))
+            .order_by(ShippingOrders.id.desc())
+        )
+
+        total = query.count()
+        list = query.offset((page - 1) * per_page).limit(per_page).all()
+
+        return {
+            "list": list,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "pages": (total + per_page - 1) // per_page 
+        }, 200
+    
+
+    @handle_db_exceptions
+    def get_total_orders(self):
+        orders = g.db_session.query(func.count(ShippingOrders.id)).scalar()
+        if not orders:
+            return None, 200
+
+        return orders, 200
+    
+
+    @handle_db_exceptions
+    def get_today_total_orders(self):
+        today = datetime.today()
+        today_total = (
+            g.db_session.query(func.count(ShippingOrders.id))
+            .filter(func.date(ShippingOrders.delivery_date) == today.date())
+            .scalar()
+        )
+        if not today_total:
+            return None, 200
+
+        return today_total, 200
+    
+
+    @handle_db_exceptions
+    def get_week_total_orders(self):
+        today = datetime.today()
+        start_of_week = today - timedelta(days=today.weekday())
+        week_total = (
+            g.db_session.query(func.count(ShippingOrders.id))
+            .filter(ShippingOrders.delivery_date >= start_of_week)
+            .scalar()
+        )
+        if not week_total:
+            return None, 200
+
+        return week_total, 200
+    
+
+    @handle_db_exceptions
+    def get_month_total_orders(self):
+        today = datetime.today()
+        start_of_month = today.replace(day=1)
+        month_total = (
+            g.db_session.query(func.count(ShippingOrders.id))
+            .filter(ShippingOrders.delivery_date >= start_of_month)
+            .scalar()
+        )
+        if not month_total:
+            return None, 200
+
+        return month_total, 200
+    
+
+    @handle_db_exceptions
+    def get_orders_by_type(self):
+        orders_by_type = (
+            g.db_session.query(
+                ShippingMethod.id,
+                ShippingMethod.name,
+                func.count(ShippingOrders.id).label("count")
+            )
+            .outerjoin(ShippingOrders, ShippingOrders.method_id == ShippingMethod.id)
+            .group_by(ShippingMethod.id, ShippingMethod.name)
+            .order_by(ShippingMethod.id)
+            .all()
+        )
+        if not orders_by_type:
+            return 'No se encontraron órdenes', 404
+
+        return orders_by_type, 200
+    
+
+    @handle_db_exceptions
+    def get_orders_by_month(self):
+        orders_by_month = (
+            g.db_session.query(
+                func.date_format(ShippingOrders.delivery_date, "%Y-%m").label('period'),
+                func.count(ShippingOrders.id)
+            )
+            .filter(ShippingOrders.delivery_date.isnot(None))
+            .group_by('period')
+            .order_by('period')
+            .all()
+        )
+        if not orders_by_month:
+            return 'No se encontraron órdenes', 404
+
+        return orders_by_month, 200
+    
+
+    @handle_db_exceptions
+    def get_orders_by_district(self):
+        orders_by_district = (
+            g.db_session.query(ShippingDistricts.name, func.count(ShippingOrders.id))
+            .join(ShippingOrders, ShippingOrders.district_id == ShippingDistricts.id)
+            .group_by(ShippingDistricts.name)
+            .order_by(func.count(ShippingOrders.id).desc())
+            .limit(5)
+            .all()
+        )
+        if not orders_by_district:
+            return 'No se encontraron órdenes', 404
+
+        return orders_by_district, 200

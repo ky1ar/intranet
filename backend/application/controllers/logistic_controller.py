@@ -88,9 +88,14 @@ class LogisticController:
         return self.logistic_service.photo_upload(shipping_order, data)
         
 
+    @handle_logs_and_exceptions
+    def logistic_history(self, data):
+        return self.logistic_service.history(data)
 
 
-
+    @handle_logs_and_exceptions
+    def logistic_statistics(self):
+        return self.logistic_service.statistics()
 
 
 

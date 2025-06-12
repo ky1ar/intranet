@@ -13,7 +13,14 @@
 				</template>
 			</div>
 
-			<div class="title hover-opacity" @click="addIssueModal()">+ Añadir actividad</div>
+			<div class="menu">
+				<div class="item" @click="addIssueModal()">
+					<div class="button">
+						<img width="20" height="20" src="/static/images/icons/add.svg">
+					</div>
+					<span>Añadir</span>
+				</div>
+			</div>
 		</div>
 
 		<div class="board">
@@ -506,6 +513,38 @@
 
 
 	<style>
+		#board .menu {
+			display: flex;
+			background-color: var(--white);
+			border-radius: 2rem;
+			padding: 0.5rem 0.75rem;
+			gap: 0.25rem;
+		}
+		#board .menu .item {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			border-radius: 2rem;
+			padding: 0 0.75rem;
+			gap: 0.5rem;
+			cursor: pointer;
+			transition: var(--transition);
+		}
+		#board .menu .item:hover {
+			background-color: var(--gray);
+		}
+		#board .menu .item .button {
+			border-radius: 2rem;
+			transition: var(--transition);
+			height: 2rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		#board .menu .item span {
+			font-size: 0.75rem;
+    		font-weight: 600;
+		}
 		#board {
 			width: 100%;
 			user-select: none;

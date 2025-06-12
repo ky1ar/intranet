@@ -78,9 +78,18 @@ def logistic_upload_proof():
     return controller.logistic_upload_proof(data)
 
 
+@logistic_bp.route("/history", methods=["GET"])
+def history():
+    payload = {
+        "page": int(request.args.get("page", 1)),
+        "per_page": int(request.args.get("per_page", 12))
+    }
+    return controller.logistic_history(payload)
 
 
-
+@logistic_bp.route("/statistics", methods=["GET"])
+def statistics():
+    return controller.logistic_statistics()
 
 
 

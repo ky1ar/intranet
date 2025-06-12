@@ -448,12 +448,12 @@ async function loginVerify(context) {
 }
 
 document.addEventListener('pinecone-start', () => {
-    //NProgress.start();
+    NProgress.start();
 });
 
 document.addEventListener('pinecone-end', () => {
     Alpine.store('cache').setActivePage(window.location.pathname);
-    //NProgress.done();
+    NProgress.done();
 });
 
 document.addEventListener('fetch-error', (err) =>
