@@ -96,7 +96,14 @@ class GeneralRepository:
 
     @handle_db_exceptions
     def get_technicians(self):
-        vendors = g.db_session.query(Users).filter(Users.department_id == 5).order_by(Users.name).all()
+        vendors = (
+            g.db_session.query(Users)
+            .filter(Users.department_id == 5)
+            .filter(Users.level_id != 1)
+            .filter(Users.level_id != 5)
+            .order_by(Users.name)
+            .all()
+        )
         
         if not vendors:
             return [], 400

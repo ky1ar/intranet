@@ -111,8 +111,8 @@ body.modal-open {
     gap: 1rem;
     min-width: 20rem;
     max-height: calc(100dvh - 2rem);
-    /* width: 100%; */
-    overflow-y: auto;
+    /* width: 100%; 
+    overflow-y: auto;*/
     padding: 1.5rem;
 }
 .modal .card {

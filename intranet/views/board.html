@@ -141,7 +141,25 @@
 			id="modal-add"
 			x-cloak>
 			<div class="modal glass2">
+				<!--<div class="selects">
+					<div class="custom_select">
+						<div class="selected_option" @click="tooglePriorityOption()">
+							<img width="16" height="16" src="/static/images/icons/tag.svg" alt="user">
+							<span>Categoría</span>
+						</div>
+
+						<div x-show="option_priority_active" x-transition.duration.300ms @click.outside="hidePriorityOption()" class="select_options">
+							<template x-for="priority in $store.cache.getData('board_priority')" :key="priority.id">
+								<div class="option" @click="option_priority = priority; hidePriorityOption()">
+									<img width="16" height="16" :src="'/static/images/icons/' + priority.image" alt="priority">
+									<span x-text="'Prioridad ' + priority.name"></span>
+								</div>
+							</template>
+						</div>
+					</div>
+				</div>-->
 				<textarea x-model="add_issue.title" class="title" placeholder="Añade aquí el título de la actividad" ></textarea>
+
 				<textarea x-model="add_issue.description" class="text-area" placeholder="Descripción"></textarea>
 
 				<div class="selects">
@@ -722,11 +740,12 @@
 		#modal-add .selects {
 			display: flex;
     		gap: 1rem;
-			align-items: center;
 		}
 		#modal-add .custom_select {
-			flex: 1;
 			cursor: pointer;
+			position: relative;
+			display: flex;
+			width: 100%;
 		}
 		#modal-add .custom_select img {
 			border-radius: 2rem;
@@ -740,6 +759,7 @@
 			border-radius: 0.5rem;
 			background-color: var(--white);
 			box-shadow: 0 0 1rem hsl(0deg 0% 0% / 2.5%);
+			width: 100%;
 		}
 		#modal-add .select_options {
 			background-color: var(--white);
@@ -747,19 +767,21 @@
 			border-radius: 0.5rem;
 			display: flex;
 			flex-direction: column;
-			gap: 0.5rem;
-			position: fixed;
+			position: absolute;
 			overflow: hidden;
 			z-index: 10;
-            max-height: 13rem;
-            overflow-y: auto;
+			max-height: 12.5rem;
+			overflow-y: auto;
+			width: 100%;
+			border: 1px solid var(--graydarkest);
 		}
 		#modal-add .select_options .option {
 			display: flex;
 			align-items: center;
 			gap: 0.5rem;
 			transition: var(--transition);
-			padding: 0.35rem 0.65rem;
+			padding: 0rem 0.75rem;
+			height: 2.5rem;
 		}
 		#modal-add .select_options .option:hover {
 			background-color: var(--gray);

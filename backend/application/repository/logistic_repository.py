@@ -272,7 +272,11 @@ class LogisticRepository:
 
     @handle_db_exceptions
     def get_total_orders(self):
-        orders = g.db_session.query(func.count(ShippingOrders.id)).scalar()
+        orders = (
+            g.db_session.query(func.count(ShippingOrders.id))
+            .filter(ShippingOrders.is_deleted.is_(False))
+            .scalar()
+        )
         if not orders:
             return None, 200
 
@@ -284,6 +288,7 @@ class LogisticRepository:
         today = datetime.today()
         today_total = (
             g.db_session.query(func.count(ShippingOrders.id))
+            .filter(ShippingOrders.is_deleted.is_(False))
             .filter(func.date(ShippingOrders.delivery_date) == today.date())
             .scalar()
         )
@@ -299,6 +304,7 @@ class LogisticRepository:
         start_of_week = today - timedelta(days=today.weekday())
         week_total = (
             g.db_session.query(func.count(ShippingOrders.id))
+            .filter(ShippingOrders.is_deleted.is_(False))
             .filter(ShippingOrders.delivery_date >= start_of_week)
             .scalar()
         )
@@ -314,6 +320,7 @@ class LogisticRepository:
         start_of_month = today.replace(day=1)
         month_total = (
             g.db_session.query(func.count(ShippingOrders.id))
+            .filter(ShippingOrders.is_deleted.is_(False))
             .filter(ShippingOrders.delivery_date >= start_of_month)
             .scalar()
         )
@@ -332,6 +339,7 @@ class LogisticRepository:
                 func.count(ShippingOrders.id).label("count")
             )
             .outerjoin(ShippingOrders, ShippingOrders.method_id == ShippingMethod.id)
+            .filter(ShippingOrders.is_deleted.is_(False))
             .group_by(ShippingMethod.id, ShippingMethod.name)
             .order_by(ShippingMethod.id)
             .all()
@@ -349,6 +357,7 @@ class LogisticRepository:
                 func.date_format(ShippingOrders.delivery_date, "%Y-%m").label('period'),
                 func.count(ShippingOrders.id)
             )
+            .filter(ShippingOrders.is_deleted.is_(False))
             .filter(ShippingOrders.delivery_date.isnot(None))
             .group_by('period')
             .order_by('period')
@@ -365,6 +374,7 @@ class LogisticRepository:
         orders_by_district = (
             g.db_session.query(ShippingDistricts.name, func.count(ShippingOrders.id))
             .join(ShippingOrders, ShippingOrders.district_id == ShippingDistricts.id)
+            .filter(ShippingOrders.is_deleted.is_(False))
             .group_by(ShippingDistricts.name)
             .order_by(func.count(ShippingOrders.id).desc())
             .limit(5)

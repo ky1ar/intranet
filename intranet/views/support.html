@@ -561,6 +561,13 @@
 
 
 
+
+
+
+
+
+
+
 	<script>
 		Alpine.data('support_data',() => ({
 			sendWhatsapp: true,
@@ -582,7 +589,9 @@
 			chartStatus: null,
 			chartMonth: null,
 			chartTech: null,
-			
+			processing: false,
+            api: Alpine.store('cache').api,
+
 			async init() {
 				console.log('Inicializando Support...');
 
@@ -620,7 +629,7 @@
                         return;
                     }
                     
-                    const response = await fetch(Alpine.store('cache').api + `/machine/find/${machine_search}`, {
+                    const response = await fetch(`${this.api}/machine/find/${machine_search}`, {
                         method: 'GET',
                         headers: { 'Content-Type': 'application/json' },
                     });
@@ -642,6 +651,10 @@
 			},
 
 			async newOrder() {
+				if (!this.process_service) return;
+				if (this.processing) return;
+
+				this.processing = true;
                 NProgress.start();
 
                 const payload = { 
@@ -661,7 +674,7 @@
                 }
 
                 try {
-                    const response = await fetch(Alpine.store('cache').api + '/support/process', {
+                    const response = await fetch(`${this.api}/support/process`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload),
@@ -679,6 +692,7 @@
                     this.showError('add', error.message);
                 } finally {
                     NProgress.done();
+					this.processing = false;
                 }
             }, 
 
@@ -707,7 +721,7 @@
 
 				NProgress.start();
 				try {
-					const response = await fetch(Alpine.store('cache').api + '/support/order/update', {
+					const response = await fetch(this.api + '/support/order/update', {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify(payload),
@@ -788,7 +802,7 @@
 			async viewOrder(order_number) {
 				NProgress.start();
 				try {
-					const response = await fetch(Alpine.store('cache').api + `/support/order_number/${order_number}`);
+					const response = await fetch(this.api + `/support/order_number/${order_number}`);
 					const data = await response.json();
 					this.service_order = data.data;
 					Alpine.store('cache').showModal('view');
@@ -808,7 +822,7 @@
 				};
 
 				try {
-					const response = await fetch(Alpine.store('cache').api + '/support/pay_amount', {
+					const response = await fetch(this.api + '/support/pay_amount', {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json'
@@ -1025,7 +1039,7 @@
 			async getHistory() {
 				NProgress.start();
 				try {
-					const response = await fetch(Alpine.store('cache').api + `/support/history?page=${this.current_page}`);
+					const response = await fetch(this.api + `/support/history?page=${this.current_page}`);
 					const data = await response.json();
 					const jsonData = data.data || [];
 
@@ -1042,7 +1056,7 @@
 			async getLinkHistory() {
 				NProgress.start();
 				try {
-					const response = await fetch(Alpine.store('cache').api + `/support/link_history?page=${this.current_page}`);
+					const response = await fetch(this.api + `/support/link_history?page=${this.current_page}`);
 					const data = await response.json();
 					const jsonData = data.data || [];
 
@@ -1057,6 +1071,9 @@
 			},
 
 			async deleteLink(link_id) {
+				if (this.processing) return;
+
+				this.processing = true;
 				NProgress.start();
 
 				const payload = {
@@ -1065,7 +1082,7 @@
 				};
 			
 				try {
-					const response = await fetch(Alpine.store('cache').api + '/support/link_delete', {
+					const response = await fetch(this.api + '/support/link_delete', {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json'
@@ -1077,10 +1094,14 @@
 					console.error('Error en la asignación:', error);
 				} finally {
 					NProgress.done();
+					this.processing = false;
 				}
 			},
 
 			async newLink(link_id) {
+				if (this.processing) return;
+
+				this.processing = true;
 				NProgress.start();
 
 				const payload = {
@@ -1088,7 +1109,7 @@
 				};
 			
 				try {
-					const response = await fetch(Alpine.store('cache').api + '/support/link', {
+					const response = await fetch(this.api + '/support/link', {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json'
@@ -1100,6 +1121,7 @@
 					console.error('Error en la asignación:', error);
 				} finally {
 					NProgress.done();
+					this.processing = false;
 				}
 			},
 
@@ -1172,7 +1194,7 @@
 
                 NProgress.start();
 				try {
-					const response = await fetch(Alpine.store('cache').api + `/client/data/${document}`);
+					const response = await fetch(this.api + `/client/data/${document}`);
 					if (!response.ok) {
 						this.process_service.client_id = '';
 						this.process_service.client_name = '';
@@ -1200,6 +1222,10 @@
 			},
 
 			async updateStatus() {
+				if (!this.selected_service) return;
+				if (this.processing) return;
+
+				this.processing = true;
 				NProgress.start();
 				const payload = {
 					order_number: this.selected_service.order_number,
@@ -1209,7 +1235,7 @@
 				};
 			
 				try {
-					const response = await fetch(Alpine.store('cache').api + '/support/order/next', {
+					const response = await fetch(`${this.api}/support/order/next`, {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json'
@@ -1227,14 +1253,13 @@
 					}
 
 					Alpine.store('cache').hideModal('status');
-					setTimeout(() => {
-						this.selected_service = null;
-					}, 350);
+					this.selected_service = null;
 
 				} catch (error) {
 					console.error('Error en la asignación:', error);
 				} finally {
 					NProgress.done();
+					this.processing = false;
 				}
 			},
 			
