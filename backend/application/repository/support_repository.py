@@ -460,7 +460,7 @@ class SupportRepository:
                     Clients.document.ilike(search_term)
                 )
             )
-            .order_by(ServiceOrders.order_number)
+            .order_by(ServiceOrders.order_number.desc())
             .distinct()
             .all()
         )

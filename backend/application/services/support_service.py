@@ -806,7 +806,7 @@ class SupportService:
                 "id": order.id,
                 "order_number": order.order_number,
                 "machine": order.machine.model,
-                "client_name": order.client.name,
+                "client_name": order.client.name.title(),
                 "machine_image": order.machine.image,
 
             } for order in orders

@@ -427,7 +427,7 @@
 				<img class="ico" width="20" height="20" src="/static/images/icons/find.svg">
                 <input type="text"
                     x-model="find_order_number"
-                    placeholder="Número de orden"
+                    placeholder="Orden, nombre, dni/ruc"
                     @input="findOrders()">
 				<div class="hover-opacity clear" x-show="find_order_number" @click="find_order_number = ''; finded_orders = [];">
 					<img class="" width="12" height="12" src="/static/images/x.svg">
@@ -893,6 +893,8 @@
 			
 			async search() {
 				this.find_order_number = '';
+				this.finded_orders = []
+
 				Alpine.store('cache').showModal('search');
 			},
 

@@ -531,6 +531,7 @@ body.modal-open {
     .modal {
         width: calc(100% - 2rem);
         min-width: initial;
+        overflow-y: auto;
     }
     .modal .fields {
         flex-direction: column;
