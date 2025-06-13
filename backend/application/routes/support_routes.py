@@ -123,3 +123,8 @@ def pdf(order_number):
 @support_bp.route("/statistics", methods=["GET"])
 def statistics():
     return controller.support_statistics()
+
+
+@support_bp.route("/find/<order_number>", methods=["GET"])
+def support_find_order(order_number):
+    return controller.support_find_order(order_number)

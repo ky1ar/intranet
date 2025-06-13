@@ -75,20 +75,20 @@
                     placeholder="Nombre del equipo"
                     @input="getMachine()">
 
-                    <div class="machines">
-                        <template x-for="machine in machines" :key="machine.id">
-                            <span
-                            x-text="machine.name"
-                            class="hover-opacity"
-                            @click="
-                                service_order.machine = machine.name;
-                                service_order.machine_id = machine.id;
-                                service_order.machine_image = machine.image;
-                                machines = [];
-                            ">
-                            </span>
-                        </template>
-                    </div>
+                <div class="machines">
+                    <template x-for="machine in machines" :key="machine.id">
+                        <span
+                        x-text="machine.name"
+                        class="hover-opacity"
+                        @click="
+                            service_order.machine = machine.name;
+                            service_order.machine_id = machine.id;
+                            service_order.machine_image = machine.image;
+                            machines = [];
+                        ">
+                        </span>
+                    </template>
+                </div>
                 <button class="button hover-opacity" @click="validateMachine()" :class="buttons.machine.class" x-text="buttons.machine.text"></button>
             </div>
         </div>
@@ -306,8 +306,10 @@
             <div class="bottom">
                 <div class="card" id="shipping-label-export" style="background-color: white; padding: 1rem;">
                     <div class="shipping-label" style=" border: dashed 2px var(--graydarkest); border-radius: 0.5rem; padding: 1.5rem; text-align: left; display: flex; flex-direction: column; gap: 1.5rem;">
-                        <div class="block" style="display: flex; flex-direction: column; gap: 0.25rem;">
+                        <div class="block" style="display: flex; flex-direction: column; gap: 0.25rem; position: relative;">
                             <h2 style="font-size: 1.125rem; font-weight: 600; color: var(--primary); margin: 0;">Remitente</h2>
+                            <img alt="logo" src="/static/images/logo1.svg" width="128" height="27" style=" position: absolute; right: 0; width: 128px; height: auto;">
+                                            
                             <div class="data" style="display: flex; flex-direction: column; gap: 0.75rem;">
                                 <div class="line" style="display: flex; flex-direction: column;">
                                      <strong>Nombres y apellidos:</strong>
@@ -342,6 +344,20 @@
                                             <span>48832468</span>
                                         </div>
                                     </div>
+                                    <div class="group" style="display: flex; justify-content: space-between;">
+                                        <div class="line" style="display: flex; flex-direction: column;">
+                                            <strong>Razón Social:</strong>
+                                        <span>
+                                            Fabricaciones Digitales del Peru S.A.
+                                        </span>
+                                        </div>
+                                        <div class="line" style="display: flex; flex-direction: column;">
+                                            <strong>Celular:</strong>
+                                            <span>
+                                                970539751
+                                            </span>
+                                        </div>
+                                    </div>
                                      <div class="line" style="display: flex; flex-direction: column;">
                                         <strong>Dirección:</strong>
                                         <span>Calle Javier Fernández 262 Miraflores, Lima</span>
@@ -374,11 +390,26 @@
                                             </span>
                                         </div>
                                     </div>
+                                    <div class="group" style="display: flex; justify-content: space-between;">
+                                        <div class="line" style="display: flex; flex-direction: column;">
+                                            <strong>Agencias de recepción:</strong>
+                                            <span>
+                                                Shalom Lima - Santiago de Surco - Higuereta<br>
+                                                Shalom Lima - Surquillo - República de Panamá
+                                            </span>
+                                        </div>
+                                        <div class="line" style="display: flex; flex-direction: column;">
+                                            <strong>Celular:</strong>
+                                            <span>
+                                                970539751
+                                            </span>
+                                        </div>
+                                    </div>
+
                                     <div class="line" style="display: flex; flex-direction: column;">
-                                        <strong>Agencias de recepción:</strong>
+                                        <strong>Razón Social:</strong>
                                         <span>
-                                            Shalom Lima - Santiago de Surco - Higuereta<br>
-                                            Shalom Lima - Surquillo - República de Panamá
+                                            Fabricaciones Digitales del Peru S.A.
                                         </span>
                                     </div>
                                 </div>

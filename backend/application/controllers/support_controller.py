@@ -145,4 +145,11 @@ class SupportController:
     def support_statistics(self):
         return self.support.statistics()
     
+
+    @handle_logs_and_exceptions
+    def support_find_order(self, order_number):
+        if not order_number:
+            return None, 400
+        
+        return self.support.find_orders(order_number)
     

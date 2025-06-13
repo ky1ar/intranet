@@ -8,6 +8,12 @@
 					</div>
 					<span>Enlaces</span>
 				</div>
+				<div class="item" @click="search()">
+					<div class="button">
+						<img width="20" height="20" src="/static/images/icons/find.svg">
+					</div>
+					<span>Buscar</span>
+				</div>
             </div>
 
 			<div class="menu">
@@ -17,6 +23,7 @@
 					</div>
 					<span>Estadísticas</span>
 				</div>
+				
 				<div class="item" @click="viewHistory()">
 					<div class="button">
 						<img width="20" height="20" src="/static/images/icons/history.svg">
@@ -408,6 +415,42 @@
 
 
 
+	<div
+		x-show="$store.cache.isVisibleModal('search')"
+		@mousedown.self="$store.cache.hideLastModal()"
+		x-transition.duration.300ms
+		class="modal-wrap"
+		id="modal-search"
+		x-cloak>
+		<div class="modal" @click.stop>
+			<div class="bottom glass2">
+				<img class="ico" width="20" height="20" src="/static/images/icons/find.svg">
+                <input type="text"
+                    x-model="find_order_number"
+                    placeholder="Número de orden"
+                    @input="findOrders()">
+				<div class="hover-opacity clear" x-show="find_order_number" @click="find_order_number = ''; finded_orders = [];">
+					<img class="" width="12" height="12" src="/static/images/x.svg">
+				</div>
+            </div>
+			<div class="orders glass2" x-show="finded_orders.length > 0">
+				<template x-for="order in finded_orders" :key="order.id">
+					<div class="item" @click="viewOrder(order.order_number); $store.cache.hideModal('search'); find_order_number = ''; finded_orders = [];">
+						<div class="title">
+							<span class="order-number" x-text="order.order_number"></span>
+							<span class="machine" x-text="order.machine"></span>
+						</div>
+						<span class="client" x-text="order.client_name"></span>
+
+						<img width="48" height="48" :src="`/static/images/uploads/machines/${order.machine_image}`" alt="">
+					</div>
+					
+				</template>
+			</div>
+		</div>
+	</div>
+
+
 
 	<div
 		x-show="$store.cache.isVisibleModal('links')"
@@ -570,6 +613,7 @@
 
 	<script>
 		Alpine.data('support_data',() => ({
+			find_order_number: '',
 			sendWhatsapp: true,
 			dashboard: [],
 			history_list: [],
@@ -578,6 +622,7 @@
 			current_page: 1,
 			service_order: [],
 			machines: [],
+			finded_orders: [],
 			selected_service: null,
 			status_notes: '',
 			show_document: false,
@@ -846,6 +891,11 @@
 				Alpine.store('cache').showModal('history');
 			},
 			
+			async search() {
+				this.find_order_number = '';
+				Alpine.store('cache').showModal('search');
+			},
+
 			async viewLinks() {
 				await this.firstLinkPage();
 				Alpine.store('cache').showModal('links');
@@ -1263,7 +1313,31 @@
 				}
 			},
 			
+			async findOrders() {
+                const order_number = this.find_order_number;
+                try {
+                    NProgress.start();
+                    if (order_number.length < 2) {
+                        this.finded_orders = [];
+                        return;
+                    }
+                    
+                    const response = await fetch(`${this.api}/support/find/${order_number}`, {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
 
+                    this.finded_orders = jsonData.data;
+                } catch (error) {
+                    this.finded_orders = [];
+                    return;
+                } finally {
+                    NProgress.done();
+                }
+            },
 		}));
 	</script>
 
@@ -1274,6 +1348,95 @@
 
 
 	<style>
+		#modal-search .modal {
+			gap: 0.5rem;
+			min-width: initial;
+		}
+		#modal-search .bottom {
+			display: flex;
+			align-items: center;
+			padding: 0.25rem 1rem;
+			border-radius: 0.75rem;
+		}
+		#modal-search .bottom .ico {
+			opacity: 0.5;
+		}
+		#modal-search .bottom input {
+			flex: 1;
+			background-color: transparent;
+			border: none;
+			outline: none;
+			padding: 0.75rem;
+			font-family: inherit;
+			font-size: 1rem;
+			font-weight: 400;
+			min-width: 10rem;
+		}
+		#modal-search .bottom .clear {
+			padding: 0.25rem;
+		}
+		#modal-search .bottom .clear img {
+			min-width: 0.75rem;
+    		min-height: 0.75rem;
+		}
+		#modal-search .orders {
+			max-height: 18rem;
+			overflow-y: auto;
+			width: 100%;
+			display: flex;
+			flex-direction: column;
+			font-size: 1rem;
+			border-radius: 0.75rem;
+		}
+		#modal-search .orders .item {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			position: relative;
+			padding: 0.75rem 1rem;
+			border-bottom: 2px solid #ffffff80;
+			cursor: pointer;
+			transition: var(--transition);
+			background-color: transparent;
+		}
+		#modal-search .orders .title {
+			display: flex;
+    		justify-content: space-between;
+		}
+		#modal-search .orders .item:last-child {
+			border-bottom: none;
+		}
+		#modal-search .orders .item:hover {
+			background-color: #ffffff;
+		}
+		#modal-search .orders .item .order-number {
+			font-size: 1rem;
+			font-weight: 600;
+			line-height: 1rem;
+		}
+		#modal-search .orders .item .machine {
+			font-weight: 600;
+			font-size: 0.75rem;
+			line-height: 1rem;
+			display: none;
+		}
+		#modal-search .orders .item .client {
+			line-height: 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+			opacity: 0.75;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 12rem;
+		}
+		#modal-search .orders .item img {
+			mix-blend-mode: darken;
+			position: absolute;
+			bottom: 0.75rem;
+			right: 0.75rem;
+			width: 2rem;
+		}
 		#modal-statistics .kpi {
 			display: flex;
     		gap: 1rem;

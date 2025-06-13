@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timezone, timedelta
 from application.handlers import handle_db_exceptions
-from application.models import ServiceOrders, ServiceOrderStatus, ServiceLinks, ServiceStatus, Users
+from application.models import ServiceOrders, ServiceOrderStatus, ServiceLinks, ServiceStatus, Users, Clients, db
 from sqlalchemy import func
 from flask import g
 
@@ -444,3 +444,27 @@ class SupportRepository:
         g.db_session.add(link)
         g.db_session.commit()
         return True, 200
+    
+
+    @handle_db_exceptions
+    def get_orders_like(self, order_number):
+        search_term = f"%{order_number}%"
+
+        results = (
+            g.db_session.query(ServiceOrders)
+            .join(Clients, ServiceOrders.client_id == Clients.id)
+            .filter(
+                db.or_(
+                    db.cast(ServiceOrders.order_number, db.String).ilike(search_term),
+                    Clients.name.ilike(search_term),
+                    Clients.document.ilike(search_term)
+                )
+            )
+            .order_by(ServiceOrders.order_number)
+            .distinct()
+            .all()
+        )
+        if not results:
+            return None, 400
+
+        return results, 200

@@ -790,3 +790,25 @@ class SupportService:
             "by_tech": by_tech,
         }
         return result, 200
+    
+
+    @handle_exceptions
+    def find_orders(self, order_number):
+        if len(order_number) < 2:
+            return None, 400
+        
+        orders, orders_status = self.support_repository.get_orders_like(order_number)
+        if orders_status != 200:
+            return orders, orders_status
+        
+        orders_list = [
+            {
+                "id": order.id,
+                "order_number": order.order_number,
+                "machine": order.machine.model,
+                "client_name": order.client.name,
+                "machine_image": order.machine.image,
+
+            } for order in orders
+        ]
+        return orders_list, 200
