@@ -1,20 +1,40 @@
 <div x-data="tracking_data">
 	<div id="tracking-dashboard">
         <div class="header">
-			<div class="titles">
-				<span class="range">Panel de Trackings</span>
+			<div class="menu primary">
+				<div class="item" @click="search()">
+					<div class="button">
+						<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
+					</div>
+					<span>Buscar</span>
+				</div>
 			</div>
 
-			<template x-if="editAllowed()">
-				<div class="menu">
+			<div class="menu">
+				<div class="item" @click="viewStatistics()">
+					<div class="button">
+						<img alt="" width="20" height="20" src="/static/images/icons/report.svg">
+					</div>
+					<span>Estadísticas</span>
+				</div>
+
+				<div class="item" @click="viewHistory()">
+					<div class="button">
+						<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
+					</div>
+					<span>Historial</span>
+				</div>
+
+				<template x-if="editAllowed()">
 					<div class="item" @click="addTracking()">
 						<div class="button">
-							<img width="20" height="20" src="/static/images/icons/add.svg">
+							<img alt="" width="20" height="20" src="/static/images/icons/add.svg">
 						</div>
 						<span>Añadir</span>
 					</div>
-				</div>
-			</template>
+				</template>
+
+            </div>
 		</div>
 
 		<div class="container-tracking main glass">
@@ -49,266 +69,425 @@
 			</template>
 
 		</div>
-	</div>
 
 
 
-	
-    <div
-		x-show="$store.cache.isVisibleModal('add')"
-		@mousedown.self="$store.cache.hideLastModal()"
-		x-transition.duration.300ms
-		class="modal-wrap"
-		id="modal-add"
-		x-cloak>
+		
+		<div
+			x-show="$store.cache.isVisibleModal('add')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-add"
+			x-cloak>
 
-		<form id="registerTrackings" x-ref="form" method="POST" class="modal glass2" @click.stop @submit.prevent="processTracking">
-			<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-				<img alt="close" src="/static/images/x.svg" width="12" height="12">
-			</div>
-
-			<div class="header">
-				<input
-					class="percent40 title"
-					type="text"
-					x-model="order_number"
-					placeholder="N° de Orden"
-					maxlength="6" 
-					@input="order_number = $event.target.value.toUpperCase()"
-					@blur="fetchOrderData()"
-					required>
-				<div class="hover-opacity button black" @click="readQR()">
-					<img alt="qr" src="/static/images/icons/qr.svg" width="16" height="16">
+			<form id="registerTrackings" x-ref="form" method="POST" class="modal glass2" @click.stop @submit.prevent="processTracking">
+				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
+					<img alt="close" src="/static/images/x.svg" width="12" height="12">
 				</div>
-			</div>
-			
-			
-			<div class="fields">
-				<label class="white">
-					<select name="agency" id="agency" x-model="agency" @change="updateFields">
-						<option value="1">Shalom</option>
-						<option value="2">Olva</option>
-						<option value="3">Marvisur</option>
-					</select>
-				</label>
 
-				<label class="white">
-					<img alt="user" src="/static/images/id.svg" width="16" height="16">
+				<div class="header">
 					<input
+						class="percent40 title"
 						type="text"
-						maxlength="15"
-						placeholder="DNI / RUC"
-						x-model="document"
-						x-bind:disabled="disableDoc"
-						@blur="fetchDocumentData()"
+						x-model="order_number"
+						placeholder="N° de Orden"
+						maxlength="6" 
+						@input="order_number = $event.target.value.toUpperCase()"
+						@blur="fetchOrderData()"
 						required>
-				</label>
-			</div>
-
-			<div class="fields">
-				<label :class="disableName ? 'glass2' : 'white'">
-					<img alt="user" src="/static/images/user.svg" width="16" height="16">
-					<input 
-						x-model="name"
-						type="text"
-						placeholder="Nombre o Razón Social" 
-						maxlength="40" 
-						x-bind:disabled="disableName"
-						required>
-				</label>
-			</div>
-			
-			<div class="fields">
-				<label class="white">
-					<img alt="phone" src="/static/images/phone.svg" width="16" height="16">
-					<input 
-						x-model="phone"
-						type="tel" 
-						placeholder="Celular" 
-						minlength="9"
-						maxlength="9" 
-						x-on:input="
-							let val = $event.target.value.replace(/[^0-9]/g, '');
-							if (val.length === 1 && val !== '9') {
-								val = '';
-							}
-							phone = val;
-						"
-						required>
-				</label>
-
-				<label class="white">
-					<img alt="email" src="/static/images/email.svg" width="16" height="16">
-					<input 
-						x-model="email"
-						type="email" 
-						placeholder="Correo"
-						maxlength="60">
-				</label>
-			</div>
-
-			<div class="fields">
-				<label class="white">
-					<input 
-					type="text" 
-					:placeholder="config[agency].p1" 
-					x-model="code1" 
-					x-on:input="
-						if (agency === '3') {
-							code1 = $event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-							if (!code1.startsWith('V')) {
-								code1 = '';
-							}
-						} else {
-							code1 = $event.target.value.replace(/[^0-9]/g, '');
-						}
-					" 
-					:maxlength="config[agency].m1" 
-					required>
-				</label>
+					<div class="hover-opacity button black" @click="readQR()">
+						<img alt="qr" src="/static/images/icons/qr.svg" width="16" height="16">
+					</div>
+				</div>
 				
-				<template x-if="config[agency].type2 === 'select'">
+				
+				<div class="fields">
 					<label class="white">
-						<select class="sp" x-model="code2" required>
-							<template x-for="opt in config[agency].options" :key="opt">
-								<option :value="opt" x-text="opt"></option>
-							</template>
+						<select name="agency" id="agency" x-model="agency" @change="updateFields">
+							<option value="1">Shalom</option>
+							<option value="2">Olva</option>
+							<option value="3">Marvisur</option>
 						</select>
 					</label>
-				</template>
-			
-				<template x-if="config[agency].type2 === 'text'">
+
 					<label class="white">
-						<input 
-							type="text" 
-							x-model="code2"
-							x-on:input="
-							if (agency === '3') {
-								code2 = $event.target.value.replace(/[^0-9]/g, '');
-							} else {
-								code2 = $event.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-							}
-							"
-							:placeholder="config[agency].p2" 
-							:maxlength="config[agency].m2" 
+						<img alt="user" src="/static/images/id.svg" width="16" height="16">
+						<input
+							type="text"
+							maxlength="15"
+							placeholder="DNI / RUC"
+							x-model="document"
+							x-bind:disabled="disableDoc"
+							@blur="fetchDocumentData()"
 							required>
 					</label>
-				</template>
+				</div>
 
-				<template x-if="agency === '1'">
+				<div class="fields">
+					<label :class="disableName ? 'glass2' : 'white'">
+						<img alt="user" src="/static/images/user.svg" width="16" height="16">
+						<input 
+							x-model="name"
+							type="text"
+							placeholder="Nombre o Razón Social" 
+							maxlength="40" 
+							x-bind:disabled="disableName"
+							required>
+					</label>
+				</div>
+				
+				<div class="fields">
+					<label class="white">
+						<img alt="phone" src="/static/images/phone.svg" width="16" height="16">
+						<input 
+							x-model="phone"
+							type="tel" 
+							placeholder="Celular" 
+							minlength="9"
+							maxlength="9" 
+							x-on:input="
+								let val = $event.target.value.replace(/[^0-9]/g, '');
+								if (val.length === 1 && val !== '9') {
+									val = '';
+								}
+								phone = val;
+							"
+							required>
+					</label>
+
+					<label class="white">
+						<img alt="email" src="/static/images/email.svg" width="16" height="16">
+						<input 
+							x-model="email"
+							type="email" 
+							placeholder="Correo"
+							maxlength="60">
+					</label>
+				</div>
+
+				<div class="fields">
 					<label class="white">
 						<input 
-							type="text" 
-							x-model="code3"
-							placeholder="Clave de recojo" 
-							maxlength="4">
+						type="text" 
+						:placeholder="config[agency].p1" 
+						x-model="code1" 
+						x-on:input="
+							if (agency === '3') {
+								code1 = $event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+								if (!code1.startsWith('V')) {
+									code1 = '';
+								}
+							} else {
+								code1 = $event.target.value.replace(/[^0-9]/g, '');
+							}
+						" 
+						:maxlength="config[agency].m1" 
+						required>
 					</label>
-				</template>
-			</div>
-
-			<div class="fields">
-				<button class="button hover-opacity" type="submit" :class="buttons.add.class" x-text="buttons.add.text"></button>
-			</div>
-		</form>
-	</div>
-
-
-
-
-
-
-
-	<div
-		x-show="$store.cache.isVisibleModal('read')"
-		@mousedown.self="$store.cache.hideLastModal(); stopScan();"
-		x-transition.duration.300ms
-		class="modal-wrap"
-		id="modal-qr"
-		x-cloak>
-
-		<div class="modal glass2" @click.stop >
-			<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal(); stopScan();">
-				<img alt="close" src="/static/images/x.svg" width="12" height="12">
-			</div>
-
-			<div id="scannerBox">
-				<video id="cameraFrame"></video>
-				<div class="scannerDots"></div>
-			</div>
-		</div>
-	</div>
-
-
-
-	<div
-		x-show="$store.cache.isVisibleModal('view')"
-		@mousedown.self="$store.cache.hideLastModal()"
-		x-transition.duration.300ms
-		class="modal-wrap"
-		id="modal-view"
-		x-cloak>
-		<div class="modal glass2" @click.stop>
-			<div class="top">
-				<span class="order" x-text="tracking_order.order_number"></span>
-				<div class="code3" x-show="tracking_order.code3" x-text="'Clave de recojo: ' +tracking_order.code3"></div>
-				<img class="agency" width="80" height="22" :src="'/static/images/tracking/' + $store.cache.getById('tracking_agencies', tracking_order.agency_id)?.icon" alt="">
-			</div>
-
-			<div class="content">
+					
+					<template x-if="config[agency].type2 === 'select'">
+						<label class="white">
+							<select class="sp" x-model="code2" required>
+								<template x-for="opt in config[agency].options" :key="opt">
+									<option :value="opt" x-text="opt"></option>
+								</template>
+							</select>
+						</label>
+					</template>
 				
+					<template x-if="config[agency].type2 === 'text'">
+						<label class="white">
+							<input 
+								type="text" 
+								x-model="code2"
+								x-on:input="
+								if (agency === '3') {
+									code2 = $event.target.value.replace(/[^0-9]/g, '');
+								} else {
+									code2 = $event.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+								}
+								"
+								:placeholder="config[agency].p2" 
+								:maxlength="config[agency].m2" 
+								required>
+						</label>
+					</template>
 
-				<div class="white user">
-					<span class="letter" x-text="tracking_order.client_name?.charAt(0)"></span>
-
-					<div class="data">
-						<span x-text="tracking_order.client_name"></span>
-						<span x-text="tracking_order.client_document"></span>
-					</div>
-
-					<a class="message hover-opacity" :href="'https://api.whatsapp.com/send?phone=' + tracking_order.client_phone" target="_blank" rel="nofollow">
-						<img width="16" height="16" alt="client_phone" src="/static/images/whatsapp.svg">
-					</a>
-				</div>
-
-				
-
-				<div class="white user">
-					<img width="16" height="16" alt="client_phone" src="/static/images/location.svg">
-
-					<div class="data">
-						<span x-text="tracking_order.destination_agency"></span>
-						<span x-text="'Enviado desde ' + tracking_order.origin_agency"></span>
-					</div>
-				</div>
-				
-				<div class="review glass2">
-					<template x-for="item in tracking_order.status_history" :key="item.status_id">
-						<div class="row">
-							<span class="detail" x-text="item.status_name"></span>
-							<span class="date" x-text="formatDate(item.register_at)"></span>
-						</div>
+					<template x-if="agency === '1'">
+						<label class="white">
+							<input 
+								type="text" 
+								x-model="code3"
+								placeholder="Clave de recojo" 
+								maxlength="4">
+						</label>
 					</template>
 				</div>
-				<div class="codes">
-					<div class="glass2" x-html="'Código 1: <b>' +tracking_order.code1+'</b>'"></div>
-					<div class="glass2" x-html="'Código 2: <b>' +tracking_order.code2+'</b>'"></div>
+
+				<div class="fields">
+					<button class="button hover-opacity" type="submit" :class="buttons.add.class" x-text="buttons.add.text"></button>
+				</div>
+			</form>
+		</div>
+
+
+
+
+
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('read')"
+			@mousedown.self="$store.cache.hideLastModal(); stopScan();"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-qr"
+			x-cloak>
+
+			<div class="modal glass2" @click.stop >
+				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal(); stopScan();">
+					<img alt="close" src="/static/images/x.svg" width="12" height="12">
+				</div>
+
+				<div id="scannerBox">
+					<video id="cameraFrame"></video>
+					<div class="scannerDots"></div>
 				</div>
 			</div>
+		</div>
 
-			
-			<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()" >
-				<img alt="close" src="/static/images/x.svg" width="12" height="12">
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('view')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-view"
+			x-cloak>
+			<div class="modal glass2" @click.stop>
+				<div class="top">
+					<span class="order" x-text="tracking_order.order_number"></span>
+					<div class="code3" x-show="tracking_order.code3" x-text="'Clave de recojo: ' +tracking_order.code3"></div>
+					<img class="agency" width="80" height="22" :src="'/static/images/tracking/' + $store.cache.getById('tracking_agencies', tracking_order.agency_id)?.icon" alt="">
+				</div>
+
+				<div class="content">
+					
+
+					<div class="white user">
+						<span class="letter" x-text="tracking_order.client_name?.charAt(0)"></span>
+
+						<div class="data">
+							<span x-text="tracking_order.client_name"></span>
+							<span x-text="tracking_order.client_document"></span>
+						</div>
+
+						<a class="message hover-opacity" :href="'https://api.whatsapp.com/send?phone=' + tracking_order.client_phone" target="_blank" rel="nofollow">
+							<img width="16" height="16" alt="client_phone" src="/static/images/whatsapp.svg">
+						</a>
+					</div>
+
+					
+
+					<div class="white user">
+						<img width="16" height="16" alt="client_phone" src="/static/images/location.svg">
+
+						<div class="data">
+							<span x-text="tracking_order.destination_agency"></span>
+							<span x-text="'Enviado desde ' + tracking_order.origin_agency"></span>
+						</div>
+					</div>
+					
+					<div class="review glass2">
+						<template x-for="item in tracking_order.status_history" :key="item.status_id">
+							<div class="row">
+								<span class="detail" x-text="item.status_name"></span>
+								<span class="date" x-text="formatDate(item.register_at)"></span>
+							</div>
+						</template>
+					</div>
+					<div class="codes">
+						<div class="glass2" x-html="'Código 1: <b>' +tracking_order.code1+'</b>'"></div>
+						<div class="glass2" x-html="'Código 2: <b>' +tracking_order.code2+'</b>'"></div>
+					</div>
+				</div>
+
+				
+				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()" >
+					<img alt="close" src="/static/images/x.svg" width="12" height="12">
+				</div>
+			</div>
+		</div>
+
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('history')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-history"
+			x-cloak>
+			<div class="modal glass2" @click.stop>
+				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()" >
+					<img alt="close" src="/static/images/x.svg" width="12" height="12">
+				</div>
+				<div class="top">
+					<span class="title">Historial de envíos</span>
+
+					<div class="pagination">
+						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstPage()">
+							<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevPage()">
+							<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextPage()">
+							<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastPage()">
+							<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
+						</span>
+					</div>
+
+				</div>
+
+				<div class="history">
+					<table>
+						<thead>
+							<tr>
+								<th>Orden</th>
+								<th>Cliente</th>
+								<th>Estado</th>
+								<th>Fecha de registro</th>
+							</tr>
+						</thead>
+						<tbody>
+							<template x-for="history in history_list" :key="history.id">
+								<tr @click="viewOrder(history.id)">
+									<td class="order">
+										<div class="machine">
+											<b x-text="history.order_number"></b>
+										</div>
+									</td>
+									<td class="client" x-text="history.client_name"></td>
+									
+									<td class="order">
+										<span class="finished" :class="!history.finished ? 'active' : ''" x-text="history.finished ? 'Finalizado':'Activo'"></span>
+									</td>
+									<td x-text="history.register_at"></td>
+								</tr>
+							</template>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+
+
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('statistics')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-statistics"
+			x-cloak>
+			<div class="modal glass2" @click.stop>
+				<div class="top">
+					<span class="title">Estadísticas</span>
+				</div>
+
+				<div class="kpi">
+					<div class="item white">
+						<p>Envíos totales</p>
+						<span x-text="$store.cache.getData('tracking_statistics')?.count.total"></span>
+					</div>
+					<div class="item white">
+						<p>Envíos el día de hoy</p>
+						<span x-text="$store.cache.getData('tracking_statistics')?.count.today"></span>
+					</div>
+					<div class="item white">
+						<p>Envíos en la semana</p>
+						<span x-text="$store.cache.getData('tracking_statistics')?.count.week"></span>
+					</div>
+					<div class="item white">
+						<p>Envíos del mes</p>
+						<span x-text="$store.cache.getData('tracking_statistics')?.count.month"></span>
+					</div>
+				</div>
+
+				<div class="charts">
+					<div class="glass2 box">
+						<span>Envíos por agencia</span>
+						<canvas x-ref="ordersByStatusChart" width="160" height="80"></canvas>
+					</div>
+
+					<div class="glass2 box">
+						<span>Envíos por Mes</span>
+						<canvas x-ref="ordersByMonthChart" width="160" height="80"></canvas>
+					</div>
+
+					<div class="glass2 box">
+						<span>Top 5 destinos</span>
+						<canvas x-ref="ordersByTechChart" width="160" height="80"></canvas>
+					</div>
+				</div>
+				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
+					<img alt="close" src="/static/images/x.svg" width="12" height="12">
+				</div>
+			</div>
+		</div>
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('search')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-search"
+			x-cloak>
+			<div class="modal" @click.stop>
+				<div class="bottom glass2">
+					<img alt="" class="ico" width="20" height="20" src="/static/images/icons/find.svg">
+					<input type="text"
+						x-model="find_order_number"
+						placeholder="Orden, nombre, dni/ruc"
+						@input="findOrders()">
+					<div class="hover-opacity clear" x-show="find_order_number" @click="find_order_number = ''; finded_orders = [];">
+						<img alt="" class="" width="12" height="12" src="/static/images/x.svg">
+					</div>
+				</div>
+				<div class="orders glass2" x-show="finded_orders.length > 0">
+					<template x-for="order in finded_orders" :key="order.id">
+						<div class="item" @click="viewOrder(order.id); $store.cache.hideModal('search'); find_order_number = ''; finded_orders = [];">
+							<div class="title">
+								<span class="order-number" x-text="order.order_number"></span>
+								<img width="72" height="16" :src="'/static/images/tracking/' + $store.cache.getById('tracking_agencies', order.agency_id)?.icon" alt="">
+							</div>
+							<span class="client" x-text="order.client_name"></span>
+						</div>
+						
+					</template>
+				</div>
 			</div>
 		</div>
 	</div>
+	
+
 
 
 
 	<script>
 		Alpine.data('tracking_data', () => ({
+			api: Alpine.store('cache').api,
+			find_order_number: '',
+			finded_orders: [],
 			dashboard: [],
 			tracking_order: {},
-
 			order_number: "",    
 			document: "",
 			name: "", 
@@ -337,7 +516,13 @@
             },
         	codeReader: null,
 			scannerRunning: false,
-			
+			current_page: 1,
+			total_pages: null,
+			history_list: [],
+			chartStatus: null,
+			chartMonth: null,
+			chartDepartment: null,
+
 			async init() {
                 this.codeReader = new ZXingBrowser.BrowserQRCodeReader();
 				console.log('Inicializando Tracking...');
@@ -358,6 +543,272 @@
 				await Alpine.store('cache').verify();
 			},
 
+			async search() {
+				this.find_order_number = '';
+				this.finded_orders = []
+
+				Alpine.store('cache').showModal('search');
+			},
+
+			async findOrders() {
+                const order_number = this.find_order_number;
+                try {
+                    NProgress.start();
+                    if (order_number.length < 2) {
+                        this.finded_orders = [];
+                        return;
+                    }
+                    
+                    const response = await fetch(`${this.api}/tracking/find/${order_number}`, {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+                    this.finded_orders = jsonData.data;
+                } catch (error) {
+					console.log('Error al buscar órdenes:', error);
+                    this.finded_orders = [];
+                    return;
+                } finally {
+                    NProgress.done();
+                }
+            },
+
+			async viewStatistics() {
+				await Alpine.store('cache').fetchData([
+					{ key: 'tracking_statistics', url: `/tracking/statistics`, force: true },
+				]);
+				Alpine.store('cache').showModal('statistics');
+				await this.initCharts();
+			},
+
+			async initCharts() {
+				const statistics = Alpine.store('cache').getData('tracking_statistics');
+				await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)));
+
+				if (this.chartStatus) {
+					this.chartStatus.destroy();
+				}
+				if (this.chartMonth) {
+					this.chartMonth.destroy();
+				}
+				if (this.chartDepartment) {
+					this.chartDepartment.destroy();
+				}
+				
+				this.chartStatus = new Chart(this.$refs.ordersByStatusChart, {
+					type: 'bar',
+					data: {
+						labels: statistics.by_agency.map(r => r.agency),
+						datasets: [{
+							label: 'Órdenes',
+							data: statistics.by_agency.map(r => r.count),
+							backgroundColor: 'rgba(255,160,42, 0.75)',
+							borderWidth: 0,
+						}]
+					},
+					options: {
+						responsive: true,
+						plugins: {
+							legend: { display: false }
+						},
+						scales: {
+							x: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: 'transparent',
+								},
+								border: {
+									display: false
+								}
+							},
+							y: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: '#fff',
+								},
+								border: {
+									display: false
+								}
+							}
+						}
+					},
+					
+				});
+
+				this.chartMonth = new Chart(this.$refs.ordersByMonthChart, {
+					type: 'line',
+					data: {
+						labels: statistics.by_month.map(r => r.period),
+						datasets: [{
+							label: 'Órdenes por Mes',
+							data: statistics.by_month.map(r => r.count),
+							fill: true,
+							tension: 0.3,
+							backgroundColor: 'rgba(234,113,52,0.5)',
+							borderWidth: 0
+						}]
+					},
+					options: {
+						responsive: true,
+						plugins: {
+							legend: { display: false }
+						},
+						scales: {
+							x: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: 'transparent',
+								},
+								border: {
+									display: false
+								}
+							},
+							y: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: '#fff',
+								},
+								border: {
+									display: false
+								}
+							}
+						}
+					},
+				});
+
+				this.chartDepartment =new Chart(this.$refs.ordersByTechChart, {
+					type: 'bar',
+					data: {
+						labels: statistics.by_department.map(r => r.department),
+						datasets: [{
+							label: 'Órdenes',
+							data: statistics.by_department.map(r => r.count),
+							backgroundColor: 'rgba(15, 32, 39, 0.75)',
+							borderWidth: 0
+						}]
+					},
+					options: {
+						responsive: true,
+						plugins: {
+							legend: { display: false }
+						},
+						scales: {
+							x: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: 'transparent',
+								},
+								border: {
+									display: false
+								}
+							},
+							y: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: '#fff',
+								},
+								border: {
+									display: false
+								}
+							}
+						}
+					},
+				});
+			},
+				
+
+			async viewHistory() {
+				await this.firstPage();
+				Alpine.store('cache').showModal('history');
+			},
+
+			async firstPage() {
+				this.current_page = 1;
+				await this.getHistory();
+			},
+
+			async lastPage() {
+				this.current_page = this.total_pages;
+				await this.getHistory();
+			},
+
+			async nextPage() {
+				const new_page = this.current_page + 1;
+				if (new_page > this.total_pages)
+					return;
+				this.current_page = new_page;
+				await this.getHistory();
+			},
+
+			async prevPage() {
+				const new_page = this.current_page - 1;
+				if (new_page < 1)
+					return;
+				this.current_page = new_page;
+				await this.getHistory();
+			},
+
+			async getHistory() {
+				NProgress.start();
+				try {
+					const response = await fetch(`${this.api}/tracking/history?page=${this.current_page}`);
+					const data = await response.json();
+					const jsonData = data.data || [];
+
+					this.history_list = jsonData.list;
+					this.total_pages = jsonData.pagination.pages;
+				} catch (error) {
+					console.error('Error fetching history', error);
+				} finally {
+					NProgress.done();
+				}
+			},
 
 			async viewOrder(order_id) {
 				NProgress.start();
@@ -382,7 +833,6 @@
 
 						if (result) {
 							const readed = result.text;
-							//console.log("QR escaneado:", ose_id);
 							const payload = {
 								ose_id: readed.split('/')[0],
 							};
@@ -656,6 +1106,305 @@
 
 
 	<style>
+		#modal-statistics .kpi {
+			display: flex;
+    		gap: 1rem;
+		}
+		#modal-statistics .kpi .item {
+			flex: 1;
+			width: 8rem;
+			display: flex;
+			padding: 1rem;
+			flex-direction: column;
+			gap: 0.25rem;
+		}
+	
+		#modal-statistics .kpi .item span {
+			font-weight: 500;
+    		font-size: 1.5rem;
+			color: var(--primary);
+		}
+		#modal-statistics .kpi .item p {
+			margin: 0;
+			display: flex;
+			flex: 1;
+			align-items: center;
+			font-weight: 500;
+		}
+		#modal-statistics .charts {
+			display: flex;
+			gap: 1rem;
+			flex-wrap: wrap;
+			justify-content: center;
+		}
+		#modal-statistics .charts .box {
+			padding: 1.5rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+			min-width: 28rem;
+		}
+		#modal-statistics .charts .box span {
+			font-weight: 500;
+    		font-size: 1rem;
+		}
+		#modal-history .top {
+    		justify-content: space-between;
+			display: flex;
+		}
+		#modal-history .pagination {
+			display: flex;
+			gap: 0.75rem;
+			margin-right: 1rem;
+		}
+		#modal-history .create-link {
+			display: flex;
+			gap: 0.25rem;
+			justify-content: center;
+			align-items: center;
+			width: initial;
+			padding: 0 1rem;
+			line-height: 2rem;
+			font-size: 0.8rem;
+			font-weight: 400;
+		}
+		#modal-history .create-link img {
+			filter: invert(1);
+		}
+		#modal-history .pagination .disabled {
+			opacity: 0.5;
+    		cursor: default !important;
+		}
+		#modal-history .pagination .left img {
+			transform: rotate(180deg);
+		}
+		#modal-history .pagination span {
+			width: 2rem;
+			height: 2rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			border-radius: 2rem;
+		}
+		#modal-history table {
+			border-collapse: collapse;
+		}
+		#modal-history table th {
+			padding: 0.5rem 0.75rem;
+			text-align: left;
+			font-weight: 600;
+			font-size: 0.8rem;
+			opacity: 0.75;
+		}
+		#modal-history table tbody tr {
+			transition: var(--transition);
+			border-top: 2px solid #ffffff80;
+		}
+		#modal-history table tbody tr:hover {
+			background-color: var(--white);
+		}
+		#modal-history table td {
+			padding: 0.5rem 0.75rem;
+			cursor: pointer;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			height: 3.5rem;
+		}
+		#modal-history table.static tbody tr {
+			transition: none;
+		}
+		#modal-history table.static tbody tr:hover {
+			background-color: transparent;
+		}
+		#modal-history table.static td {
+			cursor: default;
+			line-height: 2rem;
+		}
+		#modal-history table td.order {
+			width: 8rem;
+		}
+		#modal-history table td.machine_box {
+			width: 12rem;
+			max-width: 12rem;
+		}
+		#modal-history table td.client {
+			width: 20rem;
+			max-width: 20rem;
+		}
+		#modal-history table td .controlls {
+			display: flex;
+    		gap: 0.5rem;
+		}
+		#modal-history table td .controlls .action {
+			width: 1.5rem;
+			height: 1.5rem;
+			display: flex;
+			justify-content: center;
+		}
+		#modal-history table .machine {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		#modal-history table .link-id {
+			background-color: var(--white);
+			width: 1.75rem;
+			height: 1.75rem;
+			border-radius: 1rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-weight: 500;
+			font-size: 0.8rem;
+			border: 1px solid var(--graydark);
+		}
+		#modal-history table .link-status {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#modal-history table .link-status.status-1 {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		#modal-history table .link-status.status-2 {
+			background-color: #dff5ff;
+    		border: 2px solid #b4e1f2;
+		}
+		#modal-history table .link-status.status-3 {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+		}
+		#modal-history table .link-status.status-4 {
+			background-color: #e4d4fb;
+    		border: 2px solid #d0beeb;
+		}
+		#modal-history table .link-status.status-5 {
+			background-color: #fee3e1;
+    		border: 2px solid #ffceca;
+		}
+		#modal-history table .finished {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#modal-history table .finished.active {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		#modal-history table .machine img {
+			mix-blend-mode: darken;
+		}
+		#modal-history table .machine .model {
+			display: flex;
+    		flex-direction: column;
+		}
+		#modal-history table .machine .model span {
+			font-weight: 500;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 8rem;
+		}
+		#modal-history table .machine .model span + span {
+			font-weight: 400;
+			font-size: 0.75rem;
+			opacity: 0.6;
+		}
+		#modal-search .modal {
+			gap: 0.5rem;
+			min-width: initial;
+		}
+		#modal-search .bottom {
+			display: flex;
+			align-items: center;
+			padding: 0.25rem 1rem;
+			border-radius: 0.75rem;
+		}
+		#modal-search .bottom .ico {
+			opacity: 0.5;
+		}
+		#modal-search .bottom input {
+			flex: 1;
+			background-color: transparent;
+			border: none;
+			outline: none;
+			padding: 0.75rem;
+			font-family: inherit;
+			font-size: 1rem;
+			font-weight: 400;
+			min-width: 10rem;
+		}
+		#modal-search .bottom .clear {
+			padding: 0.25rem;
+		}
+		#modal-search .bottom .clear img {
+			min-width: 0.75rem;
+    		min-height: 0.75rem;
+		}
+		#modal-search .orders {
+			max-height: 18rem;
+			overflow-y: auto;
+			width: 100%;
+			display: flex;
+			flex-direction: column;
+			font-size: 1rem;
+			border-radius: 0.75rem;
+		}
+		#modal-search .orders .item {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			position: relative;
+			padding: 0.75rem 1rem;
+			border-bottom: 2px solid #ffffff80;
+			cursor: pointer;
+			transition: var(--transition);
+			background-color: transparent;
+		}
+		#modal-search .orders .title {
+			display: flex;
+    		justify-content: space-between;
+		}
+		#modal-search .orders .item:last-child {
+			border-bottom: none;
+		}
+		#modal-search .orders .item:hover {
+			background-color: #ffffff;
+		}
+		#modal-search .orders .item .order-number {
+			font-size: 1rem;
+			font-weight: 600;
+			line-height: 1rem;
+		}
+		#modal-search .orders .item .machine {
+			font-weight: 600;
+			font-size: 0.75rem;
+			line-height: 1rem;
+		}
+		#modal-search .orders .item .client {
+			line-height: 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+			opacity: 0.75;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 16rem;
+		}
+		#modal-search .orders .item img {
+			mix-blend-mode: darken;
+			position: absolute;
+			top: 0;
+			right: 0;
+		}
 		#tracking-dashboard .menu {
 			display: flex;
 			background-color: var(--white);
@@ -687,6 +1436,16 @@
 		#tracking-dashboard .menu .item span {
 			font-size: 0.75rem;
     		font-weight: 600;
+		}
+		#tracking-dashboard .menu.primary {
+			background-color: var(--secondary);
+			color: var(--white);
+		}
+		#tracking-dashboard .menu.primary .item:hover {
+			background-color: hsl(0deg 0% 100% / 20%);
+		}
+		#tracking-dashboard .menu.primary img {
+			filter: invert(1);
 		}
         #tracking-dashboard {
 			width: 100%;
@@ -764,18 +1523,6 @@
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
-		}
-		#tracking-dashboard .header .title {
-			background-color: var(--black);
-			color: var(--white);
-			padding: 0.75rem 1.5rem;
-			border-radius: 2rem;
-			font-weight: 300;
-		}
-		#tracking-dashboard .header .title img {
-			padding: 0.5rem;
-			border-radius: 0.5rem;
-			border: 2px solid #eee;
 		}
 		#tracking-dashboard .header .range {
 			font-size: 1rem;
@@ -908,11 +1655,11 @@
 		#registerTrackings .header {
 			display: flex;
 			gap: 1rem;
-			margin-top: 1rem;
 		}
 		#registerTrackings .header .button {
 			padding: 0 2rem;
 			width: initial;
+			margin-right: 1rem;
 		}
 		#registerTrackings .header .button img {
 			filter: invert(1);
@@ -1033,6 +1780,9 @@
 			font-size: 0.85rem;
 			opacity: 0.5;
 			font-family: monospace;
+		}
+		#modal-view {
+			z-index: 30;
 		}
 		#modal-view .top {
 			display: flex;

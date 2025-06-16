@@ -168,3 +168,4 @@ static/swagger.json
 
 backend/serviceAccountKey.json
 shared_uploads/
+.vscode

@@ -1,7 +1,8 @@
-
+import logging
 from datetime import date, datetime, timezone, timedelta
 from application.handlers import handle_db_exceptions
-from application.models import TrackingOrders, TrackingOrderStatus, TrackingAgencies
+from application.models import TrackingOrders, TrackingOrderStatus, TrackingAgencies, ClientOrders, Clients,  db
+from sqlalchemy import asc, func
 from flask import g
 
 
@@ -57,7 +58,7 @@ class TrackingRepository:
 
     @handle_db_exceptions
     def get_all_list(self):
-        thirty_days_ago = datetime.now() - timedelta(days=30)
+        thirty_days_ago = datetime.now() - timedelta(days=15)
         recent_orders = (
             g.db_session.query(TrackingOrders)
             .filter(TrackingOrders.register_at >= thirty_days_ago)
@@ -167,3 +168,165 @@ class TrackingRepository:
             return [], 400
 
         return order_history, 200
+
+
+    @handle_db_exceptions
+    def get_all_tracking_orders(self, page=1, per_page=20):
+        query = (
+            g.db_session.query(TrackingOrders)
+            .order_by(TrackingOrders.id.desc())
+        )
+
+        total = query.count()
+        data_list = query.offset((page - 1) * per_page).limit(per_page).all()
+
+        return {
+            "list": data_list,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "pages": (total + per_page - 1) // per_page 
+        }, 200
+    
+
+    @handle_db_exceptions
+    def get_orders_like(self, order_number):
+        search_term = f"%{order_number}%"
+
+        results = (
+            g.db_session.query(TrackingOrders)
+            .join(ClientOrders, TrackingOrders.client_order_id == ClientOrders.id)
+            .join(Clients, ClientOrders.client_id == Clients.id)
+            .filter(
+                db.or_(
+                    db.cast(ClientOrders.number, db.String).ilike(search_term),
+                    Clients.name.ilike(search_term),
+                    Clients.document.ilike(search_term)
+                )
+            )
+            .order_by(ClientOrders.number.desc())
+            .distinct()
+            .all()
+        )
+        if not results:
+            return None, 400
+
+        return results, 200
+    
+
+    @handle_db_exceptions
+    def get_total_orders(self):
+        orders = (
+            g.db_session.query(func.count(TrackingOrders.id))
+            .scalar()
+        )
+        if not orders:
+            return None, 200
+
+        return orders, 200
+    
+
+    @handle_db_exceptions
+    def get_today_total_orders(self):
+        today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_total = (
+            g.db_session.query(func.count(TrackingOrders.id))
+            .filter(func.date(TrackingOrders.register_at) == today.date())
+            .scalar()
+        )
+        if not today_total:
+            return None, 200
+
+        return today_total, 200
+    
+
+    @handle_db_exceptions
+    def get_week_total_orders(self):
+        today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
+        start_of_week = today - timedelta(days=today.weekday())
+        week_total = (
+            g.db_session.query(func.count(TrackingOrders.id))
+            .filter(TrackingOrders.register_at >= start_of_week)
+            .scalar()
+        )
+        if not week_total:
+            return None, 200
+
+        return week_total, 200
+    
+
+    @handle_db_exceptions
+    def get_month_total_orders(self):
+        today = datetime.today()
+        start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        month_total = (
+            g.db_session.query(func.count(TrackingOrders.id))
+            .filter(TrackingOrders.register_at >= start_of_month)
+            .scalar()
+        )
+        if not month_total:
+            return None, 200
+
+        return month_total, 200
+    
+
+    @handle_db_exceptions
+    def get_orders_by_agency(self):
+        orders_by_agency = (
+            g.db_session.query(
+                TrackingAgencies.id,
+                TrackingAgencies.name,
+                func.count(TrackingOrders.id).label("count")
+            )
+            .outerjoin(TrackingOrders, TrackingOrders.agency_id == TrackingAgencies.id)
+            .filter(TrackingOrders.agency_id < 4)
+            .group_by(TrackingAgencies.id, TrackingAgencies.name)
+            .order_by(TrackingAgencies.id)
+            .all()
+        )
+        if not orders_by_agency:
+            return 'No se encontraron órdenes', 404
+
+        return orders_by_agency, 200
+    
+
+    @handle_db_exceptions
+    def get_orders_by_month(self):
+        orders_by_month = (
+            g.db_session.query(
+                func.date_format(TrackingOrders.register_at, "%Y-%m").label('period'),
+                func.count(TrackingOrders.id)
+            )
+            .group_by('period')
+            .order_by('period')
+            .all()
+        )
+        if not orders_by_month:
+            return 'No se encontraron órdenes', 404
+
+        return orders_by_month, 200
+    
+
+    @handle_db_exceptions
+    def get_orders_by_department(self):
+        department = func.trim(
+            db.case(
+                (func.locate(',', TrackingOrders.destination_agency) > 0,
+                func.substring_index(TrackingOrders.destination_agency, ',', -1)),
+                else_=TrackingOrders.destination_agency
+            )
+        )
+
+        orders_by_department = (
+            g.db_session.query(department.label('department'), func.count(TrackingOrders.id))
+            .filter(TrackingOrders.destination_agency.isnot(None))
+            .group_by('department')
+            .order_by(func.count(TrackingOrders.id).desc())
+            .limit(5)
+            .all()
+        )
+        if not orders_by_department:
+            return 'No se encontraron órdenes', 404
+
+        return orders_by_department, 200

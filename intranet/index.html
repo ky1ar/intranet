@@ -30,11 +30,11 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>-->
     
     <!--<link rel="stylesheet" href="static/css/style.css?v=0.1.0.7215">-->
-    <link rel="stylesheet" href="/static/css/new.css?v=0.3.6.3">
+    <link rel="stylesheet" href="/static/css/new.css?v=0.3.6.5">
 </head>
 
 <body class="container" x-data="data" :class="{'modal-open': $store.cache.hasActiveModals()}">
-    <script src="/static/js/main.js?v=0.3.6.3"></script>
+    <script src="/static/js/main.js?v=0.3.6.5"></script>
 
     <template x-route="/" x-handler="loginVerify" x-template.preload.target.content="/views/login.html"></template>
     <template x-route="/home" x-template.preload.target.content="/views/home.html"></template>
@@ -44,7 +44,7 @@
     <template x-route="/support" x-template.preload.target.content="/views/support.html"></template>
     <template x-route="/tracking" x-template.preload.target.content="/views/tracking.html"></template>
     <template x-route="/logistics" x-template.preload.target.content="/views/logistics.html"></template>
-    <template x-route="/logistics/:client_order_id" x-handler="logisticsHandler" x-template.preload.target.content="/views/logistics.html"></template>
+    <!--<template x-route="/logistics/:client_order_id" x-handler="logisticsHandler" x-template.preload.target.content="/views/logistics.html"></template>-->
     <template x-route="/driver" x-template.preload.target.content="/views/driver.html"></template>
     <template x-route="/clients" x-template.preload.target.content="/views/clients.html"></template>
     <template x-route="/machines" x-template.preload.target.content="/views/machines.html"></template>

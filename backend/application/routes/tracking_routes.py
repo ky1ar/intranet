@@ -38,3 +38,22 @@ def client_list():
 @tracking_bp.route("/order", methods=["POST"])##
 def get_order():
     return controller.tracking_get_order(request.get_json())
+
+
+@tracking_bp.route("/history", methods=["GET"])
+def history():
+    payload = {
+        "page": int(request.args.get("page", 1)),
+        "per_page": int(request.args.get("per_page", 12))
+    }
+    return controller.tracking_history(payload)
+
+
+@tracking_bp.route("/statistics", methods=["GET"])
+def statistics():
+    return controller.tracking_statistics()
+
+
+@tracking_bp.route("/find/<order_number>", methods=["GET"])
+def find_order(order_number):
+    return controller.tracking_find_order(order_number)

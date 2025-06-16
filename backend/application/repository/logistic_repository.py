@@ -1,7 +1,7 @@
 
 from datetime import date, datetime, timezone, timedelta
 from application.handlers import handle_db_exceptions
-from application.models import ShippingOrders, ClientOrders, ShippingHistory, ShippingMethod, ShippingDistricts
+from application.models import ShippingOrders, ClientOrders, ShippingHistory, ShippingMethod, ShippingDistricts, Clients, db
 from sqlalchemy.orm import joinedload
 from sqlalchemy import asc, func
 from flask import g
@@ -285,7 +285,7 @@ class LogisticRepository:
 
     @handle_db_exceptions
     def get_today_total_orders(self):
-        today = datetime.today()
+        today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
         today_total = (
             g.db_session.query(func.count(ShippingOrders.id))
             .filter(ShippingOrders.is_deleted.is_(False))
@@ -300,7 +300,7 @@ class LogisticRepository:
 
     @handle_db_exceptions
     def get_week_total_orders(self):
-        today = datetime.today()
+        today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
         start_of_week = today - timedelta(days=today.weekday())
         week_total = (
             g.db_session.query(func.count(ShippingOrders.id))
@@ -316,7 +316,7 @@ class LogisticRepository:
 
     @handle_db_exceptions
     def get_month_total_orders(self):
-        today = datetime.today()
+        today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
         start_of_month = today.replace(day=1)
         month_total = (
             g.db_session.query(func.count(ShippingOrders.id))
@@ -384,3 +384,28 @@ class LogisticRepository:
             return 'No se encontraron órdenes', 404
 
         return orders_by_district, 200
+    
+
+    @handle_db_exceptions
+    def get_orders_like(self, order_number):
+        search_term = f"%{order_number}%"
+
+        results = (
+            g.db_session.query(ShippingOrders)
+            .join(ClientOrders, ShippingOrders.client_order_id == ClientOrders.id)
+            .join(Clients, ClientOrders.client_id == Clients.id)
+            .filter(
+                db.or_(
+                    db.cast(ClientOrders.number, db.String).ilike(search_term),
+                    Clients.name.ilike(search_term),
+                    Clients.document.ilike(search_term)
+                )
+            )
+            .order_by(ClientOrders.number.desc())
+            .distinct()
+            .all()
+        )
+        if not results:
+            return None, 400
+
+        return results, 200

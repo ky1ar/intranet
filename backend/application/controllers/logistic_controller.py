@@ -98,6 +98,12 @@ class LogisticController:
         return self.logistic_service.statistics()
 
 
+    @handle_logs_and_exceptions
+    def logistic_find_order(self, order_number):
+        if not order_number:
+            return None, 400
+        
+        return self.logistic_service.find_orders(order_number)
 
 
 

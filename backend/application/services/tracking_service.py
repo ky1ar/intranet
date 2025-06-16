@@ -28,6 +28,23 @@ class TrackingService:
         self.olva = Olva()
         self.marvisur = Marvisur()
         self.whatsapp = Whatsapp()
+        self.days = {
+            1: "lunes", 2: "martes", 3: "miércoles", 4: "jueves",
+            5: "viernes", 6: "sábado", 7: "domingo"
+        }
+        self.months = {
+            1: "enero", 2: "febrero", 3: "marzo", 4: "abril",
+            5: "mayo", 6: "junio", 7: "julio", 8: "agosto",
+            9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre"
+        }
+
+
+    def date_format(self, fecha):
+        dia_semana = self.days[fecha.isoweekday()]
+        dia = fecha.day
+        mes = self.months[fecha.month]
+
+        return f"{dia} de {mes} del {fecha.year}"
 
 
     @handle_exceptions
@@ -225,19 +242,10 @@ class TrackingService:
                     'id': order.id,
                     'order_number': order.client_order.number,
                     'client_name': order.client_order.client.name,
-                    #'client_document': order.client_order.client.document,
-                    #'agency_image': order.agency.image if order.agency else None,
                     'agency_id': order.agency_id,
-                    #'codes': f"{order.code1} / {order.code2}",
-                    #'origin_agency': order.origin_agency,
                     'destination_agency': order.destination_agency,
-                    #'last_status': order.status.name if order.status else None,
-                    #'last_status_id': order.status.id if order.status else None,
-                    #'last_status_date': order.updated_at.strftime("%d %B %Y %I:%M %p") if order.updated_at else None
                 }
                 status_orders.append(tracking_order_data)
-
-            #status_orders.sort(key=lambda x: x["register_days_int"], reverse=True)
 
             result.append({
                 "status_id": status.id,
@@ -415,3 +423,111 @@ class TrackingService:
         return "Nada que actualizar", 200
         
        
+    @handle_exceptions
+    def history(self, data):
+        page = data.get("page")
+        per_page = data.get("per_page")
+        tracking_orders, tracking_orders_status = self.tracking_repository.get_all_tracking_orders(page=page, per_page=per_page)
+        if tracking_orders_status != 200:
+            return tracking_orders, tracking_orders_status
+        
+        list = []
+        for order in tracking_orders["list"]:
+            order_data = {
+                "id": order.id,
+                "order_number": order.client_order.number,
+                "client_name": order.client_order.client.name.title(),
+                #"technician_name": order.technician.name.title(),
+                "agency_id": order.agency_id,
+                "agency_name": order.agency.name,
+                "status_id": order.status_id,
+                "finished": False if order.status_id < 3 else True,
+                "register_at": self.date_format(order.register_at)
+            }
+            list.append(order_data)
+
+        return {
+            "list": list,
+            "pagination": {
+                "total": tracking_orders["total"],
+                "page": tracking_orders["page"],
+                "per_page": tracking_orders["per_page"],
+                "pages": tracking_orders["pages"],
+            }
+        }, 200
+
+
+    @handle_exceptions
+    def statistics(self):
+        total_orders, total_orders_code = self.tracking_repository.get_total_orders() 
+        if total_orders_code != 200:
+            return total_orders, total_orders_code
+        
+        today_orders, today_orders_code = self.tracking_repository.get_today_total_orders() 
+        if today_orders_code != 200:
+            return today_orders, today_orders_code
+        
+        week_orders, week_orders_code = self.tracking_repository.get_week_total_orders() 
+        if week_orders_code != 200:
+            return week_orders, week_orders_code
+
+        month_orders, month_orders_code = self.tracking_repository.get_month_total_orders() 
+        if month_orders_code != 200:
+            return month_orders, month_orders_code
+
+        orders_by_agency, orders_by_agency_code = self.tracking_repository.get_orders_by_agency() 
+        if orders_by_agency_code != 200:
+            return orders_by_agency, orders_by_agency_code
+        by_agency = [
+            {"agency_id": sid, "agency": name, "count": count}
+            for sid, name, count in orders_by_agency
+        ]
+
+        orders_by_month, orders_by_month_code = self.tracking_repository.get_orders_by_month() 
+        if orders_by_month_code != 200:
+            return orders_by_month, orders_by_month_code
+        by_month = [
+            {'period': period, 'count': count}
+            for period, count in orders_by_month
+        ]
+        
+        orders_by_department, orders_by_department_code = self.tracking_repository.get_orders_by_department() 
+        if orders_by_department_code != 200:
+            return orders_by_department, orders_by_department_code
+        by_department = [
+            {'department': name, 'count': count}
+            for name, count in orders_by_department
+        ]
+        result = {
+            "count":  {
+                "total": total_orders or 0,
+                "today": today_orders or 0,
+                "week": week_orders or 0,
+                "month": month_orders or 0
+            },
+            "by_agency": by_agency,
+            "by_month": by_month,
+            "by_department": by_department,
+        }
+        return result, 200
+
+
+    @handle_exceptions
+    def find_orders(self, order_number):
+        if len(order_number) < 2:
+            return None, 400
+        
+        orders, orders_status = self.tracking_repository.get_orders_like(order_number)
+        if orders_status != 200:
+            return orders, orders_status
+        
+        orders_list = [
+            {
+                "id": order.id,
+                "order_number": order.client_order.number,
+                "client_name": order.client_order.client.name.title(),
+                "agency_id": order.agency.id,
+
+            } for order in orders
+        ]
+        return orders_list, 200

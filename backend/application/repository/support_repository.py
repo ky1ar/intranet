@@ -102,7 +102,7 @@ class SupportRepository:
 
     @handle_db_exceptions
     def get_today_total_orders(self):
-        today = datetime.today()
+        today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
         today_total = (
             g.db_session.query(func.count(ServiceOrders.id))
             .filter(func.date(ServiceOrders.register_at) == today.date())
@@ -116,7 +116,7 @@ class SupportRepository:
 
     @handle_db_exceptions
     def get_week_total_orders(self):
-        today = datetime.today()
+        today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
         start_of_week = today - timedelta(days=today.weekday())
         week_total = (
             g.db_session.query(func.count(ServiceOrders.id))
@@ -131,7 +131,7 @@ class SupportRepository:
 
     @handle_db_exceptions
     def get_month_total_orders(self):
-        today = datetime.today()
+        today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
         start_of_month = today.replace(day=1)
         month_total = (
             g.db_session.query(func.count(ServiceOrders.id))

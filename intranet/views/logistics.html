@@ -1,16 +1,24 @@
 <div x-data="logistics_data">
 	<div id="logistics">
 		<div class="header">
-			<template x-if="editAllowed()">
-				<div class="menu primary">
+			<div class="menu primary">
+				<template x-if="editAllowed()">
 					<div class="item" @click="pendings_open = !pendings_open">
 						<div class="button">
-							<img width="20" height="20" src="/static/images/icons/pending.svg">
+							<img alt="" width="20" height="20" src="/static/images/icons/pending.svg">
 						</div>
 						<span x-text="`Pendientes ${$store.cache.getData('logistics_pendings')?.length || 0}`"></span>
 					</div>
+				</template>
+
+				<div class="item" @click="search()">
+					<div class="button">
+						<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
+					</div>
+					<span>Buscar</span>
 				</div>
-			</template>
+			</div>
+				
 
 			<div class="navigation desktop">
 				<div class="button white hover-opacity" @click="prev">
@@ -25,24 +33,27 @@
 			<div class="menu">
 				<div class="item" @click="viewStatistics()">
 					<div class="button">
-						<img width="20" height="20" src="/static/images/icons/report.svg">
+						<img alt="" width="20" height="20" src="/static/images/icons/report.svg">
 					</div>
 					<span>Estadísticas</span>
 				</div>
+
 				<div class="item" @click="viewHistory()">
 					<div class="button">
-						<img width="20" height="20" src="/static/images/icons/history.svg">
+						<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
 					</div>
 					<span>Historial</span>
 				</div>
-				<div class="item" @click="processShippingModal()">
-					<div class="button">
-						<img width="20" height="20" src="/static/images/icons/add.svg">
+
+				<template x-if="editAllowed()">
+					<div class="item" @click="processShippingModal()">
+						<div class="button">
+							<img alt="" width="20" height="20" src="/static/images/icons/add.svg">
+						</div>
+						<span>Añadir</span>
 					</div>
-					<span>Añadir</span>
-				</div>
+				</template>
             </div>
-			
 		</div>
 
 		
@@ -98,7 +109,6 @@
 								@dragover="onDragOver($event, day)" 
 								@dragleave="onDragLeave($event)" 
 								@drop="onDrop(day, schedule_index)">
-								<!--<span class="turn" x-text="schedule_index == 1 ? 'Mañana':'Tarde'"></span>-->
 								<template x-if="day.orders['schedule_' + schedule_index]?.length > 0">
 									<template x-for="shipping in day.orders['schedule_' + schedule_index]" :key="shipping.order_number">
 										<div class="item-card"
@@ -115,7 +125,7 @@
 												<span class="address" x-text="shipping.address"></span>
 											</div>
 											<a class="phone" @click.stop :href="'https://api.whatsapp.com/send?phone=' + shipping.client_phone" target="_blank" rel="nofollow">
-												<img src="/static/images/wsp.svg" width="16" height="16" alt="phone">
+												<img alt="" src="/static/images/wsp.svg" width="16" height="16" alt="phone">
 											</a>
 											<template x-if="shipping.status_id > 2">
 												<span class="status" 
@@ -134,30 +144,6 @@
 				</template>
 			</div>
 		</div>
-		
-		<!--
-		<div class="main glass">
-			<div class="top">
-				<template x-if="editAllowed()">
-					<span class="pendings hover-opacity" @click="pendings_open = !pendings_open" x-text="'Pendientes de agendar ' + ($store.cache.getData('logistics_pendings')?.length|| 0)"></span>
-				</template>
-
-				<span class="range" x-text="getDateRange($store.cache.getData('logistics_dashboard'))"></span>
-
-				<div class="navigation">
-					<div class="button white hover-opacity" @click="prev">
-						<img alt="prev" src="/static/images/arrow.svg" width="16" height="16">
-					</div>
-					<div class="button white middle hover-opacity" @click="today">Semana actual</div>
-					<div class="button white hover-opacity" @click="next">
-						<img alt="next" src="/static/images/arrow.svg" width="16" height="16">
-					</div>
-				</div>
-			</div>
-
-			
-
-		</div>-->
 
 		<div
 			x-show="$store.cache.isVisibleModal('process')"
@@ -310,12 +296,12 @@
 							</div>
 
 							<a class="message hover-opacity" :href="'https://api.whatsapp.com/send?phone=' + process_shipping.client_phone" target="_blank" rel="nofollow">
-								<img width="16" height="16" alt="client_phone" src="/static/images/whatsapp.svg">
+								<img alt="" width="16" height="16" alt="client_phone" src="/static/images/whatsapp.svg">
 							</a>
 						</div>
 						
 						<div class="white user">
-							<img width="16" height="16" alt="client_phone" src="/static/images/location.svg">
+							<img alt="" width="16" height="16" alt="client_phone" src="/static/images/location.svg">
 
 							<div class="data">
 								<span x-text="process_shipping.address"></span>
@@ -326,7 +312,7 @@
 								<a class="message hover-opacity" 
 									:href="process_shipping.maps" 
 									target="_blank" rel="nofollow">
-									<img width="16" height="16" alt="notification" src="/static/images/maps.svg">
+									<img alt="" width="16" height="16" alt="notification" src="/static/images/maps.svg">
 								</a>
 							</template>
 						</div>
@@ -401,9 +387,6 @@
 		</div>
 		
 
-
-
-
 		<div
 			x-show="$store.cache.isVisibleModal('history')"
 			@mousedown.self="$store.cache.hideLastModal()"
@@ -412,21 +395,24 @@
 			id="modal-history"
 			x-cloak>
 			<div class="modal glass2" @click.stop>
+				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()" >
+					<img alt="close" src="/static/images/x.svg" width="12" height="12">
+				</div>
 				<div class="top">
 					<span class="title">Historial de envíos</span>
 
 					<div class="pagination">
 						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstPage()">
-							<img src="/static/images/icons/rightfull.svg" width="20" height="20">
+							<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
 						</span>
 						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevPage()">
-							<img src="/static/images/icons/right.svg" width="20" height="20">
+							<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
 						</span>
 						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextPage()">
-							<img src="/static/images/icons/right.svg" width="20" height="20">
+							<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
 						</span>
 						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastPage()">
-							<img src="/static/images/icons/rightfull.svg" width="20" height="20">
+							<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
 						</span>
 					</div>
 
@@ -439,7 +425,7 @@
 								<th>Orden</th>
 								<th>Cliente</th>
 								<th>Estado</th>
-								<th>Registro</th>
+								<th>Fecha de registro</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -518,9 +504,47 @@
 		</div>
 
 
+		<div
+			x-show="$store.cache.isVisibleModal('search')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-search"
+			x-cloak>
+			<div class="modal" @click.stop>
+				<div class="bottom glass2">
+					<img alt="" class="ico" width="20" height="20" src="/static/images/icons/find.svg">
+					<input type="text"
+						x-model="find_order_number"
+						placeholder="Orden, nombre, dni/ruc"
+						@input="findOrders()">
+					<div class="hover-opacity clear" x-show="find_order_number" @click="find_order_number = ''; finded_orders = [];">
+						<img alt="" class="" width="12" height="12" src="/static/images/x.svg">
+					</div>
+				</div>
+				<div class="orders glass2" x-show="finded_orders.length > 0">
+					<template x-for="order in finded_orders" :key="order.id">
+						<div :style="`background-color: ${order.method_background}; border: 2px solid ${order.method_border}`" class="item" @click="processShippingModal(order.id); $store.cache.hideModal('search'); find_order_number = ''; finded_orders = [];">
+							<div class="title">
+								<span class="order-number" x-text="order.order_number"></span>
+								<span class="machine" x-text="order.district_name"></span>
+							</div>
+							<span class="client" x-text="order.client_name"></span>
+						</div>
+						
+					</template>
+				</div>
+			</div>
+		</div>
+
 
 	</div>
 
+
+
+
+
+	
 
 
 
@@ -535,6 +559,9 @@
 
 	<script>
 		Alpine.data('logistics_data',() => ({
+            api: Alpine.store('cache').api,
+			find_order_number: '',
+			finded_orders: [],
 			pending: [],
 			pendings_total: 0,
 			pendings_open: false,
@@ -588,6 +615,40 @@
 				
 				await Alpine.store('cache').verify();
 			},
+
+			async search() {
+				this.find_order_number = '';
+				this.finded_orders = []
+
+				Alpine.store('cache').showModal('search');
+			},
+
+			async findOrders() {
+                const order_number = this.find_order_number;
+                try {
+                    NProgress.start();
+                    if (order_number.length < 2) {
+                        this.finded_orders = [];
+                        return;
+                    }
+                    
+                    const response = await fetch(`${this.api}/logistic/find/${order_number}`, {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+                    this.finded_orders = jsonData.data;
+                } catch (error) {
+					console.log('Error al buscar órdenes:', error);
+                    this.finded_orders = [];
+                    return;
+                } finally {
+                    NProgress.done();
+                }
+            },
 
 			editAllowed() {
 				const user = Alpine.store('cache').user;
@@ -647,7 +708,7 @@
 					user_id: Alpine.store('cache').user.id
 				};
 				try {
-					const response = await fetch(Alpine.store('cache').api + '/logistic/set', {
+					const response = await fetch(`${this.api}/logistic/set`, {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json'
@@ -685,7 +746,7 @@
 					user_id: Alpine.store('cache').user.id
 				};
 				try {
-					const response = await fetch(Alpine.store('cache').api + '/logistic/set', {
+					const response = await fetch(`${this.api}/logistic/set`, {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json'
@@ -722,7 +783,7 @@
                 NProgress.start();
 
 				try {
-					const response = await fetch(Alpine.store('cache').api + `/client/data/${document}`);
+					const response = await fetch(`${this.api}/client/data/${document}`);
 					if (!response.ok) {
 						this.process_shipping.client_id = '';
 						this.process_shipping.client_name = '';
@@ -765,7 +826,7 @@
                 NProgress.start();
 
 				try {
-					const response = await fetch(Alpine.store('cache').api + `/client/order_number/${order_number}`);
+					const response = await fetch(`${this.api}/client/order_number/${order_number}`);
 					if (!response.ok) {
 						this.process_shipping.client_order_id = '';
 						this.process_shipping.client_id = '';
@@ -826,7 +887,7 @@
 				};
 
 				try {
-					const response = await fetch(Alpine.store('cache').api + '/logistic/process', {
+					const response = await fetch(`${this.api}/logistic/process`, {
 						method: 'POST',
 						headers: {'Content-Type': 'application/json'},
 						body: JSON.stringify(payload),
@@ -858,7 +919,7 @@
 				};
 				
 				try {
-					const response = await fetch(Alpine.store('cache').api + '/logistic/delete', {
+					const response = await fetch(`${this.api}/logistic/delete`, {
 						method: 'POST',
 						headers: {'Content-Type': 'application/json'},
 						body: JSON.stringify(payload)
@@ -1136,8 +1197,7 @@
 				NProgress.start();
 
 				try {
-					const response = await fetch(
-						Alpine.store('cache').api + `/logistic/shipping_order_id/${shipping_order_id}`
+					const response = await fetch(`${this.api}/logistic/shipping_order_id/${shipping_order_id}`
 					).then(res => res.json());
 
 					if (!response || !response.success || !response.data) {
@@ -1172,9 +1232,6 @@
 			},
 
 			async today() {
-				/*if (this.offset == 0) {
-					return;
-				}*/
 				this.offset = 0;
 				await Alpine.store('cache').refresh([
 					{ key: 'logistics_dashboard', url: `/logistic/dashboard/week` }
@@ -1226,12 +1283,11 @@
 			async getHistory() {
 				NProgress.start();
 				try {
-					const response = await fetch(Alpine.store('cache').api + `/logistic/history?page=${this.current_page}`);
+					const response = await fetch(`${this.api}/logistic/history?page=${this.current_page}`);
 					const data = await response.json();
 					const jsonData = data.data || [];
 
 					this.history_list = jsonData.list;
-					//this.current_page = jsonData.pagination.page;
 					this.total_pages = jsonData.pagination.pages;
 				} catch (error) {
 					console.error('Error fetching history', error);
@@ -1251,6 +1307,97 @@
 
 
 	<style>
+		#modal-search .modal {
+			gap: 0.5rem;
+			min-width: initial;
+		}
+		#modal-search .bottom {
+			display: flex;
+			align-items: center;
+			padding: 0.25rem 1rem;
+			border-radius: 0.75rem;
+		}
+		#modal-search .bottom .ico {
+			opacity: 0.5;
+		}
+		#modal-search .bottom input {
+			flex: 1;
+			background-color: transparent;
+			border: none;
+			outline: none;
+			padding: 0.75rem;
+			font-family: inherit;
+			font-size: 1rem;
+			font-weight: 400;
+			min-width: 10rem;
+		}
+		#modal-search .bottom .clear {
+			padding: 0.25rem;
+		}
+		#modal-search .bottom .clear img {
+			min-width: 0.75rem;
+    		min-height: 0.75rem;
+		}
+		#modal-search .orders {
+			max-height: 18rem;
+			overflow-y: auto;
+			width: 100%;
+			display: flex;
+			flex-direction: column;
+			font-size: 1rem;
+			border-radius: 0.75rem;
+			gap: 0.5rem;
+    		padding: 0.25rem;
+		}
+		#modal-search .orders .item {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			position: relative;
+			padding: 0.75rem 1rem;
+			border-bottom: 2px solid #ffffff80;
+			cursor: pointer;
+			transition: var(--transition);
+			background-color: transparent;
+			border-radius: 0.75rem;
+		}
+		#modal-search .orders .title {
+			display: flex;
+    		justify-content: space-between;
+		}
+		#modal-search .orders .item:last-child {
+			border-bottom: none;
+		}
+		#modal-search .orders .item:hover {
+			opacity: 0.75;
+		}
+		#modal-search .orders .item .order-number {
+			font-size: 1rem;
+			font-weight: 600;
+			line-height: 1rem;
+		}
+		#modal-search .orders .item .machine {
+			font-weight: 600;
+			font-size: 0.75rem;
+			line-height: 1rem;
+		}
+		#modal-search .orders .item .client {
+			line-height: 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+			opacity: 0.75;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 16rem;
+		}
+		#modal-search .orders .item img {
+			mix-blend-mode: darken;
+			position: absolute;
+			bottom: 0.75rem;
+			right: 0.75rem;
+			width: 2rem;
+		}
 		#modal-statistics .kpi {
 			display: flex;
     		gap: 1rem;
@@ -1753,6 +1900,7 @@
 		#modal-history .pagination {
 			display: flex;
 			gap: 0.75rem;
+			margin-right: 1rem;
 		}
 		#modal-history .create-link {
 			display: flex;
@@ -1915,6 +2063,12 @@
 			font-size: 0.75rem;
 			opacity: 0.6;
 		}
+		@media only screen and (max-width: 75rem) {
+			#logistics .menu .item span {
+				display: none;
+			}
+		}
+		
 		@media only screen and (max-width: 48rem) {
 			#logistics .schedule {
 				flex-direction: column;
@@ -1928,9 +2082,6 @@
 			#logistics .menu .item .button {
 				height: 2.5rem;
     			width: 2.5rem;
-			}
-			#logistics .menu .item span {
-				display: none;
 			}
 			#logistics .main .top {
 				flex-direction: column-reverse;

@@ -4,13 +4,13 @@
 			<div class="menu primary">
 				<div class="item" @click="viewLinks()">
 					<div class="button">
-						<img width="20" height="20" src="/static/images/icons/link.svg">
+						<img alt="" width="20" height="20" src="/static/images/icons/link.svg">
 					</div>
 					<span>Enlaces</span>
 				</div>
 				<div class="item" @click="search()">
 					<div class="button">
-						<img width="20" height="20" src="/static/images/icons/find.svg">
+						<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
 					</div>
 					<span>Buscar</span>
 				</div>
@@ -19,23 +19,25 @@
 			<div class="menu">
 				<div class="item" @click="viewStatistics()">
 					<div class="button">
-						<img width="20" height="20" src="/static/images/icons/report.svg">
+						<img alt="" width="20" height="20" src="/static/images/icons/report.svg">
 					</div>
 					<span>Estadísticas</span>
 				</div>
 				
 				<div class="item" @click="viewHistory()">
 					<div class="button">
-						<img width="20" height="20" src="/static/images/icons/history.svg">
+						<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
 					</div>
 					<span>Historial</span>
 				</div>
-				<div class="item" @click="addOrder()">
-					<div class="button">
-						<img width="20" height="20" src="/static/images/icons/add.svg">
+				<template x-if="editAllowed()">
+					<div class="item" @click="addOrder()">
+						<div class="button">
+							<img alt="" width="20" height="20" src="/static/images/icons/add.svg">
+						</div>
+						<span>Añadir</span>
 					</div>
-					<span>Añadir</span>
-				</div>
+				</template>
             </div>
 			
 		</div>
@@ -47,7 +49,7 @@
 					@dragleave="onDragLeave($event)"
 					@drop="dropService(group.status_id)">
 					<div class="name">
-						<img width="20" height="20"
+						<img alt="" width="20" height="20"
 							:src="'/static/images/support/' + ($store.cache.getById('service_status', group.status_id)?.image || 'default.png')"
 							alt="">
 						<span x-text="$store.cache.getById('service_status', group.status_id)?.name || ''"></span>
@@ -64,7 +66,6 @@
 									<div class="row">
 										<span class="order-number" x-text="`${item.method_letter}-${item.order_number}`"></span>
 										<div class="passed-days">
-											<!--<span class="updated-days" x-text="item.updated_days"></span>-->
 											<span class="register-day" x-text="item.register_days"></span>
 										</div>
 									</div>
@@ -74,7 +75,7 @@
 											<span class="machine" x-text="item.machine"></span>
 											<span class="admin-name" x-text="item.technician_name"></span>
 										</div>
-										<img width="48" height="48" :src="'/static/images/uploads/machines/'+item.machine_image" alt="">
+										<img alt="" width="48" height="48" :src="'/static/images/uploads/machines/'+item.machine_image" alt="">
 									</div>
 								</li>
 							</template>
@@ -83,520 +84,525 @@
 				</div>
 			</template>
 		</div>
-	</div>
 
 
-	<div
-		x-show="$store.cache.isVisibleModal('status')"
-		@mousedown.self="$store.cache.hideLastModal()"
-		x-transition.duration.300ms
-		class="modal-wrap"
-		id="modal-status"
-		x-cloak>
-		<div class="modal glass2" @click.stop>
-			<span class="title" x-text="'Orden ' + selected_service?.order_number"></span>
+		<div
+			x-show="$store.cache.isVisibleModal('status')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-status"
+			x-cloak>
+			<div class="modal glass2" @click.stop>
+				<span class="title" x-text="'Orden ' + selected_service?.order_number"></span>
 
-			<div class="update">
-				<div class="box">
-					<img width="20" height="20"
-						:src="'/static/images/support/' + ($store.cache.getById('service_status', selected_service?.status_id)?.image)"
-						alt="from">
-					<span x-text="($store.cache.getById('service_status', selected_service?.status_id))?.name"></span>
+				<div class="update">
+					<div class="box">
+						<img alt="" width="20" height="20"
+							:src="'/static/images/support/' + ($store.cache.getById('service_status', selected_service?.status_id)?.image)"
+							alt="from">
+						<span x-text="($store.cache.getById('service_status', selected_service?.status_id))?.name"></span>
+					</div>
+
+					<div class="box">
+						<img alt="" width="20" height="20"
+							:src="'/static/images/support/' + ($store.cache.getById('service_status', selected_service?.status_id + 1)?.image)"
+							alt="to">
+						<span x-text="($store.cache.getById('service_status', selected_service?.status_id + 1))?.name"></span>
+					</div>
+					<img alt="" class="arrow" width="16" height="16" src="/static/images/arrownext.svg">
+				</div>
+					
+				<textarea x-model="status_notes" class="text-area" placeholder="Notas internas"></textarea>
+
+				<div class="send-whatsapp">
+					Enviar Whatsapp
+					<label class="box">
+						<input id="send-whatsapp" type="checkbox" x-model="sendWhatsapp">
+						<span class="slider"></span>
+					</label>
 				</div>
 
-				<div class="box">
-					<img width="20" height="20"
-						:src="'/static/images/support/' + ($store.cache.getById('service_status', selected_service?.status_id + 1)?.image)"
-						alt="to">
-					<span x-text="($store.cache.getById('service_status', selected_service?.status_id + 1))?.name"></span>
+				<button class="hover-opacity button" @click="updateStatus()" x-text="selected_service?.status_id == 8 ? 'Finalizar orden':'Actualizar'"></button>
+
+				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
+					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">
 				</div>
-				<img class="arrow" width="16" height="16" src="/static/images/arrownext.svg">
-			</div>
-				
-			<textarea x-model="status_notes" class="text-area" placeholder="Notas internas"></textarea>
-
-			<div class="send-whatsapp">
-				Enviar Whatsapp
-				<label class="box">
-					<input id="send-whatsapp" type="checkbox" x-model="sendWhatsapp">
-					<span class="slider"></span>
-				</label>
-			</div>
-
-			<button class="hover-opacity button" @click="updateStatus()" x-text="selected_service?.status_id == 8 ? 'Finalizar orden':'Actualizar'"></button>
-
-			<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-				<img alt="close" src="/static/images/x.svg" width="12" height="12">
 			</div>
 		</div>
-	</div>
 
 
-	<div
-		x-show="$store.cache.isVisibleModal('view')"
-		@mousedown.self="$store.cache.hideLastModal()"
-		x-transition.duration.300ms
-		class="modal-wrap"
-		id="modal-view"
-		x-cloak>
-		<div class="modal glass2" @click.stop>
-			<div class="top">
-				<span class="title" x-text="`N° ${service_order?.order_number}`"></span>
-				<span class="days" :class="service_order?.priority" x-text="`${service_order?.passed_days}`"></span>
-				<template x-if="service_order?.status_id > 1">
-					<div class="pay" :class="service_order.paid == 0 ? '' : 'payed'">
-						<span class="hover-opacity" @click="updateOrder('paid')">S/</span>
-						<input
-							type="text"
-							placeholder="0.0"
-							@input="service_order.pay_amount = service_order.pay_amount.replace(/[^0-9.]/g, '')"
-							@blur="updateOrder('pay_amount')"
-							:size="Math.max(1, String(service_order.pay_amount || 0).length)"
-							x-model="service_order.pay_amount"
-						>
+		<div
+			x-show="$store.cache.isVisibleModal('view')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-view"
+			x-cloak>
+			<div class="modal glass2" @click.stop>
+				<div class="top">
+					<span class="title" x-text="`N° ${service_order?.order_number}`"></span>
+					<span class="days" :class="service_order?.priority" x-text="`${service_order?.passed_days}`"></span>
+					<template x-if="service_order?.status_id > 1">
+						<div class="pay" :class="service_order.paid == 0 ? '' : 'payed'">
+							<template x-if="!editAllowed()">
+								<span x-text="service_order.paid == 0 ? 'pendiente' : 'pagado'"></span>
+							</template>
+							<template x-if="editAllowed()">
+								<span class="hover-opacity" @click="updateOrder('paid')" x-text="service_order.paid == 0 ? 'pendiente' : 'pagado'"></span>
+							</template>
+							<template x-if="editAllowed()">
+								<input
+									type="text"
+									placeholder="0.0"
+									@input="service_order.pay_amount = service_order.pay_amount.replace(/[^0-9.]/g, '')"
+									@blur="updateOrder('pay_amount')"
+									:size="Math.max(1, String(service_order.pay_amount || 0).length)"
+									x-model="service_order.pay_amount"
+								>
+							</template>
+						</div>
+					</template>
+				</div>
+
+				<template x-if="!editAllowed()">
+					<div class="fields no-edit">
+						<div class="glass2" x-text="service_order.method_name"></div>
+						<div class="glass2" x-text="service_order.origin_name"></div>
 					</div>
 				</template>
-			</div>
 
-			<template x-if="!editAllowed()">
-				<div class="fields no-edit">
-					<div class="glass2" x-text="service_order.method_name"></div>
-					<div class="glass2" x-text="service_order.origin_name"></div>
+				<div class="client">
+					<img alt="" width="48" height="48" :src="'/static/images/uploads/machines/'+service_order?.machine_image" alt="">
+					
+					<div class="data">
+						<span class="machine" x-text="service_order?.machine"></span>
+						<span class="name" x-text="show_document ? service_order?.client_document : service_order?.client_name"></span>
+					</div>
+
+					<div class="icons">
+						<a :href="'https://api.whatsapp.com/send?phone=' + service_order?.client_phone" target="_blank" class="hover-opacity" rel="noopener noreferrer">
+							<img alt="" alt="phone" src="/static/images/whatsapp.svg" width="16" height="16">
+						</a>
+
+						<button @click="show_document = !show_document" class="hover-opacity">
+							<img alt="" alt="document" src="/static/images/document.svg" width="16" height="16">
+						</button>
+					</div>
 				</div>
-			</template>
 
-			<div class="client">
-				<img width="48" height="48" :src="'/static/images/uploads/machines/'+service_order?.machine_image" alt="">
+				<template x-if="editAllowed()">
+					<div class="fields">
+						<label class="white">
+							<select x-model="service_order.method_id" @change="updateOrder('method_id')">
+								<template x-for="method in $store.cache.getData('service_methods')" :key="method.id">
+									<option :value="method.id" x-text="method.name"></option>
+								</template>
+							</select>
+						</label>
+
+						<label class="white flex1-5">
+							<select x-model="service_order.technician_id" @change="updateOrder('technician_id')">
+								<template x-for="technician in $store.cache.getData('technicians')" :key="technician.id">
+									<option :value="technician.id" x-text="technician.name"></option>
+								</template>
+							</select>
+						</label>
+
+						<label class="white">
+							<select x-model="service_order.origin_id" @change="updateOrder('origin_id')">
+								<template x-for="origin in $store.cache.getData('service_origin')" :key="origin.id">
+									<option :value="origin.id" x-text="origin.name"></option>
+								</template>
+							</select>
+						</label>
+					</div>
+				</template>
+
+				<div class="history">
+					<template x-for="history in service_order?.history" :key="history.status_id">
+						<div class="row">
+							<img alt="" width="20" height="20" :src="'/static/images/support/' + $store.cache.getById('service_status', history.status_id)?.image" alt="">
+
+							<div class="left">
+								<div class="head">
+									<span class="name" x-text="$store.cache.getById('service_status', history.status_id)?.name"></span>
+									<div class="right">
+										<span class="date" x-text="history.register_at"></span>
+									</div>
+								</div>
+								<span class="notes" x-html="history.notes.replace(/\n/g, '<br>')"></span>
+							</div>
+						</div>
+					</template>
+				</div>
+				<template x-if="editAllowed()">
+					<div class="hover-opacity finish" @click="finish(service_order)" x-show="service_order?.status_id == 8">Finalizar</div>
+				</template>
+
+				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
+					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">
+				</div>
+			</div>
+		</div>
+
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('add')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-add"
+			x-cloak>
+			<div class="modal glass2" @click.stop>
+				<span class="title"><img alt="" alt="user" width="20" height="20" src="/static/images/uploads/users/00000000.jpg">Nueva orden</span>
 				
-				<div class="data">
-					<span class="machine" x-text="service_order?.machine"></span>
-					<span class="name" x-text="show_document ? service_order?.client_document : service_order?.client_name"></span>
-				</div>
-
-				<div class="icons">
-					<a :href="'https://api.whatsapp.com/send?phone=' + service_order?.client_phone" target="_blank" class="hover-opacity" rel="noopener noreferrer">
-						<img alt="phone" src="/static/images/whatsapp.svg" width="16" height="16">
-					</a>
-
-					<button @click="show_document = !show_document" class="hover-opacity">
-						<img alt="document" src="/static/images/document.svg" width="16" height="16">
-					</button>
-				</div>
-			</div>
-
-			<template x-if="editAllowed()">
 				<div class="fields">
 					<label class="white">
-						<select x-model="service_order.method_id" @change="updateOrder('method_id')">
+						<select x-model="process_service.method_id">
+							<template x-if="$store.cache.getData('service_methods')?.length !== 1">
+								<option value="">Tipo</option>
+							</template>
+
 							<template x-for="method in $store.cache.getData('service_methods')" :key="method.id">
 								<option :value="method.id" x-text="method.name"></option>
 							</template>
 						</select>
 					</label>
 
-					<label class="white flex1-5">
-						<select x-model="service_order.technician_id" @change="updateOrder('technician_id')">
-							<template x-for="technician in $store.cache.getData('technicians')" :key="technician.id">
-								<option :value="technician.id" x-text="technician.name"></option>
-							</template>
-						</select>
+					<label class="white">
+						<input type="date" x-model="process_service.register_date">
 					</label>
 
 					<label class="white">
-						<select x-model="service_order.origin_id" @change="updateOrder('origin_id')">
+						<img alt="" alt="user" src="/static/images/id.svg" width="16" height="16">
+						<input type="text" maxlength="11" @input="process_service.client_document = process_service.client_document.replace(/\D/g, '')" placeholder="DNI / RUC" x-model="process_service.client_document" @blur="fetchClientData()">
+					</label>
+				</div>
+
+				<div class="fields">
+					<label :class="client_found ? 'glass2' : 'white'">
+						<img alt="" alt="user" src="/static/images/user.svg" width="16" height="16">
+						<input :disabled="client_found" type="text" placeholder="Nombre o Razón Social" x-model="process_service.client_name">
+					</label>
+				</div>
+
+				<div class="fields">
+					<label class="white">
+						<img alt="" alt="phone" src="/static/images/phone.svg" width="16" height="16">
+						<input type="text" maxlength="9" @input="process_service.client_phone = process_service.client_phone.replace(/\D/g, '')" placeholder="Celular" x-model="process_service.client_phone">
+					</label>
+
+					<label class="white">
+						<img alt="" alt="email" src="/static/images/email.svg" width="16" height="16">
+						<input type="text" placeholder="Email" x-model="process_service.client_email">
+					</label>
+				</div>
+
+				<div class="fields">
+					<label class="white flex2-3">
+						<img alt="" alt="phone" src="/static/images/icons/printer.svg" width="16" height="16">
+						<input type="text" x-model="process_service.machine" placeholder="Nombre del equipo" @input="getMachine()">
+						<div class="white machines">
+							<template x-for="machine in machines" :key="machine.id">
+								<span
+								x-text="machine.name"
+								@click="
+									process_service.machine = machine.name;
+									process_service.machine_id = machine.id;
+									process_service.machine_image = machine.image;
+									machines = [];
+								">
+								</span>
+							</template>
+						</div>
+						
+					</label>
+
+					
+					<label class="white">
+						<select x-model="process_service.origin_id">
 							<template x-for="origin in $store.cache.getData('service_origin')" :key="origin.id">
 								<option :value="origin.id" x-text="origin.name"></option>
 							</template>
 						</select>
 					</label>
 				</div>
-			</template>
 
-			<div class="history">
-				<template x-for="history in service_order?.history" :key="history.status_id">
-					<div class="row">
-						<img width="20" height="20" :src="'/static/images/support/' + $store.cache.getById('service_status', history.status_id)?.image" alt="">
+				<textarea x-model="process_service.status_notes" class="text-area" placeholder="Problema reportado"></textarea>
 
-						<div class="left">
-							<div class="head">
-								<span class="name" x-text="$store.cache.getById('service_status', history.status_id)?.name"></span>
-								<div class="right">
-									<!--<span class="admin" x-text="history.user_name"></span>-->
-									<span class="date" x-text="history.register_at"></span>
-								</div>
-							</div>
-							<span class="notes" x-html="history.notes.replace(/\n/g, '<br>')"></span>
-						</div>
-					</div>
-				</template>
-			</div>
-			<template x-if="editAllowed()">
-				<div class="hover-opacity finish" @click="finish(service_order)" x-show="service_order?.status_id == 8">Finalizar</div>
-			</template>
+				<button class="button hover-opacity" @click="newOrder()" :class="buttons.add.class" x-text="buttons.add.text"></button>
 
-			<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-				<img alt="close" src="/static/images/x.svg" width="12" height="12">
-			</div>
-		</div>
-	</div>
-
-
-
-	<div
-		x-show="$store.cache.isVisibleModal('add')"
-		@mousedown.self="$store.cache.hideLastModal()"
-		x-transition.duration.300ms
-		class="modal-wrap"
-		id="modal-add"
-		x-cloak>
-		<div class="modal glass2" @click.stop>
-			<span class="title"><img alt="user" width="20" height="20" src="/static/images/uploads/users/00000000.jpg">Nueva orden</span>
-			
-			<div class="fields">
-				<label class="white">
-					<select x-model="process_service.method_id">
-						<template x-if="$store.cache.getData('service_methods')?.length !== 1">
-							<option value="">Tipo</option>
-						</template>
-
-						<template x-for="method in $store.cache.getData('service_methods')" :key="method.id">
-							<option :value="method.id" x-text="method.name"></option>
-						</template>
-					</select>
-				</label>
-
-				<label class="white">
-					<input type="date" x-model="process_service.register_date">
-				</label>
-
-				<label class="white">
-					<img alt="user" src="/static/images/id.svg" width="16" height="16">
-					<input type="text" maxlength="11" @input="process_service.client_document = process_service.client_document.replace(/\D/g, '')" placeholder="DNI / RUC" x-model="process_service.client_document" @blur="fetchClientData()">
-				</label>
-			</div>
-
-			<div class="fields">
-				<label :class="client_found ? 'glass2' : 'white'">
-					<img alt="user" src="/static/images/user.svg" width="16" height="16">
-					<input :disabled="client_found" type="text" placeholder="Nombre o Razón Social" x-model="process_service.client_name">
-				</label>
-			</div>
-
-			<div class="fields">
-				<label class="white">
-					<img alt="phone" src="/static/images/phone.svg" width="16" height="16">
-					<input type="text" maxlength="9" @input="process_service.client_phone = process_service.client_phone.replace(/\D/g, '')" placeholder="Celular" x-model="process_service.client_phone">
-				</label>
-
-				<label class="white">
-					<img alt="email" src="/static/images/email.svg" width="16" height="16">
-					<input type="text" placeholder="Email" x-model="process_service.client_email">
-				</label>
-			</div>
-
-			<div class="fields">
-				<label class="white flex2-3">
-					<img alt="phone" src="/static/images/icons/printer.svg" width="16" height="16">
-                	<input type="text" x-model="process_service.machine" placeholder="Nombre del equipo" @input="getMachine()">
-					<div class="white machines">
-						<template x-for="machine in machines" :key="machine.id">
-							<span
-							x-text="machine.name"
-							@click="
-								process_service.machine = machine.name;
-								process_service.machine_id = machine.id;
-								process_service.machine_image = machine.image;
-								machines = [];
-							">
-							</span>
-						</template>
-					</div>
-					
-				</label>
-
-				
-				<label class="white">
-					
-					<select x-model="process_service.origin_id">
-						<template x-for="origin in $store.cache.getData('service_origin')" :key="origin.id">
-							<option :value="origin.id" x-text="origin.name"></option>
-						</template>
-					</select>
-				</label>
-            </div>
-
-			<textarea x-model="process_service.status_notes" class="text-area" placeholder="Problema reportado"></textarea>
-
-			<button class="button hover-opacity" @click="newOrder()" :class="buttons.add.class" x-text="buttons.add.text"></button>
-
-			<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-				<img alt="close" src="/static/images/x.svg" width="12" height="12">
-			</div>
-		</div>
-	</div>
-
-
-
-
-
-
-	<div
-		x-show="$store.cache.isVisibleModal('history')"
-		@mousedown.self="$store.cache.hideLastModal()"
-		x-transition.duration.300ms
-		class="modal-wrap"
-		id="modal-history"
-		x-cloak>
-		<div class="modal glass2" @click.stop>
-			<div class="top">
-				<span class="title">Historial de equipos</span>
-
-				<div class="pagination">
-					<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstPage()">
-						<img src="/static/images/icons/rightfull.svg" width="20" height="20">
-					</span>
-					<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevPage()">
-						<img src="/static/images/icons/right.svg" width="20" height="20">
-					</span>
-					<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextPage()">
-						<img src="/static/images/icons/right.svg" width="20" height="20">
-					</span>
-					<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastPage()">
-						<img src="/static/images/icons/rightfull.svg" width="20" height="20">
-					</span>
+				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
+					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">
 				</div>
-
-			</div>
-
-			<div class="history">
-				<table>
-					<thead>
-						<tr>
-      						<th>Orden</th>
-      						<th>Equipo</th>
-      						<th>Cliente</th>
-      						<th>Estado</th>
-      						<th>Ingreso</th>
-						</tr>
-					</thead>
-					<tbody>
-						<template x-for="history in history_list" :key="history.id">
-							<tr @click="viewOrder(history.order_number)">
-								<td class="order">
-									<div class="machine">
-										<b x-text="history.method_letter"></b>
-										<div class="model">
-											<span x-text="history.order_number"></span>
-											<span x-show="history.origin_name == 'Provincia'" x-text="history.origin_name"></span>
-										</div>
-									</div>
-								</td>
-								<td class="machine_box">
-									<div class="machine">
-										<img width="40" height="40" :src="'/static/images/uploads/machines/'+history.machine_image" alt="">
-										<div class="model">
-											<span x-text="history.machine"></span>
-											<span x-text="history.brand"></span>
-										</div>
-									</div>
-								</td>
-								<td class="client" x-text="history.client_name"></td>
-								<td class="order">
-									<span class="finished" :class="!history.finished ? 'active' : ''" x-text="history.finished ? 'Finalizado':'Activo'"></span>
-								</td>
-								<td x-text="history.register_at"></td>
-							</tr>
-						</template>
-					</tbody>
-				</table>
 			</div>
 		</div>
-	</div>
 
 
 
-	<div
-		x-show="$store.cache.isVisibleModal('search')"
-		@mousedown.self="$store.cache.hideLastModal()"
-		x-transition.duration.300ms
-		class="modal-wrap"
-		id="modal-search"
-		x-cloak>
-		<div class="modal" @click.stop>
-			<div class="bottom glass2">
-				<img class="ico" width="20" height="20" src="/static/images/icons/find.svg">
-                <input type="text"
-                    x-model="find_order_number"
-                    placeholder="Orden, nombre, dni/ruc"
-                    @input="findOrders()">
-				<div class="hover-opacity clear" x-show="find_order_number" @click="find_order_number = ''; finded_orders = [];">
-					<img class="" width="12" height="12" src="/static/images/x.svg">
+
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('history')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-history"
+			x-cloak>
+			<div class="modal glass2" @click.stop>
+				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()" >
+					<img alt="close" src="/static/images/x.svg" width="12" height="12">
 				</div>
-            </div>
-			<div class="orders glass2" x-show="finded_orders.length > 0">
-				<template x-for="order in finded_orders" :key="order.id">
-					<div class="item" @click="viewOrder(order.order_number); $store.cache.hideModal('search'); find_order_number = ''; finded_orders = [];">
-						<div class="title">
-							<span class="order-number" x-text="order.order_number"></span>
-							<span class="machine" x-text="order.machine"></span>
-						</div>
-						<span class="client" x-text="order.client_name"></span>
+				<div class="top">
+					<span class="title">Historial de equipos</span>
 
-						<img width="48" height="48" :src="`/static/images/uploads/machines/${order.machine_image}`" alt="">
-					</div>
-					
-				</template>
-			</div>
-		</div>
-	</div>
-
-
-
-	<div
-		x-show="$store.cache.isVisibleModal('links')"
-		@mousedown.self="$store.cache.hideLastModal()"
-		x-transition.duration.300ms
-		class="modal-wrap"
-		id="modal-history"
-		x-cloak>
-		<div class="modal glass2" @click.stop>
-			<div class="top">
-				<button class="create-link button hover-opacity" @click="newLink()">
-					<img width="16" height="16" src="/static/images/icons/add.svg">
-					Nuevo
-				</button>
-
-				<template x-if="link_list.length !== 0">
 					<div class="pagination">
-						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstLinkPage()">
-							<img src="/static/images/icons/rightfull.svg" width="20" height="20">
+						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstPage()">
+							<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
 						</span>
-						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevLinkPage()">
-							<img src="/static/images/icons/right.svg" width="20" height="20">
+						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevPage()">
+							<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
 						</span>
-						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextLinkPage()">
-							<img src="/static/images/icons/right.svg" width="20" height="20">
+						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextPage()">
+							<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
 						</span>
-						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastLinkPage()">
-							<img src="/static/images/icons/rightfull.svg" width="20" height="20">
+						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastPage()">
+							<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
 						</span>
 					</div>
-				</template>
-			</div>
 
-			<template x-if="link_list.length == 0">
-				<span style="padding: 1rem;">Aún no has creado enlaces, añade uno y aparecerá aquí.</span>
-			</template>
+				</div>
 
-			<template x-if="link_list.length > 0">
 				<div class="history">
-					<table class="static">
+					<table>
 						<thead>
 							<tr>
-								<th>ID</th>
-								<th>Orden asignada</th>
+								<th>Orden</th>
+								<th>Equipo</th>
+								<th>Cliente</th>
 								<th>Estado</th>
-								<th>Fecha de creación</th>
-								<th></th>
+								<th>Ingreso</th>
 							</tr>
 						</thead>
 						<tbody>
-							<template x-for="link in link_list" :key="link.id">
-								<tr>
-									<td>
-										<b class="link-id" x-text="link.id"></b>
-									</td>
-									<td>
-										<b x-text="link.order_number"></b>
-									</td>
-									<!--<td x-text="link.client_name"></td>-->
-									<td>
-										<span class="link-status" :class="`status-${link.status_id}`" x-text="link.status"></span>
-									</td>
-									<td x-text="link.register_at"></td>
-									<td>
-										<template x-if="link.order_number == '-' && link.status_id < 3">
-											<div class="controlls">
-												<div class="action hover-opacity" title="Copiar" @click="navigator.clipboard.writeText(link.url)">
-													<img alt="icon" src="/static/images/icons/copy.svg" width="16" height="16">
-												</div>
-												<div class="action hover-opacity" title="Eliminar" @click="deleteLink(link.id)">
-													<img alt="icon" src="/static/images/icons/delete.svg" width="16" height="16">
-												</div>
+							<template x-for="history in history_list" :key="history.id">
+								<tr @click="viewOrder(history.order_number)">
+									<td class="order">
+										<div class="machine">
+											<b x-text="history.method_letter"></b>
+											<div class="model">
+												<span x-text="history.order_number"></span>
+												<span x-show="history.origin_name == 'Provincia'" x-text="history.origin_name"></span>
 											</div>
-										</template>
-										<template x-if="link.order_number != '-'">
-											<div class="controlls">
-												<div class="action hover-opacity" @click="viewOrder(link.order_number)">
-													<img alt="icon" src="/static/images/icons/eye.svg" width="16" height="16">
-												</div>
-											</div>
-										</template>
+										</div>
 									</td>
+									<td class="machine_box">
+										<div class="machine">
+											<img alt="" width="40" height="40" :src="'/static/images/uploads/machines/'+history.machine_image" alt="">
+											<div class="model">
+												<span x-text="history.machine"></span>
+												<span x-text="history.brand"></span>
+											</div>
+										</div>
+									</td>
+									<td class="client" x-text="history.client_name"></td>
+									<td class="order">
+										<span class="finished" :class="!history.finished ? 'active' : ''" x-text="history.finished ? 'Finalizado':'Activo'"></span>
+									</td>
+									<td x-text="history.register_at"></td>
 								</tr>
 							</template>
 						</tbody>
 					</table>
 				</div>
-			</template>
-			
+			</div>
 		</div>
-	</div>
 
 
 
-
-
-
-	<div
-		x-show="$store.cache.isVisibleModal('statistics')"
-		@mousedown.self="$store.cache.hideLastModal()"
-		x-transition.duration.300ms
-		class="modal-wrap"
-		id="modal-statistics"
-		x-cloak>
-		<div class="modal glass2" @click.stop>
-			<div class="top">
-				<span class="title">Estadísticas</span>
-			</div>
-
-			<div class="kpi">
-				<div class="item white">
-					<p>Total</p>
-					<span x-text="$store.cache.getData('support_statistics')?.count.total"></span>
+		<div
+			x-show="$store.cache.isVisibleModal('search')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-search"
+			x-cloak>
+			<div class="modal" @click.stop>
+				<div class="bottom glass2">
+					<img alt="" class="ico" width="20" height="20" src="/static/images/icons/find.svg">
+					<input type="text"
+						x-model="find_order_number"
+						placeholder="Orden, nombre, dni/ruc"
+						@input="findOrders()">
+					<div class="hover-opacity clear" x-show="find_order_number" @click="find_order_number = ''; finded_orders = [];">
+						<img alt="" class="" width="12" height="12" src="/static/images/x.svg">
+					</div>
 				</div>
-				<div class="item white">
-					<p>Hoy</p>
-					<span x-text="$store.cache.getData('support_statistics')?.count.today"></span>
-				</div>
-				<div class="item white">
-					<p>Semana</p>
-					<span x-text="$store.cache.getData('support_statistics')?.count.week"></span>
-				</div>
-				<div class="item white">
-					<p>Mes</p>
-					<span x-text="$store.cache.getData('support_statistics')?.count.month"></span>
-				</div>
-			</div>
+				<div class="orders glass2" x-show="finded_orders.length > 0">
+					<template x-for="order in finded_orders" :key="order.id">
+						<div class="item" @click="viewOrder(order.order_number); $store.cache.hideModal('search'); find_order_number = ''; finded_orders = [];">
+							<div class="title">
+								<span class="order-number" x-text="order.order_number"></span>
+								<span class="machine" x-text="order.machine"></span>
+							</div>
+							<span class="client" x-text="order.client_name"></span>
 
-			<div class="charts">
-				<div class="glass2 box">
-					<span>Órdenes por Estado</span>
-					<canvas x-ref="ordersByStatusChart" width="160" height="80"></canvas>
-				</div>
-
-				<div class="glass2 box">
-					<span>Órdenes por Mes</span>
-					<canvas x-ref="ordersByMonthChart" width="160" height="80"></canvas>
-				</div>
-
-				<div class="glass2 box">
-					<span>Órdenes por Técnico</span>
-					<canvas x-ref="ordersByTechChart" width="160" height="80"></canvas>
+							<img alt="" width="48" height="48" :src="`/static/images/uploads/machines/${order.machine_image}`" alt="">
+						</div>
+						
+					</template>
 				</div>
 			</div>
-			<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-				<img alt="close" src="/static/images/x.svg" width="12" height="12">
+		</div>
+
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('links')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-history"
+			x-cloak>
+			<div class="modal glass2" @click.stop>
+				<div class="top">
+					<button class="create-link button hover-opacity" @click="newLink()">
+						<img alt="" width="16" height="16" src="/static/images/icons/add.svg">
+						Nuevo
+					</button>
+
+					<template x-if="link_list.length !== 0">
+						<div class="pagination">
+							<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstLinkPage()">
+								<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevLinkPage()">
+								<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextLinkPage()">
+								<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastLinkPage()">
+								<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
+							</span>
+						</div>
+					</template>
+				</div>
+
+				<template x-if="link_list.length == 0">
+					<span style="padding: 1rem;">Aún no has creado enlaces, añade uno y aparecerá aquí.</span>
+				</template>
+
+				<template x-if="link_list.length > 0">
+					<div class="history">
+						<table class="static">
+							<thead>
+								<tr>
+									<th>ID</th>
+									<th>Orden asignada</th>
+									<th>Estado</th>
+									<th>Fecha de creación</th>
+									<th></th>
+								</tr>
+							</thead>
+							<tbody>
+								<template x-for="link in link_list" :key="link.id">
+									<tr>
+										<td>
+											<b class="link-id" x-text="link.id"></b>
+										</td>
+										<td>
+											<b x-text="link.order_number"></b>
+										</td>
+										<!--<td x-text="link.client_name"></td>-->
+										<td>
+											<span class="link-status" :class="`status-${link.status_id}`" x-text="link.status"></span>
+										</td>
+										<td x-text="link.register_at"></td>
+										<td>
+											<template x-if="link.order_number == '-' && link.status_id < 3">
+												<div class="controlls">
+													<div class="action hover-opacity" title="Copiar" @click="navigator.clipboard.writeText(link.url)">
+														<img alt="" alt="icon" src="/static/images/icons/copy.svg" width="16" height="16">
+													</div>
+													<div class="action hover-opacity" title="Eliminar" @click="deleteLink(link.id)">
+														<img alt="" alt="icon" src="/static/images/icons/delete.svg" width="16" height="16">
+													</div>
+												</div>
+											</template>
+											<template x-if="link.order_number != '-'">
+												<div class="controlls">
+													<div class="action hover-opacity" @click="viewOrder(link.order_number)">
+														<img alt="" alt="icon" src="/static/images/icons/eye.svg" width="16" height="16">
+													</div>
+												</div>
+											</template>
+										</td>
+									</tr>
+								</template>
+							</tbody>
+						</table>
+					</div>
+				</template>
+				
+			</div>
+		</div>
+
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('statistics')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-statistics"
+			x-cloak>
+			<div class="modal glass2" @click.stop>
+				<div class="top">
+					<span class="title">Estadísticas</span>
+				</div>
+
+				<div class="kpi">
+					<div class="item white">
+						<p>Total</p>
+						<span x-text="$store.cache.getData('support_statistics')?.count.total"></span>
+					</div>
+					<div class="item white">
+						<p>Hoy</p>
+						<span x-text="$store.cache.getData('support_statistics')?.count.today"></span>
+					</div>
+					<div class="item white">
+						<p>Semana</p>
+						<span x-text="$store.cache.getData('support_statistics')?.count.week"></span>
+					</div>
+					<div class="item white">
+						<p>Mes</p>
+						<span x-text="$store.cache.getData('support_statistics')?.count.month"></span>
+					</div>
+				</div>
+
+				<div class="charts">
+					<div class="glass2 box">
+						<span>Órdenes por Estado</span>
+						<canvas x-ref="ordersByStatusChart" width="160" height="80"></canvas>
+					</div>
+
+					<div class="glass2 box">
+						<span>Órdenes por Mes</span>
+						<canvas x-ref="ordersByMonthChart" width="160" height="80"></canvas>
+					</div>
+
+					<div class="glass2 box">
+						<span>Órdenes por Técnico</span>
+						<canvas x-ref="ordersByTechChart" width="160" height="80"></canvas>
+					</div>
+				</div>
+				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
+					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">
+				</div>
 			</div>
 		</div>
 	</div>
@@ -1096,7 +1102,6 @@
 					const jsonData = data.data || [];
 
 					this.history_list = jsonData.list;
-					//this.current_page = jsonData.pagination.page;
 					this.total_pages = jsonData.pagination.pages;
 				} catch (error) {
 					console.error('Error fetching history', error);
@@ -1113,7 +1118,6 @@
 					const jsonData = data.data || [];
 
 					this.link_list = jsonData.list;
-					//this.current_page = jsonData.pagination.page;
 					this.total_pages = jsonData.pagination.pages;
 				} catch (error) {
 					console.error('Error fetching link', error);
@@ -1334,6 +1338,7 @@
 
                     this.finded_orders = jsonData.data;
                 } catch (error) {
+					console.log('Error al buscar órdenes:', error);
                     this.finded_orders = [];
                     return;
                 } finally {
@@ -1488,6 +1493,7 @@
 		#modal-history .pagination {
 			display: flex;
 			gap: 0.75rem;
+			margin-right: 1rem;
 		}
 		#modal-history .create-link {
 			display: flex;
@@ -1676,27 +1682,6 @@
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
-		}
-		#support-dashboard .header .title {
-			background-color: var(--black);
-			color: var(--white);
-			padding: 0.75rem 1.5rem;
-			border-radius: 2rem;
-			font-weight: 300;
-		}
-		#support-dashboard .header .title img {
-			padding: 0.5rem;
-			border-radius: 0.5rem;
-			border: 2px solid #eee;
-		}
-		#support-dashboard .header .range {
-			font-size: 1rem;
-			font-weight: 600;
-			text-transform: capitalize;
-			display: flex;
-			align-items: center;
-			gap: 0.5rem;
-			position: relative;
 		}
 		#support-dashboard .menu {
 			display: flex;
@@ -2065,17 +2050,14 @@
 			margin-right: 1.75rem;
 		}
 		#modal-view .top .pay span {
-			transition: var(--transition);
-			width: 1.5rem;
-			height: 1.5rem;
-			background-color: #4BBC66;
+			padding: 0.25rem 0.5rem;
 			background-color: var(--graydarkest);
 			display: flex;
 			justify-content: center;
 			align-items: center;
 			color: var(--black);
-			font-size: 0.7rem;
-			font-weight: 600;
+			font-size: 0.65rem;
+			font-weight: 500;
 			border-radius: 2rem;
 		}
 		#modal-view .top .pay input {

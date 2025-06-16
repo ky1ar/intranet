@@ -561,7 +561,27 @@ class LogisticService:
         return result, 200
 
 
+    @handle_exceptions
+    def find_orders(self, order_number):
+        if len(order_number) < 2:
+            return None, 400
+        
+        orders, orders_status = self.logistic_repository.get_orders_like(order_number)
+        if orders_status != 200:
+            return orders, orders_status
+        
+        orders_list = [
+            {
+                "id": order.id,
+                "order_number": order.client_order.number,
+                "client_name": order.client_order.client.name.title(),
+                "method_background": order.method.background,
+                "method_border": order.method.border,
+                "district_name": order.district.name.title(),
 
+            } for order in orders
+        ]
+        return orders_list, 200
 
 
 

@@ -92,6 +92,10 @@ def statistics():
     return controller.logistic_statistics()
 
 
+@logistic_bp.route("/find/<order_number>", methods=["GET"])
+def logistic_find_order(order_number):
+    return controller.logistic_find_order(order_number)
+
 
 
 
