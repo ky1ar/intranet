@@ -222,16 +222,11 @@ class SupportService:
         if history_status != 200:
             return history, history_status
         
-        service_status, service_order_status = self.general_repository.get_service_status() 
-        if service_order_status != 200:
-            return service_status, service_order_status
-        
         history_dict = [
             {
                 "status_id": row.status_id,
                 "user_name": row.user.name.split()[0],
                 "notes": row.notes if row.notes else "",
-                #"register_at": self.format_date_to_string(row.register_at),
                 "register_at":  row.register_at.strftime("%d-%m-%y")
 
             } for row in history
@@ -725,7 +720,20 @@ class SupportService:
         if service_order_status != 200:
             return service_order, service_order_status
         
-        html_out = render_template('order_report.html', order=service_order)
+        history, history_status = self.support_repository.get_service_order_history(service_order.id) 
+        if history_status != 200:
+            return history, history_status
+        
+        history_dict = {
+            row.status_id: {
+                "notes": row.notes if row.notes else "",
+                "register_at": row.register_at.strftime("%d-%m-%y")
+            }
+            for row in history
+            if row.status_id in [1, 4, 6, 8]
+        }
+
+        html_out = render_template('order_report.html', order=service_order, history=history_dict)
 
         pdf = HTML(string=html_out).write_pdf()
         client_slug = self.slugify(service_order.client.name)

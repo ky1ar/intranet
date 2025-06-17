@@ -1,230 +1,256 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap');
-        :root {
-            --primary: #ea7134;
-            --primaryopacity: #ffeee4;
+  <meta charset="UTF-8" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap');
 
-            --secondary: #182d36;
-            --tertiary: #ffa02a;
+    :root {
+      --primary: #ea7134;
+      --secondary: #182d36;
+      --white: #ffffff;
+      --gray: #f5f5f5;
+      --black: #0f2027;
+      --font: 'Lexend', sans-serif;
+    }
 
-            --white: #ffffff;
-            --gray: #ebebeb;
-            --graydark: #e6e6e6;
-            --graydarkest : #cccccc;
-            --newgray: #c3c3c375;
-            --black: #0f2027;
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
 
-            --transition: 0.2s ease-in-out; 
-            --font: "Lexend";
-        }
-        *, 
-        *:before, 
-        *:after {
-            box-sizing: border-box;
-        }
-        @page {
-            size: A4; 
-            margin: 0;
-        }
-        html {
-            margin: 0;
-            padding: 0;
-        }
-        body { 
-            margin: 0;
-            padding: 4rem;
-            font-family: var(--font), sans-serif;
-            font-size: 0.85rem;
-            color: var(--black);
-            position: relative;
-            min-width: 20rem;
-            background-color: #e9e9e9;
-        }
-        .container {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-        }
-        .header b {
-            font-size: 1rem;
-        }
-        .header img {
-            width: 160px;
-            height: 34px;
-        }
-        h1 {
-            margin: 0;
-            text-align: center;
-            font-size: 1.125rem;
-            text-transform: uppercase;
-        }
-        .box {
-            background-color: var(--white);
-            box-shadow: 0 0 1rem hsl(0deg 0% 0% / 5%);
-            border-radius: 0.75rem;
-            width: 100%;
-            display: flex;
-            gap: 0.75rem;
-            padding: 1rem;
-            align-items: center;
-        }
-        .box img{
-            height: 48px;
-            width: 48px;
-        }
-        .box .letter {
-            background-color: var(--secondary);
-            color: var(--white);
-            width: 1.75rem;
-            height: 1.75rem;
-            border-radius: 1rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .box .data {
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
-            justify-content: center;
-        }
-        .box .data .text1 {
-            font-size: 1rem;
-            font-weight: 500;
-        }
-        .box .data .text2 {
-            font-size: 0.95rem;
-            font-weight: 400;
-            opacity: 0.75;
-        }
-        .step {
-            align-items: start;
-            display: flex;
-            gap: 0.75rem;
-            padding: 0.5rem 0;
-            width: 100%;
-        }
-        .step img{
-            width: 20px;
-            height: 20px;
-        }
-        .step .left {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            gap: 0.125rem;
-        }
-        .step .head {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-        .step .name {
-            font-weight: 500;
-            line-height: 1.25rem;
-        }
-        .step .right {
-            margin-left: auto;
-            display: flex;
-            gap: 0.5rem;
-            opacity: 0.75;
-            align-items: center;
-        }
-        .step .notes {
-            font-size: 0.8rem;
-            opacity: 0.75;
-        }
-    </style>
+    @page {
+      size: A4;
+      margin: 0;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font);
+      font-size: 0.85rem;
+      color: var(--black);
+      background: var(--gray);
+    }
+
+    body {
+      padding: 3rem;
+    }
+
+    .container {
+      background: var(--white);
+      border-radius: 1rem;
+      padding: 2rem 2.5rem;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.04);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      height: 36px;
+    }
+
+    h1 {
+      margin: 0;
+      font-weight: 600;
+      font-size: 1.3rem;
+      text-align: center;
+      letter-spacing: 0.5px;
+    }
+
+    h2 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 0.4rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .flex-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.2rem;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 200px;
+      min-width: 180px;
+    }
+
+    .field label {
+      font-size: 0.75rem;
+      color: #555;
+      margin-bottom: 0.2rem;
+    }
+
+    .field span {
+      font-weight: 500;
+    }
+
+    .machine-info {
+    margin-bottom: -4rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .machine-info img {
+      max-width: 64px;
+      width: 100%;
+      height: auto;
+    }
+
+    .machine-info .data {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      font-weight: 500;
+    }
+
+    .step {
+      border-left: 3px solid var(--primary);
+      padding-left: 1rem;
+      margin-top: 1rem;
+    }
+
+    .step .head {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      color: var(--black);
+    }
+
+    .step .notes {
+      font-size: 0.84rem;
+      line-height: 1.5;
+      color: #333;
+    }
+
+    .signatures {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 3rem;
+      gap: 2rem;
+    }
+
+    .signature-block {
+      flex: 1;
+      text-align: center;
+    }
+
+    .signature-block hr {
+      margin: 2.5rem 0 0.5rem;
+      border: none;
+      border-top: 1px solid #aaa;
+    }
+
+    .footer {
+      margin-top: 2.5rem;
+      font-size: 0.75rem;
+      text-align: center;
+      color: #888;
+    }
+  </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="header">
-            <img class="logo" src="https://www.tiendakrear3d.com/wp-content/uploads/2024/10/logo-new1-1.svg" width="160" height="34">
-            <b>Nº 1000052</b>
-            <!--<b>Nº {{ order.order_number }}</b>-->
-        </div>
-        <h1>Reporte de Atención</h1>
-        <div class="box">
-            <span class="letter">K</span>
-            <div class="data">
-                <span class="text1">Kenny William Muñoz Serafin</span>
-                <span class="text2">47704997</span>
-            </div>
-        </div>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <img class="logo" src="https://www.tiendakrear3d.com/wp-content/uploads/2024/10/logo-new1-1.svg" alt="Krear3D Logo">
+      <strong>N° {{ order.order_number }}</strong>
+    </div>
 
-        <div class="box">
-            <img width="48" height="48" src="https://intranet.krear3d.com/static/images/machines/halot-play.webp">
-            <div class="data">
-                <span class="text1">Halot Play</span>
-                <span class="text2">Creality</span>
-            </div>
-        </div>
+    <!-- Title -->
+    <h1>Reporte Técnico de Atención</h1>
 
-        <div class="step">
-            <img width="20" height="20" src="https://intranet.krear3d.com/static/images/support/recepcion.svg">
+    <!-- Cliente -->
+    <h2>Datos del Cliente</h2>
+    <div class="flex-row">
+      <div class="field"><label>DNI/RUC</label><span>{{ order.client.document }}</span></div>
+      <div class="field"><label>Cliente</label><span>{{ order.client.name }}</span></div>
+      <div class="field"><label>Celular</label><span>{{ order.client.phone }}</span></div>
+      <div class="field"><label>Fecha de ingreso</label><span>{{ order.register_at }}</span></div>
+      <div class="field"><label>Fecha de salida</label><span>{{ order.updated_at }}</span></div>
+      <div class="field"><label>Técnico encargado</label><span>{{ order.technician.name or 'Por asignar' }}</span></div>
+    </div>
 
-            <div class="left">
-                <div class="head">
-                    <span class="name">Problema reportado</span>
-                    <div class="right">
-                        <span class="date" x-text="history.register_at">26-05-25</span>
-                    </div>
-                </div>
-                <span class="notes">El cliente comenta que se comunicó con el área técnica por garantía. <br>Problema con la cama caliente.<br>Accesorios:<br>- Cable de poder</span>
-            </div>
-        </div>
+    <!-- Equipo -->
+    <h2>Datos del Equipo</h2>
+    <div class="machine-info">
+      <img src="https://intranet.krear3d.com/static/images/uploads/machines/{{ order.machine.image }}" alt="Impresora">
+      <div class="data">
+        <span>Modelo: <strong>{{ order.machine.model }}</strong></span>
+        <span>Marca: {{ order.machine.brand.name }}</span>
+      </div>
+    </div>
 
-        <div class="step">
-            <img width="20" height="20" src="https://intranet.krear3d.com/static/images/support/diagnostico.svg">
+    <!-- Atención -->
+    <h2>Detalles de Atención</h2>
 
-            <div class="left">
-                <div class="head">
-                    <span class="name">Diagnóstico</span>
-                    <div class="right">
-                        <span class="date" x-text="history.register_at">26-05-25</span>
-                    </div>
-                </div>
-                <span class="notes">Falla en la cama caliente.</span>
-            </div>
-        </div>
+    <div class="step">
+      <div class="head">
+        <span>Problema Reportado</span>
+        <span>{{ history[1].register_at }}</span>
+      </div>
+      <div class="notes">{{ history.get(1, {}).get('notes', '').replace('\n', '<br>') | safe }}</div>
+    </div>
 
-         <div class="step">
-            <img width="20" height="20" src="https://intranet.krear3d.com/static/images/support/reparacion.svg">
+    <div class="step">
+      <div class="head">
+        <span>Diagnóstico</span>
+        <span>{{ history[4].register_at }}</span>
+      </div>
+      <div class="notes">{{ history.get(4, {}).get('notes', '').replace('\n', '<br>') | safe }}</div>
+    </div>
 
-            <div class="left">
-                <div class="head">
-                    <span class="name">Acciones realizadas</span>
-                    <div class="right">
-                        <span class="date" x-text="history.register_at">26-05-25</span>
-                    </div>
-                </div>
-                <span class="notes">Se cambió la cama por una nueva. Se mando a calibrar el equipo.</span>
-            </div>
-        </div>
+    <div class="step">
+      <div class="head">
+        <span>Acciones Realizadas</span>
+        <span>{{ history[6].register_at }}</span>
+      </div>
+      <div class="notes">{{ history.get(6, {}).get('notes', '').replace('\n', '<br>') | safe }}</div>
+    </div>
 
-         <div class="step">
-            <img width="20" height="20" src="https://intranet.krear3d.com/static/images/support/recojo.svg">
+    <div class="step">
+      <div class="head">
+        <span>Recomendaciones</span>
+        <span>{{ history[8].register_at }}</span>
+      </div>
+      <div class="notes">{{ history.get(8, {}).get('notes', '').replace('\n', '<br>') | safe }}</div>
+    </div>
 
-            <div class="left">
-                <div class="head">
-                    <span class="name">Recomendaciones</span>
-                    <div class="right">
-                        <span class="date" x-text="history.register_at">26-05-25</span>
-                    </div>
-                </div>
-                <span class="notes">Realizar un mantenimiento preventivo cada 3 meses.</span>
-            </div>
+   <h2>Resumen de Pago</h2>
+    <div class="flex-row">
+        <div class="field">
+            <label>
+                {% if not order.paid and (order.pay_amount or 0) > 0 %}
+                    Monto Pendiente
+                {% elif not order.paid and (order.pay_amount or 0) == 0 %}
+                    Total
+                {% else %}
+                    Monto Pagado
+                {% endif %}
+            </label>
+            <span>S/ {{ order.pay_amount or '0.00' }}</span>
         </div>
     </div>
-    
+
+    <!-- Footer -->
+    <div class="footer">
+      Krear3D - Líderes en fabricación digital • www.krear3d.com
+    </div>
+  </div>
+
 </body>
 </html>
