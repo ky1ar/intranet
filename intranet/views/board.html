@@ -3,27 +3,30 @@
 		<div class="header">
 			<div class="thumbs">
 				<template x-for="users in $store.cache.getData('user_team')" :key="users.id">
-					<img
+					<div class="user">
+						<img
 						class="hover-opacity"
 						width="40" height="40"
 						:src="'/static/images/uploads/users/' + users.image" alt=""
-                        :title="users.name"
 						@click="selectUser(users.id)"
 						:class="{'selected-thumb': selected_user_id === users.id}">
+						<span x-text="users.name"></span>
+					</div>
+					
 				</template>
 			</div>
 
-			<div class="menu">
+			<div class="menu primary">
 				<div class="item" @click="addIssueModal()">
 					<div class="button">
-						<img width="20" height="20" src="/static/images/icons/add.svg">
+						<img alt="" width="20" height="20" src="/static/images/icons/add.svg">
 					</div>
 					<span>Añadir</span>
 				</div>
 			</div>
 		</div>
 
-		<div class="board">
+		<div class="board glass">
 			<template x-for="group in $store.cache.getData('board_dashboard')" :key="group.status_id">
 				<div class="group"
 					@dragover="onDragOver($event, group.status_id)" 
@@ -563,6 +566,16 @@
 			font-size: 0.75rem;
     		font-weight: 600;
 		}
+		#board .menu.primary {
+			background-color: var(--secondary);
+			color: var(--white);
+		}
+		#board .menu.primary .item:hover {
+			background-color: hsl(0deg 0% 100% / 20%);
+		}
+		#board .menu.primary img {
+			filter: invert(1);
+		}
 		#board {
 			width: 100%;
 			user-select: none;
@@ -582,10 +595,47 @@
 		#board .header .thumbs {
 			display: flex;
     		gap: 0.25rem;
+			padding: 0.25rem 0.5rem;
+			background-color: var(--white);
+			border-radius: 2rem;
+		}
+		#board .header .thumbs .user {
+			position: relative;
 		}
 		#board .header .thumbs img {
 			border-radius: 2rem;
 			border: 3px solid transparent;
+		}
+		#board .header .thumbs span {
+			left: 50%;
+			transform: translateX(-50%);
+			bottom: -3rem;
+			position: absolute;
+			background-color: var(--secondary);
+			color: var(--white);
+			padding: 0.5rem;
+			border-radius: 0.5rem;
+			opacity: 0;
+			transition: var(--transition);
+			visibility: hidden;
+			white-space: nowrap;
+			font-size: 0.75rem;
+		}
+		#board .header .thumbs span:before {
+			content: "";
+			display: block;
+			border: 0.75rem solid var(--secondary);
+			border-right-color: transparent;
+			border-left-color: transparent;
+			border-bottom-color: transparent;
+			position: absolute;
+			bottom: 1.75rem;
+			transform: rotate(180deg) translateX(50%);
+			left: 50%;
+		}
+		#board .header .thumbs img:hover + span {
+			opacity: 1;
+			visibility: visible;
 		}
 		#board .header .thumbs img.selected-thumb {
 			border: 3px solid var(--secondary);
@@ -610,15 +660,12 @@
 			display: flex;
 			flex: 1;
 			user-select: none;
-			background-color: #ffffff4a;
-			border: 2px solid #ffffff52;
-			border-radius: 1rem;
 		}
 		#board .group {
 			flex: 1;
 			display: flex;
 			flex-direction: column;
-			border-right: 2px solid #ffffff80;
+			border-right: 3px solid #ffffff80;
 			gap: 0.25rem;
 			transition: var(--transition);
 		}
@@ -680,6 +727,7 @@
 		#board ul li .dot {
 			width: 0.5rem;
 			height: 0.5rem;
+			min-width: 0.5rem;
 			background-color: var(--primary);
 			border-radius: 1rem;
 		}
@@ -782,6 +830,7 @@
 			transition: var(--transition);
 			padding: 0rem 0.75rem;
 			height: 2.5rem;
+			min-height: 2.45rem;
 		}
 		#modal-add .select_options .option:hover {
 			background-color: var(--gray);
@@ -922,7 +971,7 @@
 			}
 			#board .group {
 				border-right: none;
-				border-bottom: 2px solid #ffffff80;
+				border-bottom: 3px solid #ffffff80;
 			}
 		}
 	</style>

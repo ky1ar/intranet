@@ -487,7 +487,7 @@ class TrackingService:
         if orders_by_month_code != 200:
             return orders_by_month, orders_by_month_code
         by_month = [
-            {'period': period, 'count': count}
+            {'period': f"{self.months.get(int(period.split('-')[1]), 'Mes inválido')}", 'count': count}
             for period, count in orders_by_month
         ]
         

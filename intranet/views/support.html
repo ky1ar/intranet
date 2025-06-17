@@ -1,6 +1,27 @@
 <div x-data="support_data">
 	<div id="support-dashboard">
 		<div class="header">
+			<div class="menu">
+				<div class="item" @click="search()">
+					<div class="button">
+						<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
+					</div>
+					<span>Buscar</span>
+				</div>
+				<div class="item" @click="viewHistory()">
+					<div class="button">
+						<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
+					</div>
+					<span>Historial</span>
+				</div>
+				<div class="item" @click="viewStatistics()">
+					<div class="button">
+						<img alt="" width="20" height="20" src="/static/images/icons/report.svg">
+					</div>
+					<span>Estadísticas</span>
+				</div>
+            </div>
+
 			<div class="menu primary">
 				<div class="item" @click="viewLinks()">
 					<div class="button">
@@ -8,28 +29,7 @@
 					</div>
 					<span>Enlaces</span>
 				</div>
-				<div class="item" @click="search()">
-					<div class="button">
-						<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
-					</div>
-					<span>Buscar</span>
-				</div>
-            </div>
 
-			<div class="menu">
-				<div class="item" @click="viewStatistics()">
-					<div class="button">
-						<img alt="" width="20" height="20" src="/static/images/icons/report.svg">
-					</div>
-					<span>Estadísticas</span>
-				</div>
-				
-				<div class="item" @click="viewHistory()">
-					<div class="button">
-						<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
-					</div>
-					<span>Historial</span>
-				</div>
 				<template x-if="editAllowed()">
 					<div class="item" @click="addOrder()">
 						<div class="button">
@@ -42,7 +42,7 @@
 			
 		</div>
 
-		<div class="board">
+		<div class="board glass">
 			<template x-for="group in $store.cache.getData('support_dashboard')" :key="group.status_id">
 				<div class="group"
 					@dragover="onDragOver($event, group.status_id)" 
@@ -147,6 +147,11 @@
 						<div class="pay" :class="service_order.paid == 0 ? '' : 'payed'">
 							<template x-if="!editAllowed()">
 								<span x-text="service_order.paid == 0 ? 'pendiente' : 'pagado'"></span>
+							</template>
+							<template x-if="editAllowed()">
+								<div class="copy-pay white hover-opacity" title="Copiar link de pago" @click="navigator.clipboard.writeText('https://express.culqi.com/pago/OCMZHYTVEX')">
+									<img alt="" width="16" height="16" src="/static/images/icons/link.svg">
+								</div>
 							</template>
 							<template x-if="editAllowed()">
 								<span class="hover-opacity" @click="updateOrder('paid')" x-text="service_order.paid == 0 ? 'pendiente' : 'pagado'"></span>
@@ -443,7 +448,7 @@
 				</div>
 				<div class="orders glass2" x-show="finded_orders.length > 0">
 					<template x-for="order in finded_orders" :key="order.id">
-						<div class="item" @click="viewOrder(order.order_number); $store.cache.hideModal('search'); find_order_number = ''; finded_orders = [];">
+						<div class="item" @click="viewOrder(order.order_number)">
 							<div class="title">
 								<span class="order-number" x-text="order.order_number"></span>
 								<span class="machine" x-text="order.machine"></span>
@@ -1749,9 +1754,6 @@
 			display: flex;
 			height: 100%;
 			user-select: none;
-			background-color: #ffffff4a;
-			border: 2px solid #ffffff52;
-			border-radius: 1.5rem;
 			flex: 1;
 			overflow: auto;
 		}
@@ -2041,6 +2043,11 @@
 			gap: 1rem;
 			align-items: center;
 		}
+		#modal-view .top .copy-pay {
+			padding: 0.5rem;
+			border-radius: 2rem;
+			display: flex;
+		}
 		#modal-view .top .pay {
 			align-items: center;
 			justify-content: end;
@@ -2050,13 +2057,13 @@
 			margin-right: 1.75rem;
 		}
 		#modal-view .top .pay span {
-			padding: 0.25rem 0.5rem;
+			padding: 0.5rem 0.75rem;
 			background-color: var(--graydarkest);
 			display: flex;
 			justify-content: center;
 			align-items: center;
 			color: var(--black);
-			font-size: 0.65rem;
+			font-size: 0.7rem;
 			font-weight: 500;
 			border-radius: 2rem;
 		}

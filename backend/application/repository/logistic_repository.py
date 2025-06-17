@@ -401,6 +401,7 @@ class LogisticRepository:
                     Clients.document.ilike(search_term)
                 )
             )
+            .filter(ShippingOrders.is_deleted.is_(False))
             .order_by(ClientOrders.number.desc())
             .distinct()
             .all()

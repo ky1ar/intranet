@@ -1,40 +1,37 @@
 <div x-data="tracking_data">
 	<div id="tracking-dashboard">
         <div class="header">
-			<div class="menu primary">
+			<div class="menu">
 				<div class="item" @click="search()">
 					<div class="button">
 						<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
 					</div>
 					<span>Buscar</span>
 				</div>
-			</div>
-
-			<div class="menu">
-				<div class="item" @click="viewStatistics()">
-					<div class="button">
-						<img alt="" width="20" height="20" src="/static/images/icons/report.svg">
-					</div>
-					<span>Estadísticas</span>
-				</div>
-
 				<div class="item" @click="viewHistory()">
 					<div class="button">
 						<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
 					</div>
 					<span>Historial</span>
 				</div>
+				<div class="item" @click="viewStatistics()">
+					<div class="button">
+						<img alt="" width="20" height="20" src="/static/images/icons/report.svg">
+					</div>
+					<span>Estadísticas</span>
+				</div>
+            </div>
 
-				<template x-if="editAllowed()">
+			<template x-if="editAllowed()">
+				<div class="menu primary">
 					<div class="item" @click="addTracking()">
 						<div class="button">
 							<img alt="" width="20" height="20" src="/static/images/icons/add.svg">
 						</div>
 						<span>Añadir</span>
 					</div>
-				</template>
-
-            </div>
+				</div>
+			</template>
 		</div>
 
 		<div class="container-tracking main glass">
@@ -463,7 +460,7 @@
 				</div>
 				<div class="orders glass2" x-show="finded_orders.length > 0">
 					<template x-for="order in finded_orders" :key="order.id">
-						<div class="item" @click="viewOrder(order.id); $store.cache.hideModal('search'); find_order_number = ''; finded_orders = [];">
+						<div class="item" @click="viewOrder(order.id)">
 							<div class="title">
 								<span class="order-number" x-text="order.order_number"></span>
 								<img width="72" height="16" :src="'/static/images/tracking/' + $store.cache.getById('tracking_agencies', order.agency_id)?.icon" alt="">
@@ -1083,17 +1080,26 @@
 				this.startScan();
 			},
 			formatDate(dateStr) {
-				const [day, month, yearTime] = dateStr.split('-');
-				const [year, timePart] = yearTime.split(' ');
-				const date = new Date(`${year}-${month}-${day}T${timePart}`);
+				const [datePart, timePart, meridiem] = dateStr.split(' ');
+				const [day, month, year] = datePart.split('-');
+				const [hourRaw, minute] = timePart.split(':');
 
-				return date.toLocaleString('es-ES', {
-					weekday: 'long',
-					day: 'numeric',
-					month: 'long',
-					hour: '2-digit',
-					minute: '2-digit'
-				});
+				let hour = parseInt(hourRaw, 10);
+				if (meridiem === 'PM' && hour !== 12) hour += 12;
+				if (meridiem === 'AM' && hour === 12) hour = 0;
+
+				const jsDate = new Date(`${year}-${month}-${day}T${hour.toString().padStart(2, '0')}:${minute}:00`);
+
+				const weekdays = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+				const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+								'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+				const weekday = weekdays[jsDate.getDay()];
+				const monthName = months[jsDate.getMonth()];
+
+				const finalHour = timePart;
+
+				return `${weekday}, ${parseInt(day)} de ${monthName}, ${finalHour.toLowerCase()} ${meridiem.toLowerCase()}`;
 			},
 		}));
 	  </script>
@@ -1198,7 +1204,7 @@
 		}
 		#modal-history table tbody tr {
 			transition: var(--transition);
-			border-top: 2px solid #ffffff80;
+			border-top: 3px solid #ffffff80;
 		}
 		#modal-history table tbody tr:hover {
 			background-color: var(--white);
@@ -1364,7 +1370,7 @@
 			gap: 0.5rem;
 			position: relative;
 			padding: 0.75rem 1rem;
-			border-bottom: 2px solid #ffffff80;
+			border-bottom: 3px solid #ffffff80;
 			cursor: pointer;
 			transition: var(--transition);
 			background-color: transparent;
@@ -1461,7 +1467,7 @@
 			flex: 1;
 			display: flex;
 			flex-direction: column;
-			border-right: 2px solid #ffffff80;
+			border-right: 3px solid #ffffff80;
 			gap: 0.25rem;
 			transition: var(--transition);
 			min-width: 10rem;
@@ -1905,7 +1911,7 @@
 		@media only screen and (max-width: 48rem) {
 			#tracking-dashboard .group {
 				border-right: none;
-				border-bottom: 2px solid #ffffff80;
+				border-bottom: 3px solid #ffffff80;
 			}
 			#tracking-dashboard .group:last-child {
 				border-bottom: none;
@@ -1929,6 +1935,25 @@
 			}
 			#modal-view .content .codes {
 				flex-direction: column;
+			}
+			#tracking-dashboard .menu {
+				gap: 0.75rem;
+			}
+			#tracking-dashboard .menu .item {
+				padding: 0;
+			}
+			#tracking-dashboard .menu .item .button {
+				height: 2.5rem;
+    			width: 2.5rem;
+			}
+			#tracking-dashboard .menu .item span {
+				display: none;
+			}
+			#modal-statistics .charts {
+				flex-direction: column;
+			}
+			#modal-statistics .charts .box {
+				min-width: initial;
 			}
 		}
 	</style>

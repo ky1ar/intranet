@@ -1,25 +1,29 @@
 <div x-data="logistics_data">
 	<div id="logistics">
 		<div class="header">
-			<div class="menu primary">
-				<template x-if="editAllowed()">
-					<div class="item" @click="pendings_open = !pendings_open">
-						<div class="button">
-							<img alt="" width="20" height="20" src="/static/images/icons/pending.svg">
-						</div>
-						<span x-text="`Pendientes ${$store.cache.getData('logistics_pendings')?.length || 0}`"></span>
-					</div>
-				</template>
-
+			<div class="menu">
 				<div class="item" @click="search()">
 					<div class="button">
 						<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
 					</div>
 					<span>Buscar</span>
 				</div>
+				<div class="item" @click="viewHistory()">
+					<div class="button">
+						<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
+					</div>
+					<span>Historial</span>
+				</div>
+				
+				<div class="item" @click="viewStatistics()">
+					<div class="button">
+						<img alt="" width="20" height="20" src="/static/images/icons/report.svg">
+					</div>
+					<span>Estadísticas</span>
+				</div>
+				
 			</div>
 				
-
 			<div class="navigation desktop">
 				<div class="button white hover-opacity" @click="prev">
 					<img alt="prev" src="/static/images/arrow.svg" width="16" height="16">
@@ -30,30 +34,23 @@
 				</div>
 			</div>
 
-			<div class="menu">
-				<div class="item" @click="viewStatistics()">
-					<div class="button">
-						<img alt="" width="20" height="20" src="/static/images/icons/report.svg">
+			<template x-if="editAllowed()">
+				<div class="menu primary">
+					<div class="item" @click="pendings_open = !pendings_open">
+						<div class="button">
+							<img alt="" width="20" height="20" src="/static/images/icons/pending.svg">
+						</div>
+						<span x-text="`Pendientes ${$store.cache.getData('logistics_pendings')?.length || 0}`"></span>
 					</div>
-					<span>Estadísticas</span>
-				</div>
-
-				<div class="item" @click="viewHistory()">
-					<div class="button">
-						<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
-					</div>
-					<span>Historial</span>
-				</div>
-
-				<template x-if="editAllowed()">
 					<div class="item" @click="processShippingModal()">
 						<div class="button">
 							<img alt="" width="20" height="20" src="/static/images/icons/add.svg">
 						</div>
 						<span>Añadir</span>
 					</div>
-				</template>
-            </div>
+				</div>
+			</template>
+
 		</div>
 
 		
@@ -524,7 +521,7 @@
 				</div>
 				<div class="orders glass2" x-show="finded_orders.length > 0">
 					<template x-for="order in finded_orders" :key="order.id">
-						<div :style="`background-color: ${order.method_background}; border: 2px solid ${order.method_border}`" class="item" @click="processShippingModal(order.id); $store.cache.hideModal('search'); find_order_number = ''; finded_orders = [];">
+						<div :style="`background-color: ${order.method_background}; border: 2px solid ${order.method_border}`" class="item" @click="processShippingModal(order.id)">
 							<div class="title">
 								<span class="order-number" x-text="order.order_number"></span>
 								<span class="machine" x-text="order.district_name"></span>
@@ -1339,7 +1336,7 @@
     		min-height: 0.75rem;
 		}
 		#modal-search .orders {
-			max-height: 18rem;
+			max-height: 18.25rem;
 			overflow-y: auto;
 			width: 100%;
 			display: flex;
@@ -1559,6 +1556,7 @@
 		#logistics .schedule-container {
 			display: flex;
 			flex: 1;
+			flex-direction: row-reverse;
 		}
 		/*********************************************************************************/
 		#logistics .pending-shippings {
@@ -1566,7 +1564,7 @@
 			display: flex;
 			flex-direction: column;
 			gap: 1rem;
-			padding-right: 1rem;
+			padding-left: 1rem;
 		}
 		#logistics .pending-shippings .title {
 			line-height: 2.75rem;
