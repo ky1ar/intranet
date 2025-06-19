@@ -858,7 +858,10 @@
 			},
 
 			async createPDF(order_number) {
+				if (this.processing) return;
+				this.processing = true;
 				NProgress.start();
+
 				try {
 					const response = await fetch(`${this.api}/support/pdf/${order_number}`);
 					if (!response.ok) throw new Error('No se pudo generar el PDF');
@@ -877,6 +880,7 @@
 				} catch (error) {
 					console.error('Error al descargar el PDF:', error);
 				} finally {
+					this.processing = false;
 					NProgress.done();
 				}
 			},
@@ -1700,7 +1704,6 @@
 		}
 		#support-dashboard {
 			width: 100%;
-			user-select: none;
 			padding: 1rem;
 			min-height: 100dvh;
 			display: flex;
