@@ -154,7 +154,7 @@
 								</div>
 							</template>
 							<template x-if="editAllowed()">
-								<span class="hover-opacity" @click="updateOrder('paid')" x-text="service_order.paid == 0 ? 'pendiente' : 'pagado'"></span>
+								<span class="hover-opacity" @click="updateOrder('paid')" title="Cambiar estado de pago" x-text="service_order.paid == 0 ? 'pendiente' : 'pagado'"></span>
 							</template>
 							<template x-if="editAllowed()">
 								<input
@@ -186,11 +186,11 @@
 					</div>
 
 					<div class="icons">
-						<a :href="'https://api.whatsapp.com/send?phone=' + service_order?.client_phone" target="_blank" class="hover-opacity" rel="noopener noreferrer">
+						<a title="Enviar whatsapp" :href="'https://api.whatsapp.com/send?phone=' + service_order?.client_phone" target="_blank" class="hover-opacity" rel="noopener noreferrer">
 							<img alt="" alt="phone" src="/static/images/whatsapp.svg" width="16" height="16">
 						</a>
 
-						<button @click="show_document = !show_document" class="hover-opacity">
+						<button title="Alternar nombre/documento" @click="show_document = !show_document" class="hover-opacity">
 							<img alt="" alt="document" src="/static/images/document.svg" width="16" height="16">
 						</button>
 					</div>
@@ -367,16 +367,16 @@
 					<span class="title">Historial de equipos</span>
 
 					<div class="pagination">
-						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstPage()">
+						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstPage()" title="Primera página">
 							<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
 						</span>
-						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevPage()">
+						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevPage()" title="Página anterior">
 							<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
 						</span>
-						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextPage()">
+						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextPage()" title="Siguiente página">
 							<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
 						</span>
-						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastPage()">
+						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastPage()" title="Última página">
 							<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
 						</span>
 					</div>
@@ -444,7 +444,7 @@
 						x-model="find_order_number"
 						placeholder="Orden, nombre, dni/ruc"
 						@input="findOrders()">
-					<div class="hover-opacity clear" x-show="find_order_number" @click="find_order_number = ''; finded_orders = [];">
+					<div class="hover-opacity clear" x-show="find_order_number" title="Limpiar búsqueda" @click="find_order_number = ''; finded_orders = [];">
 						<img alt="" class="" width="12" height="12" src="/static/images/x.svg">
 					</div>
 				</div>
@@ -483,16 +483,16 @@
 
 					<template x-if="link_list.length !== 0">
 						<div class="pagination">
-							<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstLinkPage()">
+							<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstLinkPage()" title="Primera página">
 								<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
 							</span>
-							<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevLinkPage()">
+							<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevLinkPage()" title="Página anterior">
 								<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
 							</span>
-							<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextLinkPage()">
+							<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextLinkPage()" title="Siguiente página">
 								<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
 							</span>
-							<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastLinkPage()">
+							<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastLinkPage()" title="Última página">
 								<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
 							</span>
 						</div>
@@ -509,7 +509,8 @@
 							<thead>
 								<tr>
 									<th>ID</th>
-									<th>Orden asignada</th>
+									<th>Orden</th>
+									<th>Cliente</th>
 									<th>Estado</th>
 									<th>Fecha de creación</th>
 									<th></th>
@@ -524,7 +525,7 @@
 										<td>
 											<b x-text="link.order_number"></b>
 										</td>
-										<!--<td x-text="link.client_name"></td>-->
+										<td x-text="link.client_name"></td>
 										<td>
 											<span class="link-status" :class="`status-${link.status_id}`" x-text="link.status"></span>
 										</td>
@@ -532,18 +533,21 @@
 										<td>
 											<template x-if="link.order_number == '-' && link.status_id < 3">
 												<div class="controlls">
-													<div class="action hover-opacity" title="Copiar" @click="navigator.clipboard.writeText(link.url)">
+													<div class="action hover-opacity" title="Copiar link" @click="navigator.clipboard.writeText(link.url)">
 														<img alt="" alt="icon" src="/static/images/icons/copy.svg" width="16" height="16">
 													</div>
-													<div class="action hover-opacity" title="Eliminar" @click="deleteLink(link.id)">
+													<div class="action hover-opacity" title="Eliminar link" @click="deleteLink(link.id)">
 														<img alt="" alt="icon" src="/static/images/icons/delete.svg" width="16" height="16">
 													</div>
 												</div>
 											</template>
 											<template x-if="link.order_number != '-'">
 												<div class="controlls">
-													<div class="action hover-opacity" @click="viewOrder(link.order_number)">
+													<div class="action hover-opacity" title="Ver orden" @click="viewOrder(link.order_number)">
 														<img alt="" alt="icon" src="/static/images/icons/eye.svg" width="16" height="16">
+													</div>
+													<div class="action hover-opacity" title="Descargar rótulo" @click="getLinkPDF(link.order_number)">
+														<img alt="" alt="icon" src="/static/images/icons/pdf.svg" width="16" height="16">
 													</div>
 												</div>
 											</template>
@@ -1380,6 +1384,34 @@
                     NProgress.done();
                 }
             },
+
+			async getLinkPDF(order_number) {
+				if (this.processing) return;
+				this.processing = true;
+				NProgress.start();
+
+				try {
+					const response = await fetch(`${this.api}/support/link/pdf/${order_number}`);
+					if (!response.ok) throw new Error('No se pudo generar el PDF');
+
+					const blob = await response.blob();
+					const url = window.URL.createObjectURL(blob);
+
+					const link = document.createElement('a');
+					link.href = url;
+					link.download = `rotulo_${order_number}.pdf`;
+					document.body.appendChild(link);
+					link.click();
+					link.remove();
+
+					window.URL.revokeObjectURL(url);
+				} catch (error) {
+					console.error('Error al descargar el PDF:', error);
+				} finally {
+					this.processing = false;
+					NProgress.done();
+				}
+			},
 		}));
 	</script>
 

@@ -132,6 +132,14 @@ document.addEventListener('alpine:init', () => {
                 );
                 return [...this.common_pages, ...filteredRestricted];
             }
+
+            if (user_id === 19) {
+                const allowedRestricted = ['guest'];
+                const filteredRestricted = this.restricted_pages.filter(page =>
+                    allowedRestricted.includes(page.name)
+                );
+                return [...this.common_pages, ...filteredRestricted];
+            }
             return this.common_pages;
         },
 

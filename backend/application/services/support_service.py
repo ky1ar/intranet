@@ -690,7 +690,7 @@ class SupportService:
                 "id": link.id,
                 "url": f"{Config.EXTERNAL_REGISTER_URL}{link.token}",
                 "order_number": link.order_number if link.order_number else '-',
-                "client_name": link.client.name if link.client_id else '-',
+                "client_name": link.client.name.title() if link.client_id else '-',
                 "status": link.status.name,
                 "status_id": link.status_id,
                 "register_at": link.created_at.strftime('%d/%m/%y %I:%M %p').lower()
@@ -724,16 +724,19 @@ class SupportService:
         if history_status != 200:
             return history, history_status
         
-        history_dict = {
-            row.status_id: {
-                "notes": row.notes if row.notes else "",
-                "register_at": row.register_at.strftime("%d-%m-%y")
-            }
-            for row in history
-            if row.status_id in [1, 4, 6, 8]
-        }
+        problem_note = next(
+            (row.notes for row in history if row.status_id == 1 and row.notes),
+            ""
+        )
 
-        html_out = render_template('order_report.html', order=service_order, history=history_dict)
+        if "Accesorios:" in problem_note:
+            parts = problem_note.split("Accesorios:")
+            accessories_raw = parts[1].strip()
+            accessories = re.findall(r"-\s*(.+)", accessories_raw)
+        else:
+            accessories = []
+
+        html_out = render_template('order_report.html', order=service_order, accessories=accessories)
 
         pdf = HTML(string=html_out).write_pdf()
         client_slug = self.slugify(service_order.client.name)
@@ -744,6 +747,33 @@ class SupportService:
         response.headers['Content-Disposition'] = f'attachment; filename={filename}'
         return response
     
+
+    def create_link_pdf(self, order_number):
+        service_order, service_order_status = self.support_repository.get_service_order_by_number(order_number) 
+        if service_order_status != 200:
+            return service_order, service_order_status
+        
+        history, history_status = self.support_repository.get_service_order_history(service_order.id) 
+        if history_status != 200:
+            return history, history_status
+        
+        history_dict = {
+            row.status_id: {
+                "notes": row.notes if row.notes else "",
+                "register_at": row.register_at.strftime("%d-%m-%y")
+            }
+            for row in history
+            if row.status_id in [1, 4, 6, 8]
+        }
+
+        html_out = render_template('delivery_label.html', order=service_order)
+        pdf = HTML(string=html_out).write_pdf()
+        filename = f"rotulo_{order_number}.pdf"
+        response = make_response(pdf)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+        return response
+
 
     @handle_exceptions
     def statistics(self):

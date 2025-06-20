@@ -91,6 +91,21 @@ def finish():
     return controller.support_finish(data)
 
 
+@support_bp.route("/statistics", methods=["GET"])
+def statistics():
+    return controller.support_statistics()
+
+
+@support_bp.route("/find/<order_number>", methods=["GET"])
+def support_find_order(order_number):
+    return controller.support_find_order(order_number)
+
+
+@support_bp.route("/pdf/<order_number>", methods=["GET"])
+def pdf(order_number):
+    return controller.support_pdf(order_number)
+
+
 @support_bp.route("/link", methods=["POST"])
 def support_link():
     return controller.support_create_link(request.get_json())
@@ -115,16 +130,7 @@ def link_history():
     return controller.support_link_history(payload)
 
 
-@support_bp.route("/pdf/<order_number>", methods=["GET"])
-def pdf(order_number):
-    return controller.support_pdf(order_number)
+@support_bp.route("/link/pdf/<order_number>", methods=["GET"])
+def link_pdf(order_number):
+    return controller.support_link_pdf(order_number)
 
-
-@support_bp.route("/statistics", methods=["GET"])
-def statistics():
-    return controller.support_statistics()
-
-
-@support_bp.route("/find/<order_number>", methods=["GET"])
-def support_find_order(order_number):
-    return controller.support_find_order(order_number)
