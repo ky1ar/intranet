@@ -321,7 +321,7 @@ class SupportService:
             service_order_data = {
                 "service_order_id": order.id,
                 "order_number": order.order_number,
-                "client_name": order.client.name,
+                "client_name": order.client.name.title(),
                 "client_phone": order.client.phone[2:],
                 "technician_name": technician_name,
                 "machine": order.machine.model,
