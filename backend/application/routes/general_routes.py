@@ -66,3 +66,7 @@ def general_board_priority():
 def general_board_statuses():
     return controller.general_board_statuses()
 
+
+@general_bp.route("/questions", methods=["GET"])
+def general_questions():
+    return controller.general_questions()

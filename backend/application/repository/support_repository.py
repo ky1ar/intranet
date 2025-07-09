@@ -222,7 +222,7 @@ class SupportRepository:
     
 
     @handle_db_exceptions
-    def create_link(self, token):
+    def create_link(self, token, user_id):
         duration_hours = 24
         utc_now = datetime.now(timezone.utc)
         created_at = utc_now - timedelta(hours=5)
@@ -231,6 +231,7 @@ class SupportRepository:
         service_link = ServiceLinks(
             token=token,
             status_id=1,
+            user_id=user_id,
             created_at=created_at,
             expires_at=expires_at,
         )

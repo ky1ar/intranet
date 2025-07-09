@@ -71,6 +71,7 @@ def finish():
     order_number = request.form.get("order_number")
     service_order_id = request.form.get("service_order_id")
     user_id = request.form.get("user_id")
+    notes = request.form.get("notes")
 
     if image.filename == "":
         return {"error": "Nombre de archivo vacío"}, 400
@@ -87,6 +88,7 @@ def finish():
         "order_number": order_number,
         "filename": filename,
         "user_id": user_id,
+        "notes": notes,
     }
     return controller.support_finish(data)
 

@@ -82,6 +82,7 @@
                         <span x-text="selected_order?.client_phone?.replace(/(.{3})/g, '$1 ').trim()"></span>
                     </div>
                 </div>
+                <textarea x-model="status_notes" class="text-area" placeholder="Notas internas"></textarea>
 
                 <div class="capture-proof">
                     <label class="dotted-button" x-show="!preview" @click.prevent="openFileInput()">+ Subir foto</label>
@@ -110,7 +111,6 @@
                         @click="openFileInput()"
                     >
                 </div>
-
                 <button class="button hover-opacity" @click="finishOrder()" :class="buttons.finish.class" x-text="buttons.finish.text"></button>
             </div>
         </div>
@@ -458,20 +458,66 @@
             preview: null,
 			proof_photo: null,
 			processing: false,
+            status_notes: '',
             api: Alpine.store('cache').api,
 
             next() {
                 const nextStep = this.step_flow[this.currentStep]?.next;
-                if (nextStep) this.currentStep = nextStep;
+                if (nextStep) {
+                    this.currentStep = nextStep;
+
+                    if (nextStep === 'signature') {
+                        this.initSignatureStep();
+                    }
+                }
             },
             prev() {
                 const prevStep = this.step_flow[this.currentStep]?.prev;
-                if (prevStep) this.currentStep = prevStep;
+                if (prevStep) {
+                    this.currentStep = prevStep;
+
+                    if (prevStep === 'signature') {
+                        this.initSignatureStep();
+                    }
+                }
             },
             gotoStep(stepName) {
                 if (stepName && this.step_flow[stepName]) this.currentStep = stepName;
             },
             
+            initSignatureStep() {
+                this.$nextTick(() => {
+                    requestAnimationFrame(() => {
+                        const canvas = this.$refs.canvas;
+                        if (!canvas) return;
+
+                        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                        const rect = canvas.getBoundingClientRect();
+
+                        if (!rect.width || !rect.height) return;
+
+                        canvas.width = rect.width * ratio;
+                        canvas.height = rect.height * ratio;
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.setTransform(1, 0, 0, 1, 0, 0);
+                        ctx.scale(ratio, ratio);
+
+                        if (this.signaturePad) {
+                            this.signaturePad.off();
+                        }
+
+                        this.signaturePad = new SignaturePad(canvas, {
+                            backgroundColor: 'rgb(255,255,255)',
+                            usePointerEvents: true,
+                            useDevicePixelRatio: false
+                        });
+
+                        this.signaturePad.clear();
+                    });
+                });
+            },
+
             initScrollWatcher() {
                 const el = this.$refs.terms;
                 el.addEventListener('scroll', () => {
@@ -578,7 +624,8 @@
 					formData.append("user_id", Alpine.store('cache').user.id);
 					formData.append("order_number", this.selected_order.order_number);
 					formData.append("service_order_id", this.selected_order.service_order_id);
-			
+					formData.append("notes", this.status_notes);
+
 					const response = await fetch(`${this.api}/support/finish`, {
                         method: 'POST',
                         body: formData

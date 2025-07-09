@@ -512,6 +512,7 @@
 									<th>Orden</th>
 									<th>Cliente</th>
 									<th>Estado</th>
+									<th>Creado por</th>
 									<th>Fecha de creación</th>
 									<th></th>
 								</tr>
@@ -529,6 +530,7 @@
 										<td>
 											<span class="link-status" :class="`status-${link.status_id}`" x-text="link.status"></span>
 										</td>
+										<td x-text="link.user_name"></td>
 										<td x-text="link.register_at"></td>
 										<td>
 											<template x-if="link.order_number == '-' && link.status_id < 3">
@@ -1193,7 +1195,7 @@
 				}
 			},
 
-			async newLink(link_id) {
+			async newLink() {
 				if (this.processing) return;
 
 				this.processing = true;

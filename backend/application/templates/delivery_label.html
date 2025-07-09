@@ -39,6 +39,7 @@
       flex-direction: column;
       gap: 0.25rem;
       position: relative;
+      width: 100%;
     }
 
     .block h2 {
@@ -59,6 +60,7 @@
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
+      width: 100%;
     }
 
     .line {
@@ -69,7 +71,7 @@
     .group {
       display: flex;
       justify-content: space-between;
-      gap: 1rem;
+      gap: 2rem;
     }
 
     .divider {
@@ -82,7 +84,7 @@
     <div class="shipping-label">
       <div class="block">
         <h2>Remitente</h2>
-        <img alt="logo" src="https://intranet.krear3d.com/static/images/logo1.svg">
+        <img alt="logo" src="https://registro.krear3d.com/static/images/logo1.svg">
 
         <div class="data">
           <div class="line">
@@ -96,7 +98,7 @@
             </div>
             <div class="line">
               <strong>Celular:</strong>
-              <span>{{ order.client.phone }}</span>
+              <span>{{ order.client.phone[2:] }}</span>
             </div>
           </div>
         </div>

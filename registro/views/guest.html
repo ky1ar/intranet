@@ -520,12 +520,57 @@
 
             next() {
                 const nextStep = this.step_flow[this.currentStep]?.next;
-                if (nextStep) this.currentStep = nextStep;
+                if (nextStep) {
+                    this.currentStep = nextStep;
+
+                    if (nextStep === 'signature') {
+                        this.initSignatureStep();
+                    }
+                }
             },
             prev() {
                 const prevStep = this.step_flow[this.currentStep]?.prev;
-                if (prevStep) this.currentStep = prevStep;
+                if (prevStep) {
+                    this.currentStep = prevStep;
+
+                    if (prevStep === 'signature') {
+                        this.initSignatureStep();
+                    }
+                }
             },
+            initSignatureStep() {
+                this.$nextTick(() => {
+                    requestAnimationFrame(() => {
+                        const canvas = this.$refs.canvas;
+                        if (!canvas) return;
+
+                        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                        const rect = canvas.getBoundingClientRect();
+
+                        if (!rect.width || !rect.height) return;
+
+                        canvas.width = rect.width * ratio;
+                        canvas.height = rect.height * ratio;
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.setTransform(1, 0, 0, 1, 0, 0);
+                        ctx.scale(ratio, ratio);
+
+                        if (this.signaturePad) {
+                            this.signaturePad.off();
+                        }
+
+                        this.signaturePad = new SignaturePad(canvas, {
+                            backgroundColor: 'rgb(255,255,255)',
+                            usePointerEvents: true,
+                            useDevicePixelRatio: false
+                        });
+
+                        this.signaturePad.clear();
+                    });
+                });
+            },
+
             gotoStep(stepName) {
                 if (stepName && this.step_flow[stepName]) this.currentStep = stepName;
             },
@@ -630,14 +675,18 @@
 
             validateName() {
                 const name = this.service_order.name;
-                if (!name){
-                    this.showError('name', 'Ingresa un nombre válido');
+
+                if (!name || name.trim() === '') {
+                    this.showError('name', 'Nombre o razón social inválido');
                     return;
                 }
-                if (name.trim() == '') {
-                    this.showError('name', 'Ingresa un nombre válido');
+
+                const words = name.trim().split(/\s+/).filter(Boolean);
+                if (words.length < 2) {
+                    this.showError('name', 'Nombre o la razón social incompleto');
                     return;
                 }
+
                 this.next();
             },
 

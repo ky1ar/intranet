@@ -70,4 +70,7 @@ class GeneralController:
         return self.general.board_statuses()
     
 
+    @handle_logs_and_exceptions
+    def general_questions(self):
+        return self.general.questions()
     

@@ -310,12 +310,14 @@ class ServiceLinks(BaseModel):
     token = db.Column(db.String(255), unique=True, nullable=False)
     order_number = db.Column(db.Integer)
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     status_id = db.Column(db.Integer, db.ForeignKey('service_link_status.id'), nullable=False)
     created_at = db.Column(db.DATETIME, nullable=False)
     expires_at = db.Column(db.DATETIME)
 
     status = db.relationship("ServiceLinkStatus", lazy="joined", foreign_keys=[status_id])
     client = db.relationship("Clients", lazy="joined", foreign_keys=[client_id])
+    user = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
 
 
 class ServiceLinkStatus(BaseModel):

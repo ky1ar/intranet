@@ -206,3 +206,48 @@ class GeneralService:
                 "image": status.image,
             })
         return result, 200
+    
+
+    @handle_exceptions
+    def questions(self):
+        result = {
+            "Envíos": [
+                {
+                    "pregunta": "¿Cuánto demora el envío?",
+                    "respuesta": "El envío demora entre 1 a 3 días hábiles según tu ubicación."
+                },
+                {
+                    "pregunta": "¿Qué empresa de transporte utilizan?",
+                    "respuesta": "Trabajamos con Olva Courier, Shalom y también ofrecemos recojo en tienda."
+                },
+                {
+                    "pregunta": "¿Hacen envíos a provincias?",
+                    "respuesta": "Sí, realizamos envíos a todo el Perú."
+                },
+                {
+                    "pregunta": "¿Cómo puedo ver el estado de mi pedido?",
+                    "respuesta": "Puedes consultar el estado de tu pedido en nuestra nueva <a href='https://www.tiendakrear3d.com/rastrear-pedidos/' target='_blank'>Pagina de Envios</a>."
+                }
+            ],
+            "Pagos": [
+                {
+                    "pregunta": "¿Puedo pagar con Yape o Plin?",
+                    "respuesta": "Sí, aceptamos pagos mediante Yape, Plin, tarjetas, PagoEfectivo y transferencias bancarias."
+                },
+                {
+                    "pregunta": "¿Dan boleta o factura?",
+                    "respuesta": "Sí, puedes solicitar boleta o factura durante tu compra."
+                }
+            ],
+            "Garantía": [
+                {
+                    "pregunta": "¿Qué garantía tienen los productos?",
+                    "respuesta": "Todos los productos cuentan con garantía de 6 a 12 meses según el tipo de equipo."
+                },
+                {
+                    "pregunta": "¿Qué cubre la garantía?",
+                    "respuesta": "La garantía cubre defectos de fábrica, no incluye daños por mal uso."
+                }
+            ]
+        }
+        return result, 200

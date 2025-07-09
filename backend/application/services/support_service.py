@@ -601,7 +601,8 @@ class SupportService:
         #order_number = data.get("order_number")
         user_id = data.get("user_id")
         filename = data.get("filename")
-
+        notes = data.get("notes")
+        final_notes = f"{notes}\n Image: {filename}"
         utc_now = datetime.now(timezone.utc)
         stamp = utc_now - timedelta(hours=5)
         current_status_id = service_order.status_id
@@ -614,7 +615,7 @@ class SupportService:
         if next_order_status != 200:
             return next_order, next_order_status
         
-        new_order_status, new_order_status_code = self.support_repository.new_order_status(service_order_id, current_status_id, user_id, stamp, filename) 
+        new_order_status, new_order_status_code = self.support_repository.new_order_status(service_order_id, current_status_id, user_id, stamp, final_notes) 
         if new_order_status_code != 200:
             return new_order_status, new_order_status_code
         
@@ -632,7 +633,7 @@ class SupportService:
     def create_link(self, user_id):
         token = str(uuid.uuid4()) 
 
-        create_link, create_link_status = self.support_repository.create_link(token) 
+        create_link, create_link_status = self.support_repository.create_link(token, user_id) 
         if create_link_status != 200:
             return create_link, create_link_status
         
@@ -644,7 +645,6 @@ class SupportService:
 
     @handle_exceptions
     def link_delete(self, data):
-        user_id = data.get("user_id")
         link_id = data.get("link_id")
 
         link, link_status = self.support_repository.get_link(link_id) 
@@ -684,21 +684,22 @@ class SupportService:
         if service_links_status != 200:
             return service_links, service_links_status
         
-        list = []
+        link_list = []
         for link in service_links["list"]:
             link_data = {
                 "id": link.id,
                 "url": f"{Config.EXTERNAL_REGISTER_URL}{link.token}",
                 "order_number": link.order_number if link.order_number else '-',
                 "client_name": link.client.name.title() if link.client_id else '-',
+                "user_name": self.general_service.format_name(link.user.name) if link.user_id else '-',
                 "status": link.status.name,
                 "status_id": link.status_id,
                 "register_at": link.created_at.strftime('%d/%m/%y %I:%M %p').lower()
             }
-            list.append(link_data)
+            link_list.append(link_data)
 
         return {
-            "list": list,
+            "list": link_list,
             "pagination": {
                 "total": service_links["total"],
                 "page": service_links["page"],
@@ -757,16 +758,23 @@ class SupportService:
         if history_status != 200:
             return history, history_status
         
-        history_dict = {
-            row.status_id: {
-                "notes": row.notes if row.notes else "",
-                "register_at": row.register_at.strftime("%d-%m-%y")
-            }
-            for row in history
-            if row.status_id in [1, 4, 6, 8]
-        }
+        note = next((row.notes or "" for row in history if row.status_id == 1), None)
 
-        html_out = render_template('delivery_label.html', order=service_order)
+        lines = note.splitlines()
+        items = []
+        capture = False
+
+        for line in lines:
+            line = line.strip()
+            if line.startswith("Accesorios:"):
+                capture = True
+                continue
+            if capture and line.startswith("- "):
+                items.append(line[2:].strip())
+            elif capture and not line.startswith("- "):
+                break
+            
+        html_out = render_template('delivery_label.html', order=service_order, accessories=items)
         pdf = HTML(string=html_out).write_pdf()
         filename = f"rotulo_{order_number}.pdf"
         response = make_response(pdf)
