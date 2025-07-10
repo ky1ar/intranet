@@ -725,19 +725,16 @@ class SupportService:
         if history_status != 200:
             return history, history_status
         
-        problem_note = next(
-            (row.notes for row in history if row.status_id == 1 and row.notes),
-            ""
-        )
+        history_dict = {
+            row.status_id: {
+                "notes": row.notes if row.notes else "",
+                "register_at": row.register_at.strftime("%d-%m-%y")
+            }
+            for row in history
+            if row.status_id in [1, 4, 6, 8]
+        }
 
-        if "Accesorios:" in problem_note:
-            parts = problem_note.split("Accesorios:")
-            accessories_raw = parts[1].strip()
-            accessories = re.findall(r"-\s*(.+)", accessories_raw)
-        else:
-            accessories = []
-
-        html_out = render_template('order_report.html', order=service_order, accessories=accessories)
+        html_out = render_template('order_report.html', order=service_order, history=history_dict)
 
         pdf = HTML(string=html_out).write_pdf()
         client_slug = self.slugify(service_order.client.name)
