@@ -75,8 +75,12 @@ class SupportService:
         if service_order_status != 200:
             return service_order, service_order_status
         
-        register_days = self.calculate_passed_days(service_order.register_at)
-
+        #register_days = self.calculate_passed_days(service_order.register_at)
+        register_days = 0
+        order_status, order_status_code = self.support_repository.get_order_status(service_order.id, 2) 
+        if order_status_code == 200:
+            register_days = self.calculate_passed_days(order_status.register_at)
+            
         order_data = {
             "order_number": f"{service_order.order_number}",
             "technician_name": self.general_service.format_name(service_order.technician.name),
@@ -200,7 +204,11 @@ class SupportService:
         if service_order_status != 200:
             return service_order, service_order_status
         
-        register_days = self.calculate_passed_days(service_order.register_at)
+        #register_days = self.calculate_passed_days(service_order.register_at)
+        register_days = 0
+        order_status, order_status_code = self.support_repository.get_order_status(service_order.id, 2) 
+        if order_status_code == 200:
+            register_days = self.calculate_passed_days(order_status.register_at)
 
         order_data = {
             "order_number": service_order.order_number,
@@ -292,14 +300,16 @@ class SupportService:
             
             status_orders = []
             for order in status_order:
-                register_days = self.calculate_passed_days(order.register_at)
-                #updated_days = self.calculate_passed_days(order.updated_at)
+                register_days = 0
+                order_status, order_status_code = self.support_repository.get_order_status(order.id, 2) 
+                if order_status_code == 200:
+                    register_days = self.calculate_passed_days(order_status.register_at)
 
-                technician_name = order.technician.name.split()[0] if order.technician and order.technician.name else None
+                #register_days = self.calculate_passed_days(order.register_at) #OLD
 
                 service_order_data = {
                     "order_number": order.order_number,
-                    "technician_name": technician_name,
+                    "technician_name": order.technician.name.split()[0] if order.technician and order.technician.name else None,
                     "machine": order.machine.model,
                     "machine_image": order.machine.image,
                     "method_name": order.method.name if order.method else None,
@@ -308,7 +318,7 @@ class SupportService:
                     "priority": self.get_priority(order.status_id, register_days),
                     "register_days_int": register_days,
                     "register_days": f"{register_days} d.",
-                    #"updated_days": updated_days,
+                    #"updated_days": f"{updated_days} d.",
                     "status_id": status.id,
                 }
                     
@@ -332,8 +342,12 @@ class SupportService:
 
         list = []
         for order in service_orders:
-            register_days = self.calculate_passed_days(order.register_at)
-
+            #register_days = self.calculate_passed_days(order.register_at)
+            register_days = 0
+            order_status, order_status_code = self.support_repository.get_order_status(order.id, 2) 
+            if order_status_code == 200:
+                register_days = self.calculate_passed_days(order_status.register_at)
+                
             technician_name = order.technician.name.split()[0] if order.technician and order.technician.name else None
 
             service_order_data = {
