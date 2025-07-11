@@ -26,11 +26,6 @@ def service_order_by_number(number):
     return controller.support_service_order_by_number(number)
 
 
-@support_bp.route("/order/next", methods=["POST"])
-def service_order_next():
-    return controller.support_service_order_next(request.get_json())
-
-
 @support_bp.route("/order/prev", methods=["POST"])
 def service_order_prev():
     return controller.support_service_order_prev(request.get_json())
@@ -63,6 +58,40 @@ def history():
         "per_page": int(request.args.get("per_page", 12))
     }
     return controller.support_history(payload)
+
+
+@support_bp.route("/order/next", methods=["POST"])
+def service_order_next():
+    images = request.files.getlist("images[]")
+    order_number = request.form.get("order_number")
+    send = request.form.get("send")
+    send_bool = send.lower() == "true" if send else False
+    user_id = request.form.get("user_id")
+    notes = request.form.get("notes")
+    status_id = request.form.get("status_id")
+
+    saved_files = []
+    for idx, image in enumerate(images):
+        if image.filename == "":
+            continue
+
+        safe_name = secure_filename(f"support_{order_number}_{status_id}_{idx}.jpg")
+        filepath = os.path.join(Config.UPLOAD_FOLDER, safe_name)
+
+        img = Image.open(image)
+        img = img.convert("RGB")
+        img.save(filepath, "JPEG", quality=90)
+
+        saved_files.append(safe_name)
+
+    data = {
+        "send": send_bool,
+        "order_number": order_number,
+        "filenames": saved_files,
+        "user_id": user_id,
+        "notes": notes,
+    }
+    return controller.support_service_order_next(data)
 
 
 @support_bp.route("/finish", methods=["POST"])

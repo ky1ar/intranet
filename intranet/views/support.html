@@ -94,8 +94,14 @@
 			id="modal-status"
 			x-cloak>
 			<div class="modal glass2" @click.stop>
-				<span class="title" x-text="'Orden ' + selected_service?.order_number"></span>
-
+				<span class="title" x-text="'N° ' + selected_service?.order_number"></span>
+				<div class="send-whatsapp">
+					Whatsapp
+					<label class="box">
+						<input id="send-whatsapp" type="checkbox" x-model="sendWhatsapp">
+						<span class="slider"></span>
+					</label>
+				</div>
 				<div class="update">
 					<div class="box">
 						<img alt="" width="20" height="20"
@@ -115,13 +121,31 @@
 					
 				<textarea x-model="status_notes" class="text-area" placeholder="Notas internas"></textarea>
 
-				<div class="send-whatsapp">
-					Enviar Whatsapp
-					<label class="box">
-						<input id="send-whatsapp" type="checkbox" x-model="sendWhatsapp">
-						<span class="slider"></span>
-					</label>
-				</div>
+				<div class="capture-proof">
+					<span class="name">Imágenes</span>
+					<div class="thumbnails-grid">
+						<template x-for="(photo, index) in proof_photos" :key="index">
+							<div class="thumbnail-wrapper hover-opacity">
+								<img class="delete" alt="delete" width="24" height="24" src="/static/images/icons/delete.svg">
+								<img class="thumbnail" :src="photo.preview" alt="preview" @click="removePhoto(index)">
+							</div>
+						</template>
+						<div class="dotted-button hover-opacity" x-show="!preview" @click.prevent="openFileInput()">
+							<img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
+						</div>
+						<input
+							type="file"
+							accept="image/*"
+							capture="environment"
+							style="display: none;"
+							x-ref="fileInput"
+							@change="addFiles($event)"
+							multiple 
+						>
+					</div>
+                </div>
+
+				
 
 				<button class="hover-opacity button" @click="updateStatus()" x-text="selected_service?.status_id == 8 ? 'Finalizar orden':'Actualizar'"></button>
 
@@ -178,7 +202,16 @@
 				</template>
 
 				<div class="client">
-					<img alt="" width="48" height="48" :src="'/static/images/uploads/machines/'+service_order?.machine_image" alt="">
+					<template x-if="service_order?.photos?.length !== 0">
+						<div class="show-photos hover-opacity" @click="$store.cache.showModal('photos');">
+							<img class="icon" alt="camera" width="24" height="24" src="/static/images/icons/camera.svg">
+							<img class="thumb" alt="thumb" width="48" height="48" :src="'/static/images/uploads/machines/'+service_order?.machine_image" alt="">
+						</div>
+					</template>
+					
+					<template x-if="service_order?.photos?.length == 0">
+						<img class="thumb" alt="thumb" width="48" height="48" :src="'/static/images/uploads/machines/'+service_order?.machine_image" alt="">
+					</template>
 					
 					<div class="data">
 						<span class="machine" x-text="service_order?.machine"></span>
@@ -254,6 +287,47 @@
 		</div>
 
 
+		<div 
+			x-show="$store.cache.isVisibleModal('photos')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-photos"
+			x-cloak>
+			<div class="modal glass2">
+				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
+					<img alt="close" src="/static/images/x.svg" width="12" height="12">
+				</div>
+				<div class="top">
+					<span class="title">Galería</span>
+				</div>
+				<div class="bottom thumbnails-grid">
+					<template x-for="photo_item in service_order?.photos" :key="photo_item.id">
+						<div class="thumbnail-wrapper hover-opacity" @click="showPhoto(photo_item.filename);">
+							<img class="thumbnail" :src="'/static/images/uploads/' + photo_item.filename" alt="preview">
+						</div>
+					</template>
+				</div>
+			</div>
+			
+		</div>
+
+		<div 
+			x-show="$store.cache.isVisibleModal('image')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-image"
+			x-cloak>
+			<div class="modal glass2">
+				<img 
+					@click="$store.cache.hideLastModal()"
+					:src="'/static/images/uploads/' + showing_photo"
+					alt="preview"
+				>
+			</div>
+			
+		</div>
 
 		<div
 			x-show="$store.cache.isVisibleModal('add')"
@@ -654,6 +728,9 @@
 			chartMonth: null,
 			chartTech: null,
 			processing: false,
+            preview: null,
+			proof_photos: [],
+			showing_photo: '',
             api: Alpine.store('cache').api,
 
 			async init() {
@@ -682,6 +759,8 @@
 				await Alpine.store('cache').verify();
 
 			},
+
+			
 
 			async getMachine() {
                 const machine_search = this.process_service.machine;
@@ -854,9 +933,35 @@
 				}
 				this.status_notes = '';
 				this.sendWhatsapp = true;
+				this.preview = null;
+				this.proof_photos = [];
 				Alpine.store('cache').showModal('status');
 			},
+
+			showPhoto(photo) {
+				this.showing_photo = photo;
+				Alpine.store('cache').showModal('image');
+			},
 			
+			addFiles(event) {
+				for (let f of event.target.files) {
+					if (f) {
+						let reader = new FileReader();
+						reader.onload = e => this.proof_photos.push({ file: f, preview: e.target.result });
+						reader.readAsDataURL(f);
+					}
+				}
+			},
+
+			openFileInput() {
+                //this.$refs.fileInput.value = null;
+                this.$refs.fileInput.click();
+            },
+
+			removePhoto(index) {
+				this.proof_photos.splice(index, 1);
+			},
+
 			finish(service) {
 				this.selected_service = service;
 				this.status_notes = '';
@@ -1321,23 +1426,24 @@
 			async updateStatus() {
 				if (!this.selected_service) return;
 				if (this.processing) return;
-
 				this.processing = true;
+
+				const formData = new FormData();
+				for (let i = 0; i < this.proof_photos.length; i++) {
+					const resized = await Alpine.store('cache').resizeImage(this.proof_photos[i].file, 1024, 1024);
+					formData.append('images[]', resized);
+				}
+				formData.append("user_id", Alpine.store('cache').user.id);
+				formData.append("order_number", this.selected_service.order_number);
+				formData.append("send", this.sendWhatsapp);
+				formData.append("notes", this.status_notes);
+				formData.append("status_id", this.selected_service.status_id);
+
 				NProgress.start();
-				const payload = {
-					order_number: this.selected_service.order_number,
-					user_id: Alpine.store('cache').user.id,
-					notes: this.status_notes,
-					send: this.sendWhatsapp,
-				};
-			
 				try {
 					const response = await fetch(`${this.api}/support/order/next`, {
 						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json'
-						},
-						body: JSON.stringify(payload)
+						body: formData
 					});
 			
 					if (!response.ok) {
@@ -1424,6 +1530,37 @@
 
 
 	<style>
+		#modal-image {
+			z-index: 50;
+		}
+		#modal-image img {
+			border-radius: 0.75rem;
+    		max-height: calc(100dvh - 5rem);
+		}
+		#modal-photos {
+			z-index: 40;
+		}
+		#modal-photos .thumbnails-grid {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.68rem;
+			width: 24rem;
+		}
+		#modal-photos .thumbnail-wrapper {
+			position: relative;
+			width: 4.25rem;
+			height: 4.25rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			overflow: hidden;
+			border-radius: 0.75rem;
+			border: 2px solid var(--newgray);
+		}
+		#modal-photos .thumbnail-wrapper .thumbnail {
+			transition: var(--transition);
+		}
+
 		#modal-search .modal {
 			gap: 0.5rem;
 			min-width: initial;
@@ -1931,6 +2068,60 @@
 		#modal-status {
 			z-index: 40;
 		}
+		#modal-status .capture-proof {
+			max-width: 24rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			user-select: none;
+        }
+		#modal-status .capture-proof .name {
+			font-weight: 500;
+        }
+		#modal-status .capture-proof .thumbnails-grid {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.68rem;
+		}
+		#modal-status .capture-proof .dotted-button {
+			line-height: 3rem;
+			border-radius: 0.75rem;
+			justify-content: center;
+			font-size: 1.5rem;
+			width: 4.25rem;
+			height: 4.25rem;
+			display: flex;
+			align-items: center;
+			border: 2px solid var(--newgray);
+        }
+		#modal-status .capture-proof .thumbnail-wrapper {
+			position: relative;
+			width: 4.25rem;
+			height: 4.25rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			overflow: hidden;
+			border-radius: 0.75rem;
+			border: 2px solid var(--newgray);
+		}
+		#modal-status .capture-proof .thumbnail-wrapper .delete {
+			position: absolute;
+    		filter: invert(1);
+			opacity: 0;
+			transition: var(--transition);
+			pointer-events: none;
+			z-index: 10;
+		}
+		#modal-status .capture-proof .thumbnail-wrapper .thumbnail {
+			transition: var(--transition);
+		}
+		#modal-status .capture-proof .thumbnail-wrapper:hover .delete {
+			opacity: 1;
+		}
+		#modal-status .capture-proof .thumbnail-wrapper:hover .thumbnail {
+			filter: brightness(0.65) blur(2px);
+		}
 		#modal-status .update {
 			display: flex;
 			justify-content: center;
@@ -1965,7 +2156,9 @@
 			gap: 0.5rem;
 			align-items: center;
 			font-size: 0.75rem;
-			justify-content: center;
+			position: absolute;
+			right: 3.25rem;
+			top: 1.25rem;
 		}
 		#modal-status .send-whatsapp .dot {
 			width: 0.5rem;
@@ -2057,6 +2250,30 @@
 			box-shadow: 0 0 1rem hsl(0deg 0% 0% / 2.5%);
 			width: 100%;
 			gap: 1rem;
+		}
+		#modal-view .client .show-photos {
+			position: relative;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			overflow: hidden;
+    		border-radius: 0.5rem;
+		}
+		#modal-view .client .show-photos .icon {
+			opacity: 0;
+			filter: invert(1);
+			position: absolute;
+			z-index: 10;
+			transition: var(--transition);
+		}
+		#modal-view .client .show-photos .thumb {
+			transition: var(--transition);
+		}
+		#modal-view .client .show-photos:hover .icon {
+			opacity: 1;
+		}
+		#modal-view .client .show-photos:hover .thumb {
+			filter: brightness(0.65) blur(2px);
 		}
 		#modal-view .client .data {
 			display: flex;
@@ -2299,6 +2516,10 @@
 			}
 			#modal-statistics .charts .box {
 				min-width: initial;
+			}
+			#modal-photos .thumbnails-grid {
+				width: initial;
+				justify-content: space-around;
 			}
         }
 	</style>

@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timezone, timedelta
 from application.handlers import handle_db_exceptions
-from application.models import ServiceOrders, ServiceOrderStatus, ServiceLinks, ServiceStatus, Users, Clients, db
+from application.models import ServiceOrders, ServiceOrderStatus, ServiceLinks, ServiceStatus, Users, Clients, ServiceOrderPhotos, db
 from sqlalchemy import func
 from flask import g
 
@@ -222,6 +222,19 @@ class SupportRepository:
     
 
     @handle_db_exceptions
+    def add_photos(self, service_order_id, current_status_id, filanames):
+        for filename in filanames:
+            new_photo = ServiceOrderPhotos(
+                service_order_id=service_order_id,
+                status_id=current_status_id + 1,
+                filename=filename
+            )
+            g.db_session.add(new_photo)
+        g.db_session.commit()
+        return True, 200
+    
+
+    @handle_db_exceptions
     def create_link(self, token, user_id):
         duration_hours = 24
         utc_now = datetime.now(timezone.utc)
@@ -252,6 +265,19 @@ class SupportRepository:
 
         return history, 200
 
+
+    @handle_db_exceptions
+    def get_photos(self, service_order_id):
+        photos = (
+            g.db_session.query(ServiceOrderPhotos)
+            .filter(ServiceOrderPhotos.service_order_id == service_order_id)
+            .all()
+        )
+        if not photos:
+            return [], 200
+
+        return photos, 200
+    
 
     @handle_db_exceptions
     def get_working_service_order(self, leader, user):

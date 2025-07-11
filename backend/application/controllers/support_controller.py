@@ -20,16 +20,7 @@ class SupportController:
         return self.support.order_consult(order_number, document)
     
 
-    @handle_logs_and_exceptions
-    def support_service_order_next(self, data):
-        if validation := validate_request(data, {"order_number", "notes", "user_id", "send"}):
-            return validation, 400
-        
-        order_number = data.get("order_number")
-        user_id = data.get("user_id")
-        notes = data.get("notes")
-        send = data.get("send")
-        return self.support.service_order_next(order_number, user_id, notes, send)
+
     
 
     @handle_logs_and_exceptions
@@ -97,6 +88,16 @@ class SupportController:
         return self.support.history(data)
 
     
+    @handle_logs_and_exceptions
+    def support_service_order_next(self, data):
+        order_number = data.get("order_number")
+        user_id = data.get("user_id")
+        notes = data.get("notes")
+        send = data.get("send")
+        filenames = data.get("filenames")
+        return self.support.service_order_next(order_number, user_id, notes, send, filenames)
+    
+
     @handle_logs_and_exceptions
     def support_finish(self, data):  
         service_order, service_order_status = self.support.service_by_id(data.get("service_order_id"))

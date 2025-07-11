@@ -115,7 +115,8 @@ class SupportService:
     
 
     @handle_exceptions
-    def service_order_next(self, order_number, user_id, notes, send):
+    def service_order_next(self, order_number, user_id, notes, send, filanames):
+        logging.info(filanames)
         service_order, service_order_status = self.support_repository.get_service_order_by_number(order_number) 
         if service_order_status != 200:
             return service_order, service_order_status
@@ -136,6 +137,11 @@ class SupportService:
         if new_order_status_code != 200:
             return new_order_status, new_order_status_code
         
+        if filanames:
+            add_photos, add_photos_status = self.support_repository.add_photos(service_order_id, current_status_id, filanames) 
+            if add_photos_status != 200:
+                return add_photos, add_photos_status
+
         socketio.emit("support_dashboard_update", {})
         
         machine, machine_status = self.machine_repository.get_machine(machine_id)
@@ -195,7 +201,7 @@ class SupportService:
             return service_order, service_order_status
         
         register_days = self.calculate_passed_days(service_order.register_at)
-        
+
         order_data = {
             "order_number": service_order.order_number,
             "technician_id": service_order.technician_id,
@@ -231,8 +237,20 @@ class SupportService:
 
             } for row in history
         ]
-
         order_data["history"] = history_dict
+                
+        photos, photos_status = self.support_repository.get_photos(service_order.id) 
+        if photos_status != 200:
+            return photos, photos_status
+        
+        photos_dict = [
+            {
+                "id": photo_row.id,
+                "filename": photo_row.filename,
+                "status_id": photo_row.status_id,
+            } for photo_row in photos
+        ]
+        order_data["photos"] = photos_dict
 
         return order_data, 200
     

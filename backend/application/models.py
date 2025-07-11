@@ -303,6 +303,18 @@ class ServiceOrderStatus(BaseModel):
     status = db.relationship("ServiceStatus", lazy="joined", foreign_keys=[status_id])
 
 
+class ServiceOrderPhotos(BaseModel):
+    __tablename__ = 'service_order_photos'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    service_order_id = db.Column(db.Integer, db.ForeignKey('service_orders.id'), nullable=False)
+    status_id = db.Column(db.Integer, db.ForeignKey('service_status.id'), nullable=False)
+    filename = db.Column(db.String(100))
+
+    service_order = db.relationship("ServiceOrders", lazy="joined", foreign_keys=[service_order_id])
+    status = db.relationship("ServiceStatus", lazy="joined", foreign_keys=[status_id])
+
+
 class ServiceLinks(BaseModel):
     __tablename__ = 'service_links'
 
