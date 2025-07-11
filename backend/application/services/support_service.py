@@ -1,12 +1,7 @@
-import logging
-import threading
-import base64
-import uuid
-import re
-import unicodedata
+import logging, threading, base64, uuid, re, unicodedata
 from weasyprint import HTML
 from flask import render_template, make_response
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 from application.handlers import handle_exceptions
 from application.repository.support_repository import SupportRepository
 from application.repository.machine_repository import MachineRepository
@@ -27,6 +22,7 @@ class SupportService:
         self.general_repository = GeneralRepository()
         self.general_service = GeneralService()
         self.client_repository = ClientRepository()
+        self.initial_status_id = 2
         self.whatsapp = Whatsapp()
         self.days = {
             1: "lunes", 2: "martes", 3: "miércoles", 4: "jueves",
@@ -301,11 +297,15 @@ class SupportService:
             status_orders = []
             for order in status_order:
                 register_days = 0
-                order_status, order_status_code = self.support_repository.get_order_status(order.id, 2) 
-                if order_status_code == 200:
-                    register_days = self.calculate_passed_days(order_status.register_at)
+                updated_today = False
 
-                #register_days = self.calculate_passed_days(order.register_at) #OLD
+                initial_order, initial_order_code = self.support_repository.get_order_status(order.id, self.initial_status_id) 
+                if initial_order_code == 200:
+                    register_days = self.calculate_passed_days(initial_order.register_at)
+
+                updated_status, _ = self.support_repository.get_order_status(order.id, status.id) 
+                if updated_status.register_at.date() == date.today():
+                    updated_today = True
 
                 service_order_data = {
                     "order_number": order.order_number,
@@ -318,6 +318,7 @@ class SupportService:
                     "priority": self.get_priority(order.status_id, register_days),
                     "register_days_int": register_days,
                     "register_days": f"{register_days} d.",
+                    "updated_today": updated_today,
                     #"updated_days": f"{updated_days} d.",
                     "status_id": status.id,
                 }

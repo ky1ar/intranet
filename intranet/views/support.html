@@ -65,6 +65,10 @@
 									@click="viewOrder(item.order_number)">
 									<div class="row">
 										<span class="order-number" x-text="`${item.method_letter}-${item.order_number}`"></span>
+
+										<template x-if="item.updated_today">
+											<div class="update-dot"></div>
+										</template>
 										<div class="passed-days">
 											<span class="register-day" x-text="item.register_days"></span>
 										</div>
@@ -74,6 +78,7 @@
 										<div>
 											<span class="machine" x-text="item.machine"></span>
 											<span class="admin-name" x-text="item.technician_name"></span>
+											<div class="update-status" @click="mobileStatusChange(item)" @click.stop>Actualizar</div>
 										</div>
 										<img alt="" width="48" height="48" :src="'/static/images/uploads/machines/'+item.machine_image" alt="">
 									</div>
@@ -901,6 +906,16 @@
 
 			dragService(service) {
 				this.selected_service = service;
+			},
+
+			mobileStatusChange(service) {
+				this.selected_service = service;
+				
+				this.status_notes = '';
+				this.sendWhatsapp = true;
+				this.preview = null;
+				this.proof_photos = [];
+				Alpine.store('cache').showModal('status');
 			},
 
 			onDragOver(event, targetStatusId) {
@@ -2030,12 +2045,31 @@
 			color: var(--black);
 			display: none;
 		}
+		#support-dashboard ul li .update-dot {
+			width: 0.4rem;
+			height: 0.4rem;
+			background-color: var(--primary);
+			border-radius: 1rem;
+			position: absolute;
+			top: 0.4rem;
+			left: 0.4rem;
+		}
 		#support-dashboard ul li .admin-name {
 			font-size: 0.75rem;
 			opacity: 0.75;
 			display: block;
 			line-height: 0.8rem;
 			margin-top: 0.5rem;
+		}
+		#support-dashboard ul li .update-status {
+			border-radius: 1rem;
+			background-color: var(--newgray);
+			text-align: center;
+			padding: 0.5rem 1em;
+			font-size: 0.75rem;
+			font-weight: 600;
+			margin-top: 0.5rem;
+			display: none;
 		}
 		#support-dashboard ul li .machine {
 			font-weight: 600;
@@ -2520,6 +2554,9 @@
 			#modal-photos .thumbnails-grid {
 				width: initial;
 				justify-content: space-around;
+			}
+			#support-dashboard ul li .update-status {
+				display: block;
 			}
         }
 	</style>
