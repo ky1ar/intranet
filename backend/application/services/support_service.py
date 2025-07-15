@@ -764,7 +764,7 @@ class SupportService:
                 "register_at": row.register_at.strftime("%d-%m-%y")
             }
             for row in history
-            if row.status_id in [1, 4, 6, 8]
+            if row.status_id in [1, 4, 6, 7]
         }
 
         html_out = render_template('order_report.html', order=service_order, history=history_dict)
