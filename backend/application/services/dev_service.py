@@ -141,7 +141,9 @@ class DevService:
             return total_accepted, accepted_status
 
         return {
-            "total_users": len(all_users),
+            "total_users": total_accepted,
+            #"total_users": len(all_users),
+
             "total_accepted": total_accepted,
             "users": [u.to_dict(only_fields=["id", "name", "phone", "status", "sended_at", "updated_at"]) for u in all_users]
         }, 200
