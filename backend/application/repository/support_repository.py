@@ -1,8 +1,8 @@
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 from application.handlers import handle_db_exceptions
 from application.models import ServiceOrders, ServiceOrderStatus, ServiceLinks, ServiceStatus, Users, Clients, ServiceOrderPhotos, db
-from sqlalchemy import func
+from sqlalchemy import func, extract
 from flask import g
 
 
@@ -77,11 +77,17 @@ class SupportRepository:
 
     @handle_db_exceptions
     def get_orders_by_tech(self):
+        today = date.today()
+        current_year = today.year
+        current_month = today.month
+
         orders_by_tech = (
             g.db_session.query(Users.name, func.count(ServiceOrders.id))
             .join(ServiceOrders, ServiceOrders.technician_id == Users.id)
             .filter(Users.level_id != 1)
             .filter(Users.id != 21)
+            .filter(extract('year', ServiceOrders.register_at) == current_year)
+            .filter(extract('month', ServiceOrders.register_at) == current_month)
             .group_by(Users.name)
             .all()
         )

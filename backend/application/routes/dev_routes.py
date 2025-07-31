@@ -6,8 +6,8 @@ from application import socketio
 
 
 dev_bp = Blueprint("dev", __name__, url_prefix="/dev")
-
 connected_users = {}
+
 
 @dev_bp.route("/", methods=["GET"])
 def health():
@@ -42,9 +42,3 @@ def handle_disconnect(e=None):
             if not sids:
                 del connected_users[user_id]
             break
-
-
-"""@socketio.on("support_dashboard_update")
-def handle_update(data):
-    #controller.send_message(data)
-    emit("support_dashboard_update", {}, broadcast=True)"""

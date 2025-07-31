@@ -850,6 +850,7 @@ class SupportService:
         orders_by_tech, orders_by_tech_code = self.support_repository.get_orders_by_tech() 
         if orders_by_tech_code != 200:
             return orders_by_tech, orders_by_tech_code
+        
         by_tech = [
             {'technician': self.general_service.format_name(name), 'count': count}
             for name, count in orders_by_tech

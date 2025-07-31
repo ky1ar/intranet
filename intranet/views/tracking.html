@@ -89,7 +89,6 @@
 						type="text"
 						x-model="order_number"
 						placeholder="N° de Orden"
-						maxlength="6" 
 						@input="order_number = $event.target.value.toUpperCase()"
 						@blur="fetchOrderData()"
 						required>
