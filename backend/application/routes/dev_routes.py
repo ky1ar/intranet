@@ -1,11 +1,13 @@
 import logging
 from flask import Blueprint, request
+from application.controllers.dev_controller import DevController
 from application import redis_client
 from flask_socketio import emit
 from application import socketio
 
 
 dev_bp = Blueprint("dev", __name__, url_prefix="/dev")
+controller = DevController()
 connected_users = {}
 
 
@@ -14,10 +16,35 @@ def health():
     return {"message": "Krear 3D Backend API UP"}, 200
 
 
+@dev_bp.route("/webhook", methods=["GET"])
+def webhook():
+    return controller.webhook(request.args)
+
+
+@dev_bp.route("/webhook", methods=["POST"])
+def webhook_data():
+    return controller.webhook_data(request.get_json())
+
+
 @dev_bp.route("/flush-redis", methods=["GET"])
 def user_find():
     redis_client.flushall()
     return {"message": 'Redis flushed'}, 200
+
+
+@dev_bp.route("/confirm_flow", methods=["POST"])
+def confirm_flow():
+    return controller.dev_confirm_flow(request.get_json())
+
+
+@dev_bp.route("/confirm_flow/all", methods=["POST"])
+def confirm_flow_all():
+    return controller.dev_confirm_flow_all()
+
+
+@dev_bp.route("/confirm_flow/list", methods=["GET"])
+def confirm_flow_list():
+    return controller.dev_confirm_flow_list()
 
 
 @socketio.on("connect")

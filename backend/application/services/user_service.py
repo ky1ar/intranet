@@ -19,36 +19,6 @@ class UserService:
         
 
     @handle_exceptions
-    def extract_data(self, payload):
-        entry = payload.get("entry", [])[0]
-        change = entry.get("changes", [])[0]
-        value = change.get("value", {})
-
-        contacts = value.get("contacts", [])
-        wa_id = contacts[0].get("wa_id") if contacts else None
-
-        messages = value.get("messages", [])
-        message_text = messages[0].get("text", {}).get("body") if messages else None
-
-        if not wa_id or not message_text:
-            return "Missing 'wa_id' or 'message'", 400
-        
-        return {
-            "phone": wa_id,
-            "message": message_text
-        }, 200
-
-
-    @handle_exceptions
-    def process_webhook(self, data):
-        extract, extract_status = self.extract_data(data)
-        if extract_status != 200:
-            return extract, extract_status
-        
-        return extract, 200
-        
-
-    @handle_exceptions
     def get_department_team(self, user_id):
         user, user_status = self.user_repository.get_user_by_id(user_id)
         if user_status != 200:

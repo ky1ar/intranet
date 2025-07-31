@@ -55,11 +55,12 @@ class Whatsapp:
         }
         response = requests.post(url, headers=headers, data=json.dumps(payload))
         response_data = response.json()
-        logging.info(response.text)
         if response.status_code != 200:
+            logging.info(response.text)
             return f"Error {response_data}", response.status_code
         
-        return "Mensaje enviado correctamente", 200
+        logging.info(response_data)
+        return response_data, 200
     
 
     @handle_exceptions
@@ -341,3 +342,69 @@ class Whatsapp:
 
         return self.post(payload)
     
+
+
+    @handle_exceptions
+    def confirm_flow_start(self, phone):
+        name ="Creality Fest por Krear 3D"
+        schedule ="2 de agosto de 10 a.m. a 5 p.m."
+        location ="Cámara de Comercio de Lima - Av. Giuseppe Garibaldi 396, Jesús María (Salón San Felipe)"
+        template_name = "confirm_flow_start"
+        
+        parameters = [
+            {"type": "text", "parameter_name": "name", "text": name},
+            {"type": "text", "parameter_name": "schedule", "text": schedule},
+            {"type": "text", "parameter_name": "location", "text": location},
+        ]
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "template",
+            "template": {
+                "name": template_name,
+                "language": {"code": "es_PE"},
+                "components": [{"type": "body", "parameters": parameters}]
+            }
+        }
+        return self.post(payload)
+    
+
+    @handle_exceptions
+    def confirm_flow_yes(self, phone):
+        name ="Creality Fest"
+        maps ="https://maps.app.goo.gl/sisjPduBcsqDRkji6 "
+        template_name = "confirm_flow_yes"
+        
+        parameters = [
+            {"type": "text", "parameter_name": "name", "text": name},
+            {"type": "text", "parameter_name": "maps", "text": maps},
+        ]
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "template",
+            "template": {
+                "name": template_name,
+                "language": {"code": "es_PE"},
+                "components": [{"type": "body", "parameters": parameters}]
+            }
+        }
+        return self.post(payload)
+
+
+    @handle_exceptions
+    def confirm_flow_no(self, phone):
+        template_name = "confirm_flow_no"
+   
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "template",
+            "template": {
+                "name": template_name,
+                "language": {"code": "es_PE"}
+            }
+        }
+        return self.post(payload)

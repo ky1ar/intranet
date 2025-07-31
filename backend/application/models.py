@@ -488,3 +488,17 @@ class BoardHistory(BaseModel):
 
     issue = db.relationship("BoardIssues", lazy="joined", foreign_keys=[issue_id])
     user = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
+
+
+
+class UserContext(BaseModel):
+    __tablename__ = 'user_context'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(128), nullable=False)
+    phone = db.Column(db.String(128), nullable=False)
+    campaign = db.Column(db.String(128), nullable=False)
+    last_message_id = db.Column(db.Text)
+    status = db.Column(db.String(128), nullable=False, default='idle')
+    sended_at = db.Column(db.TIMESTAMP)
+    updated_at = db.Column(db.TIMESTAMP)

@@ -7,16 +7,6 @@ user_bp = Blueprint("user", __name__, url_prefix="/user")
 controller = UserController()
 
 
-@user_bp.route("/webhook", methods=["GET"])
-def webhook():
-    return controller.webhook(request.args)
-
-
-@user_bp.route("/webhook", methods=["POST"])
-def webhook_data():
-    return controller.webhook_data(request.get_json())
-
-
 @user_bp.route("/find", methods=["POST"])
 def user_find():
     return controller.user_find(request.get_json())
@@ -41,7 +31,7 @@ def user_login():
 @jwt_required()
 def user_verify():
     return jsonify({
-        "app_version": "0.3.7.2"
+        "app_version": "0.3.7.3"
     }), 200
 
 

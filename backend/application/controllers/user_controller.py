@@ -2,30 +2,12 @@ import logging
 
 from application.handlers import handle_logs_and_exceptions, validate_request
 from application.services.user_service import UserService
-from config import WABA
 
 
 class UserController:
     def __init__(self):
         self.user = UserService() 
 
-
-    def webhook(self, data):
-        mode = data.get('hub.mode')
-        challenge = data.get('hub.challenge')
-        verify_token = data.get('hub.verify_token')
-        logging.info(f"Webhook received - mode: {mode}, challenge: {challenge}, verify_token: {verify_token}")
-
-        if verify_token == WABA.WEBHOOK_TOKEN:
-            return challenge, 200
-        else:
-            return "Invalid token", 403
-        
-        
-    @handle_logs_and_exceptions
-    def webhook_data(self, data):
-        return self.user.process_webhook(data)
-    
 
     @handle_logs_and_exceptions
     def user_team(self, user_id):
