@@ -373,7 +373,8 @@ class Whatsapp:
     @handle_exceptions
     def confirm_flow_yes(self, phone):
         name ="Creality Fest"
-        maps ="https://maps.app.goo.gl/sisjPduBcsqDRkji6 "
+        maps ="https://maps.app.goo.gl/sisjPduBcsqDRkji6"
+        
         template_name = "confirm_flow_yes"
         
         parameters = [
@@ -405,6 +406,36 @@ class Whatsapp:
             "template": {
                 "name": template_name,
                 "language": {"code": "es_PE"}
+            }
+        }
+        return self.post(payload)
+
+
+    @handle_exceptions
+    def confirm_flow_reminder(self, phone):
+        name ="Creality Fest"
+        date ="Sábado 2 de agosto"
+        schedule ="De 10:00 a.m. a 5:00 p.m."
+        location ="Cámara de Comercio de Lima - Av. Giuseppe Garibaldi 396, Jesús María (Salón San Felipe)"
+        maps ="https://maps.app.goo.gl/sisjPduBcsqDRkji6"
+
+        template_name = "confirm_flow_reminder"
+        parameters = [
+            {"type": "text", "parameter_name": "name", "text": name},
+            {"type": "text", "parameter_name": "date", "text": date},
+            {"type": "text", "parameter_name": "schedule", "text": schedule},
+            {"type": "text", "parameter_name": "location", "text": location},
+            {"type": "text", "parameter_name": "maps", "text": maps},
+        ]
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "template",
+            "template": {
+                "name": template_name,
+                "language": {"code": "es_PE"},
+                "components": [{"type": "body", "parameters": parameters}]
             }
         }
         return self.post(payload)

@@ -73,7 +73,7 @@
 					case 'declined':
 						return 'No';
 					default:
-						return status;
+						return 'Sí';
 				}
 			},
 
@@ -86,7 +86,7 @@
 					case 'declined':
 						return 'decline';
 					default:
-						return status;
+						return 'accept';
 				}
 			},
 
@@ -176,7 +176,7 @@
 			align-items: center;
 			justify-content: center;
 		}
-		@media only screen and (max-width: 48rem) {
+		@media only screen and (max-width: 32rem) {
 			#clients table .big {
 				display: none;
 			}

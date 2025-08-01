@@ -30,7 +30,15 @@ class DevRepository:
             return 'No hay usuarios pendientes', 404
         return users, 200
 
-        
+    
+    @handle_db_exceptions
+    def get_accepted_users(self):
+        users = g.db_session.query(UserContext).filter(UserContext.status == 'accepted').all()
+        if not users:
+            return 'No hay usuarios', 404
+        return users, 200
+
+
     @handle_db_exceptions
     def get_user_by_phone(self, phone):
         user = g.db_session.query(UserContext).filter_by(phone=phone).first()
@@ -64,5 +72,7 @@ class DevRepository:
 
     @handle_db_exceptions
     def count_accepted_users(self):
-        count = g.db_session.query(UserContext).filter(UserContext.status == 'accepted').count()
+        count = g.db_session.query(UserContext).filter(
+            UserContext.status.in_(['accepted', 'reminded'])
+        ).count()
         return count, 200
