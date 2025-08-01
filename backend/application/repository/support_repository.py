@@ -92,7 +92,7 @@ class SupportRepository:
             .all()
         )
         if not orders_by_tech:
-            return 'No se encontraron órdenes', 404
+            return [], 200
 
         return orders_by_tech, 200
     

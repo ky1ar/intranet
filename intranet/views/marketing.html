@@ -7,7 +7,7 @@
 					<div class="button">
 						<img alt="" width="20" height="20" src="/static/images/icons/marketing.svg">
 					</div>
-					<span>Participantes del Creality Fest</span>
+					<span>Creality Fest</span>
             	</div>
             </div>
 
@@ -25,7 +25,7 @@
 				<tr class="">
 					<th>ID</th>
 					<th>Nombre</th>
-					<th>Celular</th>
+					<th class="big">Celular</th>
 					<th>Asistencia</th>
 					<th></th>
 				</tr>
@@ -34,9 +34,9 @@
 					<tr class="row">
 						<td x-text="client.id"></td>
 						<td class="name">
-							<span x-text="client.name"></span>
+							<span class="short" x-text="client.name"></span>
 						</td>
-						<td x-text="client.phone"></td>
+						<td class="big" x-text="client.phone"></td>
 						<td x-text="translateStatus(client.status)"></td>
 						<td>
 							<div class="action">
@@ -145,6 +145,7 @@
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
+			gap: 1rem;
 		}
 		
 		#clients .menu {
@@ -174,6 +175,18 @@
 			display: flex;
 			align-items: center;
 			justify-content: center;
+		}
+		@media only screen and (max-width: 48rem) {
+			#clients table .big {
+				display: none;
+			}
+			#clients table .short {
+				font-weight: 500;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				max-width: 8rem;
+			}
 		}
 	</style>
 </div>
