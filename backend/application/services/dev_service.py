@@ -172,3 +172,29 @@ class DevService:
                 results.append({"phone": phone, "status": "exception", "error": str(e)})
 
         return "Recordatorios enviados correctamente", 200
+    
+
+    @handle_exceptions
+    def confirm_flow_reminder_2(self):
+        users, status = self.dev_repository.get_confirmed_users()
+        if status != 200:
+            return users, status
+        
+        results = []
+        for user in users:
+            phone = user.phone
+            try:
+                send_wsp, send_status = self.whatsapp.confirm_flow_reminder_2(phone)
+                if send_status != 200:
+                    results.append({"phone": phone, "status": "error", "error": send_wsp})
+                    continue
+                
+                _, user_status = self.dev_repository.update_user(user, status='reminded')
+                results.append({"phone": phone, "status": "ok" if user_status == 200 else "update_error"})
+
+                time.sleep(1.5)
+
+            except Exception as e:
+                results.append({"phone": phone, "status": "exception", "error": str(e)})
+
+        return "Recordatorios enviados correctamente", 200

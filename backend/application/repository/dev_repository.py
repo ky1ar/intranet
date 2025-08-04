@@ -48,6 +48,14 @@ class DevRepository:
     
 
     @handle_db_exceptions
+    def get_confirmed_users(self):
+        users = g.db_session.query(UserContext).filter(UserContext.status.in_(['accepted', 'reminded'])).all()
+        if not users:
+            return 'No hay usuarios', 404
+        return users, 200
+    
+
+    @handle_db_exceptions
     def update_user(self, user, last_message_id=None, status=None):
         if not status:
             user.sended_at = self.peru_time()

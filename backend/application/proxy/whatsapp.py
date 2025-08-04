@@ -439,3 +439,27 @@ class Whatsapp:
             }
         }
         return self.post(payload)
+    
+
+    @handle_exceptions
+    def confirm_flow_reminder_2(self, phone):
+        name ="Creality"
+        name2 ="el evento de Krear 3D en la entrada"
+
+        template_name = "confirm_flow_reminder_2"
+        parameters = [
+            {"type": "text", "parameter_name": "name", "text": name},
+            {"type": "text", "parameter_name": "name2", "text": name2},
+        ]
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "template",
+            "template": {
+                "name": template_name,
+                "language": {"code": "es_PE"},
+                "components": [{"type": "body", "parameters": parameters}]
+            }
+        }
+        return self.post(payload)

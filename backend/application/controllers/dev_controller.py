@@ -49,3 +49,7 @@ class DevController:
     def dev_confirm_flow_reminder(self):
         return self.dev.confirm_flow_reminder()
     
+
+    @handle_logs_and_exceptions
+    def dev_confirm_flow_reminder_2(self):
+        return self.dev.confirm_flow_reminder_2()
