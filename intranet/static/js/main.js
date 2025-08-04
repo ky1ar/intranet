@@ -54,9 +54,6 @@ document.addEventListener('alpine:init', () => {
             { name: 'guest', label: 'Fabrix', image: 'fabrix', title: 'Krear 3D - Fabrix' },
         ],
 
-        fabrix_pages: [
-            { name: 'guest', label: 'Fabrix', image: 'fabrix', title: 'Krear 3D - Fabrix' },
-        ],
         modals: new Set(),
         sidebar: false,
         sidebar_menu: false,
@@ -119,7 +116,7 @@ document.addEventListener('alpine:init', () => {
             const user_id = this.user.id;
 
             if (user_id === 21) {
-                return this.fabrix_pages;
+                return this.getRestricted(['guest']);
             }
 
             if (level_id === 4) {
@@ -127,29 +124,24 @@ document.addEventListener('alpine:init', () => {
             }
 
             if (department_id === 2) {
-                const allowedRestricted = ['driver'];
-                const filteredRestricted = this.restricted_pages.filter(page =>
-                    allowedRestricted.includes(page.name)
-                );
-                return [...this.common_pages, ...filteredRestricted];
+                return [...this.common_pages, ...this.getRestricted(['driver'])];
             }
 
             if (department_id === 4) {
-                const allowedRestricted = ['marketing'];
-                const filteredRestricted = this.restricted_pages.filter(page =>
-                    allowedRestricted.includes(page.name)
-                );
-                return [...this.common_pages, ...filteredRestricted];
+                return [...this.common_pages, ...this.getRestricted(['marketing'])];
             }
 
-            if (user_id === 19) {
-                const allowedRestricted = ['guest'];
-                const filteredRestricted = this.restricted_pages.filter(page =>
-                    allowedRestricted.includes(page.name)
-                );
-                return [...this.common_pages, ...filteredRestricted];
+            if (user_id === 19 || user_id === 12) {
+                return [...this.common_pages, ...this.getRestricted(['guest'])];
             }
+
             return this.common_pages;
+        },
+
+        getRestricted(allowedNames) {
+            return this.restricted_pages.filter(page =>
+                allowedNames.includes(page.name)
+            );
         },
 
         setUser(data) {
