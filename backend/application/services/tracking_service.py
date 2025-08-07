@@ -47,6 +47,16 @@ class TrackingService:
         return f"{dia} de {mes} del {fecha.year}"
 
 
+    def date_format_hour(self, fecha, include_time=True):
+        dia = fecha.day
+        mes = self.months[fecha.month]
+        año = fecha.year
+        if include_time:
+            hora = fecha.strftime('%I:%M %p').lower()
+            return f"{dia} de {mes} de {año} {hora}"
+        return f"{dia} de {mes} de {año}"
+
+
     @handle_exceptions
     def add(self, data):
         client_order_id = data.get("client_order_id")
@@ -184,7 +194,7 @@ class TrackingService:
                 'code2': track.code2,
                 'last_status': track.status.name if track.status else None,
                 'last_status_id': track.status.id if track.status else None,
-                'last_status_date': track.updated_at.strftime("%d %B %Y %I:%M %p") if track.updated_at else None
+                'last_status_date': self.date_format_hour(track.updated_at) if track.updated_at else None
             })
 
         logistic_list, logistic_list_status = self.logistic_repository.get_list(order_ids)
@@ -217,8 +227,12 @@ class TrackingService:
                 'agency_id': AGENCY_ID_DEFAULT,
                 'last_status': status_name,
                 'last_status_id': status_id,
-                'last_status_date': shipping_date.created_at.strftime("%d-%m-%Y %I:%M %p") if status_enum.value != "SCHEDULED" and shipping_date else row.delivery_date.strftime("%d-%m-%Y"),
+                'last_status_date': self.date_format_hour(shipping_date.created_at) if status_enum.value != "SCHEDULED" and shipping_date else self.date_format_hour(row.delivery_date, include_time=False),
+
             })
+
+        data.sort(key=lambda x: x['id'], reverse=True)
+        
         return data, 200
 
 
