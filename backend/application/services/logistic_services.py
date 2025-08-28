@@ -109,9 +109,23 @@ class LogisticService:
             "client_document": client.document,
             "client_email": client.email,
             "client_phone": client.phone[2:] if client.phone and len(client.phone) > 2 else client.phone,
-            "client_id": client.id
+            "client_id": client.id,
+            "driver_id": shipping.driver_id,
+            "driver_name": self._format_name(shipping.driver.name)
         }
 
+
+    def _format_name(self, full_name):
+        words = full_name.strip().split()
+
+        if len(words) == 3:
+            return f"{words[0]} {words[1]}"
+        elif len(words) == 4:
+            return f"{words[0]} {words[2]}"
+        elif len(words) == 5:
+            return f"{words[0]} {words[3]}"
+        return "Texto no válido"
+    
 
     def _group_orders_by_day(self, start_date, days, orders_data):
         schedule_by_day = []

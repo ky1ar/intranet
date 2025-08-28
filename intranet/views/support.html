@@ -283,7 +283,7 @@
 					<div class="hover-opacity finish" @click="finish(service_order)" x-show="service_order?.status_id == 8">Finalizar</div>
 				</template>
 				<template x-if="editAllowed()">
-					<div class="hover-opacity finish" @click="createPDF(service_order.order_number)" x-show="service_order?.status_id == 9">Descargar Reporte</div>
+					<div class="hover-opacity finish" @click="createPDF(service_order.order_number)" x-show="service_order?.status_id >= 8">Descargar Reporte</div>
 				</template>
 				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
 					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">

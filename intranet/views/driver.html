@@ -22,24 +22,53 @@
 							<div class="order-container">
 								<template x-if="$store.cache.getData('logistics_driver')?.orders && $store.cache.getData('logistics_driver')?.orders['schedule_' + schedule_index]?.length > 0">
 									<template x-for="shipping in $store.cache.getData('logistics_driver')?.orders['schedule_' + schedule_index]" :key="shipping.order_number">
-										<div class="item-card"
-											:style="`background-color: ${shipping.method_background}; border: 2px solid ${shipping.method_border}`"
-											@click="processShippingModal(shipping.shipping_order_id)"
-										>
-											<span class="number" x-text="shipping.order_number"></span>
-											<span class="district" x-text="shipping.district_name"></span>
-											<div class="data">
-												<span class="name" x-text="shipping.client_name"></span>
-												<span class="address" x-text="shipping.address"></span>
-											</div>
-											<a class="phone" @click.stop :href="'https://api.whatsapp.com/send?phone=' + shipping.client_phone" target="_blank" rel="nofollow">
-												<img src="/static/images/wsp.svg" width="16" height="16" alt="phone">
-											</a>
-											<template x-if="shipping.status_id > 2">
-												<span class="status" 
-													:style="`border: 2px solid ${shipping.method_border}; 
-															background-color: ${shipping.status_id > 3 ? shipping.method_background : 'white'}`"
-													x-text="shipping.status_name"></span>
+										<div>
+											<template x-if="$store.cache.user.shipping_app_level == 4 && shipping.driver_id == $store.cache.user.id">
+												<div class="item-card"
+													:style="`background-color: ${shipping.method_background}; border: 2px solid ${shipping.method_border}`"
+													@click="processShippingModal(shipping.shipping_order_id)"
+												>
+													<span class="number" x-text="shipping.order_number"></span>
+													<span class="district" x-text="shipping.district_name"></span>
+													<div class="data">
+														<span class="name" x-text="shipping.client_name"></span>
+														<span class="address" x-text="shipping.address"></span>
+														<div style="margin-top: 0.5rem;">
+															<img width="16" height="16" alt="" src="/static/images/icons/logistics.svg">
+															<span class="name" style="margin-left: 0.25rem;" x-text="shipping.driver_name"></span>
+														</div>
+													</div>
+													<template x-if="shipping.status_id > 2">
+														<span class="status" 
+															:style="`border: 2px solid ${shipping.method_border}; 
+																	background-color: ${shipping.status_id > 3 ? shipping.method_background : 'white'}`"
+															x-text="shipping.status_name"></span>
+													</template>
+												</div>
+											</template>
+
+											<template x-if="$store.cache.user.shipping_app_level != 4">
+												<div class="item-card"
+													:style="`background-color: ${shipping.method_background}; border: 2px solid ${shipping.method_border}`"
+													@click="processShippingModal(shipping.shipping_order_id)"
+												>
+													<span class="number" x-text="shipping.order_number"></span>
+													<span class="district" x-text="shipping.district_name"></span>
+													<div class="data">
+														<span class="name" x-text="shipping.client_name"></span>
+														<span class="address" x-text="shipping.address"></span>
+														<div style="margin-top: 0.5rem;">
+															<img width="16" height="16" alt="" src="/static/images/icons/logistics.svg">
+															<span class="name" style="margin-left: 0.25rem;" x-text="shipping.driver_name"></span>
+														</div>
+													</div>
+													<template x-if="shipping.status_id > 2">
+														<span class="status" 
+															:style="`border: 2px solid ${shipping.method_border}; 
+																	background-color: ${shipping.status_id > 3 ? shipping.method_background : 'white'}`"
+															x-text="shipping.status_name"></span>
+													</template>
+												</div>
 											</template>
 										</div>
 									</template>
