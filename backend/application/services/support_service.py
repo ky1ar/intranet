@@ -179,6 +179,8 @@ class SupportService:
         if prev_order_status != 200:
             return prev_order, prev_order_status
         
+        socketio.emit("support_dashboard_update", {})
+        
         return "Order de servicio actualizada correctamente", 200
 
 

@@ -99,60 +99,71 @@
 			id="modal-status"
 			x-cloak>
 			<div class="modal glass2" @click.stop>
-				<span class="title" x-text="'N° ' + selected_service?.order_number"></span>
-				<div class="send-whatsapp">
-					Whatsapp
-					<label class="box">
-						<input id="send-whatsapp" type="checkbox" x-model="sendWhatsapp">
-						<span class="slider"></span>
-					</label>
-				</div>
+				<span class="title" x-text="selected_service?.order_number"></span>
+				<template x-if="!revert_change">
+					<div class="send-whatsapp">
+						Whatsapp
+						<label class="box">
+							<input id="send-whatsapp" type="checkbox" x-model="sendWhatsapp">
+							<span class="slider"></span>
+						</label>
+					</div>
+				</template>
+				
 				<div class="update">
 					<div class="box">
 						<img alt="" width="20" height="20"
-							:src="'/static/images/support/' + ($store.cache.getById('service_status', selected_service?.status_id)?.image)"
+							:src="'/static/images/support/' + ($store.cache.getById('service_status', revert_change ? selected_group_id:selected_service?.status_id)?.image)"
 							alt="from">
-						<span x-text="($store.cache.getById('service_status', selected_service?.status_id))?.name"></span>
+						<span x-text="($store.cache.getById('service_status', revert_change ? selected_group_id:selected_service?.status_id))?.name"></span>
 					</div>
 
 					<div class="box">
 						<img alt="" width="20" height="20"
-							:src="'/static/images/support/' + ($store.cache.getById('service_status', selected_service?.status_id + 1)?.image)"
+							:src="'/static/images/support/' + ($store.cache.getById('service_status', revert_change ? selected_service?.status_id:selected_group_id)?.image)"
 							alt="to">
-						<span x-text="($store.cache.getById('service_status', selected_service?.status_id + 1))?.name"></span>
+						<span x-text="($store.cache.getById('service_status', revert_change ? selected_service?.status_id:selected_group_id))?.name"></span>
 					</div>
-					<img alt="" class="arrow" width="16" height="16" src="/static/images/arrownext.svg">
+					<img alt="" class="arrow" :class="revert_change ? 'revert':''" width="16" height="16" src="/static/images/arrownext.svg">
 				</div>
 					
-				<textarea x-model="status_notes" class="text-area" placeholder="Notas internas"></textarea>
-
-				<div class="capture-proof">
-					<span class="name">Imágenes</span>
-					<div class="thumbnails-grid">
-						<template x-for="(photo, index) in proof_photos" :key="index">
-							<div class="thumbnail-wrapper hover-opacity">
-								<img class="delete" alt="delete" width="24" height="24" src="/static/images/icons/delete.svg">
-								<img class="thumbnail" :src="photo.preview" alt="preview" @click="removePhoto(index)">
-							</div>
-						</template>
-						<div class="dotted-button hover-opacity" x-show="!preview" @click.prevent="openFileInput()">
-							<img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
-						</div>
-						<input
-							type="file"
-							accept="image/*"
-							capture="environment"
-							style="display: none;"
-							x-ref="fileInput"
-							@change="addFiles($event)"
-							multiple 
-						>
+				<template x-if="revert_change">
+					<div class="revert">
+						<img width="20" height="20" src="/static/images/icons/delete.svg" alt="alert"> Se eliminarán los datos del último estado registrado, esta acción no se puede revertir.
 					</div>
-                </div>
+				</template>
 
-				
+				<template x-if="!revert_change">
+					<div>
+						<textarea x-model="status_notes" class="text-area" placeholder="Notas internas"></textarea>
 
-				<button class="hover-opacity button" @click="updateStatus()" x-text="selected_service?.status_id == 8 ? 'Finalizar orden':'Actualizar'"></button>
+						<div class="capture-proof">
+							<span class="name">Imágenes</span>
+							<div class="thumbnails-grid">
+								<template x-for="(photo, index) in proof_photos" :key="index">
+									<div class="thumbnail-wrapper hover-opacity">
+										<img class="delete" alt="delete" width="24" height="24" src="/static/images/icons/delete.svg">
+										<img class="thumbnail" :src="photo.preview" alt="preview" @click="removePhoto(index)">
+									</div>
+								</template>
+								<div class="dotted-button hover-opacity" x-show="!preview" @click.prevent="openFileInput()">
+									<img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
+								</div>
+								<input
+									type="file"
+									accept="image/*"
+									capture="environment"
+									style="display: none;"
+									x-ref="fileInput"
+									@change="addFiles($event)"
+									multiple 
+								>
+							</div>
+						</div>
+					</div>
+				</template>
+
+				<button class="hover-opacity button" @click="updateStatus()" x-text="selected_service?.status_id == 8 ? 'Finalizar orden': revert_change ? 'Retroceder':'Actualizar'"></button>
 
 				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
 					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">
@@ -170,7 +181,7 @@
 			x-cloak>
 			<div class="modal glass2" @click.stop>
 				<div class="top">
-					<span class="title" x-text="`N° ${service_order?.order_number}`"></span>
+					<span class="title" x-text="`${service_order?.order_number}`"></span>
 					<span class="days" :class="service_order?.priority" x-text="`${service_order?.passed_days}`"></span>
 					<div class="copy-pay white hover-opacity" title="Descargar rótulo" @click="getLinkPDF(service_order.order_number)">
 						<img alt="" alt="icon" src="/static/images/icons/pdf.svg" width="16" height="16">
@@ -739,6 +750,8 @@
             preview: null,
 			proof_photos: [],
 			showing_photo: '',
+			selected_group_id: null,
+			revert_change: false,
             api: Alpine.store('cache').api,
 
 			async init() {
@@ -912,6 +925,7 @@
 			},
 
 			mobileStatusChange(service) {
+				this.selected_group_id = service.status_id + 1;
 				this.selected_service = service;
 				
 				this.status_notes = '';
@@ -924,7 +938,7 @@
 			onDragOver(event, targetStatusId) {
 				event.preventDefault();
 
-				if (this.selected_service.status_id == targetStatusId || this.selected_service.status_id + 1 == targetStatusId) {
+				if (this.selected_service.status_id == targetStatusId || this.selected_service.status_id + 1 == targetStatusId || this.selected_service.status_id - 1 == targetStatusId) {
 					event.currentTarget.classList.add('drag-over');
 					event.dataTransfer.dropEffect = 'move';
 				} else {
@@ -949,6 +963,9 @@
 					this.selected_service = null;
 					return;
 				}
+				this.selected_group_id = group_id;
+				this.revert_change = group_id < this.selected_service.status_id;
+
 				this.status_notes = '';
 				this.sendWhatsapp = true;
 				this.preview = null;
@@ -1445,42 +1462,72 @@
 				if (!this.selected_service) return;
 				if (this.processing) return;
 				this.processing = true;
+				
+				if (this.revert_change) {
+					NProgress.start();
+					const payload = {
+						order_number: this.selected_service.order_number,
+						user_id: Alpine.store('cache').user.id,
+					};
+						
+					try {
+						const response = await fetch(`${this.api}/support/order/prev`, {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json'
+							},
+							body: JSON.stringify(payload)
+						});
+				
+						if (!response.ok) {
+							throw new Error('Error al retornar la orden.');
+						}
 
-				const formData = new FormData();
-				for (let i = 0; i < this.proof_photos.length; i++) {
-					const resized = await Alpine.store('cache').resizeImage(this.proof_photos[i].file, 1024, 1024);
-					formData.append('images[]', resized);
-				}
-				formData.append("user_id", Alpine.store('cache').user.id);
-				formData.append("order_number", this.selected_service.order_number);
-				formData.append("send", this.sendWhatsapp);
-				formData.append("notes", this.status_notes);
-				formData.append("status_id", this.selected_service.status_id);
-
-				NProgress.start();
-				try {
-					const response = await fetch(`${this.api}/support/order/next`, {
-						method: 'POST',
-						body: formData
-					});
-			
-					if (!response.ok) {
-						throw new Error('Error al asignar la orden.');
-					}
-					if (this.selected_service.status_id == 8) {
-						Alpine.store('cache').hideAllModals();
-					} else {
 						Alpine.store('cache').hideModal('status');
+						this.selected_service = null;
+
+					} catch (error) {
+						console.error('Error:', error);
+					} finally {
+						NProgress.done();
+						this.processing = false;
 					}
+				} else {
+					const formData = new FormData();
+					for (let i = 0; i < this.proof_photos.length; i++) {
+						const resized = await Alpine.store('cache').resizeImage(this.proof_photos[i].file, 1024, 1024);
+						formData.append('images[]', resized);
+					}
+					formData.append("user_id", Alpine.store('cache').user.id);
+					formData.append("order_number", this.selected_service.order_number);
+					formData.append("send", this.sendWhatsapp);
+					formData.append("notes", this.status_notes);
+					formData.append("status_id", this.selected_service.status_id);
 
-					Alpine.store('cache').hideModal('status');
-					this.selected_service = null;
+					NProgress.start();
+					try {
+						const response = await fetch(`${this.api}/support/order/next`, {
+							method: 'POST',
+							body: formData
+						});
+				
+						if (!response.ok) {
+							throw new Error('Error al asignar la orden.');
+						}
+						if (this.selected_service.status_id == 8) {
+							Alpine.store('cache').hideAllModals();
+						} else {
+							Alpine.store('cache').hideModal('status');
+						}
 
-				} catch (error) {
-					console.error('Error en la asignación:', error);
-				} finally {
-					NProgress.done();
-					this.processing = false;
+						this.selected_service = null;
+
+					} catch (error) {
+						console.error('Error en la asignación:', error);
+					} finally {
+						NProgress.done();
+						this.processing = false;
+					}
 				}
 			},
 			
@@ -2182,11 +2229,21 @@
 			left: 50%;
 			transform: translate(-50%, -50%);
 		}
+		#modal-status .update .arrow.revert {
+			transform: translate(-50%, -50%) rotate(180deg);
+		}
 		#modal-status .update .box img {
 			margin-top: 0.5rem;
 		}
 		#modal-status .update .box span {
 			font-size: 0.8rem;
+		}
+		#modal-status .revert {
+			display: flex;
+			gap: 0.5rem;
+			justify-content: center;
+			padding: 0.5rem 0;
+			max-width: 24rem;
 		}
 		#modal-status .send-whatsapp {
 			display: flex;
