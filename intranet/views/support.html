@@ -172,6 +172,9 @@
 				<div class="top">
 					<span class="title" x-text="`N° ${service_order?.order_number}`"></span>
 					<span class="days" :class="service_order?.priority" x-text="`${service_order?.passed_days}`"></span>
+					<div class="copy-pay white hover-opacity" title="Descargar rótulo" @click="getLinkPDF(service_order.order_number)">
+						<img alt="" alt="icon" src="/static/images/icons/pdf.svg" width="16" height="16">
+					</div>
 					<template x-if="service_order?.status_id > 1">
 						<div class="pay" :class="service_order.paid == 0 ? '' : 'payed'">
 							<template x-if="!editAllowed()">
