@@ -115,7 +115,9 @@
 							<img width="20" height="20" alt="notification" src="/static/images/location.svg">
 							<div class="data">
 								<div class="title" x-text="process_shipping.address"></div>
-								<div class="subtitle" x-text="`Ref. ${process_shipping.reference}`"></div>
+								<template x-if="process_shipping.reference != ''">
+									<div class="subtitle" x-text="`Ref. ${process_shipping.reference}`"></div>
+								</template>
 								<div class="subtitle" x-text="process_shipping.district_name"></div>
 							</div>
 						</a>
