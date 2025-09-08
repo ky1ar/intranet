@@ -139,10 +139,7 @@ class LogisticRepository:
     @handle_db_exceptions
     def update_shipping_order(self, shipping_order, data):
         direct_update_fields = ["delivery_date", "status_id", "schedule_id", "proof_photo"]
-        conditional_fields = [
-            "method_id", "register_date", "address",
-            "district_id", "maps", "assigned_id", "driver_id"
-        ]
+        conditional_fields = ["method_id", "register_date", "address", "reference", "district_id", "maps", "assigned_id", "driver_id"]
 
         updated_fields = {}
 
@@ -152,7 +149,7 @@ class LogisticRepository:
                 setattr(shipping_order, field, value)
 
         for field in conditional_fields:
-            new_value = data.get(field, "").strip() if field == "address" else data.get(field)
+            new_value = data.get(field, "").strip() if field == "address" or field == "reference" else data.get(field)
             current_value = getattr(shipping_order, field)
             if new_value and new_value != current_value:
                 updated_fields[field] = new_value
@@ -229,6 +226,7 @@ class LogisticRepository:
             assigned_id=data.get("assigned_id"),
             status_id=1,
             address=data.get("address"),
+            reference=data.get("reference", ""),
             district_id=data.get("district_id"),
             comments=data.get("comments"),
             maps=data.get("maps"),

@@ -221,6 +221,7 @@ class LogisticService:
         result.update({
             "shipping_order_id": shipping_order.id,
             "address": shipping_order.address.title(),
+            "reference": shipping_order.reference.title(),
             "district_name": shipping_order.district.name,
             "driver_name": shipping_order.driver.name,
             "method_name": shipping_order.method.name,

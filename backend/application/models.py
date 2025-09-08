@@ -180,6 +180,7 @@ class ShippingOrders(BaseModel):
     status_id = db.Column(db.Integer, db.ForeignKey('shipping_status.id'), nullable=False)
     schedule_id = db.Column(db.Integer, db.ForeignKey('shipping_schedule.id'))
     address = db.Column(db.String(255), nullable=False)
+    reference = db.Column(db.String(255))
     district_id = db.Column(db.Integer, db.ForeignKey('shipping_districts.id'), nullable=False)
     comments = db.Column(db.String(255))
     maps = db.Column(db.String(255))

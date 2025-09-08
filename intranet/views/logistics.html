@@ -196,21 +196,22 @@
 						<input type="text" maxlength="9" @input="process_shipping.client_phone = process_shipping.client_phone.replace(/\D/g, '')" placeholder="Celular" x-model="process_shipping.client_phone">
 					</label>
 
-					<label class="white">
-						<img alt="email" src="/static/images/email.svg" width="16" height="16">
-						<input type="text" placeholder="Email" x-model="process_shipping.client_email">
+					<label class="white flex2-3">
+						<img alt="location" src="/static/images/icons/tracking.svg" width="16" height="16">
+						<input type="text" placeholder="Dirección" x-model="process_shipping.address">
 					</label>
+					
 				</div>
 
 				<div class="fields">
 					<label class="white flex2-3">
-						<img alt="user" src="/static/images/location.svg" width="16" height="16">
-						<input type="text" placeholder="Dirección" x-model="process_shipping.address">
+						<img alt="Referencia" src="/static/images/icons/tag.svg" width="16" height="16">
+						<input type="text" placeholder="Referencia" x-model="process_shipping.reference">
 					</label>
 
 					<label class="white">
-						<img alt="user" src="/static/images/maps.svg" width="16" height="16">
-						<input type="text" placeholder="Link de Maps" x-model="process_shipping.maps">
+						<img alt="maps" src="/static/images/maps.svg" width="16" height="16">
+						<input type="text" placeholder="Google Maps" x-model="process_shipping.maps">
 					</label>
 				</div>
 
@@ -773,7 +774,6 @@
 					this.process_shipping.client_id = '';
 					this.process_shipping.client_name = '';
 					this.process_shipping.client_phone = '';
-					this.process_shipping.client_email = '';
 					this.client_found = false;
 					return;
 				}
@@ -785,7 +785,6 @@
 						this.process_shipping.client_id = '';
 						this.process_shipping.client_name = '';
 						this.process_shipping.client_phone = '';
-						this.process_shipping.client_email = '';
 						this.client_found = false;
 						return;
 					}
@@ -795,7 +794,6 @@
 						this.process_shipping.client_id = data.data.id;
 						this.process_shipping.client_name = data.data.name;
 						this.process_shipping.client_phone = data.data.phone;
-						this.process_shipping.client_email = data.data.email;
 						this.client_found = true;
 					} else {
 						console.warn('Respuesta de API no exitosa.');
@@ -815,7 +813,6 @@
 					this.process_shipping.client_document = '';
 					this.process_shipping.client_name = '';
 					this.process_shipping.client_phone = '';
-					this.process_shipping.client_email = '';
 					this.client_order_found = false;
 					this.client_found = false;
 					return;
@@ -830,7 +827,6 @@
 						this.process_shipping.client_document = '';
 						this.process_shipping.client_name = '';
 						this.process_shipping.client_phone = '';
-						this.process_shipping.client_email = '';
 						this.client_order_found = false;
 						this.client_found = false;
 						return;
@@ -845,7 +841,6 @@
 						this.process_shipping.client_document = client.document;
 						this.process_shipping.client_name = client.name;
 						this.process_shipping.client_phone = client.phone;
-						this.process_shipping.client_email = client.email;
 						this.client_order_found = true;
 					} else {
 						console.warn('Respuesta de API no exitosa.');
@@ -865,18 +860,17 @@
 					client_order_id: this.process_shipping.client_order_id,
 					order_number: this.process_shipping.order_number,
 					method_id: this.process_shipping.method_id,
-					driver_id: this.process_shipping.driver_id,
+					driver_id: this.process_shipping.driver_id || 4,
 					assigned_id: this.process_shipping.assigned_id,
 					user_id: Alpine.store('cache').user.id,
-					driver_id: 4,
 					address: this.process_shipping.address,
+					reference: this.process_shipping.reference,
 					district_id: this.process_shipping.district_id,
 					maps: this.process_shipping.maps,
 					register_date: this.process_shipping.register_date_format,
 					client_id: this.process_shipping.client_id,
 					client: {
 						document: this.process_shipping.client_document,
-						email: this.process_shipping.client_email,
 						name: this.process_shipping.client_name,
 						phone: this.process_shipping.client_phone,
 					},
