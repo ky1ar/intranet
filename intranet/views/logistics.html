@@ -281,6 +281,10 @@
 						:style="`background-color: ${process_shipping.method_background}; border: 2px solid ${process_shipping.method_border}`"
 						x-text="process_shipping.method_name">
 					</span>
+					<div class="driver glass2">
+						<img width="16" height="16" alt="" src="/static/images/icons/logistics.svg">
+						<span x-text="process_shipping.driver_name"></span>
+					</div>
 				</div>
 
 				<div class="content">
@@ -1776,6 +1780,16 @@
 		#modal-finish .top .order {
 			font-size: 1.125rem;
 			line-height: 1rem;
+		}
+		#modal-finish .top .driver {
+			margin-left: auto;
+			margin-right: 1rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			gap: 0.25rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.7rem;
 		}
 		#modal-finish .content {
 			display: flex;

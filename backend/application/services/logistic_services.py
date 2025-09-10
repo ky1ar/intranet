@@ -223,7 +223,7 @@ class LogisticService:
             "address": shipping_order.address.title(),
             "reference": shipping_order.reference.title() if shipping_order.reference else "",
             "district_name": shipping_order.district.name,
-            "driver_name": shipping_order.driver.name,
+            "driver_name": self._format_name(shipping_order.driver.name),
             "method_name": shipping_order.method.name,
             "method_background": shipping_order.method.background,
             "method_border": shipping_order.method.border,
