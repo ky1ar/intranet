@@ -99,7 +99,14 @@
 			<div class="schedule glass">
 				<template x-for="day in $store.cache.getData('logistics_dashboard')" :key="day.date">
 					<div class="day-container">
-						<span x-text="day.day_name" class="day-name"></span>
+						<div class="day-name">
+							<div class="day-cont">
+								<span x-text="day.day_name"></span>
+								<template x-if="isToday(day.date)">
+									<span class="today-dot"></span>
+								</template>
+							</div>
+						</div>
 
 						<template x-for="schedule_index in [1, 2]" :key="schedule_index">
 							<div class="order-container"
@@ -1244,6 +1251,17 @@
 				return targetDate >= today;
 			},
 
+			isToday(dateString) {
+				if (!dateString) return false;
+				const today = new Date();
+				today.setHours(0, 0, 0, 0);
+
+				const dateParts = dateString.split('-');
+				const targetDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+
+				return targetDate.getTime() === today.getTime();
+			},
+
 			async viewHistory() {
 				await this.firstPage();
 				Alpine.store('cache').showModal('history');
@@ -1605,6 +1623,18 @@
 			font-weight: 500;
 			border-bottom: 3px solid #ffffff80;
 			padding: 0.75rem 0;
+		}
+		#logistics .schedule .day-container .day-cont {
+			position: relative;
+		}
+		#logistics .schedule .day-container .today-dot {
+			right: 0;
+			height: 0.25rem;
+			position: absolute;
+			background-color: var(--primary);
+			border-radius: 1rem;
+			bottom: -0.35rem;
+			left: 0;
 		}
 		/***********************************************************************************/
 		#logistics .main.driver {
