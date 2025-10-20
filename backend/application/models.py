@@ -275,6 +275,7 @@ class ServiceOrders(BaseModel):
     method_id = db.Column(db.Integer, db.ForeignKey('service_method.id'))
     origin_id = db.Column(db.Integer, db.ForeignKey('service_origin.id'))
     status_id = db.Column(db.Integer, db.ForeignKey('service_status.id'), nullable=False, default=1)
+    protect = db.Column(db.Integer, default=0)
     comments = db.Column(db.String(255))
     register_at = db.Column(db.DATETIME, nullable=False)
     updated_at = db.Column(db.DATETIME)

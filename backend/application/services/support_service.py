@@ -311,6 +311,7 @@ class SupportService:
 
                 service_order_data = {
                     "order_number": order.order_number,
+                    "protect": order.protect,
                     "technician_name": order.technician.name.split()[0] if order.technician and order.technician.name else None,
                     "machine": order.machine.model,
                     "machine_image": order.machine.image,

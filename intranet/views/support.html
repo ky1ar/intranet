@@ -64,7 +64,13 @@
 									@dragstart="dragService(item)"
 									@click="viewOrder(item.order_number)">
 									<div class="row">
-										<span class="order-number" x-text="`${item.method_letter}-${item.order_number}`"></span>
+										<template x-if="item.protect == 0">
+											<span class="order-number"  x-text="`${item.method_letter}-${item.order_number}`"></span>
+										</template>
+
+										<template x-if="item.protect == 1">
+											<span class="order-number" style="color: var(--primary);" x-html="`${item.method_letter}-${item.order_number}<img width='20' height='20' style='position: unset; width: 0.9rem; margin-left: 0.25rem;' src='/static/images/icons/protect.svg'>`"></span>
+										</template>
 
 										<template x-if="item.updated_today">
 											<div class="update-dot"></div>

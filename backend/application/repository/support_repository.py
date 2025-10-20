@@ -387,6 +387,7 @@ class SupportRepository:
             method_id=data.get("method_id"),
             origin_id=data.get("origin_id"),
             status_id=data.get("status_id"),
+            protect=data.get("protect"),
             register_at=data.get("register_at"),
             comments=data.get("signature", ""),
         )

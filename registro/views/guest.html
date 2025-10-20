@@ -141,7 +141,6 @@
             </div>
         </div>
 
-
         <div x-show="currentStep == 'origin'" class="content">
             <div class="top">
                 <img alt="user" :src="bot_image" width="80" height="80">
@@ -152,6 +151,19 @@
             <div class="bottom">
                 <button class="button hover-opacity" @click="service_order.origin = 1; next()">Lima</button>
                 <button class="button black hover-opacity" @click="service_order.origin = 2; next()">Provincia</button>
+            </div>
+        </div>
+
+        <div x-show="currentStep == 'protect'" class="content">
+            <div class="top">
+                <a target="_blank" rel="noopener noreferrer" href="https://www.tiendakrear3d.com/k3d-protect/"><img alt="user" width="56" height="56" src="https://www.tiendakrear3d.com/wp-content/uploads/2025/10/Recurso-23pro.svg" style="border-radius: 0;"></a>
+                <h1>¿Tu equipo cuenta con K3D Protect+?</h1>
+                <p>Asegura tu inversión con cobertura adicional, si aún no lo tienes, comunícate con nuestro equipo comercial.</p>
+            </div>
+
+            <div class="bottom" style="flex-direction: row;">
+                <button class="button hover-opacity" @click="service_order.protect = 1; next()">Sí</button>
+                <button class="button black hover-opacity" @click="service_order.protect = 0; next()">No</button>
             </div>
         </div>
 
@@ -464,8 +476,9 @@
                 machine:       { next: 'problem', prev: 'phone' },
                 problem:       { next: 'accessories', prev: 'machine' },
                 accessories:   { next: 'origin', prev: 'problem' },
-                origin:        { next: 'review', prev: 'accessories' },
-                review:        { next: 'terms', prev: 'origin' },
+                origin:        { next: 'protect', prev: 'accessories' },
+                protect:       { next: 'review', prev: 'origin' },
+                review:        { next: 'terms', prev: 'protect' },
                 terms:         { next: 'signature', prev: 'review' },
                 signature:     { next: 'success', prev: 'terms' },
                 success:       { next: null, prev: null }
@@ -733,6 +746,7 @@
                     machine_id: this.service_order.machine_id || null,
                     notes: this.service_order.notes + (this.accessories.length ? '\n' + this.getAccessoriesText() : ''),
                     origin_id: this.service_order.origin,
+                    protect: this.service_order.protect,
                     client: {
 						document: this.service_order.document,
 						name: this.service_order.name,
