@@ -346,9 +346,9 @@ class Whatsapp:
 
     @handle_exceptions
     def confirm_flow_start(self, phone):
-        name ="Creality Fest por Krear 3D"
-        schedule ="2 de agosto de 10 a.m. a 5 p.m."
-        location ="Cámara de Comercio de Lima - Av. Giuseppe Garibaldi 396, Jesús María (Salón San Felipe)"
+        name ="Bambu Lab Fest por Krear 3D"
+        schedule ="25 de octubre de 10 a.m. a 5 p.m."
+        location ="Cámara de Comercio de Lima - Av. Giuseppe Garibaldi 396, Jesús María (Salón Carlos Ferreyros - Piso 7)"
         template_name = "confirm_flow_start"
         
         parameters = [
@@ -372,7 +372,7 @@ class Whatsapp:
 
     @handle_exceptions
     def confirm_flow_yes(self, phone):
-        name ="Creality Fest"
+        name ="Bambu Lab Fest"
         maps ="https://maps.app.goo.gl/sisjPduBcsqDRkji6"
         
         template_name = "confirm_flow_yes"
@@ -413,10 +413,10 @@ class Whatsapp:
 
     @handle_exceptions
     def confirm_flow_reminder(self, phone):
-        name ="Creality Fest"
-        date ="Sábado 2 de agosto"
+        name ="Bambu Lab Fest"
+        date ="Sábado 25 de octubre"
         schedule ="De 10:00 a.m. a 5:00 p.m."
-        location ="Cámara de Comercio de Lima - Av. Giuseppe Garibaldi 396, Jesús María (Salón San Felipe)"
+        location ="Cámara de Comercio de Lima - Av. Giuseppe Garibaldi 396, Jesús María (Salón Carlos Ferreyros - Piso 7)"
         maps ="https://maps.app.goo.gl/sisjPduBcsqDRkji6"
 
         template_name = "confirm_flow_reminder"
@@ -443,7 +443,7 @@ class Whatsapp:
 
     @handle_exceptions
     def confirm_flow_reminder_2(self, phone):
-        name ="Creality"
+        name ="Bambu Lab"
         name2 ="el evento de Krear 3D en la entrada"
 
         template_name = "confirm_flow_reminder_2"

@@ -40,8 +40,13 @@ class DevService:
         value = changes.get("value", {})
         messages = value.get("messages", [])
         
-        if not messages or messages[0].get("type") != "button":
-            logging.info("Webhook ignorado: no es un botón.")
+        if not messages:
+            logging.info("Webhook ignorado: sin mensajes.")
+            return "Sin mensajes", 200
+
+        msg_type = messages[0].get("type")
+        if msg_type != "button":
+            logging.info(f"Webhook ignorado: tipo {msg_type} no manejado.")
             return "Tipo de mensaje ignorado", 200
 
         message = messages[0]
@@ -57,7 +62,8 @@ class DevService:
         if user_status != 200:
             return user, user_status
         
-        if user.last_message_id == context_msg_id:
+        # 🔍 Comparación tolerante del mensaje de contexto
+        if user.last_message_id and context_msg_id and context_msg_id in user.last_message_id:
             if user.campaign == self.default_campaign:
                 if button_payload == "Sí, asistiré":
                     _, send_status = self.whatsapp.confirm_flow_yes(f"+{user_wa_id}")
@@ -78,12 +84,10 @@ class DevService:
                     if user_status != 200:
                         return user_wsp, user_status
                     return "Mensaje enviado", 200
-                    
-        extract, extract_status = self.extract_data(data)
-        if extract_status != 200:
-            return extract, extract_status
-        
-        return extract, 200
+
+        # ⚠️ Si el contexto no coincide, no disparamos respuesta
+        logging.info("Webhook de botón procesado sin acción (contexto no coincide o no relevante).")
+        return "Botón procesado sin acción", 200
     
 
     @handle_exceptions
