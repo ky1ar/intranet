@@ -12,7 +12,7 @@ class ScheduleRepository:
         
     @handle_db_exceptions
     def get_events(self):
-        visibility = g.db_session.query(Events).all()
+        visibility = g.db_session.query(Events).filter(Events.deleted_at.is_(None)).all()
         if not visibility:
             return [], 200
 
@@ -86,3 +86,38 @@ class ScheduleRepository:
         g.db_session.commit()
         return True, 200
         
+
+    @handle_db_exceptions
+    def get_event_by_id(self, event_id):
+        event = g.db_session.query(Events).filter(Events.id==event_id).first()
+        if not event:
+            return "Evento no encontrado", 404
+
+        return event, 200
+
+
+    @handle_db_exceptions
+    def get_events_in_range(self, start_date, end_date):
+        events = (
+            g.db_session.query(Events)
+            .filter(
+                Events.deleted_at.is_(None),
+                Events.start_datetime >= start_date,
+                Events.start_datetime < end_date + timedelta(days=1)  # 🔹 incluye el último día completo
+            )
+            .order_by(Events.start_datetime.asc())  # 🔹 orden cronológico
+            .all()
+        )
+        return events, 200
+
+        
+    @handle_db_exceptions
+    def get_delete_event(self, event):
+        utc_now = datetime.now(timezone.utc)
+        peru_time = utc_now - timedelta(hours=5)
+        event.deleted_at = peru_time
+
+        g.db_session.add(event)
+        g.db_session.commit()
+        return True, 200
+    

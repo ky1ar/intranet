@@ -523,6 +523,7 @@ class Events(db.Model):
     repeat_event = db.Column(db.String(50), default='none')
     notify_event = db.Column(db.String(50), default='none')
     created_at = db.Column(db.DateTime)
+    deleted_at = db.Column(db.DateTime)
 
     user = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
 

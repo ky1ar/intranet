@@ -1,5 +1,6 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
+from calendar import monthrange
 from application.handlers import handle_exceptions
 from application.repository.schedule_repository import ScheduleRepository
 
@@ -11,17 +12,55 @@ class ScheduleService:
 
     @handle_exceptions
     def get_month(self, offset):
-        events, vc = self.schedule_repository.get_events()
+        now = datetime.now()
+        offset = int(offset) if offset is not None else 0
+        target_month = now.month + offset
+        target_year = now.year
+
+        while target_month > 12:
+            target_month -= 12
+            target_year += 1
+        while target_month < 1:
+            target_month += 12
+            target_year -= 1
+
+        first_day = datetime(target_year, target_month, 1)
+        last_day_num = monthrange(target_year, target_month)[1]
+        last_day = datetime(target_year, target_month, last_day_num)
+
+        events, vc = self.schedule_repository.get_events_in_range(first_day, last_day)
         if vc != 200:
             return events, vc
-        
-        events_list = [
-            {
+
+        events_by_day = {}
+        for event in events:
+            date_key = event.start_datetime.date().isoformat()
+            if date_key not in events_by_day:
+                events_by_day[date_key] = []
+            events_by_day[date_key].append({
                 "id": event.id,
                 "title": event.title,
-            } for event in events
-        ]
-        return {"events": events_list}, 200
+                "start_datetime": event.start_datetime.isoformat(),
+                "end_datetime": event.end_datetime.isoformat() if event.end_datetime else None,
+                "hex_color": event.hex_color,
+            })
+
+        days = []
+        for day in range(1, last_day_num + 1):
+            current_date = datetime(target_year, target_month, day).date().isoformat()
+            days.append({
+                "date": current_date,
+                "events": events_by_day.get(current_date, [])
+            })
+
+        month_name = first_day.strftime("%B").capitalize()
+
+        return {
+            "month_name": month_name,
+            "year": target_year,
+            "offset": offset,
+            "days": days
+        }, 200
     
 
     @handle_exceptions
@@ -112,10 +151,28 @@ class ScheduleService:
 
 
     @handle_exceptions
-    def delete(self, data):
-        return True, 200
+    def delete(self, event_id):
+        event, ec = self.schedule_repository.get_event_by_id(event_id)
+        if ec != 200:
+            return event, ec
+        
+        delete_event, dec = self.schedule_repository.get_delete_event(event)
+        if dec != 200:
+            return delete_event, dec
+        
+        return "Evento eliminado correctamente", 200
 
 
     @handle_exceptions
     def data(self, event_id):
-        return True, 200
+        event, ec = self.schedule_repository.get_event_by_id(event_id)
+        if ec != 200:
+            return event, ec
+        
+        return {
+            "id": event.id,
+            "title": event.title,
+            "repeat": event.repeat_event,
+            "notify": event.notify_event,
+            "visibility": event.visibility
+        }, 200

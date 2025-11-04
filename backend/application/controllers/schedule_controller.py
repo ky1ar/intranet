@@ -25,7 +25,8 @@ class ScheduleController:
         if validation_error := validate_request(data, {"event_id"}):
             return validation_error, 400
 
-        return self.schedule.delete(data)
+        event_id = data.get("event_id")
+        return self.schedule.delete(event_id)
     
 
     @handle_logs_and_exceptions
