@@ -44,6 +44,11 @@ class ScheduleController:
 
 
     @handle_logs_and_exceptions
+    def schedule_get_colors(self):
+        return self.schedule.get_colors()
+    
+
+    @handle_logs_and_exceptions
     def schedule_data(self, event_id):
         return self.schedule.data(event_id)
 

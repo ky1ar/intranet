@@ -1,7 +1,7 @@
 import logging
 from datetime import date, datetime, timezone, timedelta
 from application.handlers import handle_db_exceptions
-from application.models import Events, Visibility, Repeat, Notify
+from application.models import Events, Visibility, Repeat, Notify, Colors
 from flask import g
 
 
@@ -9,6 +9,15 @@ class ScheduleRepository:
     def __init__(self):
         pass
 
+        
+    @handle_db_exceptions
+    def get_events(self):
+        visibility = g.db_session.query(Events).all()
+        if not visibility:
+            return [], 200
+
+        return visibility, 200
+    
 
     @handle_db_exceptions
     def get_visibility(self):
@@ -36,6 +45,15 @@ class ScheduleRepository:
 
         return notify, 200
     
+
+    @handle_db_exceptions
+    def get_colors(self):
+        colors = g.db_session.query(Colors).all()
+        if not colors:
+            return [], 200
+
+        return colors, 200
+
 
     @handle_db_exceptions
     def add_event(self, data):

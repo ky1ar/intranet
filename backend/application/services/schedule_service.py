@@ -11,7 +11,17 @@ class ScheduleService:
 
     @handle_exceptions
     def get_month(self, offset):
-        return True, 200
+        events, vc = self.schedule_repository.get_events()
+        if vc != 200:
+            return events, vc
+        
+        events_list = [
+            {
+                "id": event.id,
+                "title": event.title,
+            } for event in events
+        ]
+        return {"events": events_list}, 200
     
 
     @handle_exceptions
@@ -65,6 +75,24 @@ class ScheduleService:
         return {"notify": notify_list}, 200
 
         
+    
+    @handle_exceptions
+    def get_colors(self):
+        colors, vc = self.schedule_repository.get_colors()
+        if vc != 200:
+            return colors, vc
+        
+        colors_list = [
+            {
+                "id": option.id,
+                "name": option.name,
+                "hex": option.hex,
+
+            } for option in colors
+        ]
+        return {"colors": colors_list}, 200
+
+
     @handle_exceptions
     def process(self, data):
         title = data.get("title", "").strip()

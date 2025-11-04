@@ -549,3 +549,11 @@ class Notify(db.Model):
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
     name = db.Column(db.String(100), nullable=False)
     slug = db.Column(db.String(100), nullable=False)
+
+
+class Colors(db.Model):
+    __tablename__ = 'schedule_colors'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    hex = db.Column(db.String(7), nullable=False)

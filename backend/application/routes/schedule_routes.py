@@ -41,3 +41,8 @@ def get_repeat():
 @schedule_bp.route("/options/notify", methods=["GET"])
 def get_notify():
     return controller.schedule_get_notify()
+
+
+@schedule_bp.route("/options/colors", methods=["GET"])
+def get_colors():
+    return controller.schedule_get_colors()
