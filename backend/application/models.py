@@ -504,3 +504,48 @@ class UserContext(BaseModel):
     status = db.Column(db.String(128), nullable=False, default='idle')
     sended_at = db.Column(db.TIMESTAMP)
     updated_at = db.Column(db.TIMESTAMP)
+
+
+
+class Events(db.Model):
+    __tablename__ = 'schedule_events'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(128), nullable=False)
+    description = db.Column(db.Text)
+    start_datetime = db.Column(db.DateTime, nullable=False)
+    end_datetime = db.Column(db.DateTime)
+    meet = db.Column(db.String(255))
+    hex_color = db.Column(db.String(7))
+    visibility = db.Column(db.String(50), default='all')
+    all_day = db.Column(db.Integer)
+    repeat_event = db.Column(db.String(50), default='none')
+    notify_event = db.Column(db.String(50), default='none')
+    created_at = db.Column(db.DateTime)
+
+    user = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
+
+
+class Visibility(db.Model):
+    __tablename__ = 'schedule_visibility'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    slug = db.Column(db.String(100), nullable=False)
+
+
+class Repeat(db.Model):
+    __tablename__ = 'schedule_repeat'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    slug = db.Column(db.String(100), nullable=False)
+
+
+class Notify(db.Model):
+    __tablename__ = 'schedule_notify'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    slug = db.Column(db.String(100), nullable=False)
