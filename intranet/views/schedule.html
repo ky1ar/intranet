@@ -94,7 +94,7 @@
 							<div class="body"></div>
 						</div>
 
-						<div class="month white">
+						<div class="month white" @click="addEvent()">
 							<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
 
 							<span class="number">01</span>
@@ -126,7 +126,7 @@
 							</div>
 						</div>
 
-						<div class="month white">
+						<div class="month white" @click="addEvent()">
 							<span class="number">03</span>
 							<div class="body">
 								<div class="item">
@@ -461,126 +461,135 @@
 		</div>
 
         <div
-			x-show="$store.cache.isVisibleModal('event')"
-			@mousedown.self="$store.cache.hideLastModal()"
-			x-transition.duration.300ms
-			class="modal-wrap"
-			id="modal-event"
-			x-cloak>
-			<div class="modal head glass2" @click.stop>
-				<input class="percent100 title" type="text" placeholder="Agregar título" x-model="event_data.order_number" :disabled="edit">
+	x-show="$store.cache.isVisibleModal('event')"
+	@mousedown.self="$store.cache.hideLastModal()"
+	x-transition.duration.300ms
+	class="modal-wrap"
+	id="modal-event"
+	x-cloak>
 
-				<div class="fields">
-					<label class="white">
-						<select x-model="event_data.method_id">
-							<template x-if="$store.cache.getData('shipping_method')?.length !== 1">
-								<option value="">Tipo de envío</option>
-							</template>
+	<div class="modal head glass2" @click.stop>
+		
+		<!-- 🟦 TÍTULO -->
+		<input 
+			class="percent100 title" 
+			type="text" 
+			placeholder="Agregar título" 
+			x-model="event_data.title" 
+			:disabled="edit">
 
-							<template x-for="type in $store.cache.getData('shipping_method')" :key="type.id">
-								<option :value="type.id" x-text="type.name"></option>
-							</template>
-						</select>
-					</label>
-
-					<label class="white">
-						<input type="date" x-model="event_data.register_date_format">
-					</label>
-
-					<label :class="client_order_found || edit ? 'glass2' : 'white'">
-						<img alt="user" src="/static/images/id.svg" width="16" height="16">
-						<input
-							type="text"
-							maxlength="11"
-							:disabled="client_order_found || edit"
-							@input="event_data.client_document = event_data.client_document.replace(/\D/g, '')"
-							placeholder="DNI / RUC"
-							x-model="event_data.client_document"
-							@blur="fetchClientData()">
-						<input type="hidden" x-model="event_data.client_id">
-					</label>
-				</div>
-
-				<div class="fields">
-					<label :class="client_order_found || client_found || edit ? 'glass2' : 'white'">
-						<img alt="user" src="/static/images/user.svg" width="16" height="16">
-						<input :disabled="client_order_found || client_found || edit" type="text" placeholder="Nombre o Razón Social" x-model="event_data.client_name">
-					</label>
-				</div>
-
-				<div class="fields">
-					<label class="white">
-						<img alt="phone" src="/static/images/phone.svg" width="16" height="16">
-						<input type="text" maxlength="9" @input="event_data.client_phone = event_data.client_phone.replace(/\D/g, '')" placeholder="Celular" x-model="event_data.client_phone">
-					</label>
-
-					<label class="white flex2-3">
-						<img alt="location" src="/static/images/icons/tracking.svg" width="16" height="16">
-						<input type="text" placeholder="Dirección" x-model="event_data.address">
-					</label>
-					
-				</div>
-
-				<div class="fields">
-					<label class="white flex2-3">
-						<img alt="Referencia" src="/static/images/icons/tag.svg" width="16" height="16">
-						<input type="text" placeholder="Referencia" x-model="event_data.reference">
-					</label>
-
-					<label class="white">
-						<img alt="maps" src="/static/images/maps.svg" width="16" height="16">
-						<input type="text" placeholder="Google Maps" x-model="event_data.maps">
-					</label>
-				</div>
-
-				<div class="fields">
-					<label class="white">
-						<select x-model="event_data.district_id">
-							<template x-if="$store.cache.getData('districts')?.length !== 1">
-								<option value="">Distrito</option>
-							</template>
-							
-							<template x-for="district in $store.cache.getData('districts')" :key="district.id">
-								<option :value="district.id" x-text="district.name"></option>
-							</template>
-						</select>
-					</label>
-
-					<label class="white">
-						<select x-model="event_data.assigned_id">
-							<template x-if="$store.cache.getData('shipping_method')?.length !== 1">
-								<option value=null>Responsable</option>
-							</template>
-
-							<template x-for="vendor in $store.cache.getData('vendors')" :key="vendor.id">
-								<option :value="vendor.id" x-text="vendor.name"></option>
-							</template>
-						</select>   
-					</label>
-
-					<label class="white">
-						<select x-model="event_data.driver_id">
-							<template x-for="driver in $store.cache.getData('drivers')" :key="driver.id">
-								<option :value="driver.id" x-text="driver.name"></option>
-							</template>
-						</select>
-					</label>
-				</div>
-				
-				<div class="fields">
-					<template x-if="event_data.client_order_id && edit && event_data.status_id != 3 && event_data.status_id != 4">
-						<button class="button hover-opacity black" @click="deleteShipping()" :class="buttons.delete.class" x-text="buttons.delete.text"></button>
-					</template>
-					<button x-show="!edit" class="button hover-opacity" @click="processShipping()" :class="buttons.process.class" x-text="buttons.process.text"></button>
-					<button x-show="edit" class="button hover-opacity" @click="processShipping()" :class="buttons.update.class" x-text="buttons.update.text"></button>
-
-				</div>
-
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()" >
-					<img alt="close" src="/static/images/x.svg" width="12" height="12">
-				</div>
-			</div>
+		<!-- 🟦 DESCRIPCIÓN -->
+		<div class="fields">
+			<label class="white flex2-3">
+				<img alt="desc" src="/static/images/icons/tag.svg" width="16" height="16">
+				<textarea placeholder="Descripción" x-model="event_data.description" rows="3" class="percent100"></textarea>
+			</label>
 		</div>
+
+		<!-- 🟦 FECHAS DE INICIO Y FIN -->
+		<div class="fields">
+			<label class="white">
+				<img alt="calendar" src="/static/images/icons/schedule.svg" width="16" height="16">
+				<input type="datetime-local" x-model="event_data.start_date">
+			</label>
+
+			<label class="white">
+				<img alt="calendar" src="/static/images/icons/schedule.svg" width="16" height="16">
+				<input type="datetime-local" x-model="event_data.end_date" :disabled="event_data.all_day">
+			</label>
+		</div>
+
+		<!-- 🟦 ENLACE DE GOOGLE MEET + TODO EL DÍA -->
+		<div class="fields">
+			<label class="white flex2-3">
+				<img alt="link" src="/static/images/icons/link.svg" width="16" height="16">
+				<input type="url" placeholder="Enlace de Google Meet" x-model="event_data.meet_link">
+			</label>
+
+			<label class="white checkbox">
+				<input type="checkbox" x-model="event_data.all_day">
+				<span>Todo el día</span>
+			</label>
+		</div>
+
+		<!-- 🟦 COLOR DEL EVENTO -->
+		<div class="fields">
+			<label class="white compact-color">
+				<img alt="color" src="/static/images/icons/color.svg" width="16" height="16">
+				<div class="color-select" x-data="{ open: false }" @click.outside="open = false">
+					<button 
+						class="color-dot" 
+						:style="`background-color: ${event_data.color || '#999'}`"
+						@click.prevent="open = !open"
+						aria-label="Seleccionar color">
+					</button>
+
+					<div class="color-panel" x-show="open" x-transition>
+						<template x-for="(c, index) in colorOptions.slice(0, 8)" :key="index">
+							<button 
+								class="color-option" 
+								:style="`background-color: ${c}`"
+								:class="event_data.color === c ? 'selected' : ''"
+								@click.prevent="event_data.color = c; open = false">
+							</button>
+						</template>
+					</div>
+				</div>
+			</label>
+
+			<!-- 🟦 VISIBILIDAD -->
+			<label class="white">
+				<img alt="eye" src="/static/images/icons/eye.svg" width="16" height="16">
+				<select x-model="event_data.visibility">
+					<option value="publico">Público</option>
+					<option value="privado">Privado</option>
+					<option value="solo-invitados">Solo invitados</option>
+				</select>
+			</label>
+
+			<!-- 🟦 REPETIR -->
+			<label class="white">
+				<img alt="repeat" src="/static/images/icons/repeat.svg" width="16" height="16">
+				<select x-model="event_data.repeat">
+					<option value="nunca">Nunca</option>
+					<option value="diario">Diario</option>
+					<option value="semanal">Semanal</option>
+					<option value="mensual">Mensual</option>
+					<option value="anual">Anual</option>
+				</select>
+			</label>
+		</div>
+
+		<!-- 🟦 BOTONES DE ACCIÓN -->
+		<div class="fields">
+			<template x-if="edit">
+				<button class="button hover-opacity black" @click="deleteEvent()" :class="buttons.delete.class" x-text="buttons.delete.text"></button>
+			</template>
+
+			<button 
+				x-show="!edit" 
+				class="button hover-opacity" 
+				@click="saveEvent()" 
+				:class="buttons.save.class" 
+				x-text="buttons.save.text">
+			</button>
+
+			<button 
+				x-show="edit" 
+				class="button hover-opacity" 
+				@click="updateEvent()" 
+				:class="buttons.update.class" 
+				x-text="buttons.update.text">
+			</button>
+		</div>
+
+		<!-- 🟦 CERRAR MODAL -->
+		<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
+			<img alt="close" src="/static/images/x.svg" width="12" height="12">
+		</div>
+	</div>
+</div>
+
 	</div>
 
 
@@ -861,6 +870,90 @@
 			background: linear-gradient(90deg, #eab12f, #fa6817);
 		}
 
+		/* Modal Event - checkbox Todo el día pequeño y redondo */
+		#modal-event .fields {
+			display: flex;
+			gap: 0.75rem;
+			align-items: center;
+			flex-wrap: wrap;
+		}
+		#modal-event label.checkbox {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		#modal-event label.checkbox input[type="checkbox"] {
+			appearance: none;
+			width: 35px;
+			height: 35px;
+			border: 2px solid #ccc;
+			border-radius: 10px; /* redondeado */
+			background: #fff;
+			transition: all 0.2s ease-in-out;
+			cursor: pointer;
+		}
+		#modal-event label.checkbox input[type="checkbox"]:checked {
+			background-color: var(--primary);
+			border-color: var(--primary);
+		}
+		#modal-event label.checkbox span {
+			font-size: 0.8rem; /* texto un poco más pequeño */
+		}
+
+				/* Modal Event - selector de color compacto */
+		#modal-event .color-select {
+			position: relative;
+			display: inline-flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		#modal-event .fields label.compact-color {
+			flex: 0 0 8rem; /* ancho más pequeño */
+			max-width: 8rem;
+			align-items: center;
+		}
+		#modal-event .color-dot {
+			width: 18px;
+			height: 18px;
+			border-radius: 50%;
+			border: 2px solid #fff;
+			box-shadow: 0 0 0 1px #ddd;
+			cursor: pointer;
+			background-color: #999;
+			padding: 0;
+			outline: none;
+			appearance: none;
+		}
+		#modal-event .color-panel {
+			position: absolute;
+			z-index: 10;
+			top: 120%;
+			left: 0;
+			background: #fff;
+			border: 1px solid #eee;
+			border-radius: 0.5rem;
+			box-shadow: 0 8px 24px hsl(0deg 0% 0% / 12%);
+			padding: 0.5rem;
+			display: grid;
+			grid-template-columns: repeat(4, 1fr);
+			gap: 0.5rem;
+			min-width: 8rem;
+		}
+		#modal-event .color-option {
+			width: 20px;
+			height: 20px;
+			border-radius: 50%;
+			border: 2px solid #fff;
+			box-shadow: 0 0 0 1px #ddd;
+			cursor: pointer;
+			padding: 0;
+			outline: none;
+			appearance: none;
+			background-color: #999;
+		}
+		#modal-event .color-option.selected {
+			box-shadow: 0 0 0 2px var(--primary);
+		}
 
 		#schedule .main .middle {
 			display: flex;
