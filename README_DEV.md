@@ -158,3 +158,6 @@ intranet/
 | Vaciar caché Redis | `Invoke-WebRequest http://localhost:5010/dev/flush-redis` |
 
 ---
+
+PARA CORRER EL FORNT DSESDE EL DOCJKER:
+cd c:\Users\kebos\Intranet ; $env:ENV='dev'; $env:API_PORT='5010'; docker compose -f intranet/docker-compose.dev.yml up -d

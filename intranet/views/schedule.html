@@ -83,25 +83,32 @@
 					
 					<div class="bottom">
 						<template x-for="day in calendarDays" :key="day.date">
-							<div class="month" :class="day.isCurrentMonth ? 'white' : 'glass'" @click="addEvent()">
+							<div class="month" :class="day.isCurrentMonth ? 'white' : 'glass'" :style="computeDayStyle(day)" @click="addEvent(day.date)">
 								<span class="number" :class="{ today: day.isToday }" x-text="String(day.dayNumber).padStart(2, '0')"></span>
 								<div class="body">
 									<template x-if="day.events && day.events.length">
-										<template x-for="(ev, idx) in day.events" :key="idx">
-											<div class="item">
-												<span class="label" x-text="ev.label"></span>
-												<span class="date" x-text="ev.time"></span>
-											</div>
-										</template>
+                                        <template x-for="(ev, idx) in day.events" :key="idx">
+                                            <div class="item" :class="ev.fullColor ? 'full' : 'normal'"
+                                                :style="ev.hexColor ? (ev.fullColor ? `background-color: ${ev.hexColor}; color: white; padding: 6px 8px; border-radius: 6px;` : `background-color: white; padding: 6px 8px; border-radius: 6px;`) : ''">
+                                                <div class="row">
+                                                    <!-- Circulito de color si NO es fullColor -->
+                                                    <template x-if="!ev.fullColor && ev.hexColor">
+                                                        <span class="color-dot" :style="`background-color: ${ev.hexColor};`"></span>
+                                                    </template>
+                                                    <div class="content">
+                                                        <span class="label" x-text="ev.label"></span>
+                                                        <span class="date" x-text="ev.time"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
 									</template>
 								</div>
 							</div>
 						</template>
 					</div>
 				</div>
-
 			</div>
-
 		</div>
 
         <div
@@ -114,13 +121,15 @@
 
 			<div class="modal head glass2" @click.stop>
 				
-				<!--  TÍTULO -->
-				<input 
-					class="percent100 title" 
-					type="text" 
-					placeholder="Agregar título" 
-					x-model="event_data.title" 
-					:disabled="edit">
+                <!--  TÍTULO -->
+                <input 
+                    class="percent100 title" 
+                    type="text" 
+                    placeholder="Agregar título" 
+                    x-model="event_data.title" 
+                    @input="errors.title = ''"
+                    :disabled="edit">
+                <small class="error-text" x-show="errors.title" x-text="errors.title"></small>
 
 				<!--  DESCRIPCIÓN -->
 				<div class="fields">
@@ -130,18 +139,21 @@
 					</label>
 				</div>
 
-				<!--  FECHAS DE INICIO Y FIN -->
-				<div class="fields">
-					<label class="white">
-						<img alt="calendar" src="/static/images/icons/schedule.svg" width="16" height="16">
-						<input type="datetime-local" x-model="event_data.start_date">
-					</label>
+                <!--  FECHAS DE INICIO Y FIN -->
+                <div class="fields">
+                    <label class="white">
+                        <img alt="calendar" src="/static/images/icons/schedule.svg" width="16" height="16">
+                        <input type="date" x-model="event_data.start_date_only" :min="todayISO" @change="errors.start_date_only = ''">
+                        <input type="time" x-model="event_data.start_time">
+                        <small class="error-text" x-show="errors.start_date_only" x-text="errors.start_date_only"></small>
+                    </label>
 
-					<label class="white">
-						<img alt="calendar" src="/static/images/icons/schedule.svg" width="16" height="16">
-						<input type="datetime-local" x-model="event_data.end_date" :disabled="event_data.all_day">
-					</label>
-				</div>
+                    <label class="white">
+                        <img alt="calendar" src="/static/images/icons/schedule.svg" width="16" height="16">
+                        <input type="date" x-model="event_data.end_date_only" :disabled="event_data.all_day" :min="todayISO">
+                        <input type="time" x-model="event_data.end_time" :disabled="event_data.all_day">
+                    </label>
+                </div>
 
 				<!--  ENLACE DE GOOGLE MEET + TODO EL DÍA -->
 				<div class="fields">
@@ -275,35 +287,50 @@
 			user_id: Alpine.store('cache').user.id,
 			startHour: 8,
 			endHour: 20,
-			hours: Array.from({ length: 13 }, (_, i) => i + 8), // 8am - 8pm
+			hours: Array.from({ length: 13 }, (_, i) => i + 8),
 			now: new Date(),
+			todayISO: '',
+			errors: {
+				title: '',
+				start_date_only: ''
+			},
 			offset: 0,
 			show_salary: false,
+			edit: false,
 
-			// Estado del formulario de evento
-			event_data: {
-				schedule_id: null,
-				title: '',
-				description: '',
-				start_date: '',
-				end_date: '',
-				meet: '',
-				all_day: false,
-				color: '',
-				visibility: '',
-				repeat: '',
-				notify: '',
+			// Botones del modal
+			buttons: {
+				update: { text: 'Actualizar', class: 'blue' },
+				delete: { text: 'Eliminar', class: 'red' }
 			},
 
-            // Listado de eventos traídos desde la API
-            events: [],
+			// Estado del formulario de evento
+            event_data: {
+                schedule_id: null,
+                title: '',
+                description: '',
+                // campos legacy (no usados): start_date, end_date
+                start_date: '',
+                end_date: '',
+                // nuevos campos para datepicker
+                start_date_only: '',
+                start_time: '',
+                end_date_only: '',
+                end_time: '',
+                meet: '',
+                all_day: false,
+                color: '',
+                visibility: '',
+                repeat: '',
+                notify: '',
+            },
 
-            // Estado del calendario (meses)
-            currentYear: 2025,
-            currentMonth: 11, // 1-12; 11 = Noviembre
-            calendarDays: [],
+			// Estado del calendario
+			currentYear: 2025,
+			currentMonth: 11,
+			calendarDays: [],
 
-			// Opciones dinámicas desde el backend
+			// Opciones dinámicas
 			visibilityOptions: [],
 			repeatOptions: [],
 			notifyOptions: [],
@@ -311,290 +338,353 @@
 
             async init() {
                 console.log('Inicializando calendario...');
-
-                // Construir días del mes inicial de forma inmediata (evitar bloqueos de UI)
+                this.todayISO = this.formatTodayISO();
+                
                 this.buildMonthDays(this.currentYear, this.currentMonth);
-
-                // Lanzar cargas en paralelo sin bloquear el primer render
+                
+                // Cargar en paralelo
                 this.getEvents();
                 this.loadOptions();
 
-                // Configurar socket y procesos de caché en segundo plano
-                const socket = Alpine.store('cache').socket;
-                if (socket) {
-                    socket.removeAllListeners();
-                    socket.on("attendance_update_dashboard", async () => {
-                        await Alpine.store('cache').refresh(['attendance_period']);
-                    });
-                }
+				const socket = Alpine.store('cache').socket;
+				if (socket) {
+					socket.removeAllListeners();
+					socket.on("attendance_update_dashboard", async () => {
+						await Alpine.store('cache').refresh(['attendance_period']);
+					});
+				}
 
-                Alpine.store('cache').fetchData([
-                    { key: 'attendance_period', url: `/attendance/period/summary?user_id=${this.user_id}&period_id=2`, force: true },
-                ]).then(() => Alpine.store('cache').verify()).catch(() => {});
+				Alpine.store('cache').fetchData([
+					{ key: 'attendance_period', url: `/attendance/period/summary?user_id=${this.user_id}&period_id=2`, force: true },
+				]).then(() => Alpine.store('cache').verify()).catch(() => {});
 
-                this.tick();
+				this.tick();
 
-                // Limpiar fecha fin cuando se active "Todo el día"
                 this.$watch('event_data.all_day', (val) => {
-                    if (val) this.event_data.end_date = '';
+                    if (val) {
+                        this.event_data.end_date_only = '';
+                        this.event_data.end_time = '';
+                    }
                 });
             },
 
 			async loadOptions() {
 				try {
 					const endpoints = [
-					{ key: 'visibility', url: '/schedule/options/visibility' },
-					{ key: 'repeat', url: '/schedule/options/repeat' },
-					{ key: 'notify', url: '/schedule/options/notify' },
-					{ key: 'colors', url: '/schedule/options/colors' },
+						{ key: 'visibility', url: '/schedule/options/visibility' },
+						{ key: 'repeat', url: '/schedule/options/repeat' },
+						{ key: 'notify', url: '/schedule/options/notify' },
+						{ key: 'colors', url: '/schedule/options/colors' },
 					];
 
-					// Llamada simultánea a todos los endpoints
 					const responses = await Promise.all(endpoints.map(e => fetch(this.api + e.url)));
 					const results = await Promise.all(responses.map(r => r.json()));
 
-					// Extraemos el contenido de cada uno
 					const [visData, repData, notData, colData] = results.map(r => r.data);
 
-					// Guardamos las opciones en los arrays del componente
 					this.visibilityOptions = visData.visibility || [];
 					this.repeatOptions = repData.repeat || [];
 					this.notifyOptions = notData.notify || [];
 					this.colorOptions = colData.colors || [];
 
-					console.log("Opciones cargadas correctamente:", {
-					visibility: this.visibilityOptions,
-					repeat: this.repeatOptions,
-					notify: this.notifyOptions,
-					colors: this.colorOptions,
+					console.log("Opciones cargadas:", {
+						visibility: this.visibilityOptions,
+						repeat: this.repeatOptions,
+						notify: this.notifyOptions,
+						colors: this.colorOptions,
 					});
 
 				} catch (error) {
-					console.error('Error cargando opciones de API:', error);
+					console.error('Error cargando opciones:', error);
 				}
-				},
-
-			addEvent() {
-				Alpine.store('cache').showModal('event');
 			},
 
-            async getEvents() {
-                try {
-                    // Timeout de 600ms para garantizar respuesta rápida
-                    const serverOffset = this.computeServerOffset(this.currentYear, this.currentMonth);
-                    const controller = new AbortController();
-                    const timeout = setTimeout(() => controller.abort(), 600);
-                    const res = await fetch(`${this.api}/schedule/month?offset=${serverOffset}`, { signal: controller.signal, cache: 'no-cache' });
-                    clearTimeout(timeout);
-
-                    const json = await res.json();
-                    const data = json?.data || {};
-                    this.events = Array.isArray(data) ? data : (data.events || []);
-                    this.attachEventsToDays(this.events);
-                } catch (error) {
-                    console.warn('Timeout o error al obtener los eventos del mes:', error);
+            addEvent(selectedDate) {
+                this.edit = false;
+                this.resetEventForm();
+                // Autocompletar datepicker: fecha seleccionada y horas por defecto
+                if (selectedDate) {
+                    const startHourStr = String(this.startHour).padStart(2, '0');
+                    const endHourStr = String(this.startHour + 1).padStart(2, '0');
+                    this.event_data.start_date_only = selectedDate; // yyyy-mm-dd
+                    this.event_data.start_time = `${startHourStr}:00`;
+                    this.event_data.end_date_only = selectedDate; // yyyy-mm-dd
+                    this.event_data.end_time = `${endHourStr}:00`;
                 }
+                Alpine.store('cache').showModal('event');
             },
 
-            buildMonthDays(year, month) {
-                // month: 1-12
-                const first = new Date(year, month - 1, 1);
-                const last = new Date(year, month, 0); // último día del mes
-                const total = last.getDate();
+			async getEvents() {
+				try {
+					const serverOffset = this.computeServerOffset(this.currentYear, this.currentMonth);
+					
+					const controller = new AbortController();
+					const timeout = setTimeout(() => controller.abort(), 4000); // ⬅ CAMBIAR de 600 a 3000ms
+					
+					const res = await fetch(`${this.api}/schedule/month?offset=${serverOffset}`, { 
+						signal: controller.signal, 
+						cache: 'no-cache' 
+					});
+					clearTimeout(timeout);
 
-                const today = new Date();
+					const json = await res.json();
 
-                // Semana empieza en lunes: 0=lunes ... 6=domingo
-                const startIndexMonday = (first.getDay() + 6) % 7;
+					const daysData = json?.data?.days || [];
+					
+					this.attachEventsToDays(daysData);
+					
+				} catch (error) {
+					console.error('Error al obtener eventos del mes:', error);
+					console.error('Tipo de error:', error.name); // Verá "AbortError" si fue timeout
+				}
+			},
 
-                const days = [];
+			buildMonthDays(year, month) {
+				const first = new Date(year, month - 1, 1);
+				const last = new Date(year, month, 0);
+				const total = last.getDate();
+				const today = new Date();
 
-                // Relleno inicial con días del mes anterior
-                if (startIndexMonday > 0) {
-                    const prevLast = new Date(year, month - 1, 0);
-                    const prevTotal = prevLast.getDate();
-                    for (let i = startIndexMonday - 1; i >= 0; i--) {
-                        const d = prevTotal - i;
-                        const date = new Date(year, month - 2, d);
-                        days.push({
-                            date: date.toISOString().slice(0, 10),
-                            dayNumber: d,
-                            isCurrentMonth: false,
-                            isToday: false,
-                            events: [],
+				const startIndexMonday = (first.getDay() + 6) % 7;
+				const days = [];
+
+				// Días del mes anterior
+				if (startIndexMonday > 0) {
+					const prevLast = new Date(year, month - 1, 0);
+					const prevTotal = prevLast.getDate();
+					for (let i = startIndexMonday - 1; i >= 0; i--) {
+						const d = prevTotal - i;
+						const date = new Date(year, month - 2, d);
+						days.push({
+							date: date.toISOString().slice(0, 10),
+							dayNumber: d,
+							isCurrentMonth: false,
+							isToday: false,
+							events: [],
+						});
+					}
+				}
+
+				// Días del mes actual
+				for (let d = 1; d <= total; d++) {
+					const date = new Date(year, month - 1, d);
+					days.push({
+						date: date.toISOString().slice(0, 10),
+						dayNumber: d,
+						isCurrentMonth: true,
+						isToday: today.getFullYear() === year && 
+								(today.getMonth() + 1) === month && 
+								today.getDate() === d,
+						events: [],
+					});
+				}
+
+				// Días del mes siguiente
+				const remainder = days.length % 7;
+				if (remainder !== 0) {
+					const trailing = 7 - remainder;
+					for (let d = 1; d <= trailing; d++) {
+						const date = new Date(year, month, d);
+						days.push({
+							date: date.toISOString().slice(0, 10),
+							dayNumber: d,
+							isCurrentMonth: false,
+							isToday: false,
+							events: [],
+						});
+					}
+				}
+
+				this.calendarDays = days;
+			},
+
+				attachEventsToDays(daysData) {
+					// daysData = [{ date: "2025-11-01", events: [...] }, ...]
+					const indexByDate = {};
+					this.calendarDays.forEach((day, idx) => { 
+						day.events = []; 
+						indexByDate[day.date] = idx; 
+					});
+
+				daysData.forEach(dayObj => {
+					const dayDate = dayObj.date;
+					const idx = indexByDate[dayDate];
+					if (idx === undefined) return;
+
+					const apiEvents = dayObj.events || [];
+					apiEvents.forEach(ev => {
+						const label = ev.title || 'Evento';
+						const hexColor = ev.hex_color || null;
+						
+						// Formato de hora
+						let timeStr = '';
+						try {
+							if (ev.start_datetime) {
+								const dt = new Date(ev.start_datetime);
+								const startTime = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+								
+								if (ev.end_datetime) {
+									const dtEnd = new Date(ev.end_datetime);
+									const endTime = dtEnd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+									timeStr = `${startTime} - ${endTime}`;
+								} else {
+									timeStr = startTime;
+								}
+							}
+						} catch {}
+
+                        this.calendarDays[idx].events.push({ 
+                            id: ev.id,
+                            label, 
+                            time: timeStr,
+                            hexColor: hexColor,
+                            // fullColor solo si es Todo el día
+                            fullColor: !!hexColor && !!ev.all_day
                         });
-                    }
-                }
-
-                // Días del mes actual
-                for (let d = 1; d <= total; d++) {
-                    const date = new Date(year, month - 1, d);
-                    days.push({
-                        date: date.toISOString().slice(0, 10),
-                        dayNumber: d,
-                        isCurrentMonth: true,
-                        isToday: today.getFullYear() === year && (today.getMonth() + 1) === month && today.getDate() === d,
-                        events: [],
                     });
-                }
-
-                // Relleno final con días del mes siguiente para completar la última semana
-                const remainder = days.length % 7;
-                if (remainder !== 0) {
-                    const trailing = 7 - remainder;
-                    for (let d = 1; d <= trailing; d++) {
-                        const date = new Date(year, month, d);
-                        days.push({
-                            date: date.toISOString().slice(0, 10),
-                            dayNumber: d,
-                            isCurrentMonth: false,
-                            isToday: false,
-                            events: [],
-                        });
-                    }
-                }
-
-                this.calendarDays = days;
-            },
-
-            attachEventsToDays(events) {
-                // Limpia eventos y construye índice por fecha para inserción O(1)
-                const indexByDate = {};
-                this.calendarDays.forEach((day, idx) => { day.events = []; indexByDate[day.date] = idx; });
-
-                events.forEach(ev => {
-                    const raw = ev.start_datetime || ev.date || null;
-                    if (!raw) return;
-                    const dateStr = typeof raw === 'string' ? (raw.includes('T') ? raw.slice(0,10) : raw) : '';
-                    const idx = indexByDate[dateStr];
-                    if (idx === undefined) return;
-
-                    const label = ev.title || 'Evento';
-                    let time = '';
-                    try {
-                        if (ev.start_datetime) {
-                            const dt = new Date(ev.start_datetime);
-                            time = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        }
-                    } catch {}
-
-                    this.calendarDays[idx].events.push({ label, time });
                 });
             },
 
-            computeServerOffset(targetYear, targetMonth) {
-                // Calcula offset de meses relativo al mes actual del sistema
-                const now = new Date();
-                const y = now.getFullYear();
-                const m = now.getMonth() + 1; // 1-12
-                return (targetYear - y) * 12 + (targetMonth - m);
-            },
+				// Calcula estilo dinámico para cada día según cantidad de eventos
+				computeDayStyle(day) {
+					const count = (day?.events || []).length;
+					const baseRem = 7; // altura base
+					const perEventRem = 1.25; // incremento por evento
+					const minHeight = baseRem + (count > 0 ? count * perEventRem : 0);
+					return `min-height: ${minHeight}rem`;
+				},
 
-            nextMonth() {
-                if (this.currentMonth === 12) {
-                    this.currentMonth = 1;
-                    this.currentYear += 1;
-                } else {
-                    this.currentMonth += 1;
-                }
-                this.buildMonthDays(this.currentYear, this.currentMonth);
-                this.getEvents();
-            },
+			computeServerOffset(targetYear, targetMonth) {
+				const now = new Date();
+				const y = now.getFullYear();
+				const m = now.getMonth() + 1;
+				return (targetYear - y) * 12 + (targetMonth - m);
+			},
 
-            goToCurrentMonth() {
-                const now = new Date();
-                this.currentYear = now.getFullYear();
-                this.currentMonth = now.getMonth() + 1; // 1-12
-                this.buildMonthDays(this.currentYear, this.currentMonth);
-                this.getEvents();
-            },
+			nextMonth() {
+				if (this.currentMonth === 12) {
+					this.currentMonth = 1;
+					this.currentYear += 1;
+				} else {
+					this.currentMonth += 1;
+				}
+				this.buildMonthDays(this.currentYear, this.currentMonth);
+				this.getEvents();
+			},
 
-            prevMonth() {
-                if (this.currentMonth === 1) {
-                    this.currentMonth = 12;
-                    this.currentYear -= 1;
-                } else {
-                    this.currentMonth -= 1;
-                }
-                this.buildMonthDays(this.currentYear, this.currentMonth);
-                this.getEvents();
-            },
+			goToCurrentMonth() {
+				const now = new Date();
+				this.currentYear = now.getFullYear();
+				this.currentMonth = now.getMonth() + 1;
+				this.buildMonthDays(this.currentYear, this.currentMonth);
+				this.getEvents();
+			},
 
-			 tick() {
-				 this.now = new Date();
-				 setTimeout(() => this.tick(), 1000 * 5);
-			 },
+			prevMonth() {
+				if (this.currentMonth === 1) {
+					this.currentMonth = 12;
+					this.currentYear -= 1;
+				} else {
+					this.currentMonth -= 1;
+				}
+				this.buildMonthDays(this.currentYear, this.currentMonth);
+				this.getEvents();
+			},
 
-			 // Limpia el formulario de evento a valores por defecto
-			 resetEventForm() {
-				 this.event_data = {
-					 schedule_id: null,
-					 title: '',
-					 description: '',
-					 start_date: '',
-					 end_date: '',
-					 meet: '',
-					 all_day: false,
-					 color: '',
-					 visibility: this.visibilityOptions[0]?.slug || 'all',
-					 repeat: '',
-					 notify: '',
-				 };
-			 },
+			tick() {
+				this.now = new Date();
+				setTimeout(() => this.tick(), 1000 * 5);
+			},
+
+			resetEventForm() {
+				this.event_data = {
+					schedule_id: null,
+					title: '',
+					description: '',
+					// legacy
+					start_date: '',
+					end_date: '',
+					// datepicker
+					start_date_only: '',
+					start_time: '',
+					end_date_only: '',
+					end_time: '',
+					meet: '',
+					all_day: false,
+					color: '',
+					visibility: this.visibilityOptions[0]?.slug || 'all',
+					repeat: '',
+					notify: '',
+				};
+				this.clearErrors();
+			},
+
+			clearErrors() {
+				this.errors = { title: '', start_date_only: '' };
+			},
 
 			formatHour(h) {
 				return h < 12 ? `${h}am` : (h == 12 ? "12pm" : `${h - 12}pm`);
 			},
 
 			formatMonthLabel(year, month) {
-				const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+				const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+							'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 				return `${months[month - 1]} ${year}`;
 			},
 
-			timeToPercent(date) {
-				const new_date = new Date(date);
-				const hours = new_date.getHours() + new_date.getMinutes() / 60;
-				const percent = ((hours - this.startHour) / (this.endHour + 1 - this.startHour)) * 100;
-				return Math.min(Math.max(percent, 0), 100);
+			formatTodayISO() {
+				const d = new Date();
+				const y = d.getFullYear();
+				const m = String(d.getMonth() + 1).padStart(2, '0');
+				const day = String(d.getDate()).padStart(2, '0');
+				return `${y}-${m}-${day}`;
 			},
 
-			intervalStyle(interval, idx, hex) {
-				const start = new Date(interval.start_datetime);
-				const end = interval.end_datetime ? new Date(interval.end_datetime) : this.now;
-				const left = this.timeToPercent(start);
-				const right = this.timeToPercent(end);
-				const width = right - left;
+            async saveEvent() {
+                // limpiar errores previos
+                this.clearErrors();
+                // Componer ISO desde datepicker: yyyy-mm-dd + HH:mm
+                const composeISO = (dateOnly, time) => {
+                    if (!dateOnly) return null;
+                    const t = time && time.length ? time : '00:00';
+                    return `${dateOnly}T${t}`;
+                };
 
-				return `
-					left:${left}%;
-					width:${width}%;
-					background-color:${interval.hex_color || '#007bff'};
-				`;
-			},
+                // Validación: no permitir eventos antes de la fecha actual
+                const startOnly = this.event_data.start_date_only;
+                const today = this.todayISO || this.formatTodayISO();
+                let hasError = false;
+                if (!this.event_data.title || !this.event_data.title.trim().length) {
+                    this.errors.title = 'Este campo es obligatorio';
+                    hasError = true;
+                }
+                if (!startOnly) {
+                    this.errors.start_date_only = 'Selecciona la fecha de inicio';
+                    hasError = true;
+                } else if (startOnly < today) {
+                    this.errors.start_date_only = 'No se permite registrar eventos antes de la fecha actual';
+                    hasError = true;
+                }
+                if (hasError) return;
 
-			formatLabel(interval) {
-				const start = new Date(interval.start_datetime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-				const end = interval.end_datetime
-					? new Date(interval.end_datetime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-					: "ahora";
-				return `${start} - ${end}`;
-			},
+                const startISO = composeISO(this.event_data.start_date_only, this.event_data.start_time);
+                const endISO = this.event_data.all_day ? null : composeISO(this.event_data.end_date_only, this.event_data.end_time);
 
-			async saveEvent() {
-				const payload = {
-					schedule_id: this.event_data.schedule_id || null,
-					user_id: this.user_id,
-					title: (this.event_data.title || '').trim(),
-					description: (this.event_data.description || '').trim(),
-					start_datetime: this.event_data.start_date,
-					end_datetime: this.event_data.all_day ? null : (this.event_data.end_date || null),
-					meet: (this.event_data.meet || '').trim() || null,
-					hex_color: this.event_data.color || this.colorOptions[0]?.hex || '#999',
-					visibility: this.event_data.visibility || 'all',
-					repeat: this.event_data.repeat || null,
-					notify: this.event_data.notify || null
-					,all_day: !!this.event_data.all_day
-				};
+                const payload = {
+                    schedule_id: this.event_data.schedule_id || null,
+                    user_id: this.user_id,
+                    title: (this.event_data.title || '').trim(),
+                    description: (this.event_data.description || '').trim(),
+                    start_datetime: startISO,
+                    end_datetime: endISO,
+                    meet: (this.event_data.meet || '').trim() || null,
+                    hex_color: this.event_data.color || this.colorOptions[0]?.hex || '#999',
+                    visibility: this.event_data.visibility || 'all',
+                    repeat: this.event_data.repeat || null,
+                    notify: this.event_data.notify || null,
+                    all_day: !!this.event_data.all_day
+                };
 
 				if (!payload.title) return alert('Ingresa un título');
 				if (!payload.start_datetime) return alert('Ingresa una fecha de inicio');
@@ -610,19 +700,29 @@
 
 					console.log('Respuesta /schedule/process:', { status: res.status, data });
 
-					 if (res.ok) {
-						 alert('Evento registrado correctamente ✅');
-						 this.resetEventForm();
-						 Alpine.store('cache').hideLastModal();
-						 await this.getEvents(); // refrescar lista
-					 } else {
-						 alert(typeof data === 'string' ? data : 'No se pudo registrar el evento');
-					 }
+					if (res.ok) {
+						alert('Evento registrado correctamente ✅');
+						this.resetEventForm();
+						Alpine.store('cache').hideLastModal();
+						await this.getEvents();
+					} else {
+						alert(typeof data === 'string' ? data : 'No se pudo registrar el evento');
+					}
 				} catch (e) {
 					console.error(e);
 					alert('Error al conectar con el servidor');
 				}
 			},
+
+			async updateEvent() {
+				// Implementar lógica de actualización similar a saveEvent
+				console.log('Actualizar evento:', this.event_data);
+			},
+
+			async deleteEvent() {
+				// Implementar lógica de eliminación
+				console.log('Eliminar evento:', this.event_data.schedule_id);
+			}
 		}));
 
 	</script>
@@ -947,7 +1047,7 @@
 			display: grid;
 			grid-template-columns: repeat(7, 1fr);
 			gap: 0.75rem;
-            grid-auto-rows: 7rem;
+			grid-auto-rows: minmax(7rem, auto);
 		}
 		#schedule .main .middle .bottom .month {
 			padding: 0.5rem;
@@ -997,13 +1097,48 @@
 			gap: 0.5rem;
 			margin-top: 2rem;
 		}
-		#schedule .main .middle .bottom .month .body .item {
-			display: flex;
-			flex-direction: column;
-			padding: 0.5rem;
-			border-radius: 0.5rem;
-			background-color: var(--gray);
-		}
+        #schedule .main .middle .bottom .month .body .item {
+            display: flex;
+            flex-direction: column;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            background-color: white; /* fondo por defecto blanco */
+            box-shadow: 0 0 0 1px #eee inset; /* sutil borde para contraste en blanco */
+        }
+        #schedule .main .middle .bottom .month .body .item .row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        #schedule .main .middle .bottom .month .body .item .color-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        #schedule .main .middle .bottom .month .body .item .content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+        #schedule .main .middle .bottom .month .body .item.normal .label {
+            color: #000;
+            opacity: 1;
+            font-weight: 600;
+        }
+        #schedule .main .middle .bottom .month .body .item.normal .date {
+            color: #555;
+            font-size: 0.85em;
+        }
+        #schedule .main .middle .bottom .month .body .item.full .label {
+            color: #fff;
+            opacity: 1;
+            font-weight: 600;
+        }
+        #schedule .main .middle .bottom .month .body .item.full .date {
+            color: rgba(255,255,255,0.85);
+            font-size: 0.85em;
+        }
 		#schedule .main .middle .bottom .month .body .item .label {
 			font-size: 0.65rem;
 			line-height: 0.75rem;
@@ -1014,6 +1149,13 @@
 			font-weight: 500;
 			line-height: 0.75rem;
 		}
+
+        /* Errores inline en el modal */
+        .error-text {
+            color: #d32f2f;
+            font-size: 0.75rem;
+            margin-top: 2px;
+        }
 
 		/* Navegación del calendario en header: flecha - mes - flecha */
 		#schedule header .navigation.desktop {
