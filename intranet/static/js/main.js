@@ -36,7 +36,7 @@ document.addEventListener('alpine:init', () => {
     }));
 
     Alpine.store('cache', {
-        api: 'https://devapi.krear3d.com',
+        api: 'http://localhost:5010/', //https://api.krear3d.com
         user: {},
         active_page: window.location.pathname,
         common_pages: [

@@ -6,7 +6,7 @@ document.addEventListener('alpine:init', () => {
     }));
 
     Alpine.store('cache', {
-        api: 'https://api.krear3d.com',
+        api: 'http://localhost:5010/', //https://api.krear3d.com
     });
 });
 

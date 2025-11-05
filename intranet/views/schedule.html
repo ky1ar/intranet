@@ -1,47 +1,17 @@
 <div x-data="schedule_data">
 	<div id="schedule">
 		<header>
-			<div class="menu">
-				<div class="item" @click="search()">
-					<div class="button">
-						<img alt="" width="20" height="20" src="/static/images/icons/calendar.svg">
-					</div>
-					<span>Asistencia</span>
-				</div>
-				<div class="item" @click="viewHistory()">
-					<div class="button">
-						<img alt="" width="20" height="20" src="/static/images/icons/calendar.svg">
-					</div>
-					<span>Agenda</span>
-				</div>
-			</div>
-				
-			<div class="navigation desktop">
-				<div class="button white hover-opacity" @click="prev()">
-					<img alt="prev" src="/static/images/arrow.svg" width="16" height="16">
-				</div>
-				<div class="button white middle hover-opacity" @click="today()" x-text="$store.cache.getData('attendance_dashboard')?.day"></div>
-				<div class="button white hover-opacity" @click="next()">
-					<img alt="next" src="/static/images/arrow.svg" width="16" height="16">
-				</div>
-			</div>
 
-			<template x-if="editAllowed()">
-				<div class="menu primary">
-					<div class="item" @click="pendings_open = !pendings_open">
-						<div class="button">
-							<img alt="" width="20" height="20" src="/static/images/icons/pending.svg">
-						</div>
-						<span x-text="`Pendientes ${$store.cache.getData('logistics_pendings')?.length || 0}`"></span>
-					</div>
-					<div class="item" @click="processShippingModal()">
-						<div class="button">
-							<img alt="" width="20" height="20" src="/static/images/icons/add.svg">
-						</div>
-						<span>Añadir</span>
-					</div>
+			<div class="navigation desktop">
+				<div class="button white hover-opacity" @click="prevMonth()">
+					<img alt="prev" src="/static/images/arrowleft.svg" width="16" height="16">
 				</div>
-			</template>
+				<div class="button white middle hover-opacity" @click="goToCurrentMonth()" x-text="formatMonthLabel(currentYear, currentMonth)"></div>
+				<div class="button white hover-opacity" @click="nextMonth()">
+					<img alt="next" src="/static/images/arrowright.svg" width="16" height="16">
+				</div>
+			</div>
+			
 		</header>
 
 		<div class="main">
@@ -60,10 +30,33 @@
 						<span>47704997</span>
 					</div>
 				</div>
+
+				<div class="card glass mini-calendar">
+					<div class="mini-nav">
+						<div class="button white hover-opacity" @click="prevMonth()">
+							<img alt="prev" src="/static/images/arrowleft.svg" width="16" height="16">
+						</div>
+						<span class="label" x-text="formatMonthLabel(currentYear, currentMonth)"></span>
+						<div class="button white hover-opacity" @click="nextMonth()">
+							<img alt="next" src="/static/images/arrowright.svg" width="16" height="16">
+						</div>
+					</div>
+
+					<div class="mini-weekdays">
+						<span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
+					</div>
+
+					<div class="grid">
+						<template x-for="day in calendarDays" :key="'mini-'+day.date">
+							<div class="cell" :class="{ outside: !day.isCurrentMonth, today: day.isToday }" x-text="day.dayNumber"></div>
+						</template>
+					</div>
+				</div>
 			</div>
 
 			<div class="middle">
 				<div class="card glass">
+
 					<div class="center">
 						<span>
 							Lunes
@@ -84,375 +77,26 @@
 							Sábado
 						</span>
 						<span>
-							Resumen
+							Domingo
 						</span>
 					</div>
 					
 					<div class="bottom">
-						<div class="month glass">
-							<span class="number">31</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month white" @click="addEvent()">
-							<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
-
-							<span class="number">01</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
+						<template x-for="day in calendarDays" :key="day.date">
+							<div class="month" :class="day.isCurrentMonth ? 'white' : 'glass'" @click="addEvent()">
+								<span class="number" :class="{ today: day.isToday }" x-text="String(day.dayNumber).padStart(2, '0')"></span>
+								<div class="body">
+									<template x-if="day.events && day.events.length">
+										<template x-for="(ev, idx) in day.events" :key="idx">
+											<div class="item">
+												<span class="label" x-text="ev.label"></span>
+												<span class="date" x-text="ev.time"></span>
+											</div>
+										</template>
+									</template>
 								</div>
 							</div>
-						</div>
-
-						<div class="month white" @click="addEvent()">
-							<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
-
-							<span class="number">02</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white" @click="addEvent()">
-							<span class="number">03</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">04</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month glass">
-							<span class="number">05</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass2 week-review">
-							<span class="percent">103.2%</span>
-							<div class="bar-wrapper white">
-								<div class="bar" style="width:103.2%"></div>
-							</div>
-						</div>
-
-
-						<div class="month white">
-							<span class="number">07</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">08</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">09</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">10</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
-
-							<span class="number">11</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-						
-						<div class="month glass">
-							<span class="number">12</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass2 week-review">
-							<span class="percent">101.3%</span>
-							<div class="bar-wrapper white">
-								<div class="bar" style="width:101.3%"></div>
-							</div>
-						</div>
-
-						
-						<div class="month white">
-							<span class="number">14</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
-
-							<span class="number">15</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">16</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">17</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">18</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month glass">
-							<span class="number">19</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass2 week-review">
-							<span class="percent">85.4%</span>
-							<div class="bar-wrapper white">
-								<div class="bar" style="width:85.4%"></div>
-							</div>
-						</div>
-
-
-						<div class="month white">
-							<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
-
-							<span class="number">21</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">22</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">23</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">24</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number today">25</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month glass">
-							<span class="number">26</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass2 week-review">
-							<span class="percent">76.4%</span>
-							<div class="bar-wrapper white">
-								<div class="bar" style="width:76.4%"></div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">28</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month white">
-							<span class="number">29</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month white">
-							<span class="number">30</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass">
-							<span class="number">01</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass">
-							<span class="number">02</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass">
-							<span class="number">03</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass2 week-review">
-							<span class="percent">0%</span>
-							<div class="bar-wrapper white">
-								<div class="bar" style="width:0%"></div>
-							</div>
-						</div>
+						</template>
 					</div>
 				</div>
 
@@ -461,135 +105,162 @@
 		</div>
 
         <div
-	x-show="$store.cache.isVisibleModal('event')"
-	@mousedown.self="$store.cache.hideLastModal()"
-	x-transition.duration.300ms
-	class="modal-wrap"
-	id="modal-event"
-	x-cloak>
+			x-show="$store.cache.isVisibleModal('event')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-event"
+			x-cloak>
 
-	<div class="modal head glass2" @click.stop>
-		
-		<!-- 🟦 TÍTULO -->
-		<input 
-			class="percent100 title" 
-			type="text" 
-			placeholder="Agregar título" 
-			x-model="event_data.title" 
-			:disabled="edit">
+			<div class="modal head glass2" @click.stop>
+				
+				<!--  TÍTULO -->
+				<input 
+					class="percent100 title" 
+					type="text" 
+					placeholder="Agregar título" 
+					x-model="event_data.title" 
+					:disabled="edit">
 
-		<!-- 🟦 DESCRIPCIÓN -->
-		<div class="fields">
-			<label class="white flex2-3">
-				<img alt="desc" src="/static/images/icons/tag.svg" width="16" height="16">
-				<textarea placeholder="Descripción" x-model="event_data.description" rows="3" class="percent100"></textarea>
-			</label>
-		</div>
+				<!--  DESCRIPCIÓN -->
+				<div class="fields">
+					<label class="white flex2-3">
+						<img alt="desc" src="/static/images/icons/tag.svg" width="16" height="16">
+						<input placeholder="Descripción" x-model="event_data.description" rows="3" class="percent100"></input>
+					</label>
+				</div>
 
-		<!-- 🟦 FECHAS DE INICIO Y FIN -->
-		<div class="fields">
-			<label class="white">
-				<img alt="calendar" src="/static/images/icons/schedule.svg" width="16" height="16">
-				<input type="datetime-local" x-model="event_data.start_date">
-			</label>
+				<!--  FECHAS DE INICIO Y FIN -->
+				<div class="fields">
+					<label class="white">
+						<img alt="calendar" src="/static/images/icons/schedule.svg" width="16" height="16">
+						<input type="datetime-local" x-model="event_data.start_date">
+					</label>
 
-			<label class="white">
-				<img alt="calendar" src="/static/images/icons/schedule.svg" width="16" height="16">
-				<input type="datetime-local" x-model="event_data.end_date" :disabled="event_data.all_day">
-			</label>
-		</div>
+					<label class="white">
+						<img alt="calendar" src="/static/images/icons/schedule.svg" width="16" height="16">
+						<input type="datetime-local" x-model="event_data.end_date" :disabled="event_data.all_day">
+					</label>
+				</div>
 
-		<!-- 🟦 ENLACE DE GOOGLE MEET + TODO EL DÍA -->
-		<div class="fields">
-			<label class="white flex2-3">
-				<img alt="link" src="/static/images/icons/link.svg" width="16" height="16">
-				<input type="url" placeholder="Enlace de Google Meet" x-model="event_data.meet_link">
-			</label>
+				<!--  ENLACE DE GOOGLE MEET + TODO EL DÍA -->
+				<div class="fields">
+					<label class="white flex2-3">
+						<img alt="link" src="/static/images/icons/link.svg" width="16" height="16">
+				<input type="url" placeholder="Enlace de Google Meet" x-model="event_data.meet">
+					</label>
 
-			<label class="white checkbox">
-				<input type="checkbox" x-model="event_data.all_day">
-				<span>Todo el día</span>
-			</label>
-		</div>
+					<label class="white checkbox">
+						<input type="checkbox" x-model="event_data.all_day">
+						<span>Todo el día</span>
+					</label>
+				</div>
 
-		<!-- 🟦 COLOR DEL EVENTO -->
-		<div class="fields">
-			<label class="white compact-color">
-				<img alt="color" src="/static/images/icons/color.svg" width="16" height="16">
-				<div class="color-select" x-data="{ open: false }" @click.outside="open = false">
+                <!-- COLOR DEL EVENTO + VISIBILIDAD + REPETIR -->
+                <div class="fields">
+                    <label class="white compact-color">
+                        <img alt="color" src="/static/images/icons/tag.svg" width="16" height="16">
+
+						<div class="color-select" x-data="{ open: false }" @click.outside="open = false">
+						<!-- Círculo principal (muestra el color seleccionado) -->
+						<button 
+							class="color-dot"
+							:style="`background-color: ${event_data.color || '#999'}`"
+							@click.prevent="open = !open"
+							aria-label="Seleccionar color">
+						</button>
+
+						<!-- Panel flotante con lista de colores -->
+						<div class="color-panel" x-show="open" x-transition>
+							<template x-for="(c, index) in colorOptions" :key="c.id || index">
+							<button 
+								class="color-option"
+								:title="c.name"
+								:style="`background-color: ${c.hex}`"
+								:class="{ 'selected': event_data.color === c.hex }"
+								@click.prevent="
+								event_data.color = c.hex;
+								open = false;
+								">
+							</button>
+							</template>
+						</div>
+						</div>
+                    </label>
+
+                    <!-- VISIBILIDAD -->
+                    <label class="white flex2-3">
+                        <img alt="eye" src="/static/images/icons/eye.svg" width="16" height="16">
+                        <select x-model="event_data.visibility">
+                            <option value="" disabled :selected="!event_data.visibility">Visibilidad</option>
+                            <template x-for="opt in visibilityOptions" :key="opt.id">
+                                <option :value="opt.slug" x-text="opt.name"></option>
+                            </template>
+                        </select>
+                    </label>
+
+                    <!-- REPETIR -->
+                    <label class="white">
+                        <img alt="repeat" src="/static/images/pending.svg" width="16" height="16">
+                        <select x-model="event_data.repeat">
+                            <option value="" disabled :selected="!event_data.repeat">Repetir</option>
+                            <template x-for="opt in repeatOptions" :key="opt.id">
+                                <option :value="opt.slug" x-text="opt.name"></option>
+                            </template>
+                        </select>
+                    </label>
+                </div>
+
+
+				<!-- NOTIFICACIÓN -->
+				<div class="fields">
+					<label class="white notify-field">
+						<img alt="bell" src="/static/images/notifications.svg" width="16" height="16">
+						<select x-model="event_data.notify">
+							<option value="" disabled :selected="!event_data.notify">Notificación</option>
+							<template x-for="opt in notifyOptions" :key="opt.id">
+								<option :value="opt.slug" x-text="opt.name"></option>
+							</template>
+						</select>
+					</label>
+				</div>
+
+				<!--  BOTONES DE ACCIÓN -->
+				<div class="fields">
+					<template x-if="edit">
+						<button class="button hover-opacity black" @click="deleteEvent()" :class="buttons.delete.class" x-text="buttons.delete.text"></button>
+					</template>
+
 					<button 
-						class="color-dot" 
-						:style="`background-color: ${event_data.color || '#999'}`"
-						@click.prevent="open = !open"
-						aria-label="Seleccionar color">
+						x-show="!edit" 
+						class="button hover-opacity" 
+						@click="saveEvent()" 
+						:class="buttons.save.class" 
+						x-text="buttons.save.text">
 					</button>
 
-					<div class="color-panel" x-show="open" x-transition>
-						<template x-for="(c, index) in colorOptions.slice(0, 8)" :key="index">
-							<button 
-								class="color-option" 
-								:style="`background-color: ${c}`"
-								:class="event_data.color === c ? 'selected' : ''"
-								@click.prevent="event_data.color = c; open = false">
-							</button>
-						</template>
-					</div>
+					<button 
+						x-show="edit" 
+						class="button hover-opacity" 
+						@click="updateEvent()" 
+						:class="buttons.update.class" 
+						x-text="buttons.update.text">
+					</button>
+
+					<!-- Botón Enviar -->
+					<button 
+						class="button hover-opacity" 
+						@click="saveEvent()">
+						Enviar
+					</button>
 				</div>
-			</label>
 
-			<!-- 🟦 VISIBILIDAD -->
-			<label class="white">
-				<img alt="eye" src="/static/images/icons/eye.svg" width="16" height="16">
-				<select x-model="event_data.visibility">
-					<option value="publico">Público</option>
-					<option value="privado">Privado</option>
-					<option value="solo-invitados">Solo invitados</option>
-				</select>
-			</label>
-
-			<!-- 🟦 REPETIR -->
-			<label class="white">
-				<img alt="repeat" src="/static/images/icons/repeat.svg" width="16" height="16">
-				<select x-model="event_data.repeat">
-					<option value="nunca">Nunca</option>
-					<option value="diario">Diario</option>
-					<option value="semanal">Semanal</option>
-					<option value="mensual">Mensual</option>
-					<option value="anual">Anual</option>
-				</select>
-			</label>
+				<!--  CERRAR MODAL -->
+				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
+					<img alt="close" src="/static/images/x.svg" width="12" height="12">
+				</div>
+			</div>
 		</div>
-
-		<!-- 🟦 BOTONES DE ACCIÓN -->
-		<div class="fields">
-			<template x-if="edit">
-				<button class="button hover-opacity black" @click="deleteEvent()" :class="buttons.delete.class" x-text="buttons.delete.text"></button>
-			</template>
-
-			<button 
-				x-show="!edit" 
-				class="button hover-opacity" 
-				@click="saveEvent()" 
-				:class="buttons.save.class" 
-				x-text="buttons.save.text">
-			</button>
-
-			<button 
-				x-show="edit" 
-				class="button hover-opacity" 
-				@click="updateEvent()" 
-				:class="buttons.update.class" 
-				x-text="buttons.update.text">
-			</button>
-		</div>
-
-		<!-- 🟦 CERRAR MODAL -->
-		<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-			<img alt="close" src="/static/images/x.svg" width="12" height="12">
-		</div>
-	</div>
-</div>
-
 	</div>
 
 
@@ -599,8 +270,8 @@
 
 
 	<script>
-		Alpine.data('schedule_data',() => ({
-            api: Alpine.store('cache').api,
+		Alpine.data('schedule_data', () => ({
+			api: Alpine.store('cache').api,
 			user_id: Alpine.store('cache').user.id,
 			startHour: 8,
 			endHour: 20,
@@ -609,100 +280,351 @@
 			offset: 0,
 			show_salary: false,
 
-			async init() {
-				console.log('Inicializando attendance...');
-				const socket = Alpine.store('cache').socket;
-				if (socket) {
-					socket.removeAllListeners();
-					socket.on("attendance_update_dashboard", async () => {
-						await Alpine.store('cache').refresh(['attendance_period']);
-					});
-				}
-				
-				await Alpine.store('cache').fetchData([
-					//{ key: 'attendance_dashboard', url: `/attendance/dashboard/day?offset=${this.offset}`, force: true },
-					{ key: 'attendance_period', url: `/attendance/period/summary?user_id=${this.user_id}&period_id=2`, force: true },
-
-				]);
-
-				this.tick();
-				// refrescar calendario cada 30s
-				//setInterval(() => this.getCalendar(), 30000);
-				await Alpine.store('cache').verify();
-
+			// Estado del formulario de evento
+			event_data: {
+				schedule_id: null,
+				title: '',
+				description: '',
+				start_date: '',
+				end_date: '',
+				meet: '',
+				all_day: false,
+				color: '',
+				visibility: '',
+				repeat: '',
+				notify: '',
 			},
 
-            addEvent(){
-                Alpine.store('cache').showModal('event');
+            // Listado de eventos traídos desde la API
+            events: [],
+
+            // Estado del calendario (meses)
+            currentYear: 2025,
+            currentMonth: 11, // 1-12; 11 = Noviembre
+            calendarDays: [],
+
+			// Opciones dinámicas desde el backend
+			visibilityOptions: [],
+			repeatOptions: [],
+			notifyOptions: [],
+			colorOptions: [],
+
+            async init() {
+                console.log('Inicializando calendario...');
+
+                // Construir días del mes inicial de forma inmediata (evitar bloqueos de UI)
+                this.buildMonthDays(this.currentYear, this.currentMonth);
+
+                // Lanzar cargas en paralelo sin bloquear el primer render
+                this.getEvents();
+                this.loadOptions();
+
+                // Configurar socket y procesos de caché en segundo plano
+                const socket = Alpine.store('cache').socket;
+                if (socket) {
+                    socket.removeAllListeners();
+                    socket.on("attendance_update_dashboard", async () => {
+                        await Alpine.store('cache').refresh(['attendance_period']);
+                    });
+                }
+
+                Alpine.store('cache').fetchData([
+                    { key: 'attendance_period', url: `/attendance/period/summary?user_id=${this.user_id}&period_id=2`, force: true },
+                ]).then(() => Alpine.store('cache').verify()).catch(() => {});
+
+                this.tick();
+
+                // Limpiar fecha fin cuando se active "Todo el día"
+                this.$watch('event_data.all_day', (val) => {
+                    if (val) this.event_data.end_date = '';
+                });
             },
 
-			tick() {
-				this.now = new Date();
-				setTimeout(() => this.tick(), 1000 * 5);
+			async loadOptions() {
+				try {
+					const endpoints = [
+					{ key: 'visibility', url: '/schedule/options/visibility' },
+					{ key: 'repeat', url: '/schedule/options/repeat' },
+					{ key: 'notify', url: '/schedule/options/notify' },
+					{ key: 'colors', url: '/schedule/options/colors' },
+					];
+
+					// Llamada simultánea a todos los endpoints
+					const responses = await Promise.all(endpoints.map(e => fetch(this.api + e.url)));
+					const results = await Promise.all(responses.map(r => r.json()));
+
+					// Extraemos el contenido de cada uno
+					const [visData, repData, notData, colData] = results.map(r => r.data);
+
+					// Guardamos las opciones en los arrays del componente
+					this.visibilityOptions = visData.visibility || [];
+					this.repeatOptions = repData.repeat || [];
+					this.notifyOptions = notData.notify || [];
+					this.colorOptions = colData.colors || [];
+
+					console.log("Opciones cargadas correctamente:", {
+					visibility: this.visibilityOptions,
+					repeat: this.repeatOptions,
+					notify: this.notifyOptions,
+					colors: this.colorOptions,
+					});
+
+				} catch (error) {
+					console.error('Error cargando opciones de API:', error);
+				}
+				},
+
+			addEvent() {
+				Alpine.store('cache').showModal('event');
 			},
+
+            async getEvents() {
+                try {
+                    // Timeout de 600ms para garantizar respuesta rápida
+                    const serverOffset = this.computeServerOffset(this.currentYear, this.currentMonth);
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 600);
+                    const res = await fetch(`${this.api}/schedule/month?offset=${serverOffset}`, { signal: controller.signal, cache: 'no-cache' });
+                    clearTimeout(timeout);
+
+                    const json = await res.json();
+                    const data = json?.data || {};
+                    this.events = Array.isArray(data) ? data : (data.events || []);
+                    this.attachEventsToDays(this.events);
+                } catch (error) {
+                    console.warn('Timeout o error al obtener los eventos del mes:', error);
+                }
+            },
+
+            buildMonthDays(year, month) {
+                // month: 1-12
+                const first = new Date(year, month - 1, 1);
+                const last = new Date(year, month, 0); // último día del mes
+                const total = last.getDate();
+
+                const today = new Date();
+
+                // Semana empieza en lunes: 0=lunes ... 6=domingo
+                const startIndexMonday = (first.getDay() + 6) % 7;
+
+                const days = [];
+
+                // Relleno inicial con días del mes anterior
+                if (startIndexMonday > 0) {
+                    const prevLast = new Date(year, month - 1, 0);
+                    const prevTotal = prevLast.getDate();
+                    for (let i = startIndexMonday - 1; i >= 0; i--) {
+                        const d = prevTotal - i;
+                        const date = new Date(year, month - 2, d);
+                        days.push({
+                            date: date.toISOString().slice(0, 10),
+                            dayNumber: d,
+                            isCurrentMonth: false,
+                            isToday: false,
+                            events: [],
+                        });
+                    }
+                }
+
+                // Días del mes actual
+                for (let d = 1; d <= total; d++) {
+                    const date = new Date(year, month - 1, d);
+                    days.push({
+                        date: date.toISOString().slice(0, 10),
+                        dayNumber: d,
+                        isCurrentMonth: true,
+                        isToday: today.getFullYear() === year && (today.getMonth() + 1) === month && today.getDate() === d,
+                        events: [],
+                    });
+                }
+
+                // Relleno final con días del mes siguiente para completar la última semana
+                const remainder = days.length % 7;
+                if (remainder !== 0) {
+                    const trailing = 7 - remainder;
+                    for (let d = 1; d <= trailing; d++) {
+                        const date = new Date(year, month, d);
+                        days.push({
+                            date: date.toISOString().slice(0, 10),
+                            dayNumber: d,
+                            isCurrentMonth: false,
+                            isToday: false,
+                            events: [],
+                        });
+                    }
+                }
+
+                this.calendarDays = days;
+            },
+
+            attachEventsToDays(events) {
+                // Limpia eventos y construye índice por fecha para inserción O(1)
+                const indexByDate = {};
+                this.calendarDays.forEach((day, idx) => { day.events = []; indexByDate[day.date] = idx; });
+
+                events.forEach(ev => {
+                    const raw = ev.start_datetime || ev.date || null;
+                    if (!raw) return;
+                    const dateStr = typeof raw === 'string' ? (raw.includes('T') ? raw.slice(0,10) : raw) : '';
+                    const idx = indexByDate[dateStr];
+                    if (idx === undefined) return;
+
+                    const label = ev.title || 'Evento';
+                    let time = '';
+                    try {
+                        if (ev.start_datetime) {
+                            const dt = new Date(ev.start_datetime);
+                            time = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        }
+                    } catch {}
+
+                    this.calendarDays[idx].events.push({ label, time });
+                });
+            },
+
+            computeServerOffset(targetYear, targetMonth) {
+                // Calcula offset de meses relativo al mes actual del sistema
+                const now = new Date();
+                const y = now.getFullYear();
+                const m = now.getMonth() + 1; // 1-12
+                return (targetYear - y) * 12 + (targetMonth - m);
+            },
+
+            nextMonth() {
+                if (this.currentMonth === 12) {
+                    this.currentMonth = 1;
+                    this.currentYear += 1;
+                } else {
+                    this.currentMonth += 1;
+                }
+                this.buildMonthDays(this.currentYear, this.currentMonth);
+                this.getEvents();
+            },
+
+            goToCurrentMonth() {
+                const now = new Date();
+                this.currentYear = now.getFullYear();
+                this.currentMonth = now.getMonth() + 1; // 1-12
+                this.buildMonthDays(this.currentYear, this.currentMonth);
+                this.getEvents();
+            },
+
+            prevMonth() {
+                if (this.currentMonth === 1) {
+                    this.currentMonth = 12;
+                    this.currentYear -= 1;
+                } else {
+                    this.currentMonth -= 1;
+                }
+                this.buildMonthDays(this.currentYear, this.currentMonth);
+                this.getEvents();
+            },
+
+			 tick() {
+				 this.now = new Date();
+				 setTimeout(() => this.tick(), 1000 * 5);
+			 },
+
+			 // Limpia el formulario de evento a valores por defecto
+			 resetEventForm() {
+				 this.event_data = {
+					 schedule_id: null,
+					 title: '',
+					 description: '',
+					 start_date: '',
+					 end_date: '',
+					 meet: '',
+					 all_day: false,
+					 color: '',
+					 visibility: this.visibilityOptions[0]?.slug || 'all',
+					 repeat: '',
+					 notify: '',
+				 };
+			 },
 
 			formatHour(h) {
 				return h < 12 ? `${h}am` : (h == 12 ? "12pm" : `${h - 12}pm`);
 			},
 
+			formatMonthLabel(year, month) {
+				const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+				return `${months[month - 1]} ${year}`;
+			},
+
 			timeToPercent(date) {
 				const new_date = new Date(date);
 				const hours = new_date.getHours() + new_date.getMinutes() / 60;
-				const percent = ((hours - this.startHour) / (this.endHour +1 - this.startHour)) * 100;
+				const percent = ((hours - this.startHour) / (this.endHour + 1 - this.startHour)) * 100;
 				return Math.min(Math.max(percent, 0), 100);
 			},
 
 			intervalStyle(interval, idx, hex) {
-				const start = new Date(interval.start);
-				const end = interval.end ? new Date(interval.end) : this.now;
+				const start = new Date(interval.start_datetime);
+				const end = interval.end_datetime ? new Date(interval.end_datetime) : this.now;
 				const left = this.timeToPercent(start);
 				const right = this.timeToPercent(end);
 				const width = right - left;
 
-				if (!interval.end) {
-					return `
-						left:${left}%;
-						width:${width}%;
-						background: linear-gradient(90deg, ${hex} 0%, ${hex}AA 70%, transparent 100%);
-					`;
-				}
-
 				return `
 					left:${left}%;
 					width:${width}%;
-					background-color:${hex};
+					background-color:${interval.hex_color || '#007bff'};
 				`;
 			},
 
 			formatLabel(interval) {
-				const start = new Date(interval.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-				const end = interval.end
-					? new Date(interval.end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+				const start = new Date(interval.start_datetime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+				const end = interval.end_datetime
+					? new Date(interval.end_datetime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 					: "ahora";
 				return `${start} - ${end}`;
 			},
 
-			async next() {
-				this.offset++;
-				await Alpine.store('cache').refresh([
-					{ key: 'attendance_dashboard', url: `/attendance/dashboard/day?offset=${this.offset}` }
-				]);
-			},
+			async saveEvent() {
+				const payload = {
+					schedule_id: this.event_data.schedule_id || null,
+					user_id: this.user_id,
+					title: (this.event_data.title || '').trim(),
+					description: (this.event_data.description || '').trim(),
+					start_datetime: this.event_data.start_date,
+					end_datetime: this.event_data.all_day ? null : (this.event_data.end_date || null),
+					meet: (this.event_data.meet || '').trim() || null,
+					hex_color: this.event_data.color || this.colorOptions[0]?.hex || '#999',
+					visibility: this.event_data.visibility || 'all',
+					repeat: this.event_data.repeat || null,
+					notify: this.event_data.notify || null
+					,all_day: !!this.event_data.all_day
+				};
 
-			async prev() {
-				this.offset--;
-				await Alpine.store('cache').refresh([
-					{ key: 'attendance_dashboard', url: `/attendance/dashboard/day?offset=${this.offset}` }
-				]);
-			},
+				if (!payload.title) return alert('Ingresa un título');
+				if (!payload.start_datetime) return alert('Ingresa una fecha de inicio');
 
-			async today() {
-				this.offset = 0;
-				await Alpine.store('cache').refresh([
-					{ key: 'attendance_dashboard', url: `/attendance/dashboard/day` }
-				]);
+				try {
+					console.log('Enviando evento a /schedule/process:', payload);
+					const res = await fetch(this.api + '/schedule/process', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(payload)
+					});
+					const data = await res.json();
+
+					console.log('Respuesta /schedule/process:', { status: res.status, data });
+
+					 if (res.ok) {
+						 alert('Evento registrado correctamente ✅');
+						 this.resetEventForm();
+						 Alpine.store('cache').hideLastModal();
+						 await this.getEvents(); // refrescar lista
+					 } else {
+						 alert(typeof data === 'string' ? data : 'No se pudo registrar el evento');
+					 }
+				} catch (e) {
+					console.error(e);
+					alert('Error al conectar con el servidor');
+				}
 			},
 		}));
+
 	</script>
 
 
@@ -877,6 +799,25 @@
 			align-items: center;
 			flex-wrap: wrap;
 		}
+		/* Asegurar misma altura visual para todos los labels de fields */
+		#modal-event .fields label.white {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			min-height: 2.5rem;
+		}
+
+		/* Reducir ligeramente el ancho solo del campo de color */
+		#modal-event .fields label.color-field {
+			flex: 0 0 12rem;
+			max-width: 6rem;
+			align-items: center;
+		}
+
+		/* Ancho específico del campo de Visibilidad */
+		#modal-event .fields label.flex2-3 {
+			flex: 1 1 1rem; /* ancho base flexible */
+		}
 		#modal-event label.checkbox {
 			display: flex;
 			align-items: center;
@@ -884,13 +825,14 @@
 		}
 		#modal-event label.checkbox input[type="checkbox"] {
 			appearance: none;
-			width: 35px;
-			height: 35px;
+			width: 15px; /* tamaño más pequeño */
+			height: 15px;
 			border: 2px solid #ccc;
 			border-radius: 10px; /* redondeado */
 			background: #fff;
 			transition: all 0.2s ease-in-out;
 			cursor: pointer;
+			display: inline-block;
 		}
 		#modal-event label.checkbox input[type="checkbox"]:checked {
 			background-color: var(--primary);
@@ -900,16 +842,27 @@
 			font-size: 0.8rem; /* texto un poco más pequeño */
 		}
 
-				/* Modal Event - selector de color compacto */
+		/* Ancho específico del campo "Todo el día" (solo este label) */
+		#modal-event .fields label.checkbox {
+			flex: 0 0 8rem; /* ancho fijo para el bloque */
+		}
+
+		/* Modal Event - selector de color compacto */
 		#modal-event .color-select {
 			position: relative;
 			display: inline-flex;
 			align-items: center;
-			gap: 0.5rem;
+			gap: 1rem;
+		}
+
+		/*Modal Event - selector de notificaciones*/
+		#modal-event .fields label.notify-field { 
+			flex: 0 0 14rem; 
+			max-width: 14rem; 
 		}
 		#modal-event .fields label.compact-color {
 			flex: 0 0 8rem; /* ancho más pequeño */
-			max-width: 8rem;
+			max-width: 4rem;
 			align-items: center;
 		}
 		#modal-event .color-dot {
@@ -994,6 +947,7 @@
 			display: grid;
 			grid-template-columns: repeat(7, 1fr);
 			gap: 0.75rem;
+            grid-auto-rows: 7rem;
 		}
 		#schedule .main .middle .bottom .month {
 			padding: 0.5rem;
@@ -1020,6 +974,9 @@
 		}
 		#schedule .main .middle .bottom .month.glass .number {
 			opacity: 0.25;
+		}
+		#schedule .main .middle .bottom .month.glass {
+			opacity: 0.5;
 		}
 		#schedule .main .middle .bottom .month .late {
 			position: absolute;
@@ -1056,6 +1013,95 @@
 			font-size: 0.8rem;
 			font-weight: 500;
 			line-height: 0.75rem;
+		}
+
+		/* Navegación del calendario en header: flecha - mes - flecha */
+		#schedule header .navigation.desktop {
+			display: flex;
+			align-items: center;
+			justify-content: flex-start;
+			gap: 10px;
+			margin: 0.5rem 0;
+		}
+		#schedule header .navigation.desktop .button {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 3rem;
+			height: 3rem;
+			border-radius: 9999px;
+			padding: 0;
+		}
+		#schedule header .navigation.desktop .button img {
+			width: 30px;
+			height: 30px;
+		}
+		#schedule header .navigation.desktop .button.middle {
+			min-width: 14rem;
+			height: 3rem;
+			padding: 0 1rem;
+			border-radius: 2rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-weight: 600;
+		}
+
+		/* Mini calendario en la columna izquierda */
+		#schedule .main .left .mini-calendar {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+		#schedule .main .left .mini-calendar .mini-nav {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+		}
+		#schedule .main .left .mini-calendar .mini-nav .button {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 1.75rem;
+			height: 1.75rem;
+			border-radius: 9999px;
+			padding: 0;
+		}
+		#schedule .main .left .mini-calendar .mini-nav .button img {
+			width: 14px;
+			height: 14px;
+		}
+		#schedule .main .left .mini-calendar .mini-nav .label {
+			font-size: 0.8rem;
+			font-weight: 600;
+		}
+		#schedule .main .left .mini-calendar .mini-weekdays {
+			display: grid;
+			grid-template-columns: repeat(7, 1fr);
+			gap: 0.25rem;
+			font-size: 0.65rem;
+			opacity: 0.6;
+			text-align: center;
+		}
+		#schedule .main .left .mini-calendar .grid {
+			display: grid;
+			grid-template-columns: repeat(7, 1fr);
+			gap: 0.25rem;
+		}
+		#schedule .main .left .mini-calendar .cell {
+			height: 1.75rem;
+			border-radius: 0.5rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 0.75rem;
+		}
+		#schedule .main .left .mini-calendar .cell.today {
+			background-color: var(--primary);
+			color: #fff;
+		}
+		#schedule .main .left .mini-calendar .cell.outside {
+			opacity: 0.4;
 		}
 		#schedule .schedule-period {
 			display: flex;
