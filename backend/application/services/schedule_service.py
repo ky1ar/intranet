@@ -3,11 +3,13 @@ from datetime import datetime, timedelta
 from calendar import monthrange
 from application.handlers import handle_exceptions
 from application.repository.schedule_repository import ScheduleRepository
+from application.services.general_service import GeneralService
 
 
 class ScheduleService:
     def __init__(self):
         self.schedule_repository = ScheduleRepository()
+        self.general_service = GeneralService()
 
 
     @handle_exceptions
@@ -40,6 +42,7 @@ class ScheduleService:
             events_by_day[date_key].append({
                 "id": event.id,
                 "title": event.title,
+                "all_day": True if event.all_day or event.all_day == 1 else False,
                 "start_datetime": event.start_datetime.isoformat(),
                 "end_datetime": event.end_datetime.isoformat() if event.end_datetime else None,
                 "hex_color": event.hex_color,
@@ -134,20 +137,31 @@ class ScheduleService:
 
     @handle_exceptions
     def process(self, data):
-        title = data.get("title", "").strip()
-        if not title:
-            return "Ingresa un título", 422
+        event_id = data.get("event_id")
+        if not event_id:
+            title = data.get("title", "").strip()
+            if not title:
+                return "Ingresa un título", 422
 
-        raw_start = data.get("start_datetime")
-        if not raw_start:
-            return "Ingresa un fecha", 422
-        #start_datetime = datetime.fromisoformat(raw_start) if "T" in raw_start else datetime.strptime(raw_start, "%Y-%m-%d")
+            raw_start = data.get("start_datetime")
+            if not raw_start:
+                return "Ingresa un fecha", 422
+            
+            add_event, aec = self.schedule_repository.add_event(data)
+            if aec != 200:
+                return add_event, aec
+            
+            return "Evento registrado correctamente", 200
         
-        order_status, aec = self.schedule_repository.add_event(data)
-        if aec != 200:
-            return order_status, aec
+        event, ec = self.schedule_repository.get_event_by_id(event_id)
+        if ec != 200:
+            return event, ec
         
-        return "Evento registrado correctamente", 200
+        update_event, uec = self.schedule_repository.update_event(event, data)
+        if uec != 200:
+            return update_event, uec
+
+        return "Evento actualizado correctamente", 200
 
 
     @handle_exceptions
@@ -171,8 +185,17 @@ class ScheduleService:
         
         return {
             "id": event.id,
+            "creator_id": event.user_id,
+            "description": event.description,
+            "start_datetime": event.start_datetime.isoformat(),
+            "meet": event.meet,
+            "hex_color": event.hex_color,
+            "all_day": True if event.all_day or event.all_day == 1 else False,
+            "end_datetime": event.end_datetime.isoformat() if event.end_datetime else None,
+            "creator_name": self.general_service.format_name(event.user.name),
             "title": event.title,
             "repeat": event.repeat_event,
             "notify": event.notify_event,
-            "visibility": event.visibility
+            "visibility": event.visibility,
+            "created_at": event.created_at.isoformat(),
         }, 200

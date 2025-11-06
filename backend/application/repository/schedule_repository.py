@@ -77,8 +77,8 @@ class ScheduleRepository:
             hex_color = data.get("hex_color"),
             visibility = data.get("visibility", "all"), #
             all_day = data.get("all_day"),
-            repeat_event = data.get("repeat_event"), #
-            notify_event = data.get("notify_event"), #
+            repeat_event = data.get("repeat"), #
+            notify_event = data.get("notify"), #
             created_at = peru_time
         )
 
@@ -121,3 +121,31 @@ class ScheduleRepository:
         g.db_session.commit()
         return True, 200
     
+
+    @handle_db_exceptions
+    def update_event(self, event, data):
+        raw_start = data.get("start_datetime")
+        raw_end = data.get("end_datetime")
+        utc_now = datetime.now(timezone.utc)
+        peru_time = utc_now - timedelta(hours=5)
+
+        if raw_end:
+            end_datetime = datetime.fromisoformat(raw_end) if "T" in raw_end else datetime.strptime(raw_end, "%Y-%m-%d")
+        else:
+            end_datetime = None
+            
+        event.title = data.get("title")
+        event.description = data.get("description")
+        event.start_datetime = datetime.fromisoformat(raw_start) if "T" in raw_start else datetime.strptime(raw_start, "%Y-%m-%d")
+        event.end_datetime = end_datetime
+        event.meet = data.get("meet")
+        event.hex_color = data.get("hex_color")
+        event.visibility = data.get("visibility")
+        event.all_day = data.get("all_day")
+        event.repeat_event = data.get("repeat")
+        event.notify_event = data.get("notify")
+        event.created_at = peru_time
+
+        g.db_session.add(event)
+        g.db_session.commit()
+        return True, 200
