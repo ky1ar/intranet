@@ -1,69 +1,47 @@
 <div x-data="schedule_data">
 	<div id="schedule">
 		<header>
-			<div class="menu">
-				<div class="item" @click="search()">
-					<div class="button">
-						<img alt="" width="20" height="20" src="/static/images/icons/calendar.svg">
-					</div>
-					<span>Asistencia</span>
-				</div>
-				<div class="item" @click="viewHistory()">
-					<div class="button">
-						<img alt="" width="20" height="20" src="/static/images/icons/calendar.svg">
-					</div>
-					<span>Agenda</span>
-				</div>
-			</div>
-				
-			<div class="navigation desktop">
-				<div class="button white hover-opacity" @click="prev()">
-					<img alt="prev" src="/static/images/arrow.svg" width="16" height="16">
-				</div>
-				<div class="button white middle hover-opacity" @click="today()" x-text="$store.cache.getData('attendance_dashboard')?.day"></div>
-				<div class="button white hover-opacity" @click="next()">
-					<img alt="next" src="/static/images/arrow.svg" width="16" height="16">
-				</div>
-			</div>
 
-			<template x-if="editAllowed()">
-				<div class="menu primary">
-					<div class="item" @click="pendings_open = !pendings_open">
-						<div class="button">
-							<img alt="" width="20" height="20" src="/static/images/icons/pending.svg">
-						</div>
-						<span x-text="`Pendientes ${$store.cache.getData('logistics_pendings')?.length || 0}`"></span>
-					</div>
-					<div class="item" @click="processShippingModal()">
-						<div class="button">
-							<img alt="" width="20" height="20" src="/static/images/icons/add.svg">
-						</div>
-						<span>Añadir</span>
-					</div>
+			<div class="navigation desktop">
+				<div class="button white hover-opacity" @click="prevMonth()">
+					<img alt="prev" src="/static/images/arrowleft.svg" width="16" height="16">
 				</div>
-			</template>
+				<div class="button white middle hover-opacity" @click="goToCurrentMonth()" x-text="formatMonthLabel(currentYear, currentMonth)"></div>
+				<div class="button white hover-opacity" @click="nextMonth()">
+					<img alt="next" src="/static/images/arrowright.svg" width="16" height="16">
+				</div>
+			</div>
+			
 		</header>
 
 		<div class="main">
 			<div class="left">
-				<div class="card glass">
-					<div class="name">
-						<img alt="" width="16" height="16" src="/static/images/email.svg">
-						<span>sistemas@krear3d.com</span>
+				<div class="card glass mini-calendar">
+					<div class="mini-nav">
+						<div class="button white hover-opacity" @click="prevMonth()">
+							<img alt="prev" src="/static/images/arrowleft.svg" width="16" height="16">
+						</div>
+						<span class="label" x-text="formatMonthLabel(currentYear, currentMonth)"></span>
+						<div class="button white hover-opacity" @click="nextMonth()">
+							<img alt="next" src="/static/images/arrowright.svg" width="16" height="16">
+						</div>
 					</div>
-					<div class="name">
-						<img alt="" width="16" height="16" src="/static/images/phone.svg">
-						<span>946887982</span>
+
+					<div class="mini-weekdays">
+						<span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
 					</div>
-					<div class="name">
-						<img alt="" width="16" height="16" src="/static/images/document.svg">
-						<span>47704997</span>
+
+					<div class="grid">
+						<template x-for="day in calendarDays" :key="'mini-'+day.date">
+							<div class="cell" :class="{ outside: !day.isCurrentMonth, today: day.isToday }" x-text="day.dayNumber"></div>
+						</template>
 					</div>
 				</div>
 			</div>
 
 			<div class="middle">
 				<div class="card glass">
+
 					<div class="center">
 						<span>
 							Lunes
@@ -84,380 +62,38 @@
 							Sábado
 						</span>
 						<span>
-							Resumen
+							Domingo
 						</span>
 					</div>
 					
 					<div class="bottom">
-						<div class="month glass">
-							<span class="number">31</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month white">
-							<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
-
-							<span class="number">01</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white" @click="addEvent()">
-							<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
-
-							<span class="number">02</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
+                        <template x-for="day in calendarDays" :key="day.date">
+                            <div class="month" :class="[day.isCurrentMonth ? 'white' : 'glass', isPastDate(day.date) ? 'past' : '']" :style="computeDayStyle(day)" @click="addEvent(day.date)">
+                                <span class="number" :class="{ today: day.isToday }" x-text="String(day.dayNumber).padStart(2, '0')"></span>
+                                <div class="body">
+									<template x-if="day.events && day.events.length">
+                                        <template x-for="(ev, idx) in day.events" :key="idx">
+                                            <div class="item" :class="ev.fullColor ? 'full' : 'normal'" @click.stop="openEvent(ev.id)"
+                                                :style="ev.hexColor ? (ev.fullColor ? `background-color: ${ev.hexColor}; color: white; padding: 6px 8px; border-radius: 6px;` : `background-color: white; padding: 6px 8px; border-radius: 6px;`) : ''">
+                                                <div class="row">
+                                                    <!-- Circulito de color si NO es fullColor -->
+                                                    <template x-if="!ev.fullColor && ev.hexColor">
+                                                        <span class="color-dot" :style="`background-color: ${ev.hexColor};`"></span>
+                                                    </template>
+                                                    <div class="content">
+                                                        <span class="label" x-text="ev.label"></span>
+                                                        <span class="date" x-show="!ev.allDay && ev.time" x-text="ev.time"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+									</template>
 								</div>
 							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">03</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">04</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month glass">
-							<span class="number">05</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass2 week-review">
-							<span class="percent">103.2%</span>
-							<div class="bar-wrapper white">
-								<div class="bar" style="width:103.2%"></div>
-							</div>
-						</div>
-
-
-						<div class="month white">
-							<span class="number">07</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">08</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">09</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">10</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
-
-							<span class="number">11</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-						
-						<div class="month glass">
-							<span class="number">12</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass2 week-review">
-							<span class="percent">101.3%</span>
-							<div class="bar-wrapper white">
-								<div class="bar" style="width:101.3%"></div>
-							</div>
-						</div>
-
-						
-						<div class="month white">
-							<span class="number">14</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
-
-							<span class="number">15</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">16</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">17</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">18</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month glass">
-							<span class="number">19</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass2 week-review">
-							<span class="percent">85.4%</span>
-							<div class="bar-wrapper white">
-								<div class="bar" style="width:85.4%"></div>
-							</div>
-						</div>
-
-
-						<div class="month white">
-							<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
-
-							<span class="number">21</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">22</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">23</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">24</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number today">25</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month glass">
-							<span class="number">26</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass2 week-review">
-							<span class="percent">76.4%</span>
-							<div class="bar-wrapper white">
-								<div class="bar" style="width:76.4%"></div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">28</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month white">
-							<span class="number">29</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month white">
-							<span class="number">30</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass">
-							<span class="number">01</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass">
-							<span class="number">02</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass">
-							<span class="number">03</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass2 week-review">
-							<span class="percent">0%</span>
-							<div class="bar-wrapper white">
-								<div class="bar" style="width:0%"></div>
-							</div>
-						</div>
+						</template>
 					</div>
 				</div>
-
 			</div>
-
 		</div>
 
         <div
@@ -467,141 +103,240 @@
 			class="modal-wrap"
 			id="modal-event"
 			x-cloak>
-			<div class="modal head glass2" @click.stop>
-				<input class="percent100 title" type="text" placeholder="Agregar título" x-model="event_data.order_number" :disabled="edit">
 
-				<div class="fields">
-					<label class="white">
-						<select x-model="event_data.method_id">
-							<template x-if="$store.cache.getData('shipping_method')?.length !== 1">
-								<option value="">Tipo de envío</option>
-							</template>
-
-							<template x-for="type in $store.cache.getData('shipping_method')" :key="type.id">
-								<option :value="type.id" x-text="type.name"></option>
-							</template>
-						</select>
-					</label>
-
-					<label class="white">
-						<input type="date" x-model="event_data.register_date_format">
-					</label>
-
-					<label :class="client_order_found || edit ? 'glass2' : 'white'">
-						<img alt="user" src="/static/images/id.svg" width="16" height="16">
-						<input
-							type="text"
-							maxlength="11"
-							:disabled="client_order_found || edit"
-							@input="event_data.client_document = event_data.client_document.replace(/\D/g, '')"
-							placeholder="DNI / RUC"
-							x-model="event_data.client_document"
-							@blur="fetchClientData()">
-						<input type="hidden" x-model="event_data.client_id">
-					</label>
-				</div>
-
-				<div class="fields">
-					<label :class="client_order_found || client_found || edit ? 'glass2' : 'white'">
-						<img alt="user" src="/static/images/user.svg" width="16" height="16">
-						<input :disabled="client_order_found || client_found || edit" type="text" placeholder="Nombre o Razón Social" x-model="event_data.client_name">
-					</label>
-				</div>
-
-				<div class="fields">
-					<label class="white">
-						<img alt="phone" src="/static/images/phone.svg" width="16" height="16">
-						<input type="text" maxlength="9" @input="event_data.client_phone = event_data.client_phone.replace(/\D/g, '')" placeholder="Celular" x-model="event_data.client_phone">
-					</label>
-
-					<label class="white flex2-3">
-						<img alt="location" src="/static/images/icons/tracking.svg" width="16" height="16">
-						<input type="text" placeholder="Dirección" x-model="event_data.address">
-					</label>
-					
-				</div>
-
-				<div class="fields">
-					<label class="white flex2-3">
-						<img alt="Referencia" src="/static/images/icons/tag.svg" width="16" height="16">
-						<input type="text" placeholder="Referencia" x-model="event_data.reference">
-					</label>
-
-					<label class="white">
-						<img alt="maps" src="/static/images/maps.svg" width="16" height="16">
-						<input type="text" placeholder="Google Maps" x-model="event_data.maps">
-					</label>
-				</div>
-
-				<div class="fields">
-					<label class="white">
-						<select x-model="event_data.district_id">
-							<template x-if="$store.cache.getData('districts')?.length !== 1">
-								<option value="">Distrito</option>
-							</template>
-							
-							<template x-for="district in $store.cache.getData('districts')" :key="district.id">
-								<option :value="district.id" x-text="district.name"></option>
-							</template>
-						</select>
-					</label>
-
-					<label class="white">
-						<select x-model="event_data.assigned_id">
-							<template x-if="$store.cache.getData('shipping_method')?.length !== 1">
-								<option value=null>Responsable</option>
-							</template>
-
-							<template x-for="vendor in $store.cache.getData('vendors')" :key="vendor.id">
-								<option :value="vendor.id" x-text="vendor.name"></option>
-							</template>
-						</select>   
-					</label>
-
-					<label class="white">
-						<select x-model="event_data.driver_id">
-							<template x-for="driver in $store.cache.getData('drivers')" :key="driver.id">
-								<option :value="driver.id" x-text="driver.name"></option>
-							</template>
-						</select>
-					</label>
-				</div>
+            <div class="modal head glass2" @click.stop>
+                <!--  ACCIONES SUPERIORES: independientes -->
+                <template x-if="edit && can_edit">
+                    <button class="icon-button modal-delete hover-opacity" @click.prevent.stop="Alpine.store('cache').showModal('confirm-delete')" aria-label="Eliminar">
+                        <img alt="eliminar" src="/static/images/icons/delete.svg">
+                    </button>
+                </template>
+                <div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
+                    <img alt="close" src="/static/images/x.svg" width="12" height="12">
+                </div>
 				
+                <!--  TÍTULO -->
+                <input 
+                    class="percent100 title" 
+                    type="text" 
+                    placeholder="Agregar título" 
+                    x-model="event_data.title" 
+                    @input="errors.title = ''"
+                    :disabled="edit && !editing">
+                <small class="error-text" x-show="errors.title" x-text="errors.title"></small>
+
+				<!--  DESCRIPCIÓN -->
 				<div class="fields">
-					<template x-if="event_data.client_order_id && edit && event_data.status_id != 3 && event_data.status_id != 4">
-						<button class="button hover-opacity black" @click="deleteShipping()" :class="buttons.delete.class" x-text="buttons.delete.text"></button>
-					</template>
-					<button x-show="!edit" class="button hover-opacity" @click="processShipping()" :class="buttons.process.class" x-text="buttons.process.text"></button>
-					<button x-show="edit" class="button hover-opacity" @click="processShipping()" :class="buttons.update.class" x-text="buttons.update.text"></button>
+					<label class="white flex2-3">
+						<img alt="desc" src="/static/images/icons/tag.svg" width="16" height="16">
+                        <input placeholder="Descripción" x-model="event_data.description" rows="3" class="percent100" :disabled="edit && !editing"></input>
+					</label>
 
+                    <!-- COLOR DEL EVENTO (posicionado junto a Descripción) -->
+                    <label class="white compact-color">
+                        <img alt="color" src="/static/images/icons/tag.svg" width="16" height="16">
+
+						<div class="color-select" x-data="{ open: false }" @click.outside="open = false">
+						<!-- Círculo principal (muestra el color seleccionado) -->
+                        <button 
+                            class="color-dot"
+                            :style="`background-color: ${event_data.color || '#999'}`"
+                            :disabled="edit && !editing"
+                            @click.prevent="open = (edit && !editing) ? false : !open"
+                            aria-label="Seleccionar color">
+                        </button>
+
+						<!-- Panel flotante con lista de colores -->
+						<div class="color-panel" x-show="open" x-transition>
+							<template x-for="(c, index) in colorOptions" :key="c.id || index">
+							<button 
+                                class="color-option"
+                                :title="c.name"
+                                :style="`background-color: ${c.hex}`"
+                                :class="{ 'selected': event_data.color === c.hex }"
+                                @click.prevent="
+                                event_data.color = c.hex;
+                                open = false;
+                                ">
+                            </button>
+                            </template>
+                        </div>
+                        </div>
+                    </label>
 				</div>
 
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()" >
-					<img alt="close" src="/static/images/x.svg" width="12" height="12">
+                <!--  FECHAS DE INICIO Y FIN -->
+                <div class="fields">
+                    <label class="white">
+                        <img alt="calendar" src="/static/images/icons/schedule.svg" width="16" height="16">
+                        <input type="date" x-model="event_data.start_date_only" :min="todayISO" @change="errors.start_date_only = ''" :disabled="edit && !editing">
+                        <input type="time" x-model="event_data.start_time" :disabled="edit && !editing">
+                        <small class="error-text" x-show="errors.start_date_only" x-text="errors.start_date_only"></small>
+                    </label>
+
+                    <label class="white">
+                        <img alt="calendar" src="/static/images/icons/schedule.svg" width="16" height="16">
+                        <input type="date" x-model="event_data.end_date_only" :disabled="(edit && !editing) || event_data.all_day" :min="todayISO">
+                        <input type="time" x-model="event_data.end_time" :disabled="(edit && !editing) || event_data.all_day">
+                    </label>
+                </div>
+
+				<!--  ENLACE DE GOOGLE MEET + TODO EL DÍA -->
+				<div class="fields">
+					<label class="white flex2-3">
+						<img alt="link" src="/static/images/icons/link.svg" width="16" height="16">
+                <input type="url" placeholder="Enlace de Google Meet" x-model="event_data.meet" :disabled="edit && !editing">
+					</label>
+
+					<label class="white checkbox">
+                        <input type="checkbox" x-model="event_data.all_day" :disabled="edit && !editing">
+						<span>Todo el día</span>
+					</label>
 				</div>
+
+                <!-- VISIBILIDAD + REPETIR -->
+                <div class="fields">
+
+                    <!-- VISIBILIDAD -->
+                    <label class="white flex2-3">
+                        <img alt="eye" src="/static/images/icons/eye.svg" width="16" height="16">
+                        <select x-model="event_data.visibility" :disabled="edit && !editing">
+                            <option value="" disabled :selected="!event_data.visibility">Visibilidad</option>
+                            <template x-for="opt in visibilityOptions" :key="opt.id">
+                                <option :value="opt.slug" x-text="opt.name"></option>
+                            </template>
+                        </select>
+                    </label>
+
+                    <!-- REPETIR -->
+                    <label class="white">
+                        <img alt="repeat" src="/static/images/pending.svg" width="16" height="16">
+                        <select x-model="event_data.repeat" :disabled="edit && !editing">
+                            <option value="" disabled :selected="!event_data.repeat">Repetir</option>
+                            <template x-for="opt in repeatOptions" :key="opt.id">
+                                <option :value="opt.slug" x-text="opt.name"></option>
+                            </template>
+                        </select>
+                    </label>
+
+                    <!-- NOTIFICACIÓN -->
+                    <label class="white notify-field">
+                        <img alt="bell" src="/static/images/notifications.svg" width="16" height="16">
+                        <select x-model="event_data.notify" :disabled="edit && !editing">
+                            <option value="" disabled :selected="!event_data.notify">Notificación</option>
+                            <template x-for="opt in notifyOptions" :key="opt.id">
+                                <option :value="opt.slug" x-text="opt.name"></option>
+                            </template>
+                        </select>
+                    </label>
+                </div>
+
+
+
+
+                <!--  BOTONES DE ACCIÓN -->
+                <div class="fields">
+                    <button 
+                        x-show="!edit || can_edit"
+                        class="button hover-opacity" 
+                        @click="handlePrimaryAction()" 
+                        :class="!edit ? buttons.save.class : (editing ? buttons.update.class : buttons.update.class)"
+                        x-text="!edit ? buttons.save.text : (editing ? 'Actualizar' : 'Editar')">
+                    </button>
+                    <div class="inline-success" x-show="successMessage" x-text="successMessage"></div>
+                </div>
+
 			</div>
 		</div>
 	</div>
+        <!-- Modal de confirmación para eliminar etiqueta -->
+    <div
+        x-show="$store.cache.isVisibleModal('confirm-delete')"
+        @mousedown.self="$store.cache.hideLastModal()"
+        x-transition.duration.300ms
+        class="modal-wrap"
+        id="modal-confirm-delete"
+        x-cloak>
 
+        <div class="modal head glass2" @click.stop>
+            <div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
+                <img alt="close" src="/static/images/x.svg" width="12" height="12">
+            </div>
 
-
-
+            <h3 class="white" style="margin-bottom: 1rem;">¿Deseas eliminar la etiqueta?</h3>
+            <div class="fields" style="justify-content: flex-end; gap: 0.5rem;">
+                <button class="button red hover-opacity" @click="deleteEvent()">Sí, eliminar</button>
+                <button class="button hover-opacity" @click="$store.cache.hideLastModal()">No</button>
+            </div>
+        </div>
+    </div>
 
 
 
 	<script>
-		Alpine.data('schedule_data',() => ({
-            api: Alpine.store('cache').api,
+		Alpine.data('schedule_data', () => ({
+			api: Alpine.store('cache').api,
 			user_id: Alpine.store('cache').user.id,
 			startHour: 8,
-			endHour: 20,
-			hours: Array.from({ length: 13 }, (_, i) => i + 8), // 8am - 8pm
-			now: new Date(),
-			offset: 0,
-			show_salary: false,
+			todayISO: '',
+			editing: false,
+            errors: {
+                title: '',
+                start_date_only: ''
+            },
+            successMessage: '',
+            edit: false,
+            can_edit: false,
 
-			async init() {
-				console.log('Inicializando attendance...');
+            // Botones del modal
+            buttons: {
+                save: { text: 'Guardar', class: 'blue' },
+                update: { text: 'Actualizar', class: 'blue' },
+                delete: { text: 'Eliminar', class: 'red' }
+            },
+
+			// Estado del formulario de evento
+            event_data: {
+                schedule_id: null,
+                title: '',
+                description: '',
+                // campos legacy (no usados): start_date, end_date
+                start_date: '',
+                end_date: '',
+                // nuevos campos para datepicker
+                start_date_only: '',
+                start_time: '',
+                end_date_only: '',
+                end_time: '',
+                meet: '',
+                all_day: false,
+                color: '',
+                visibility: '',
+                repeat: '',
+                notify: '',
+            },
+
+			// Estado del calendario
+			currentYear: 2025,
+			currentMonth: 11,
+			calendarDays: [],
+
+			// Opciones dinámicas
+			visibilityOptions: [],
+			repeatOptions: [],
+			notifyOptions: [],
+			colorOptions: [],
+
+            async init() {
+                console.log('Inicializando calendario...');
+                this.todayISO = this.formatTodayISO();
+                
+                this.buildMonthDays(this.currentYear, this.currentMonth);
+                
+                // Cargar en paralelo
+                this.getEvents();
+                this.loadOptions();
+
 				const socket = Alpine.store('cache').socket;
 				if (socket) {
 					socket.removeAllListeners();
@@ -609,97 +344,613 @@
 						await Alpine.store('cache').refresh(['attendance_period']);
 					});
 				}
-				
-				await Alpine.store('cache').fetchData([
-					//{ key: 'attendance_dashboard', url: `/attendance/dashboard/day?offset=${this.offset}`, force: true },
+
+				Alpine.store('cache').fetchData([
 					{ key: 'attendance_period', url: `/attendance/period/summary?user_id=${this.user_id}&period_id=2`, force: true },
+				]).then(() => Alpine.store('cache').verify()).catch(() => {});
 
-				]);
+                this.$watch('event_data.all_day', (val) => {
+                    if (val) {
+                        this.event_data.end_date_only = '';
+                        this.event_data.end_time = '';
+                    }
+                });
+            },
 
-				this.tick();
-				// refrescar calendario cada 30s
-				//setInterval(() => this.getCalendar(), 30000);
-				await Alpine.store('cache').verify();
+			async loadOptions() {
+				try {
+					const endpoints = [
+						{ key: 'visibility', url: '/schedule/options/visibility' },
+						{ key: 'repeat', url: '/schedule/options/repeat' },
+						{ key: 'notify', url: '/schedule/options/notify' },
+						{ key: 'colors', url: '/schedule/options/colors' },
+					];
 
+					const responses = await Promise.all(endpoints.map(e => fetch(this.api + e.url)));
+					const results = await Promise.all(responses.map(r => r.json()));
+
+					const [visData, repData, notData, colData] = results.map(r => r.data);
+
+					this.visibilityOptions = visData.visibility || [];
+					this.repeatOptions = repData.repeat || [];
+					this.notifyOptions = notData.notify || [];
+					this.colorOptions = colData.colors || [];
+
+					console.log("Opciones cargadas:", {
+						visibility: this.visibilityOptions,
+						repeat: this.repeatOptions,
+						notify: this.notifyOptions,
+						colors: this.colorOptions,
+					});
+
+				} catch (error) {
+					console.error('Error cargando opciones:', error);
+				}
 			},
 
-            addEvent(){
+            addEvent(selectedDate) {
+                // Evitar abrir modal para fechas pasadas
+                try {
+                    if (selectedDate) {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const d = new Date(`${selectedDate}T00:00:00`);
+                        if (d < today) return; // bloquear creación en días pasados
+                    }
+                } catch {}
+                this.edit = false;
+                this.editing = true; // creación: editable
+                this.resetEventForm();
+                this.event_data.creator_id = this.user_id;
+                // Autocompletar datepicker: fecha seleccionada y horas por defecto
+                if (selectedDate) {
+                    const startHourStr = String(this.startHour).padStart(2, '0');
+                    const endHourStr = String(this.startHour + 1).padStart(2, '0');
+                    this.event_data.start_date_only = selectedDate; // yyyy-mm-dd
+                    this.event_data.start_time = `${startHourStr}:00`;
+                    this.event_data.end_date_only = selectedDate; // yyyy-mm-dd
+                    this.event_data.end_time = `${endHourStr}:00`;
+                }
                 Alpine.store('cache').showModal('event');
             },
 
-			tick() {
-				this.now = new Date();
-				setTimeout(() => this.tick(), 1000 * 5);
+            isPastDate(dateStr) {
+                try {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const d = new Date(`${dateStr}T00:00:00`);
+                    return d < today;
+                } catch {
+                    return false;
+                }
+            },
+
+			async openEvent(eventId) {
+				try {
+					this.edit = true;
+					this.editing = false; // valor inicial, se ajusta según permisos
+					this.clearErrors();
+					this.resetEventForm();
+
+                    const res = await fetch(`${this.api}/schedule/event/${eventId}`, { cache: 'no-cache' });
+                    const json = await res.json();
+                    const d = json?.data || {};
+
+                    // Mapear datos al formulario
+                    this.event_data.schedule_id = d.id || null;
+                    this.event_data.title = d.title || '';
+                    this.event_data.description = d.description || '';
+                    this.event_data.meet = (d.meet || '').replace(/`/g, '').trim();
+                    this.event_data.all_day = !!d.all_day;
+                    this.event_data.color = d.hex_color || '';
+                    this.event_data.visibility = d.visibility || (this.visibilityOptions[0]?.slug || 'all');
+                    this.event_data.repeat = d.repeat || '';
+                    this.event_data.notify = d.notify || '';
+                    this.event_data.creator_id = (d.creator_id ?? d.user_id ?? null);
+					this.can_edit = (this.user_id === this.event_data.creator_id);
+					// Si tiene permisos, habilitar edición directa y mostrar botón "Actualizar"
+					this.editing = !!this.can_edit;
+
+                    // Fechas y horas
+                    const toDateOnly = (iso) => (iso && typeof iso === 'string') ? iso.slice(0, 10) : '';
+                    const toTime = (iso) => (iso && typeof iso === 'string') ? iso.slice(11, 16) : '';
+
+                    this.event_data.start_date_only = toDateOnly(d.start_datetime);
+                    this.event_data.start_time = toTime(d.start_datetime);
+
+                    if (!this.event_data.all_day && d.end_datetime) {
+                        this.event_data.end_date_only = toDateOnly(d.end_datetime);
+                        this.event_data.end_time = toTime(d.end_datetime);
+                    } else {
+                        this.event_data.end_date_only = '';
+                        this.event_data.end_time = '';
+                    }
+
+                    Alpine.store('cache').showModal('event');
+                } catch (e) {
+                    console.error('No se pudieron cargar los datos del evento', e);
+                    alert('No se pudieron cargar los datos del evento');
+                }
+            },
+
+			async getEvents() {
+				try {
+					const serverOffset = this.computeServerOffset(this.currentYear, this.currentMonth);
+					
+					const controller = new AbortController();
+					const timeout = setTimeout(() => controller.abort(), 4000); // ⬅ CAMBIAR de 600 a 3000ms
+					
+					const res = await fetch(`${this.api}/schedule/month?offset=${serverOffset}`, { 
+						signal: controller.signal, 
+						cache: 'no-cache' 
+					});
+					clearTimeout(timeout);
+
+					const json = await res.json();
+
+					const daysData = json?.data?.days || [];
+					
+					this.attachEventsToDays(daysData);
+					
+				} catch (error) {
+					console.error('Error al obtener eventos del mes:', error);
+					console.error('Tipo de error:', error.name); // Verá "AbortError" si fue timeout
+				}
 			},
 
-			formatHour(h) {
-				return h < 12 ? `${h}am` : (h == 12 ? "12pm" : `${h - 12}pm`);
-			},
+			buildMonthDays(year, month) {
+				const first = new Date(year, month - 1, 1);
+				const last = new Date(year, month, 0);
+				const total = last.getDate();
+				const today = new Date();
 
-			timeToPercent(date) {
-				const new_date = new Date(date);
-				const hours = new_date.getHours() + new_date.getMinutes() / 60;
-				const percent = ((hours - this.startHour) / (this.endHour +1 - this.startHour)) * 100;
-				return Math.min(Math.max(percent, 0), 100);
-			},
+				const startIndexMonday = (first.getDay() + 6) % 7;
+				const days = [];
 
-			intervalStyle(interval, idx, hex) {
-				const start = new Date(interval.start);
-				const end = interval.end ? new Date(interval.end) : this.now;
-				const left = this.timeToPercent(start);
-				const right = this.timeToPercent(end);
-				const width = right - left;
-
-				if (!interval.end) {
-					return `
-						left:${left}%;
-						width:${width}%;
-						background: linear-gradient(90deg, ${hex} 0%, ${hex}AA 70%, transparent 100%);
-					`;
+				// Días del mes anterior
+				if (startIndexMonday > 0) {
+					const prevLast = new Date(year, month - 1, 0);
+					const prevTotal = prevLast.getDate();
+					for (let i = startIndexMonday - 1; i >= 0; i--) {
+						const d = prevTotal - i;
+						const date = new Date(year, month - 2, d);
+						days.push({
+							date: date.toISOString().slice(0, 10),
+							dayNumber: d,
+							isCurrentMonth: false,
+							isToday: false,
+							events: [],
+						});
+					}
 				}
 
-				return `
-					left:${left}%;
-					width:${width}%;
-					background-color:${hex};
-				`;
+				// Días del mes actual
+				for (let d = 1; d <= total; d++) {
+					const date = new Date(year, month - 1, d);
+					days.push({
+						date: date.toISOString().slice(0, 10),
+						dayNumber: d,
+						isCurrentMonth: true,
+						isToday: today.getFullYear() === year && 
+								(today.getMonth() + 1) === month && 
+								today.getDate() === d,
+						events: [],
+					});
+				}
+
+				// Días del mes siguiente
+				const remainder = days.length % 7;
+				if (remainder !== 0) {
+					const trailing = 7 - remainder;
+					for (let d = 1; d <= trailing; d++) {
+						const date = new Date(year, month, d);
+						days.push({
+							date: date.toISOString().slice(0, 10),
+							dayNumber: d,
+							isCurrentMonth: false,
+							isToday: false,
+							events: [],
+						});
+					}
+				}
+
+				this.calendarDays = days;
 			},
 
-			formatLabel(interval) {
-				const start = new Date(interval.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-				const end = interval.end
-					? new Date(interval.end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-					: "ahora";
-				return `${start} - ${end}`;
+				attachEventsToDays(daysData) {
+					// daysData = [{ date: "2025-11-01", events: [...] }, ...]
+					const indexByDate = {};
+					this.calendarDays.forEach((day, idx) => { 
+						day.events = []; 
+						indexByDate[day.date] = idx; 
+					});
+
+                daysData.forEach(dayObj => {
+                    const dayDate = dayObj.date;
+                    const idx = indexByDate[dayDate];
+                    if (idx === undefined) return;
+
+                    const apiEvents = dayObj.events || [];
+                    const unique = {};
+                    apiEvents.forEach(ev => {
+                        if (ev && ev.id != null) {
+                            if (unique[ev.id]) return; // dedupe por id
+                            unique[ev.id] = true;
+                        }
+                        const label = ev.title || 'Evento';
+                        const hexColor = ev.hex_color || null;
+                        
+                        // Formato de hora
+                        let timeStr = '';
+                        try {
+                            if (ev.start_datetime) {
+                                const dt = new Date(ev.start_datetime);
+                                const startTime = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                
+                                if (ev.end_datetime) {
+                                    const dtEnd = new Date(ev.end_datetime);
+                                    const endTime = dtEnd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                    timeStr = `${startTime} - ${endTime}`;
+                                } else {
+                                    timeStr = startTime;
+                                }
+                            }
+                        } catch {}
+
+                        this.calendarDays[idx].events.push({ 
+                            id: ev.id,
+                            label, 
+                            time: timeStr,
+                            hexColor: hexColor,
+                            // Evento de día completo
+                            allDay: !!ev.all_day,
+                            // fullColor solo si es Todo el día con color
+                            fullColor: !!hexColor && !!ev.all_day
+                        });
+                    });
+                });
+            },
+
+				// Calcula estilo dinámico para cada día según cantidad de eventos
+				computeDayStyle(day) {
+					const count = (day?.events || []).length;
+					const baseRem = 7; // altura base
+					const perEventRem = 1.25; // incremento por evento
+					const minHeight = baseRem + (count > 0 ? count * perEventRem : 0);
+					return `min-height: ${minHeight}rem`;
+				},
+
+			computeServerOffset(targetYear, targetMonth) {
+				const now = new Date();
+				const y = now.getFullYear();
+				const m = now.getMonth() + 1;
+				return (targetYear - y) * 12 + (targetMonth - m);
 			},
 
-			async next() {
-				this.offset++;
-				await Alpine.store('cache').refresh([
-					{ key: 'attendance_dashboard', url: `/attendance/dashboard/day?offset=${this.offset}` }
-				]);
+			nextMonth() {
+				if (this.currentMonth === 12) {
+					this.currentMonth = 1;
+					this.currentYear += 1;
+				} else {
+					this.currentMonth += 1;
+				}
+				this.buildMonthDays(this.currentYear, this.currentMonth);
+				this.getEvents();
 			},
 
-			async prev() {
-				this.offset--;
-				await Alpine.store('cache').refresh([
-					{ key: 'attendance_dashboard', url: `/attendance/dashboard/day?offset=${this.offset}` }
-				]);
+			goToCurrentMonth() {
+				const now = new Date();
+				this.currentYear = now.getFullYear();
+				this.currentMonth = now.getMonth() + 1;
+				this.buildMonthDays(this.currentYear, this.currentMonth);
+				this.getEvents();
 			},
 
-			async today() {
-				this.offset = 0;
-				await Alpine.store('cache').refresh([
-					{ key: 'attendance_dashboard', url: `/attendance/dashboard/day` }
-				]);
+			prevMonth() {
+				if (this.currentMonth === 1) {
+					this.currentMonth = 12;
+					this.currentYear -= 1;
+				} else {
+					this.currentMonth -= 1;
+				}
+				this.buildMonthDays(this.currentYear, this.currentMonth);
+				this.getEvents();
 			},
+
+
+			resetEventForm() {
+				this.event_data = {
+					schedule_id: null,
+					creator_id: null,
+					title: '',
+					description: '',
+					// legacy
+					start_date: '',
+					end_date: '',
+					// datepicker
+					start_date_only: '',
+					start_time: '',
+					end_date_only: '',
+					end_time: '',
+					meet: '',
+					all_day: false,
+					color: '',
+					visibility: this.visibilityOptions[0]?.slug || 'all',
+					repeat: '',
+					notify: '',
+				};
+				this.can_edit = false;
+				this.clearErrors();
+			},
+
+            clearErrors() {
+                this.errors = { title: '', start_date_only: '' };
+            },
+
+
+			formatMonthLabel(year, month) {
+				const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+							'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+				return `${months[month - 1]} ${year}`;
+			},
+
+			formatTodayISO() {
+				const d = new Date();
+				const y = d.getFullYear();
+				const m = String(d.getMonth() + 1).padStart(2, '0');
+				const day = String(d.getDate()).padStart(2, '0');
+				return `${y}-${m}-${day}`;
+			},
+
+            async saveEvent() {
+                // limpiar errores previos
+                this.clearErrors();
+                this.successMessage = '';
+                // Componer ISO desde datepicker: yyyy-mm-dd + HH:mm
+                const composeISO = (dateOnly, time) => {
+                    if (!dateOnly) return null;
+                    const t = time && time.length ? time : '00:00';
+                    return `${dateOnly}T${t}`;
+                };
+
+                // Validación: no permitir eventos antes de la fecha actual
+                const startOnly = this.event_data.start_date_only;
+                const today = this.todayISO || this.formatTodayISO();
+                let hasError = false;
+                if (!this.event_data.title || !this.event_data.title.trim().length) {
+                    this.errors.title = 'Este campo es obligatorio';
+                    hasError = true;
+                }
+                if (!startOnly) {
+                    this.errors.start_date_only = 'Selecciona la fecha de inicio';
+                    hasError = true;
+                } else if (startOnly < today) {
+                    this.errors.start_date_only = 'No se permite registrar eventos antes de la fecha actual';
+                    hasError = true;
+                }
+                if (hasError) return;
+
+                const startISO = composeISO(this.event_data.start_date_only, this.event_data.start_time);
+                const endISO = this.event_data.all_day ? null : composeISO(this.event_data.end_date_only, this.event_data.end_time);
+
+                const payload = {
+                    event_id: this.event_data.schedule_id || null,
+                    user_id: this.user_id,
+                    title: (this.event_data.title || '').trim(),
+                    description: (this.event_data.description || '').trim(),
+                    start_datetime: startISO,
+                    end_datetime: endISO,
+                    meet: (this.event_data.meet || '').trim() || null,
+                    hex_color: this.event_data.color || this.colorOptions[0]?.hex || '#999',
+                    visibility: this.event_data.visibility || 'all',
+                    repeat: this.event_data.repeat || null,
+                    notify: this.event_data.notify || null,
+                    all_day: !!this.event_data.all_day
+                };
+
+				if (!payload.title) return alert('Ingresa un título');
+				if (!payload.start_datetime) return alert('Ingresa una fecha de inicio');
+
+                try {
+                    console.log('Enviando evento a /schedule/process:', payload);
+                    const res = await fetch(this.api + '/schedule/process', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+
+					console.log('Respuesta /schedule/process:', { status: res.status, data });
+
+                    if (res.ok) {
+                        this.successMessage = 'Evento registrado correctamente ✅';
+                        setTimeout(() => { this.successMessage = ''; }, 3500);
+                        this.resetEventForm();
+                        Alpine.store('cache').hideLastModal();
+                        await this.getEvents();
+                    } else {
+                        alert(typeof data === 'string' ? data : 'No se pudo registrar el evento');
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert('Error al conectar con el servidor');
+                }
+            },
+
+            async updateEvent() {
+                if (!this.can_edit) {
+                    alert('No tienes permiso para editar este evento');
+                    return;
+                }
+
+                this.clearErrors();
+                const composeISO = (dateOnly, time) => {
+                    if (!dateOnly) return null;
+                    const t = time && time.length ? time : '00:00';
+                    return `${dateOnly}T${t}`;
+                };
+
+                const startOnly = this.event_data.start_date_only;
+                let hasError = false;
+                if (!this.event_data.title || !this.event_data.title.trim().length) {
+                    this.errors.title = 'Este campo es obligatorio';
+                    hasError = true;
+                }
+                if (!startOnly) {
+                    this.errors.start_date_only = 'Selecciona la fecha de inicio';
+                    hasError = true;
+                }
+                if (hasError) return;
+
+                const startISO = composeISO(this.event_data.start_date_only, this.event_data.start_time);
+                const endISO = this.event_data.all_day ? null : composeISO(this.event_data.end_date_only, this.event_data.end_time);
+
+                const payload = {
+                    event_id: this.event_data.schedule_id || null,
+                    user_id: this.user_id,
+                    title: (this.event_data.title || '').trim(),
+                    description: (this.event_data.description || '').trim(),
+                    start_datetime: startISO,
+                    end_datetime: endISO,
+                    meet: (this.event_data.meet || '').trim() || null,
+                    hex_color: this.event_data.color || this.colorOptions[0]?.hex || '#999',
+                    visibility: this.event_data.visibility || 'all',
+                    repeat: this.event_data.repeat || null,
+                    notify: this.event_data.notify || null,
+                    all_day: !!this.event_data.all_day
+                };
+
+                if (!payload.title) return alert('Ingresa un título');
+                if (!payload.start_datetime) return alert('Ingresa una fecha de inicio');
+                if (!payload.event_id) return alert('Falta el identificador del evento');
+
+                try {
+                    console.log('Actualizando evento en /schedule/process:', payload);
+                    const res = await fetch(this.api + '/schedule/process', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+
+                    console.log('Respuesta actualización /schedule/process:', { status: res.status, data });
+
+                    if (res.ok) {
+                        this.successMessage = 'Evento actualizado correctamente';
+                        setTimeout(() => { this.successMessage = ''; }, 3500);
+                        // Actualización local inmediata para evitar duplicados visuales
+                        try {
+                            const updatedId = payload.event_id;
+                            const updatedDate = this.event_data.start_date_only;
+                            const label = payload.title || 'Evento';
+                            const hexColor = payload.hex_color || null;
+                            const timeStr = (() => {
+                                const opts = { hour: '2-digit', minute: '2-digit' };
+                                if (payload.start_datetime && payload.end_datetime) {
+                                    const s = new Date(payload.start_datetime).toLocaleTimeString([], opts);
+                                    const e = new Date(payload.end_datetime).toLocaleTimeString([], opts);
+                                    return `${s} - ${e}`;
+                                }
+                                if (payload.start_datetime) {
+                                    return new Date(payload.start_datetime).toLocaleTimeString([], opts);
+                                }
+                                return '';
+                            })();
+
+                            // Reemplazar el evento en el día correspondiente
+                            const day = (this.calendarDays || []).find(d => d.date === updatedDate);
+                            if (day && Array.isArray(day.events)) {
+                                const idx = day.events.findIndex(ev => ev.id === updatedId);
+                                const newEv = { id: updatedId, label, time: timeStr, hexColor, fullColor: !!hexColor && !!payload.all_day };
+                                if (idx >= 0) {
+                                    day.events.splice(idx, 1, newEv);
+                                } else {
+                                    // Si no se encuentra, lo añadimos (caso borde)
+                                    day.events.push(newEv);
+                                }
+                            }
+                        } catch (e2) {
+                            console.warn('No se pudo actualizar localmente el calendario', e2);
+                        }
+
+                        this.resetEventForm();
+                        Alpine.store('cache').hideLastModal();
+                        await this.getEvents();
+                    } else {
+                        alert(typeof data === 'string' ? data : 'No se pudo actualizar el evento');
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert('Error al conectar con el servidor');
+                }
+            },
+
+			requestEnableEditing() {
+				// Eliminado flujo de confirmación: se habilita edición directamente
+				this.editing = true;
+			},
+
+
+            handlePrimaryAction() {
+                // Si es creación, siempre guardar
+                if (!this.edit) {
+                    return this.saveEvent();
+                }
+                // Si está en vista, pedir confirmación para editar
+                if (this.edit && !this.editing) {
+                    return this.requestEnableEditing();
+                }
+                // En edición: si existe schedule_id, actualizar el mismo evento
+                if (this.event_data.schedule_id) {
+                    return this.updateEvent();
+                }
+                // Fallback: si por alguna razón no hay id, evita duplicados y guarda como nuevo
+                return this.saveEvent();
+            },
+
+			async deleteEvent() {
+				try {
+					const eventId = this.event_data?.schedule_id;
+					if (!eventId) {
+						console.warn('No hay event_id para eliminar');
+						return;
+					}
+
+					const res = await fetch(this.api + '/schedule/delete', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ event_id: eventId })
+					});
+					const data = await res.json().catch(() => ({}));
+
+					console.log('Respuesta /schedule/delete:', { status: res.status, data });
+
+					if (res.ok) {
+						// Remueve el evento del calendario local inmediatamente
+						if (Array.isArray(this.calendarDays)) {
+							this.calendarDays.forEach(day => {
+								if (Array.isArray(day.events)) {
+									day.events = day.events.filter(ev => ev.id !== eventId);
+								}
+							});
+						}
+
+					// Cierra el modal de confirmación y el modal de evento
+					Alpine.store('cache').hideLastModal();
+					Alpine.store('cache').hideLastModal();
+					// Refresca desde el servidor para mantener consistencia
+					await this.getEvents();
+					} else {
+						alert(typeof data === 'string' ? data : 'No se pudo eliminar el evento');
+					}
+				} catch (e) {
+					console.error('Error al eliminar el evento', e);
+					alert('Error al conectar con el servidor');
+				}
+			}
 		}));
+
 	</script>
-
-
-
-
-
 
 
 
@@ -750,117 +1001,121 @@
 			gap: 0.75rem;
 		}
 
-		
-
-		#schedule .main .left .thumb {
-			width: 100%;
-			border-radius: 0.5rem;
-		}
-		#schedule .main .left .detail {
+		/* Modal Event - checkbox Todo el día pequeño y redondo */
+		#modal-event .fields {
 			display: flex;
-			flex-direction: column;
-		}
-		#schedule .main .left .detail .name {
-			display: flex;
-			gap: 0.25rem;
-			align-items: center;
-		}
-		#schedule .main .left .detail b {
-			font-size: 0.9rem;
-    		font-weight: 600;
-		}
-		#schedule .main .left .detail span {
-			font-size: 0.7rem;
-    		font-weight: 400;
-		}
-
-		#schedule .main .salary {
-			position: relative;
-    		gap: 0.5rem;
-		}
-		#schedule .main .salary .litle {
-			font-size: 0.75rem;
-			font-weight: 500;
-			line-height: 1rem;
-		}
-		#schedule .main .salary .amount {
-			font-size: 1.25rem;
-			font-weight: 700;
-			line-height: 1.5rem;
-		}
-		#schedule .main .salary .eye {
-			padding: 0.5rem;
-			border-radius: 0.5rem;
-			position: absolute;
-			right: 0.5rem;
-			bottom: 0.5rem;
-			display: flex;
-			justify-content: center;
-			align-items: center;
-		}
-
-		#schedule .main .performance {
 			gap: 0.75rem;
+			align-items: center;
+			flex-wrap: wrap;
 		}
-		#schedule .main .performance .litle {
-			font-size: 0.75rem;
-			font-weight: 500;
-			line-height: 1rem;
-		}
-		#schedule .main .performance .reviews {
+		/* Asegurar misma altura visual para todos los labels de fields */
+		#modal-event .fields label.white {
 			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			min-height: 2.5rem;
+		}
+
+		/* Reducir ligeramente el ancho solo del campo de color */
+		#modal-event .fields label.color-field {
+			flex: 0 0 12rem;
+			max-width: 6rem;
+			align-items: center;
+		}
+
+		/* Ancho específico del campo de Visibilidad */
+		#modal-event .fields label.flex2-3 {
+			flex: 1 1 1rem; /* ancho base flexible */
+		}
+		#modal-event label.checkbox {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		#modal-event label.checkbox input[type="checkbox"] {
+			appearance: none;
+			width: 15px; /* tamaño más pequeño */
+			height: 15px;
+			border: 2px solid #ccc;
+			border-radius: 10px; /* redondeado */
+			background: #fff;
+			transition: all 0.2s ease-in-out;
+			cursor: pointer;
+			display: inline-block;
+		}
+		#modal-event label.checkbox input[type="checkbox"]:checked {
+			background-color: var(--primary);
+			border-color: var(--primary);
+		}
+		#modal-event label.checkbox span {
+			font-size: 0.8rem; /* texto un poco más pequeño */
+		}
+
+		/* Ancho específico del campo "Todo el día" (solo este label) */
+		#modal-event .fields label.checkbox {
+			flex: 0 0 8rem; /* ancho fijo para el bloque */
+		}
+
+		/* Modal Event - selector de color compacto */
+		#modal-event .color-select {
+			position: relative;
+			display: inline-flex;
+			align-items: center;
 			gap: 1rem;
-			flex-direction: column;
 		}
-		#schedule .main .performance .reviews .user {
-			display: flex;
-			gap: 0.75rem;
+
+		/*Modal Event - selector de notificaciones*/
+		#modal-event .fields label.notify-field { 
+			flex: 0 0 10rem; 
+			max-width: 14rem; 
+		}
+		#modal-event .fields label.compact-color {
+			flex: 0 0 8rem; /* ancho más pequeño */
+			max-width: 4rem;
 			align-items: center;
 		}
-		#schedule .main .performance .reviews .user .circle {
-			min-width: 1.75rem;
-    		border-radius: 1rem;
+		#modal-event .color-dot {
+			width: 18px;
+			height: 18px;
+			border-radius: 50%;
+			border: 2px solid #fff;
+			box-shadow: 0 0 0 1px #ddd;
+			cursor: pointer;
+			background-color: #999;
+			padding: 0;
+			outline: none;
+			appearance: none;
 		}
-		#schedule .main .performance .reviews .user .text {
-			display: flex;
-    		flex-direction: column;
+		#modal-event .color-panel {
+			position: absolute;
+			z-index: 10;
+			top: 120%;
+			left: 0;
+			background: #fff;
+			border: 1px solid #eee;
+			border-radius: 0.5rem;
+			box-shadow: 0 8px 24px hsl(0deg 0% 0% / 12%);
+			padding: 0.5rem;
+			display: grid;
+			grid-template-columns: repeat(4, 1fr);
+			gap: 0.5rem;
+			min-width: 8rem;
 		}
-		#schedule .main .performance .reviews .user .name {
-			line-height: 1rem;
-    		font-weight: 600;
+		#modal-event .color-option {
+			width: 20px;
+			height: 20px;
+			border-radius: 50%;
+			border: 2px solid #fff;
+			box-shadow: 0 0 0 1px #ddd;
+			cursor: pointer;
+			padding: 0;
+			outline: none;
+			appearance: none;
+			background-color: #999;
 		}
-		#schedule .main .performance .reviews .user .department {
-			font-size: 0.75rem;
-			font-weight: 400;
-			opacity: 0.5;
-			line-height: 1rem;
+		#modal-event .color-option.selected {
+			box-shadow: 0 0 0 2px var(--primary);
 		}
-		#schedule .main .performance .reviews .user .like {
-			margin-left: auto;
-		}
-
-		#schedule .main .week-review {
-			align-items: center;
-			justify-content: center;
-			gap: 0.75rem;
-		}
-		#schedule .main .week-review .percent {
-			font-size: 1.25rem;
-			line-height: 1.5rem;
-			font-weight: 500;
-		}
-		#schedule .main .week-review .bar-wrapper {
-			position: relative;
-			height: 12px;
-			overflow: hidden;
-			width: 100%;
-		}
-
-		#schedule .main .week-review .bar {
-			height: 100%;
-			background: linear-gradient(90deg, #eab12f, #fa6817);
-		}
-
 
 		#schedule .main .middle {
 			display: flex;
@@ -871,19 +1126,6 @@
 		#schedule .main .middle .top {
 			display: flex;
     		justify-content: space-between;
-		}
-		#schedule .main .middle .more {
-			display: flex;
-			gap: 0.25rem;
-			align-items: center;
-			background-color: var(--black);
-			color: var(--white);
-			padding: 0.5rem 1rem;
-			border-radius: 1rem;
-			font-size: 0.8rem;
-		}
-		#schedule .main .middle .more img {
-			filter: invert(1);
 		}
 		#schedule .main .middle .center {
 			display: grid;
@@ -901,6 +1143,7 @@
 			display: grid;
 			grid-template-columns: repeat(7, 1fr);
 			gap: 0.75rem;
+			grid-auto-rows: minmax(7rem, auto);
 		}
 		#schedule .main .middle .bottom .month {
 			padding: 0.5rem;
@@ -928,6 +1171,9 @@
 		#schedule .main .middle .bottom .month.glass .number {
 			opacity: 0.25;
 		}
+		#schedule .main .middle .bottom .month.glass {
+			opacity: 0.5;
+		}
 		#schedule .main .middle .bottom .month .late {
 			position: absolute;
 			right: 0.5rem;
@@ -947,13 +1193,59 @@
 			gap: 0.5rem;
 			margin-top: 2rem;
 		}
-		#schedule .main .middle .bottom .month .body .item {
-			display: flex;
-			flex-direction: column;
-			padding: 0.5rem;
-			border-radius: 0.5rem;
-			background-color: var(--gray);
-		}
+        #schedule .main .middle .bottom .month .body .item {
+            display: flex;
+            flex-direction: column;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            background-color: white; /* fondo por defecto blanco */
+            box-shadow: 0 0 0 1px #eee inset; /* sutil borde para contraste en blanco */
+        }
+        #schedule .main .middle .bottom .month .body .item .row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        #schedule .main .middle .bottom .month .body .item .color-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        #schedule .main .middle .bottom .month .body .item .content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        /* Cursor pointer sobre elementos de grid clicables */
+        #schedule .main .middle .bottom .month:hover {
+            cursor: pointer;
+        }
+        #schedule .main .middle .bottom .month.past:hover {
+            cursor: default;
+        }
+        #schedule .main .middle .bottom .month .body .item:hover {
+            cursor: pointer;
+        }
+        #schedule .main .middle .bottom .month .body .item.normal .label {
+            color: #000;
+            opacity: 1;
+            font-weight: 600;
+        }
+        #schedule .main .middle .bottom .month .body .item.normal .date {
+            color: #555;
+            font-size: 0.85em;
+        }
+        #schedule .main .middle .bottom .month .body .item.full .label {
+            color: #fff;
+            opacity: 1;
+            font-weight: 600;
+        }
+        #schedule .main .middle .bottom .month .body .item.full .date {
+            color: rgba(255,255,255,0.85);
+            font-size: 0.85em;
+        }
 		#schedule .main .middle .bottom .month .body .item .label {
 			font-size: 0.65rem;
 			line-height: 0.75rem;
@@ -964,278 +1256,151 @@
 			font-weight: 500;
 			line-height: 0.75rem;
 		}
-		#schedule .schedule-period {
-			display: flex;
-			flex-direction: column;
-    		gap: 1rem;
-		}
-		#schedule .schedule-period .week {
-			display: flex;
-    		flex-direction: column;
-			gap: 0.5rem;
-			padding: 0.75rem;
-		}
-		#schedule .schedule-period .days {
-			display: flex;
-			flex-direction: column;
-			gap: 0.5rem;
-		}
-		#schedule .schedule-period .days .day {
-			display: flex;
-			gap: 0.5rem;
-		}
-		#schedule .schedule-period .days .day .intervals {
-			display: flex;
-			gap: 0.5rem;
-		}
-		#schedule .schedule-day {
-			display: flex;
-		}
-		#schedule .users {
-			min-width: 13rem;
-			display: flex;
-    		flex-direction: column;
-			gap: 1rem;
-		}
-		#schedule .users .header {
-			font-size: 1rem;
-    		font-weight: 600;
-		}
-		#schedule .users .column {
-			display: flex;
-    		flex-direction: column;
-		}
-		#schedule .users .row {
+
+        /* Errores inline en el modal */
+        .error-text {
+            color: #d32f2f;
+            font-size: 0.75rem;
+            margin-top: 2px;
+        }
+
+        /* Botón de icono para eliminar */
+        .icon-button {
+            background: transparent;
+            border: none;
+            padding: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .icon-button img {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Posición independiente de los íconos del modal */
+        #modal-event .modal { position: relative; }
+        #modal-event .modal-delete {
+            position: absolute;
+            top: 1rem;
+            left: 1.5rem;
+            z-index: 2;
+        }
+        /* .modal-edit eliminado: se usa sólo botón principal para editar */
+        #modal-event .modal-close {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 2;
+        }
+        #modal-event .modal-close img {
+            width: 12px;
+            height: 12px;
+        }
+
+		/* Navegación del calendario en header: flecha - mes - flecha */
+		#schedule header .navigation.desktop {
 			display: flex;
 			align-items: center;
-			gap: 0.5rem;
-			padding: 0.75rem 0;
-			line-height: 1rem;
+			justify-content: flex-start;
+			gap: 10px;
+			margin: 0.5rem 0;
 		}
-		#schedule .users .row img {
-			border-radius: 1rem;
+		#schedule header .navigation.desktop .button {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 3rem;
+			height: 3rem;
+			border-radius: 9999px;
+			padding: 0;
 		}
-		#schedule .users .row .name {
+		#schedule header .navigation.desktop .button img {
+			width: 30px;
+			height: 30px;
+		}
+		#schedule header .navigation.desktop .button.middle {
+			min-width: 14rem;
+			height: 3rem;
+			padding: 0 1rem;
+			border-radius: 2rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
 			font-weight: 600;
-			font-size: 0.9rem;
 		}
-		#schedule .users .row .position {
-			font-size: 0.8rem;
-			font-weight: 400;
-			color: #6b7280;
-		}
-		#schedule .timeline {
-			position: relative;
+
+        /* Mensaje inline de éxito bajo el botón principal */
+        .inline-success {
+            color: #2e7d32; /* verde */
+            font-size: 0.8rem;
+            line-height: 1rem;
+            margin-left: 0.5rem;
+        }
+
+		/* Mini calendario en la columna izquierda */
+		#schedule .main .left .mini-calendar {
 			display: flex;
 			flex-direction: column;
-			gap: 1rem;
-			width: 100%;
+			gap: 0.5rem;
 		}
-		#schedule .timeline-header {
+		#schedule .main .left .mini-calendar .mini-nav {
 			display: flex;
+			align-items: center;
+			justify-content: space-between;
 		}
-		#schedule .timeline-hour {
-			flex: 1;
+		#schedule .main .left .mini-calendar .mini-nav .button {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 1.75rem;
+			height: 1.75rem;
+			border-radius: 9999px;
+			padding: 0;
+		}
+		#schedule .main .left .mini-calendar .mini-nav .button img {
+			width: 14px;
+			height: 14px;
+		}
+		#schedule .main .left .mini-calendar .mini-nav .label {
 			font-size: 0.8rem;
-			font-weight: 500;
-			line-height: 1.25rem;
-			padding-left: 0.5rem;
+			font-weight: 600;
 		}
-		#schedule .timeline-row {
-			position: relative;
-			display: flex;
-			height: 3.5rem;
-		}
-		#schedule .timeline-block {
-			position: absolute;
-			top: 0.5rem;
-			height: 2.5rem;
-			border-radius: 4px;
+		#schedule .main .left .mini-calendar .mini-weekdays {
+			display: grid;
+			grid-template-columns: repeat(7, 1fr);
+			gap: 0.25rem;
 			font-size: 0.65rem;
-			font-weight: 600;
+			opacity: 0.6;
+			text-align: center;
+		}
+		#schedule .main .left .mini-calendar .grid {
+			display: grid;
+			grid-template-columns: repeat(7, 1fr);
+			gap: 0.25rem;
+		}
+		#schedule .main .left .mini-calendar .cell {
+			height: 1.75rem;
+			border-radius: 0.5rem;
 			display: flex;
 			align-items: center;
-			overflow: hidden;
-			padding: 0 1px;
-			white-space: nowrap;
+			justify-content: center;
+			font-size: 0.75rem;
 		}
-		#schedule .timeline-block span {
-			padding: 0 0.5rem;
+		#schedule .main .left .mini-calendar .cell.today {
+			background-color: var(--primary);
 			color: #fff;
 		}
-		#schedule .timeline-now {
-			position: absolute;
-			top: 0;
-			bottom: 0;
-			width: 2px;
-			background: #000;
-			z-index: 10;
-		}
-		#schedule .timeline-line {
-			position: absolute;
-			top: 0;
-			bottom: 0;
-			width: 2px;
-			background: #ffffff80;
+		#schedule .main .left .mini-calendar .cell.outside {
+			opacity: 0.4;
 		}
 		
-		#schedule .header {
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-		}
-		#schedule .header .title {
-			background-color: var(--black);
-			color: var(--white);
-			padding: 0.75rem 1.5rem;
-			border-radius: 2rem;
-			font-weight: 300;
-		}
-		#schedule .header .title img {
-			padding: 0.5rem;
-			border-radius: 0.5rem;
-			border: 2px solid #eee;
-		}
-		#schedule .header .range {
-			font-size: 1rem;
-			font-weight: 600;
-			text-transform: capitalize;
-			display: flex;
-			align-items: center;
-			gap: 0.5rem;
-			position: relative;
-		}
-		#schedule .board {
-			display: flex;
-			height: 100%;
-			user-select: none;
-			flex-direction: column;
-		}
-		#schedule .group {
-			flex: 1;
-			display: flex;
-			flex-direction: column;
-			border-right: 2px solid #ffffff80;
-			gap: 0.25rem;
-			transition: var(--transition);
-		}
-		#schedule .calendar {
-			padding: 0;
-			margin: 0;
-			list-style: none;
-			display: flex;
-			flex-wrap: wrap;
-			font-size: 1rem;
-			width: 100%;
-		}
-		#schedule .calendar .day {
-			width: 14.25%;
-			padding: 0.5rem;
-			display: flex;
-			align-items: center;
-			font-weight: 600;
-			position: relative;
-			flex-direction: column;
-			justify-content: start;
-			border-right: 2px solid #ffffff80;
-			border-bottom: 2px solid #ffffff80;
-			gap: 0.5rem;
-
-		}
-		#schedule .calendar .item {
-			display: flex;
-			min-height: 8rem;
-			align-items: center;
-			flex-direction: column;
-			gap: 0.5rem;
-			justify-content: center;
-			width: 100%;
-			height: 100%;
-		}
-		#schedule .calendar .box {
-			border-radius: 0.75rem;
-			cursor: pointer;
-			padding: 0.75rem;
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			flex-direction: column;
-			position: relative;
-			transition: var(--transition);
-			background-color: white;
-			box-shadow: 0 0 1rem hsl(0deg 0% 0% / 2.5%);
-			width: 100%;
-		}
-		#schedule .calendar .box .row {
-			display: flex;
-			justify-content: space-between;
-			width: 100%;
-			align-items: center;
-		}
-		#schedule .calendar .box .order-number {
-			font-size: 1rem;
-			font-weight: 600;
-			line-height: 1rem;
-		}
-		#schedule .calendar .box .passed-days {
-			display: flex;
-			gap: 0.5rem;
-		}
-		#schedule .calendar .box .register-day {
-			font-size: 1rem;
-			font-weight: 700;
-		}
-		#schedule .calendar .box .admin-name {
-			font-size: 0.75rem;
-			opacity: 0.75;
-			display: block;
-			line-height: 0.8rem;
-			margin-top: 0.5rem;
-		}
-		#schedule .calendar .box .machine {
-			font-weight: 600;
-			font-size: 0.75rem;
-			line-height: 1rem;
-			display: block;
-		}
-		#schedule .calendar .box img {
-			mix-blend-mode: darken;
-			position: absolute;
-			bottom: 0.5rem;
-			right: 0.5rem;
-			width: 2rem;
-			pointer-events: none;
-		}
-		#schedule .group .name {
-			display: flex;
-			justify-content: center;
-			font-size: 0.9rem;
-			margin-top: 0.75rem;
-			gap: 0.5rem;
-			align-items: center;
-		}
-		#schedule ul {
-			margin: 0;
-			list-style: none;
-			display: flex;
-			gap: 0.75rem;
-			flex-direction: column;
-			padding: 0.75rem;
-			flex: 1;
-		}
-		#schedule ul li .buttons {
-			display: flex;
-			gap: 0.5rem;
-		}
-		#schedule ul li.low .register-day {
-			color: #6fcc85;
-		}
-		#schedule ul li.mid .register-day {
-			color: #ff9600;
-		}
-		#schedule ul li.high .register-day {
-			color: #f96161;
-		}
+		
+		
+		
+		
+		
 		/***********************************************************************************/
 		#modal-status .update {
 			display: flex;
