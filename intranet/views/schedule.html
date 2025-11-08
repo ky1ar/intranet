@@ -340,14 +340,14 @@
 				const socket = Alpine.store('cache').socket;
 				if (socket) {
 					socket.removeAllListeners();
-					socket.on("attendance_update_dashboard", async () => {
-						await Alpine.store('cache').refresh(['attendance_period']);
-					});
+					// socket.on("attendance_update_dashboard", async () => {
+					// await Alpine.store('cache').refresh(['attendance_period']);
+					// });
 				}
 
-				Alpine.store('cache').fetchData([
-					{ key: 'attendance_period', url: `/attendance/period/summary?user_id=${this.user_id}&period_id=2`, force: true },
-				]).then(() => Alpine.store('cache').verify()).catch(() => {});
+				// Alpine.store('cache').fetchData([
+				// 	{ key: 'attendance_period', url: `/attendance/period/summary?user_id=${this.user_id}&period_id=2`, force: true },
+				// ]).then(() => Alpine.store('cache').verify()).catch(() => {});
 
                 this.$watch('event_data.all_day', (val) => {
                     if (val) {
@@ -1380,7 +1380,7 @@
 		#schedule .main .left .mini-calendar .cell {
 			height: 1.75rem;
 			width: 1.75rem;
-			border-radius: 0.5rem;
+			border-radius: 2rem;
 			display: flex;
 			align-items: center;
 			justify-content: center;
