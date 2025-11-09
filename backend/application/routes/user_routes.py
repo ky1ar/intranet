@@ -31,7 +31,7 @@ def user_login():
 @jwt_required()
 def user_verify():
     return jsonify({
-        "app_version": "0.3.8.9"
+        "app_version": "0.3.8.9e"
     }), 200
 
 
@@ -48,3 +48,9 @@ def user_send_otp():
 @user_bp.route("/validate_otp", methods=["POST"])
 def user_validate_otp():
     return controller.user_validate_otp(request.get_json())
+
+
+@user_bp.route("/register_device", methods=["POST"])
+@jwt_required()
+def user_register_device():
+    return controller.register_device(request.get_json())

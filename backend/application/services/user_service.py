@@ -1,19 +1,20 @@
 import logging
 import threading
 import secrets
-
 from datetime import date, datetime, timezone, timedelta
 from application import bcrypt
 from application.handlers import handle_exceptions
 from application.repository.user_repository import UserRepository
+from application.repository.push_repository import PushRepository
 from application.proxy.apiperu import ApiPeru
 from application.proxy.whatsapp import Whatsapp
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, get_jwt_identity
 
 
 class UserService:
     def __init__(self):
         self.user_repository = UserRepository()
+        self.push_repository = PushRepository()
         self.apiperu = ApiPeru()
         self.whatsapp = Whatsapp()
         
@@ -181,3 +182,9 @@ class UserService:
             return "Código inválido", 422
 
         return "Código validado correctamente", 200
+
+
+    @handle_exceptions
+    def register_device(self, device_id, fcm_token):
+        user_id = int(get_jwt_identity())
+        return self.push_repository.upsert_token(user_id, device_id, fcm_token)

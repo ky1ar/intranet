@@ -1,5 +1,6 @@
 from flask import Blueprint, request
 from application.controllers.board_controller import BoardController
+from flask_jwt_extended import jwt_required
 
 
 board_bp = Blueprint("board", __name__, url_prefix="/board")
@@ -17,6 +18,7 @@ def board_issue_add():
 
 
 @board_bp.route("/issue/update", methods=["POST"])
+@jwt_required()
 def board_issue_update():
     return controller.board_issue_update(request.get_json())
 

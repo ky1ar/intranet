@@ -1,7 +1,7 @@
 import logging
-
 from application.handlers import handle_logs_and_exceptions, validate_request
 from application.services.user_service import UserService
+from flask_jwt_extended import get_jwt_identity
 
 
 class UserController:
@@ -78,4 +78,16 @@ class UserController:
         return self.user.validate_otp(user_id, phone, otp_code)
     
 
+    @handle_logs_and_exceptions
+    def register_device(self, data):
+        device_id = data.get("device_id")
+        fcm_token = data.get("fcm_token")
+
+        if not device_id or not fcm_token:
+            return "device_id y fcm_token son requeridos", 400
+
+        return self.user.register_device(device_id, fcm_token)
+    
+        
+    
     

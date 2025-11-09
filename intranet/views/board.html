@@ -313,7 +313,10 @@
                 try {
                     const response = await fetch(Alpine.store('cache').api + '/board/issue', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                       	headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${Alpine.store('cache').user.token}`,
+                        },
                         body: JSON.stringify(payload),
                     });
                     
@@ -332,6 +335,8 @@
             },
 
 			async updateIssue() {
+				if (this.isSending) return;
+				this.isSending = true;
                 NProgress.start();
 
                 const payload = { 
@@ -346,7 +351,10 @@
                 try {
                     const response = await fetch(Alpine.store('cache').api + '/board/issue/update', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${Alpine.store('cache').user.token}`,
+                        },
                         body: JSON.stringify(payload),
                     });
                     
@@ -359,6 +367,7 @@
                 } catch (error) {
                     this.showError('update', error.message);
                 } finally {
+					this.isSending = false;
                     NProgress.done();
                 }
             },
@@ -374,7 +383,10 @@
                 try {
                     const response = await fetch(Alpine.store('cache').api + '/board/issue/delete', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${Alpine.store('cache').user.token}`,
+                        },
                         body: JSON.stringify(payload),
                     });
                     
@@ -468,8 +480,9 @@
 					const response = await fetch(Alpine.store('cache').api + '/board/issue/status', {
 						method: 'POST',
 						headers: {
-							'Content-Type': 'application/json'
-						},
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${Alpine.store('cache').user.token}`,
+                        },
 						body: JSON.stringify(payload)
 					});
 			

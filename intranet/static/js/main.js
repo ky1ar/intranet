@@ -57,7 +57,108 @@ document.addEventListener('alpine:init', () => {
         modals: new Set(),
         sidebar: false,
         sidebar_menu: false,
+        device_id: null,
+        fcm_token: null,
+        notifications_enabled: localStorage.getItem('push_registered') === '1',
         
+        
+        getOrCreateDeviceId() {
+            let id = localStorage.getItem('device_id');
+            if (!id) {
+                id = crypto.randomUUID ? crypto.randomUUID() : `dev-${Date.now()}-${Math.random()}`;
+                localStorage.setItem('device_id', id);
+            }
+            this.device_id = id;
+            return id;
+        },
+
+        async requestPushPermission() {
+            if (!('Notification' in window)) {
+                alert('Este navegador no soporta notificaciones push');
+                return;
+            }
+
+            if (Notification.permission === 'granted') {
+                this.notifications_enabled = true;
+                await this.initPush();
+                return;
+            }
+
+            if (Notification.permission === 'denied') {
+                alert('Las notificaciones están bloqueadas. Actívalas en ajustes del navegador.');
+                return;
+            }
+
+            const result = await Notification.requestPermission();
+
+            if (result === 'granted') {
+                this.notifications_enabled = true;
+                localStorage.setItem('push_registered', '1');
+                await this.initPush();
+            }
+        },
+
+        async initPush() {
+            try {
+                if (!('serviceWorker' in navigator) || !('Notification' in window)) {
+                    console.warn('Push no soportado');
+                    return;
+                }
+
+                this.getOrCreateDeviceId();
+                const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+
+                const token = await window.messaging.getToken({
+                    vapidKey: 'BPsd2S7djGQTrd2IUttk19xkLI4t7fNyeYXZLQKmnhVlkqCWWboHNbnSMx0B-cFc_QDrUqizmVlVC5TnSrLO3Q0',
+                    serviceWorkerRegistration: registration,
+                });
+
+                if (!token) {
+                    console.warn('No se pudo obtener FCM token');
+                    return;
+                }
+
+                this.fcm_token = token;
+                console.log('FCM token:', token);
+
+                const savedToken   = localStorage.getItem('push_token');
+                const savedDevice  = localStorage.getItem('push_device_id');
+
+                if (savedToken === token && savedDevice === this.device_id) {
+                    console.log('Push ya registrado para este dispositivo, no envío al backend');
+                    this.notifications_enabled = true;
+                    localStorage.setItem('push_registered', '1');
+                    return;
+                }
+
+                if (this.user?.id && this.user?.token) {
+                    const res = await fetch(this.api + '/user/register_device', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${this.user.token}`,
+                        },
+                        body: JSON.stringify({
+                            device_id: this.device_id,
+                            fcm_token: this.fcm_token,
+                        }),
+                    });
+
+                    if (res.ok) {
+                        localStorage.setItem('push_token', token);
+                        localStorage.setItem('push_device_id', this.device_id);
+                        localStorage.setItem('push_registered', '1');
+                        this.notifications_enabled = true;
+                    } else {
+                        console.warn('Error registrando dispositivo en backend');
+                    }
+                }
+
+            } catch (err) {
+                console.error('Error inicializando push:', err);
+            }
+        },
+                
         sidebarOn() {
             this.sidebar = true;
         },
@@ -438,6 +539,7 @@ async function loginVerify(context) {
 
         Alpine.store('cache').initSocket();
         Alpine.store('cache').sidebarOn();
+        Alpine.store('cache').initPush();
         
         if (context.route == '/') {
             console.log('Sesión iniciada. Redirigiendo a default...');

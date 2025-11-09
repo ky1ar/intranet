@@ -15,6 +15,6 @@ python-engineio==4.11.2
 gevent==25.5.1
 redis==5.2.1
 pillow==11.1.0
-firebase-admin==6.5.0
+firebase-admin>=7.0.0
 flask-cors==5.0.1
 weasyprint==65.1

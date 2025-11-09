@@ -30,6 +30,15 @@ class UserRepository:
     
 
     @handle_db_exceptions
+    def get_user_name_by_id(self, user_id):
+        user = g.db_session.query(Users).filter_by(id=user_id).first()
+        if not user:
+            return 'Usuario', 200
+
+        return user.name.split()[0], 200
+    
+
+    @handle_db_exceptions
     def get_otp(self, user_id, phone):
         otp_code = (
             g.db_session.query(UserCodes)

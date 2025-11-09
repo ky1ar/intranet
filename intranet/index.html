@@ -26,15 +26,17 @@
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <!--<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>-->
-    
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+
     <!--<link rel="stylesheet" href="static/css/style.css?v=0.1.0.7215">-->
-    <link rel="stylesheet" href="/static/css/new.css?v=0.3.8.9">
+    <link rel="stylesheet" href="/static/css/new.css?v=0.3.8.9e">
 </head>
 
 <body class="container" x-data="data" :class="{'modal-open': $store.cache.hasActiveModals()}">
-    <script src="/static/js/main.js?v=0.3.8.9"></script>
+    <script src="/static/js/firebase-config.js?v=0.3.8.9e"></script>
+    <script src="/static/js/main.js?v=0.3.8.9e"></script>
 
     <template x-route="/" x-handler="loginVerify" x-template.preload.target.content="/views/login.html"></template>
     <template x-route="/home" x-template.preload.target.content="/views/home.html"></template>
@@ -70,9 +72,10 @@
             </ul>
 
             <div class="config">
-                <div class="notification hover-opacity">
+                <div class="notification hover-opacity"
+                    @click="$store.cache.requestPushPermission()">
                     <img alt="notification" src="/static/images/notifications.svg" width="18" height="18">
-                    <div class="dot"></div>
+                    <div class="dot" x-show="$store.cache.notifications_enabled"></div>
                 </div>
 
                 <img alt="user" @click="$store.cache.toogleSidebarMenu()" class="user hover-opacity" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="40" height="40">

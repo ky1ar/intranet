@@ -47,7 +47,10 @@ class BoardRepository:
         g.db_session.add(new_issue)
         g.db_session.flush()
         g.db_session.commit()
-        return new_issue.id, 200
+        return {
+            "id": new_issue.id,
+            "reporter_name": new_issue.reporter.name.split()[0],
+        }, 200
 
 
     @handle_db_exceptions
@@ -106,7 +109,9 @@ class BoardRepository:
         g.db_session.add(issue)
         g.db_session.flush()
         g.db_session.commit()
-        return "Tarea actualizada correctamente.", 200
+        return {
+            "status_name": issue.status.name,
+        }, 200
     
 
     @handle_db_exceptions
