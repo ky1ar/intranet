@@ -55,55 +55,84 @@
     <template x-route="notfound" x-template.preload.target.content="views/404.html"></template>
 
     <template x-if="$store.cache.user.id">
-        <div id="sidebar">
-            <span href="/home">
-                <img class="home" src="/static/images/single-logo.svg" alt="Logo" width="32" height="32">
-            </span>
+        <div>
+            <div id="sidebar">
+                <span href="/home">
+                    <img class="home" src="/static/images/single-logo.svg" alt="Logo" width="32" height="32">
+                </span>
+                
+                <ul>
+                    <template x-for="page in $store.cache.getPages()" :key="page.name">
+                        <li :class="{'active': $store.cache.active_page == '/' + page.name}">
+                            <a :href="'/' + page.name">
+                                <img width="20" height="20" :src="'/static/images/icons/'+page.image+'.svg'" alt="">
+                            </a>
+                            <span x-text="page.label"></span>
+                        </li>
+                    </template>
+                </ul>
+
+                <div class="config">
+                    <div class="notification hover-opacity"
+                        @click="$store.cache.requestPushPermission()">
+                        <img alt="notification" src="/static/images/notifications.svg" width="18" height="18">
+                        <div class="dot" x-show="$store.cache.notifications_enabled"></div>
+                    </div>
+
+                    <img alt="user" @click="$store.cache.toogleSidebarMenu()" class="user hover-opacity" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="40" height="40">
             
-            <ul>
-                <template x-for="page in $store.cache.getPages()" :key="page.name">
-                    <li :class="{'active': $store.cache.active_page == '/' + page.name}">
-                        <a :href="'/' + page.name">
-                            <img width="20" height="20" :src="'/static/images/icons/'+page.image+'.svg'" alt="">
-                        </a>
-                        <span x-text="page.label"></span>
-                    </li>
-                </template>
-            </ul>
+                    <div x-show="$store.cache.sidebar_menu" x-transition.duration.300ms x-cloak @click.outside="$store.cache.hideSidebarMenu()" class="menu">
+                        <div class="content">
+                            <img alt="user" class="image" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
+                            
+                            <div class="text">
+                                <b x-text="$store.cache.user.name"></b>
+                                <span x-text="$store.cache.user.phone"></span>
+                                <span x-text="$store.cache.user.department_name"></span>
+                            </div>
 
-            <div class="config">
-                <div class="notification hover-opacity"
-                    @click="$store.cache.requestPushPermission()">
-                    <img alt="notification" src="/static/images/notifications.svg" width="18" height="18">
-                    <div class="dot" x-show="$store.cache.notifications_enabled"></div>
-                </div>
+                            <div class="controls">
+                                <!--<div class="image hover-opacity">
+                                    <img alt="controls" src="/static/images/settings.svg" width="16" height="16">
+                                </div>-->
 
-                <img alt="user" @click="$store.cache.toogleSidebarMenu()" class="user hover-opacity" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="40" height="40">
-        
-                <div x-show="$store.cache.sidebar_menu" x-transition.duration.300ms x-cloak @click.outside="$store.cache.hideSidebarMenu()" class="menu">
-                    <div class="content">
-                        <img alt="user" class="image" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
-                        
-                        <div class="text">
-                            <b x-text="$store.cache.user.name"></b>
-                            <span x-text="$store.cache.user.phone"></span>
-                            <span x-text="$store.cache.user.department_name"></span>
-                        </div>
-
-                        <div class="controls">
-                            <!--<div class="image hover-opacity">
-                                <img alt="controls" src="/static/images/settings.svg" width="16" height="16">
-                            </div>-->
-
-                            <div class="image hover-opacity" @click="$store.cache.logout()">
-                                Cerrar sesión
-                                <img alt="controls" src="/static/images/logout.svg" width="16" height="16">
+                                <div class="image hover-opacity" @click="$store.cache.logout()">
+                                    Cerrar sesión
+                                    <img alt="controls" src="/static/images/logout.svg" width="16" height="16">
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+            <div
+                x-show="$store.cache.isVisibleModal('push-info')"
+                @mousedown.self="$store.cache.hideLastModal()"
+                x-transition.duration.300ms
+                class="modal-wrap"
+                id="modal-push-info"
+                x-cloak
+            >
+                <div class="modal head glass2" @click.stop>
+                    <div class="hover-opacity modal-close"
+                        @click="$store.cache.hideModal('push-info')">
+                        <img alt="close" src="/static/images/x.svg" width="12" height="12">
+                    </div>
+
+                    <img alt="user" src="/static/images/uploads/users/00000000.jpg" width="64" height="64">
+                    <span class="title">¿Quieres estar al día de todo?</span>
+                    <p>Habilita las notificaciones y te avisaré cada vez que tengas nuevos eventos, envíos o actualizaciones</p>
+
+                    <div class="fields">
+                        <button class="button blue hover-opacity"
+                                @click="$store.cache.requestPushPermission(); $store.cache.hideModal('push-info')">
+                            Activar ahora
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
+        
     </template>
     
     <div id="content" :class="{'sidebar': $store.cache.sidebar}"></div>

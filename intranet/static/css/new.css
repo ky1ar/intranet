@@ -479,8 +479,20 @@ body.modal-open {
     position: relative;
     align-items: center;
 }
+/***********************************************************************************/
 
+#modal-push-info .modal {
+    max-width: 24rem;
+    text-align: center;
+}
 
+#modal-push-info .modal img {
+    margin: auto;
+    border-radius: 3rem;
+}
+#modal-push-info .modal p {
+    margin: 0rem 0 1rem;
+}
 /****************************************************	100rem	1600px	 ***************************************************/ 
 @media only screen and (max-width: 100rem) {
 

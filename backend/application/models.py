@@ -518,14 +518,17 @@ class Events(db.Model):
     end_datetime = db.Column(db.DateTime)
     meet = db.Column(db.String(255))
     hex_color = db.Column(db.String(7))
-    visibility = db.Column(db.String(50), default='all')
+    visibility_id = db.Column(db.Integer, db.ForeignKey('schedule_visibility.id'))
     all_day = db.Column(db.Integer)
-    repeat_event = db.Column(db.String(50), default='none')
-    notify_event = db.Column(db.String(50), default='none')
+    repeat_id = db.Column(db.Integer, db.ForeignKey('schedule_repeat.id'))
+    notify_id = db.Column(db.Integer, db.ForeignKey('schedule_notify.id'))
     created_at = db.Column(db.DateTime)
     deleted_at = db.Column(db.DateTime)
 
     user = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
+    visibility = db.relationship("Visibility", lazy="joined", foreign_keys=[visibility_id])
+    repeat = db.relationship("Repeat", lazy="joined", foreign_keys=[repeat_id])
+    notify = db.relationship("Notify", lazy="joined", foreign_keys=[notify_id])
 
 
 class Visibility(db.Model):

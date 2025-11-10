@@ -75,10 +75,10 @@ class ScheduleRepository:
             end_datetime=end_datetime,
             meet = data.get("meet"),
             hex_color = data.get("hex_color"),
-            visibility = data.get("visibility", "all"), #
+            visibility_id = data.get("visibility_id"), #
             all_day = data.get("all_day"),
-            repeat_event = data.get("repeat"), #
-            notify_event = data.get("notify"), #
+            repeat_id = data.get("repeat_id"), #
+            notify_id = data.get("notify_id"), #
             created_at = peru_time
         )
 
@@ -107,7 +107,7 @@ class ScheduleRepository:
                 Events.start_datetime < next_day,
                 or_(
                     Events.start_datetime >= start_date,
-                    Events.repeat_event != 'none'               
+                    Events.repeat_id != 5               
                 )
             )
             .order_by(Events.start_datetime.asc())
@@ -145,10 +145,10 @@ class ScheduleRepository:
         event.end_datetime = end_datetime
         event.meet = data.get("meet")
         event.hex_color = data.get("hex_color")
-        event.visibility = data.get("visibility")
+        event.visibility_id = data.get("visibility_id")
         event.all_day = data.get("all_day")
-        event.repeat_event = data.get("repeat")
-        event.notify_event = data.get("notify")
+        event.repeat_id = data.get("repeat_id")
+        event.notify_id = data.get("notify_id")
         event.created_at = peru_time
 
         g.db_session.add(event)

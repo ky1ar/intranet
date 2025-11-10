@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, date
 from calendar import monthrange
 from application.handlers import handle_exceptions
 from application.repository.schedule_repository import ScheduleRepository
+from application.repository.user_repository import UserRepository
 from application.services.general_service import GeneralService
 from application import socketio
 from flask_jwt_extended import get_jwt_identity
@@ -11,17 +12,28 @@ from flask_jwt_extended import get_jwt_identity
 class ScheduleService:
     def __init__(self):
         self.schedule_repository = ScheduleRepository()
+        self.user_repository = UserRepository()
         self.general_service = GeneralService()
 
 
     @handle_exceptions
     def get_month(self, offset):
-        user_id = get_jwt_identity()  # por si luego filtras por user_id en el repo
+        raw_viewer_id = get_jwt_identity()
+        try:
+            viewer_id = int(raw_viewer_id) if raw_viewer_id is not None else None
+        except (TypeError, ValueError):
+            viewer_id = None
+
+        # ===================== USUARIO ACTUAL =====================
+        viewer_dept_id = None
+        if viewer_id:
+            viewer, vc_user = self.user_repository.get_user_by_id(viewer_id)
+            if vc_user == 200:
+                viewer_dept_id = viewer.department_id
 
         now = datetime.now()
         offset = int(offset) if offset is not None else 0
 
-        # Calcular mes objetivo
         target_month = now.month + offset
         target_year = now.year
 
@@ -32,31 +44,53 @@ class ScheduleService:
             target_month += 12
             target_year -= 1
 
-        # Primer / último día del mes
         first_day = datetime(target_year, target_month, 1)
         last_day_num = monthrange(target_year, target_month)[1]
         last_day = datetime(target_year, target_month, last_day_num)
 
-        # Rango visible en el calendario (de lunes a domingo)
         start_grid_date = first_day - timedelta(days=first_day.weekday())
         end_grid_date = last_day + timedelta(days=(6 - last_day.weekday()))
 
-        # ⚠️ Aquí podrías filtrar por user_id en el repo si quieres:
-        # events, vc = self.schedule_repository.get_events_in_range_for_user(user_id, start_grid_date, end_grid_date)
         events, vc = self.schedule_repository.get_events_in_range(start_grid_date, end_grid_date)
         if vc != 200:
             return events, vc
+
+        # ===================== FILTRO POR VISIBILITY =====================
+        filtered_events = []
+        for ev in events:
+            # El creador siempre ve sus eventos
+            if ev.user_id == viewer_id:
+                filtered_events.append(ev)
+                continue
+
+            vis = ev.visibility_id or 1
+
+            if vis == 1:
+                filtered_events.append(ev)
+                continue
+
+            if vis == 2:
+                creator_dept_id = getattr(getattr(ev, "user", None), "department_id", None)
+                if creator_dept_id and viewer_dept_id and creator_dept_id == viewer_dept_id:
+                    filtered_events.append(ev)
+                continue
+
+            if vis == 3:
+                continue
+
+            filtered_events.append(ev)
+
+        events = filtered_events
+        # ===================== FIN FILTRO VISIBILITY =====================
 
         today_date = now.date()
 
         def format_time(dt: datetime) -> str:
             return dt.strftime("%I:%M %p")
 
-        # Donde juntamos TODAS las ocurrencias (incluyendo repeticiones)
         occurrences_by_day = {}
 
         def add_occurrence(date_obj: date, ev, occ_start: datetime | None, occ_end: datetime | None):
-            """Agrega una ocurrencia del evento ev a un día concreto."""
             date_key = date_obj.isoformat()
             all_day = True if ev.all_day or ev.all_day == 1 else False
 
@@ -74,6 +108,8 @@ class ScheduleService:
                 "hexColor": ev.hex_color,
                 "allDay": all_day,
                 "fullColor": bool(ev.hex_color and all_day),
+                "creatorId": ev.user_id,
+                "creatorImage": ev.user.image,
             })
 
         grid_start_date = start_grid_date.date()
@@ -87,19 +123,17 @@ class ScheduleService:
             end_dt = ev.end_datetime
             base_date = start_dt.date()
 
-            # duración del evento (para clonar horas en repeticiones)
             duration = end_dt - start_dt if end_dt else None
+            rule = getattr(ev, "repeat_id")
 
-            rule = (getattr(ev, "repeat_event", None) or "none").lower()
-
-            # 1) Eventos sin repetición
-            if rule in ("none", "", None):
+            # ---- SIN REPETICIÓN ----
+            if rule == 1:
                 if grid_start_date <= base_date <= grid_end_date:
                     add_occurrence(base_date, ev, start_dt, end_dt)
                 continue
 
-            # 2) Repetición diaria
-            if rule == "daily":
+            # ---- DIARIO ----
+            if rule == 2:
                 first_occ_date = max(base_date, grid_start_date)
                 current_date = first_occ_date
                 while current_date <= grid_end_date:
@@ -109,8 +143,8 @@ class ScheduleService:
                     current_date += timedelta(days=1)
                 continue
 
-            # 3) Repetición semanal
-            if rule == "weekly":
+            # ---- SEMANAL ----
+            if rule == 3:
                 first_week_date = grid_start_date
                 days_diff = (base_date.weekday() - first_week_date.weekday()) % 7
                 first_occ_date = first_week_date + timedelta(days=days_diff)
@@ -125,8 +159,8 @@ class ScheduleService:
                     current_date += timedelta(days=7)
                 continue
 
-            # 4) Repetición mensual
-            if rule == "monthly":
+            # ---- MENSUAL ----
+            if rule == 4:
                 event_day = base_date.day
                 start_year, start_month = grid_start_date.year, grid_start_date.month
                 end_year, end_month = grid_end_date.year, grid_end_date.month
@@ -137,13 +171,12 @@ class ScheduleService:
                     try:
                         candidate = date(year, month, event_day)
                     except ValueError:
-                        candidate = None  # p.e. 31 en febrero
+                        candidate = None
                     if candidate and grid_start_date <= candidate <= grid_end_date and candidate >= base_date:
                         occ_start = datetime.combine(candidate, start_dt.time())
                         occ_end = occ_start + duration if duration else None
                         add_occurrence(candidate, ev, occ_start, occ_end)
 
-                    # siguiente mes
                     if month == 12:
                         month = 1
                         year += 1
@@ -151,8 +184,8 @@ class ScheduleService:
                         month += 1
                 continue
 
-            # 5) Repetición anual
-            if rule == "yearly":
+            # ---- ANUAL ----
+            if rule == 5:
                 event_day = base_date.day
                 event_month = base_date.month
                 for year in range(grid_start_date.year, grid_end_date.year + 1):
@@ -166,11 +199,9 @@ class ScheduleService:
                         add_occurrence(candidate, ev, occ_start, occ_end)
                 continue
 
-            # 6) Cualquier valor raro de repeat_event → lo tratamos como "none"
             if grid_start_date <= base_date <= grid_end_date:
                 add_occurrence(base_date, ev, start_dt, end_dt)
 
-        # Construir respuesta día por día
         days = []
         current = start_grid_date
         while current.date() <= end_grid_date.date():
@@ -190,7 +221,7 @@ class ScheduleService:
             current += timedelta(days=1)
 
         return days, 200
-    
+
 
     @handle_exceptions
     def get_visibility(self):
@@ -323,8 +354,8 @@ class ScheduleService:
             "end_datetime": event.end_datetime.isoformat() if event.end_datetime else None,
             "creator_name": self.general_service.format_name(event.user.name),
             "title": event.title,
-            "repeat": event.repeat_event,
-            "notify": event.notify_event,
-            "visibility": event.visibility,
+            "repeat_id": event.repeat_id,
+            "notify_id": event.notify_id,
+            "visibility_id": event.visibility_id,
             "created_at": event.created_at.isoformat(),
         }, 200

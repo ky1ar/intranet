@@ -50,15 +50,17 @@
                                 <div class="body">
 									<template x-if="day.events && day.events.length">
                                         <template x-for="(ev, idx) in day.events" :key="idx">
-                                            <div class="item" :class="ev.fullColor ? 'full' : 'normal'" @click.stop="openEvent(ev.id)"
+                                            <div class="item" :class="[ev.fullColor ? 'full' : 'normal', Number(ev.creatorId) === Number(user_id) ? 'mine' : '']" @click.stop="openEvent(ev.id)"
                                                 :style="ev.hexColor ? (ev.fullColor ? `background-color: ${ev.hexColor}; margin: 0.125rem 0;` : ``) : ''">
                                                 <div class="row">
                                                     <template x-if="ev.hexColor">
-                                                        <span class="color-dot" :style="!ev.fullColor ? `background-color: ${ev.hexColor};`:`background-color: #fff;`"></span>
+														<span class="color-dot" :style="!ev.fullColor ? `background-color: ${ev.hexColor};`:`background-color: #fff;`"></span>
+                                                        
                                                     </template>
                                                     <div class="content">
                                                         <span class="label" x-text="ev.label"></span>
                                                         <span class="date" x-show="!ev.allDay && ev.time" x-text="ev.time"></span>
+														<!-- <img class="thumb" x-show="ev.creatorId == user_id" width="24" height="24" src="/static/images/user.svg"> -->
                                                     </div>
                                                 </div>
                                             </div>
@@ -94,226 +96,216 @@
         </div>
 
         <!-- ============ MODO FORM (crear / editar creador) ============ -->
-        <template x-if="!edit || can_edit">
-            <div class="container">
-                <!--  TÍTULO -->
-                <div class="fields">
-                    <label class="white flex2-3">
-                        <input 
-                            class="percent100 title" 
-                            type="text" 
-                            placeholder="Título" 
-                            x-model="event_data.title" 
-                            @input="errors.title = ''"
-                            :disabled="edit && !editing">
-                        <small class="error-text" x-show="errors.title" x-text="errors.title"></small>
-                    </label>
+		<div class="container" x-show="!edit || can_edit">
+			<!--  TÍTULO -->
+			<div class="fields">
+				<label class="white flex2-3">
+					<input 
+						class="percent100 title" 
+						type="text" 
+						placeholder="Título" 
+						x-model="event_data.title" 
+						@input="errors.title = ''">
+					<small class="error-text" x-show="errors.title" x-text="errors.title"></small>
+				</label>
 
-                    <!-- COLOR DEL EVENTO -->
-                    <label class="white compact-color">
-                        <img alt="color" src="/static/images/icons/tag.svg" width="16" height="16">
+				<!-- COLOR DEL EVENTO -->
+				<label class="white compact-color">
+					<img alt="color" src="/static/images/icons/tag.svg" width="16" height="16">
 
-                        <div class="color-select" x-data="{ open: false }" @click.outside="open = false">
-                            <!-- Círculo principal -->
-                            <button 
-                                class="color-dot"
-                                :style="`background-color: ${event_data.color || '#999'}`"
-                                :disabled="edit && !editing"
-                                @click.prevent="open = (edit && !editing) ? false : !open"
-                                aria-label="Seleccionar color">
-                            </button>
+					<div class="color-select" x-data="{ open: false }" @click.outside="open = false">
+						<!-- Círculo principal -->
+						<button 
+							class="color-dot"
+							:style="`background-color: ${event_data.color || '#999'}`"
+							@click.prevent="open = edit ? false : !open"
+							aria-label="Seleccionar color">
+						</button>
 
-                            <!-- Panel flotante con lista de colores -->
-                            <div class="color-panel" x-show="open" x-transition>
-                                <template x-for="(c, index) in $store.cache.getData('color_options')" :key="c.id || index">
-                                    <button 
-                                        class="color-option"
-                                        :title="c.name"
-                                        :style="`background-color: ${c.hex}`"
-                                        :class="{ 'selected': event_data.color === c.hex }"
-                                        @click.prevent="
-                                            event_data.color = c.hex;
-                                            open = false;
-                                        ">
-                                    </button>
-                                </template>
-                            </div>
-                        </div>
-                    </label>
-                </div>
-
-                <!--  FECHAS DE INICIO Y FIN -->
-                <div class="fields">
-                    <label class="white">
-                        <span
-                            style="cursor: pointer; flex: 1; line-height: 2.5rem;"
-                            @click="
-                                if (!(edit && !editing)) {
-                                    if ($refs.start_date_input.showPicker) {
-                                        $refs.start_date_input.showPicker();
-                                    } else {
-                                        $refs.start_date_input.focus();
-                                    }
-                                }
-                            "
-                            x-text="
-                                event_data.start_date_only
-                                    ? (() => {
-                                        const [y, m, d] = event_data.start_date_only.split('-');
-                                        const months = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.'];
-                                        return `${parseInt(d)} ${months[parseInt(m) - 1]} ${y}`;
-                                    })()
-                                    : 'Selecciona una fecha'
-                            "
-                        ></span>
-
-                        <input
-                            x-ref="start_date_input"
-                            type="date"
-                            x-model="event_data.start_date_only"
-                            :min="todayISO"
-                            @change="errors.start_date_only = ''"
-                            :disabled="edit && !editing"
-                            style="
-                                position:absolute;
-                                inset:0;
-                                opacity:0;
-                                pointer-events:none;
-                            "
-                        >
-                    </label>
-                    
-                    <label class="white" x-show="false">
-                        <input type="date" x-model="event_data.end_date_only" :min="todayISO" :disabled="edit && !editing">
-                    </label>
-
-                    <label class="white" x-show="!event_data.all_day">
-                        <input type="time" x-model="event_data.start_time" :disabled="edit && !editing">
-                        <input type="time" x-model="event_data.end_time" :disabled="edit && !editing">
-                    </label>
-
-                    <label class="white checkbox">
-                        <input type="checkbox" x-model="event_data.all_day" :disabled="edit && !editing">
-                        <span>Todo el día</span>
-                    </label>
-                </div>
-
-                <!--  ENLACE DE GOOGLE MEET -->
-                <div class="fields">
-                    <label class="white flex2-3">
-                        <img alt="link" src="/static/images/icons/link.svg" width="16" height="16">
-                        <input type="url" placeholder="Google Meet" x-model="event_data.meet" :disabled="edit && !editing">
-                    </label>
-                </div>
-
-                <!-- VISIBILIDAD + REPETIR + NOTIFICACIÓN -->
-                <div class="fields">
-                    <!-- VISIBILIDAD -->
-                    <label class="white flex2-3">
-                        <img alt="eye" src="/static/images/icons/eye.svg" width="16" height="16">
-                        <select x-model="event_data.visibility" :disabled="edit && !editing">
-							<option value="" disabled>Visibilidad</option>
-							<template x-for="opt in ($store.cache.getData('visibility_options') || [])" :key="opt.id">
-								<option :value="normalizeSlug(opt.slug)" x-text="opt.name"></option>
+						<!-- Panel flotante con lista de colores -->
+						<div class="color-panel" x-show="open" x-transition>
+							<template x-for="(c, index) in $store.cache.getData('color_options')" :key="c.id || index">
+								<button 
+									class="color-option"
+									:title="c.name"
+									:style="`background-color: ${c.hex}`"
+									:class="{ 'selected': event_data.color === c.hex }"
+									@click.prevent="
+										event_data.color = c.hex;
+										open = false;
+									">
+								</button>
 							</template>
-						</select>
-                    </label>
+						</div>
+					</div>
+				</label>
+			</div>
 
-                    <!-- REPETIR -->
-                    <label class="white">
-                        <img alt="repeat" src="/static/images/pending.svg" width="16" height="16">
-                        <select x-model="event_data.repeat" :disabled="edit && !editing">
-							<option value="" disabled>Repetir</option>
-							<template x-for="opt in ($store.cache.getData('repeat_options') || [])" :key="opt.id">
-								<option :value="normalizeSlug(opt.slug)" x-text="opt.name"></option>
-							</template>
-						</select>
-                    </label>
+			<!--  FECHAS DE INICIO Y FIN -->
+			<div class="fields">
+				<label class="white">
+					<span
+						style="cursor: pointer; flex: 1; line-height: 2.5rem;"
+						@click="
+							if ($refs.start_date_input.showPicker) {
+								$refs.start_date_input.showPicker();
+							} else {
+								$refs.start_date_input.focus();
+							}
+						"
+						x-text="
+							event_data.start_date_only
+								? (() => {
+									const [y, m, d] = event_data.start_date_only.split('-');
+									const months = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.'];
+									return `${parseInt(d)} ${months[parseInt(m) - 1]} ${y}`;
+								})()
+								: 'Selecciona una fecha'
+						"
+					></span>
 
-                    <!-- NOTIFICACIÓN -->
-                    <label class="white notify-field">
-                        <img alt="bell" src="/static/images/notifications.svg" width="16" height="16">
-						<select x-model="event_data.notify" :disabled="edit && !editing">
-							<option value="" disabled>Notificación</option>
-							<template x-for="opt in ($store.cache.getData('notify_options') || [])" :key="opt.id">
-								<option :value="normalizeSlug(opt.slug)" x-text="opt.name"></option>
-							</template>
-						</select>
-                    </label>
-                </div>
+					<input
+						x-ref="start_date_input"
+						type="date"
+						x-model="event_data.start_date_only"
+						:min="todayISO"
+						@change="errors.start_date_only = ''"
+						style="
+							position:absolute;
+							inset:0;
+							opacity:0;
+							pointer-events:none;
+						"
+					>
+				</label>
+				
+				<label class="white" x-show="false">
+					<input type="date" x-model="event_data.end_date_only" :min="todayISO">
+				</label>
 
-                <!--  DESCRIPCIÓN -->
-                <div class="fields">
-                    <label class="white flex2-3">
-                        <img alt="desc" src="/static/images/icons/tag.svg" width="16" height="16">
-                        <input placeholder="Descripción (opcional)"
-                               x-model="event_data.description"
-                               rows="3"
-                               class="percent100"
-                               :disabled="edit && !editing">
-                    </label>
-                </div>
+				<label class="white" x-show="!event_data.all_day">
+					<input type="time" x-model="event_data.start_time">
+					<input type="time" x-model="event_data.end_time">
+				</label>
 
-                <!--  BOTONES DE ACCIÓN -->
-                <div class="fields">
-                    <button 
-                        x-show="!edit || can_edit"
-                        class="button hover-opacity" 
-                        @click="handlePrimaryAction()" 
-                        :class="!edit ? buttons.save.class : (editing ? buttons.update.class : buttons.update.class)"
-                        x-text="!edit ? buttons.save.text : (editing ? 'Actualizar' : 'Editar')">
-                    </button>
-                </div>
-            </div>
-        </template>
+				<label class="white checkbox">
+					<input type="checkbox" x-model="event_data.all_day">
+					<span>Todo el día</span>
+				</label>
+			</div>
+
+			<!--  ENLACE DE GOOGLE MEET -->
+			<div class="fields">
+				<label class="white flex2-3">
+					<img alt="link" src="/static/images/icons/link.svg" width="16" height="16">
+					<input type="url" placeholder="Google Meet" x-model="event_data.meet">
+				</label>
+			</div>
+
+			<!-- VISIBILIDAD + REPETIR + NOTIFICACIÓN -->
+			<div class="fields">
+				<!-- VISIBILIDAD -->
+				<label class="white flex2-3">
+					<img alt="eye" src="/static/images/icons/eye.svg" width="16" height="16">
+					<select x-model="event_data.visibility_id">
+						<option value="" disabled>Visibilidad</option>
+						<template x-for="opt in ($store.cache.getData('visibility_options') || [])" :key="opt.id">
+							<option :value="opt.id" x-text="opt.name"></option>
+						</template>
+					</select>
+				</label>
+
+				<!-- REPETIR -->
+				<label class="white">
+					<img alt="repeat" src="/static/images/pending.svg" width="16" height="16">
+					<select x-model="event_data.repeat_id">
+						<option value="" disabled>Repetición</option>
+						<template x-for="opt in ($store.cache.getData('repeat_options') || [])" :key="opt.id">
+							<option :value="opt.id" x-text="opt.name"></option>
+						</template>
+					</select>
+				</label>
+
+				<!-- NOTIFICACIÓN -->
+				<label class="white notify-field">
+					<img alt="bell" src="/static/images/notifications.svg" width="16" height="16">
+					<select x-model="event_data.notify_id">
+						<option value="" disabled>Notificación</option>
+						<template x-for="opt in ($store.cache.getData('notify_options') || [])" :key="opt.id">
+							<option :value="opt.id" x-text="opt.name"></option>
+						</template>
+					</select>
+				</label>
+			</div>
+
+			<!--  DESCRIPCIÓN -->
+			<div class="fields">
+				<label class="white flex2-3">
+					<img alt="desc" src="/static/images/icons/tag.svg" width="16" height="16">
+					<input placeholder="Descripción (opcional)"
+							x-model="event_data.description"
+							rows="3"
+							class="percent100">
+				</label>
+			</div>
+
+			<!--  BOTONES DE ACCIÓN -->
+			<div class="fields">
+				<button 
+					x-show="!edit || can_edit"
+					class="button hover-opacity" 
+					@click="handlePrimaryAction()" 
+					:class="!edit ? buttons.save.class : buttons.update.class"
+					x-text="!edit ? buttons.save.text : 'Actualizar'">
+				</button>
+			</div>
+		</div>
 
         <!-- ============ MODO SOLO LECTURA (no creador) ============ -->
-        <template x-if="edit && !can_edit">
-            <div class="readonly-view">
-                <div class="readonly-title">
-                   
-                    <span x-text="event_data.title || 'Sin título'" :style="`color: ${event_data.color}`"></span>
-                </div>
+		<div class="readonly-view" x-show="edit && !can_edit">
+			<div class="readonly-title">
 				
-				<div class="readonly-row">
-                    <span class="readonly-creator" x-text="`Creado por ${event_data.creator_name}`"></span>
-                </div>
+				<span x-text="event_data.title || 'Sin título'" :style="`color: ${event_data.color}`"></span>
+			</div>
+			
+			<div class="readonly-row">
+				<span class="readonly-creator" x-text="`Creado por ${event_data.creator_name}`"></span>
+			</div>
 
-				<div class="readonly-box white">
-					<template x-if="event_data.description">
-						<div class="readonly-row">
-							<span class="readonly-label">
-								<img alt="repeat" src="/static/images/icons/board.svg" width="16" height="16">
-								Descripción
-							</span>
-							<span class="readonly-value" x-text="event_data.description"></span>
-						</div>
-					</template>
-
+			<div class="readonly-box white">
+				<template x-if="event_data.description">
 					<div class="readonly-row">
 						<span class="readonly-label">
-							<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
-							Fecha y hora
+							<img alt="repeat" src="/static/images/icons/board.svg" width="16" height="16">
+							Descripción
 						</span>
-						<span class="readonly-value" x-text="formattedEventRange()"></span>
+						<span class="readonly-value" x-text="event_data.description"></span>
 					</div>
+				</template>
 
-					<template x-if="event_data.meet">
-						<div class="readonly-row">
-							<span class="readonly-label">
-								<img alt="repeat" src="/static/images/icons/link.svg" width="16" height="16">
-								Google Meet
-							</span>
-							<a class="readonly-value readonly-link"
-							:href="event_data.meet"
-							target="_blank"
-							rel="noopener"
-							x-text="event_data.meet"></a>
-						</div>
-					</template>
+				<div class="readonly-row">
+					<span class="readonly-label">
+						<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
+						Fecha y hora
+					</span>
+					<span class="readonly-value" x-text="formattedEventRange()"></span>
 				</div>
-            </div>
-        </template>
+
+				<template x-if="event_data.meet">
+					<div class="readonly-row">
+						<span class="readonly-label">
+							<img alt="repeat" src="/static/images/icons/link.svg" width="16" height="16">
+							Google Meet
+						</span>
+						<a class="readonly-value readonly-link"
+						:href="event_data.meet"
+						target="_blank"
+						rel="noopener"
+						x-text="event_data.meet"></a>
+					</div>
+				</template>
+			</div>
+		</div>
     </div>
 </div>
 
@@ -351,7 +343,6 @@
 		user_id: Alpine.store('cache').user.id,
 		offset: 0,
 		todayISO: '',
-		editing: false,
 		errors: {
 			title: '',
 			start_date_only: ''
@@ -375,9 +366,9 @@
 			meet: '',
 			all_day: true,
 			color: '',
-			visibility: '',
-			repeat: '',
-			notify: '',
+			visibility_id: null,
+			repeat_id: null,
+			notify_id: null,
 		},
 
 		currentYear: 2025,
@@ -404,11 +395,6 @@
 			]).then(() => Alpine.store('cache').verify()).catch(() => {});
 		},
 
-		getVisibilityDefault() {
-			const opts = Alpine.store('cache').getData('visibility_options') || [];
-			return opts[0]?.slug || 'all';
-		},
-
 		composeISO(dateOnly, time) {
 			if (!dateOnly) return null;
 			const t = time && time.length ? time : '00:00';
@@ -424,13 +410,10 @@
 			}
 			
 			this.edit = false;
-			this.editing = true;
-
-			this.resetEventForm();
-
 			this.event_data.creator_id = this.user_id;
 
 			if (selectedDate) {
+				this.resetEventForm();
 				const now = new Date();
 				let startHour = now.getHours() + 1;
 				let endHour   = startHour + 1;
@@ -448,7 +431,7 @@
 
 				this.event_data.end_date_only = selectedDate;
 				this.event_data.end_time = `${endHourStr}:00`;
-			}
+			} 
 			Alpine.store('cache').showModal('event');
 		},
 
@@ -505,9 +488,8 @@
 		async openEvent(eventId) {
 			NProgress.start();
 			try {
-				this.clearErrors();
-
-				const res = await fetch(`${this.api}/schedule/event/${eventId}`, { cache: 'no-cache' });
+				//this.clearErrors();
+				const res = await fetch(`${this.api}/schedule/event/${eventId}`);
 				const json = await res.json();
 				const d = json?.data || {};
 
@@ -517,15 +499,14 @@
 				this.event_data.meet         = (d.meet || '').replace(/`/g, '').trim();
 				this.event_data.all_day      = !!d.all_day;
 				this.event_data.color        = d.hex_color || '';
-				this.event_data.visibility = this.normalizeSlug(d.visibility) || this.getVisibilityDefault();
-				this.event_data.repeat     = this.normalizeSlug(d.repeat);
-				this.event_data.notify     = this.normalizeSlug(d.notify);
-				this.event_data.creator_id   = (d.creator_id ?? d.user_id ?? null);
+				this.event_data.visibility_id = d.visibility_id;
+				this.event_data.repeat_id     = d.repeat_id;
+				this.event_data.notify_id     = d.notify_id;
+				this.event_data.creator_id   = d.creator_id;
 				this.event_data.creator_name = d.creator_name || 'Fabrix';
 
 				this.edit = true;
-				this.can_edit = (this.user_id === this.event_data.creator_id);
-				this.editing  = !!this.can_edit;
+				this.can_edit = (this.user_id == this.event_data.creator_id);
 
 				const toDateOnly = (iso) => (iso && typeof iso === 'string') ? iso.slice(0, 10) : '';
 				const toTime     = (iso) => (iso && typeof iso === 'string') ? iso.slice(11, 16) : '';
@@ -535,7 +516,7 @@
 
 				this.event_data.end_date_only   = toDateOnly(d.end_datetime);
 				this.event_data.end_time        = toTime(d.end_datetime);
-		
+
 				Alpine.store('cache').showModal('event');
 			} catch (e) {
 				console.error('No se pudieron cargar los datos del evento', e);
@@ -578,12 +559,12 @@
 				meet: '',
 				all_day: true,
 				color: '',
-				visibility: this.getVisibilityDefault(),
-				repeat: '',
-				notify: '',
+				visibility_id: null,
+				repeat_id: null,
+				notify_id: null,
 			};
 			this.can_edit = false;
-			this.clearErrors();
+			//this.clearErrors();
 		},
 
 		clearErrors() {
@@ -619,9 +600,9 @@
 				end_datetime:   endISO,
 				meet:           (this.event_data.meet || '').trim() || null,
 				hex_color:      this.event_data.color || '#999',
-				visibility:     this.event_data.visibility || this.getVisibilityDefault(),
-				repeat:         this.event_data.repeat || null,
-				notify:         this.event_data.notify || null,
+				visibility_id:     this.event_data.visibility_id || 1,
+				repeat_id:         this.event_data.repeat_id || 1,
+				notify_id:         this.event_data.notify_id || 1,
 				all_day:        !!this.event_data.all_day
 			};
 
@@ -663,9 +644,9 @@
 				end_datetime:   endISO,
 				meet:           (this.event_data.meet || '').trim() || null,
 				hex_color:      this.event_data.color || '#999',
-				visibility:     this.event_data.visibility || this.getVisibilityDefault(),
-				repeat:         this.event_data.repeat || null,
-				notify:         this.event_data.notify || null,
+				visibility_id:     this.event_data.visibility_id || 1,
+				repeat_id:         this.event_data.repeat_id || 1,
+				notify_id:         this.event_data.notify_id || 1,
 				all_day:        !!this.event_data.all_day
 			};
 
@@ -756,6 +737,10 @@
 			max-width: 20rem;
 			gap: 1.5rem;
 			text-align: center;
+		}
+		.item.mine {
+			outline: 2px solid #fff;
+			box-shadow: 0 0 0 2px rgba(255,255,255,0.5);
 		}
 		#schedule {
 			user-select: none;
@@ -1091,7 +1076,6 @@
         #schedule .main .middle .bottom .month .body .item.full .label {
             color: #fff;
             opacity: 1;
-            font-weight: 500;
         }
         #schedule .main .middle .bottom .month .body .item.full .date {
             color: rgba(255,255,255,0.85);
@@ -1110,7 +1094,13 @@
 			font-weight: 500;
 			line-height: 0.75rem;
 		}
-
+		#schedule .main .middle .bottom .month .body .item .thumb {
+			position: absolute;
+			right: 1rem;
+			border-radius: 1rem;
+			width: 0.75rem;
+			height: 0.75rem;
+		}
         /* Errores inline en el modal */
         .error-text {
             color: #d32f2f;

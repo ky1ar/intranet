@@ -61,7 +61,6 @@ document.addEventListener('alpine:init', () => {
         fcm_token: null,
         notifications_enabled: localStorage.getItem('push_registered') === '1',
         
-        
         getOrCreateDeviceId() {
             let id = localStorage.getItem('device_id');
             if (!id) {
@@ -96,6 +95,18 @@ document.addEventListener('alpine:init', () => {
                 localStorage.setItem('push_registered', '1');
                 await this.initPush();
             }
+        },
+
+        maybeShowPushModal() {
+            if (localStorage.getItem('push_registered') === '1') return;
+
+            if (!('Notification' in window)) return;
+
+            if (Notification.permission !== 'default') return;
+
+            if (!this.user?.id) return;
+
+            this.showModal('push-info');
         },
 
         async initPush() {
@@ -248,6 +259,7 @@ document.addEventListener('alpine:init', () => {
         setUser(data) {
             console.log('Datos de usuario almacenados en el store');
             this.user = data;
+            this.maybeShowPushModal();
         },
 
         unsetData() {
