@@ -3,7 +3,7 @@ from datetime import date, datetime, timezone, timedelta
 from application.handlers import handle_db_exceptions
 from application.models import Events, Visibility, Repeat, Notify, Colors
 from flask import g
-
+from sqlalchemy import or_
 
 class ScheduleRepository:
     def __init__(self):
@@ -98,12 +98,17 @@ class ScheduleRepository:
 
     @handle_db_exceptions
     def get_events_in_range(self, start_date, end_date):
+        next_day = end_date + timedelta(days=1)
+
         events = (
             g.db_session.query(Events)
             .filter(
                 Events.deleted_at.is_(None),
-                Events.start_datetime >= start_date,
-                Events.start_datetime < end_date + timedelta(days=1)
+                Events.start_datetime < next_day,
+                or_(
+                    Events.start_datetime >= start_date,
+                    Events.repeat_event != 'none'               
+                )
             )
             .order_by(Events.start_datetime.asc())
             .all()

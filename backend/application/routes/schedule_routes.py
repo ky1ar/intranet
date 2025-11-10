@@ -8,6 +8,7 @@ controller = ScheduleController()
 
 
 @schedule_bp.route("/month", methods=["GET"])
+@jwt_required()
 def get_month():
     offset = request.args.get('offset', None)
     return controller.schedule_get_month(offset)

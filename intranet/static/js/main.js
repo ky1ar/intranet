@@ -323,9 +323,14 @@ document.addEventListener('alpine:init', () => {
             try {
                 const responses = await Promise.all(
                     toFetch.map(ep =>
-                        fetch(this.api + ep.url)
-                            .then(res => res.json())
-                            .then(data => ({ key: ep.key, data: data.data, url: ep.url }))
+                        fetch(this.api + ep.url, {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${this.user.token}`,
+                            }
+                        })
+                        .then(res => res.json())
+                        .then(data => ({ key: ep.key, data: data.data, url: ep.url }))
                     )
                 );
                 responses.forEach(({ key, data, url }) => this.setData(key, data, url));

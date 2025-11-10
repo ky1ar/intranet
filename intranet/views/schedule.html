@@ -3,11 +3,11 @@
 		<header>
 
 			<div class="navigation desktop">
-				<div class="button white hover-opacity" @click="prevMonth()">
+				<div class="button white hover-opacity" @click="prev()">
 					<img alt="prev" src="/static/images/arrow.svg" width="16" height="16">
 				</div>
-				<div class="button white middle hover-opacity" @click="goToCurrentMonth()" x-text="formatMonthLabel(currentYear, currentMonth)"></div>
-				<div class="button white hover-opacity" @click="nextMonth()">
+				<div class="button white middle hover-opacity" @click="today()" x-text="formatMonthLabel(currentYear, currentMonth)"></div>
+				<div class="button white hover-opacity" @click="next()">
 					<img alt="next" src="/static/images/arrow.svg" width="16" height="16">
 				</div>
 			</div>
@@ -15,33 +15,10 @@
 		</header>
 
 		<div class="main">
-			<div class="left">
-				<div class="card glass mini-calendar">
-					<div class="mini-nav">
-						<div class="button white hover-opacity" @click="prevMonth()">
-							<img alt="prev" src="/static/images/arrowleft.svg" width="16" height="16">
-						</div>
-						<span class="label" x-text="formatMonthLabel(currentYear, currentMonth)"></span>
-						<div class="button white hover-opacity" @click="nextMonth()">
-							<img alt="next" src="/static/images/arrowright.svg" width="16" height="16">
-						</div>
-					</div>
-
-					<div class="mini-weekdays">
-						<span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
-					</div>
-
-					<div class="grid">
-						<template x-for="day in calendarDays" :key="'mini-'+day.date">
-							<div class="cell" :class="{ outside: !day.isCurrentMonth, today: day.isToday }" x-text="day.dayNumber"></div>
-						</template>
-					</div>
-				</div>
-			</div>
+			
 
 			<div class="middle">
 				<div class="card glass">
-
 					<div class="center">
 						<span>
 							Lunes
@@ -67,16 +44,15 @@
 					</div>
 					
 					<div class="bottom">
-                        <template x-for="day in calendarDays" :key="day.date">
+                        <template x-for="day in $store.cache.getData('calendar_dashboard')" :key="day.date">
                             <div class="month" :class="[day.isCurrentMonth ? 'white' : 'glass', isPastDate(day.date) ? 'past' : '']"  @click="addEvent(day.date)">
                                 <span class="number" :class="{ today: day.isToday }" x-text="String(day.dayNumber).padStart(2, '0')"></span>
                                 <div class="body">
 									<template x-if="day.events && day.events.length">
                                         <template x-for="(ev, idx) in day.events" :key="idx">
                                             <div class="item" :class="ev.fullColor ? 'full' : 'normal'" @click.stop="openEvent(ev.id)"
-                                                :style="ev.hexColor ? (ev.fullColor ? `background-color: ${ev.hexColor};` : ``) : ''">
+                                                :style="ev.hexColor ? (ev.fullColor ? `background-color: ${ev.hexColor}; margin: 0.125rem 0;` : ``) : ''">
                                                 <div class="row">
-                                                    <!-- Circulito de color si NO es fullColor -->
                                                     <template x-if="ev.hexColor">
                                                         <span class="color-dot" :style="!ev.fullColor ? `background-color: ${ev.hexColor};`:`background-color: #fff;`"></span>
                                                     </template>
@@ -149,7 +125,7 @@
 
                             <!-- Panel flotante con lista de colores -->
                             <div class="color-panel" x-show="open" x-transition>
-                                <template x-for="(c, index) in colorOptions" :key="c.id || index">
+                                <template x-for="(c, index) in $store.cache.getData('color_options')" :key="c.id || index">
                                     <button 
                                         class="color-option"
                                         :title="c.name"
@@ -236,33 +212,33 @@
                     <label class="white flex2-3">
                         <img alt="eye" src="/static/images/icons/eye.svg" width="16" height="16">
                         <select x-model="event_data.visibility" :disabled="edit && !editing">
-                            <option value="" disabled :selected="!event_data.visibility">Visibilidad</option>
-                            <template x-for="opt in visibilityOptions" :key="opt.id">
-                                <option :value="opt.slug" x-text="opt.name"></option>
-                            </template>
-                        </select>
+							<option value="" disabled>Visibilidad</option>
+							<template x-for="opt in ($store.cache.getData('visibility_options') || [])" :key="opt.id">
+								<option :value="normalizeSlug(opt.slug)" x-text="opt.name"></option>
+							</template>
+						</select>
                     </label>
 
                     <!-- REPETIR -->
                     <label class="white">
                         <img alt="repeat" src="/static/images/pending.svg" width="16" height="16">
                         <select x-model="event_data.repeat" :disabled="edit && !editing">
-                            <option value="" disabled :selected="!event_data.repeat">Repetir</option>
-                            <template x-for="opt in repeatOptions" :key="opt.id">
-                                <option :value="opt.slug" x-text="opt.name"></option>
-                            </template>
-                        </select>
+							<option value="" disabled>Repetir</option>
+							<template x-for="opt in ($store.cache.getData('repeat_options') || [])" :key="opt.id">
+								<option :value="normalizeSlug(opt.slug)" x-text="opt.name"></option>
+							</template>
+						</select>
                     </label>
 
                     <!-- NOTIFICACIÓN -->
                     <label class="white notify-field">
                         <img alt="bell" src="/static/images/notifications.svg" width="16" height="16">
-                        <select x-model="event_data.notify" :disabled="edit && !editing">
-                            <option value="" disabled :selected="!event_data.notify">Notificación</option>
-                            <template x-for="opt in notifyOptions" :key="opt.id">
-                                <option :value="opt.slug" x-text="opt.name"></option>
-                            </template>
-                        </select>
+						<select x-model="event_data.notify" :disabled="edit && !editing">
+							<option value="" disabled>Notificación</option>
+							<template x-for="opt in ($store.cache.getData('notify_options') || [])" :key="opt.id">
+								<option :value="normalizeSlug(opt.slug)" x-text="opt.name"></option>
+							</template>
+						</select>
                     </label>
                 </div>
 
@@ -355,10 +331,9 @@
             <div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
                 <img alt="close" src="/static/images/x.svg" width="12" height="12">
             </div>
-
-            <h3 class="white" style="margin-bottom: 1rem;">¿Deseas eliminar la etiqueta?</h3>
+            <span class="title">¿Realmente deseas eliminar el evento?</span>
             <div class="fields" style="justify-content: flex-end; gap: 0.5rem;">
-                <button class="button red hover-opacity" @click="deleteEvent()">Sí, eliminar</button>
+                <button class="button black hover-opacity" @click="deleteEvent()">Sí, eliminar</button>
                 <button class="button hover-opacity" @click="$store.cache.hideLastModal()">No</button>
             </div>
         </div>
@@ -370,732 +345,400 @@
 
 
 
-
-
-
-
-
-
-
 	<script>
-		Alpine.data('schedule_data', () => ({
-			api: Alpine.store('cache').api,
-			user_id: Alpine.store('cache').user.id,
-			startHour: 8,
-			todayISO: '',
-			editing: false,
-            errors: {
-                title: '',
-                start_date_only: ''
-            },
-            successMessage: '',
-            edit: false,
-            can_edit: false,
+	Alpine.data('schedule_data', () => ({
+		api: Alpine.store('cache').api,
+		user_id: Alpine.store('cache').user.id,
+		offset: 0,
+		todayISO: '',
+		editing: false,
+		errors: {
+			title: '',
+			start_date_only: ''
+		},
+		edit: false,
+		can_edit: false,
 
-            // Botones del modal
-            buttons: {
-                save: { text: 'Crear evento', class: 'blue' },
-                update: { text: 'Actualizar', class: 'blue' },
-                delete: { text: 'Eliminar', class: 'red' }
-            },
+		buttons: {
+			save:   { text: 'Crear evento', class: 'blue' },
+			update: { text: 'Actualizar',   class: 'blue' },
+		},
 
-			// Estado del formulario de evento
-            event_data: {
-                schedule_id: null,
-                title: '',
-                description: '',
-                // campos legacy (no usados): start_date, end_date
-                start_date: '',
-                end_date: '',
-                // nuevos campos para datepicker
-                start_date_only: '',
-                start_time: '',
-                end_date_only: '',
-                end_time: '',
-                meet: '',
-                all_day: true,
-                color: '',
-                visibility: '',
-                repeat: '',
-                notify: '',
-            },
+		event_data: {
+			schedule_id: null,
+			title: '',
+			description: '',
+			start_date_only: '',
+			start_time: '',
+			end_date_only: '',
+			end_time: '',
+			meet: '',
+			all_day: true,
+			color: '',
+			visibility: '',
+			repeat: '',
+			notify: '',
+		},
 
-			// Estado del calendario
-			currentYear: 2025,
-			currentMonth: 11,
-			calendarDays: [],
+		currentYear: 2025,
+		currentMonth: 11,
 
-			// Opciones dinámicas
-			visibilityOptions: [],
-			repeatOptions: [],
-			notifyOptions: [],
-			colorOptions: [],
-
-            async init() {
-                console.log('Inicializando Calendario...');
-                this.todayISO = this.formatTodayISO();
-                
-                this.buildMonthDays(this.currentYear, this.currentMonth);
-                
-                this.getEvents();
-                this.loadOptions();
-
-				const socket = Alpine.store('cache').socket;
-				if (socket) {
-					socket.removeAllListeners();
-					// socket.on("attendance_update_dashboard", async () => {
-					// await Alpine.store('cache').refresh(['attendance_period']);
-					// });
-				}
-
-				//  Alpine.store('cache').fetchData([
-				// 	{ key: 'calendar_dashboard', url: `/support/dashboard?user_id=${Alpine.store('cache').user.id}`, force: true },
-				// 	{ key: 'calendar_options', url: '/general/service_methods' },
-				//  ]).then(() => Alpine.store('cache').verify()).catch(() => {});
-
-            },
-
-			async loadOptions() {
-				try {
-					const endpoints = [
-						{ key: 'visibility', url: '/schedule/options/visibility' },
-						{ key: 'repeat', url: '/schedule/options/repeat' },
-						{ key: 'notify', url: '/schedule/options/notify' },
-						{ key: 'colors', url: '/schedule/options/colors' },
-					];
-
-					const responses = await Promise.all(endpoints.map(e => fetch(this.api + e.url)));
-					const results = await Promise.all(responses.map(r => r.json()));
-
-					const [visData, repData, notData, colData] = results.map(r => r.data);
-
-					this.visibilityOptions = visData.visibility || [];
-					this.repeatOptions = repData.repeat || [];
-					this.notifyOptions = notData.notify || [];
-					this.colorOptions = colData.colors || [];
-
-					console.log("Opciones cargadas:", {
-						visibility: this.visibilityOptions,
-						repeat: this.repeatOptions,
-						notify: this.notifyOptions,
-						colors: this.colorOptions,
-					});
-
-				} catch (error) {
-					console.error('Error cargando opciones:', error);
-				}
-			},
-
-            addEvent(selectedDate) {
-				if (selectedDate) {
-					const today = new Date();
-					today.setHours(0, 0, 0, 0);
-					const d = new Date(`${selectedDate}T00:00:00`);
-					if (d < today) return;
-				}
-				
-                this.edit = false;
-                this.editing = true;
-
-                this.resetEventForm();
-                this.event_data.creator_id = this.user_id;
-
-				if (selectedDate) {
-					const now = new Date();
-					let startHour = now.getHours() + 1;
-					let endHour   = startHour + 1;
-
-					if (startHour >= 23) {
-						startHour = 23;
-						endHour = 23;
-					}
-
-					const startHourStr = String(startHour).padStart(2, '0');
-					const endHourStr   = String(endHour).padStart(2, '0');
-
-					this.event_data.start_date_only = selectedDate;
-					this.event_data.start_time = `${startHourStr}:00`;
-
-					this.event_data.end_date_only = selectedDate;
-					this.event_data.end_time = `${endHourStr}:00`;
-				}
-                Alpine.store('cache').showModal('event');
-            },
-
-            isPastDate(dateStr) {
-                try {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    const d = new Date(`${dateStr}T00:00:00`);
-                    return d < today;
-                } catch {
-                    return false;
-                }
-            },
-
-			formattedEventRange() {
-				const dStart = this.event_data.start_date_only;
-				const dEnd   = this.event_data.end_date_only;
-				const tStart = this.event_data.start_time;
-				const tEnd   = this.event_data.end_time;
-
-				if (!dStart && !dEnd) return '';
-
-				const months = ['ene.','feb.','mar.','abr.','may.','jun.',
-								'jul.','ago.','sep.','oct.','nov.','dic.'];
-
-				const fmtDate = (iso) => {
-					if (!iso) return '';
-					const [y, m, d] = iso.split('-');
-					return `${parseInt(d, 10)} ${months[parseInt(m, 10) - 1]} ${y}`;
-				};
-
-				const startLabel = fmtDate(dStart);
-				const endLabel   = dEnd && dEnd !== dStart ? fmtDate(dEnd) : '';
-
-				let timeLabel = '';
-				if (this.event_data.all_day) {
-					timeLabel = 'Todo el día';
-				} else if (tStart || tEnd) {
-					if (tStart && tEnd) timeLabel = `${tStart} - ${tEnd}`;
-					else timeLabel = tStart || tEnd || '';
-				}
-
-				let result = startLabel;
-				if (endLabel) result += ` - ${endLabel}`;
-				if (timeLabel) result += ` · ${timeLabel}`;
-				return result;
-			},
-
-			getOptionName(type, slug) {
-				if (!slug) return '';
-				let list = [];
-				if (type === 'visibility') list = this.visibilityOptions;
-				else if (type === 'repeat') list = this.repeatOptions;
-				else if (type === 'notify') list = this.notifyOptions;
-				const opt = list.find(o => o.slug === slug);
-				return opt ? opt.name : '';
-			},
-
-			async openEvent(eventId) {
-				try {
-					this.edit = true;
-					this.editing = false;
-					this.clearErrors();
-					this.resetEventForm();
-
-                    const res = await fetch(`${this.api}/schedule/event/${eventId}`, { cache: 'no-cache' });
-                    const json = await res.json();
-                    const d = json?.data || {};
-
-                    // Mapear datos al formulario
-                    this.event_data.schedule_id = d.id || null;
-                    this.event_data.title = d.title || '';
-                    this.event_data.description = d.description || '';
-                    this.event_data.meet = (d.meet || '').replace(/`/g, '').trim();
-                    this.event_data.all_day = !!d.all_day;
-                    this.event_data.color = d.hex_color || '';
-                    this.event_data.visibility = d.visibility || (this.visibilityOptions[0]?.slug || 'all');
-                    this.event_data.repeat = d.repeat || '';
-                    this.event_data.notify = d.notify || '';
-                    this.event_data.creator_id = (d.creator_id ?? d.user_id ?? null);
-                    this.event_data.creator_name = d.creator_name || 'Fabrix';
-
-					this.can_edit = (this.user_id === this.event_data.creator_id);
-					// Si tiene permisos, habilitar edición directa y mostrar botón "Actualizar"
-					this.editing = !!this.can_edit;
-
-                    // Fechas y horas
-                    const toDateOnly = (iso) => (iso && typeof iso === 'string') ? iso.slice(0, 10) : '';
-                    const toTime = (iso) => (iso && typeof iso === 'string') ? iso.slice(11, 16) : '';
-
-                    this.event_data.start_date_only = toDateOnly(d.start_datetime);
-                    this.event_data.start_time = toTime(d.start_datetime);
-
-					this.event_data.end_date_only = toDateOnly(d.end_datetime);
-					this.event_data.end_time = toTime(d.end_datetime);
-				
-
-                    Alpine.store('cache').showModal('event');
-                } catch (e) {
-                    console.error('No se pudieron cargar los datos del evento', e);
-                    alert('No se pudieron cargar los datos del evento');
-                }
-            },
-
-			async getEvents() {
-				try {
-					const serverOffset = this.computeServerOffset(this.currentYear, this.currentMonth);
-					
-					const controller = new AbortController();
-					const timeout = setTimeout(() => controller.abort(), 4000); // ⬅ CAMBIAR de 600 a 3000ms
-					
-					const res = await fetch(`${this.api}/schedule/month?offset=${serverOffset}`, { 
-						signal: controller.signal, 
-						cache: 'no-cache' 
-					});
-					clearTimeout(timeout);
-
-					const json = await res.json();
-
-					const daysData = json?.data?.days || [];
-					
-					this.attachEventsToDays(daysData);
-					
-				} catch (error) {
-					console.error('Error al obtener eventos del mes:', error);
-					console.error('Tipo de error:', error.name); // Verá "AbortError" si fue timeout
-				}
-			},
-
-			buildMonthDays(year, month) {
-				const first = new Date(year, month - 1, 1);
-				const last = new Date(year, month, 0);
-				const total = last.getDate();
-				const today = new Date();
-
-				const startIndexMonday = (first.getDay() + 6) % 7;
-				const days = [];
-
-				// Días del mes anterior
-				if (startIndexMonday > 0) {
-					const prevLast = new Date(year, month - 1, 0);
-					const prevTotal = prevLast.getDate();
-					for (let i = startIndexMonday - 1; i >= 0; i--) {
-						const d = prevTotal - i;
-						const date = new Date(year, month - 2, d);
-						days.push({
-							date: date.toISOString().slice(0, 10),
-							dayNumber: d,
-							isCurrentMonth: false,
-							isToday: false,
-							events: [],
-						});
-					}
-				}
-
-				// Días del mes actual
-				for (let d = 1; d <= total; d++) {
-					const date = new Date(year, month - 1, d);
-					days.push({
-						date: date.toISOString().slice(0, 10),
-						dayNumber: d,
-						isCurrentMonth: true,
-						isToday: today.getFullYear() === year && 
-								(today.getMonth() + 1) === month && 
-								today.getDate() === d,
-						events: [],
-					});
-				}
-
-				// Días del mes siguiente
-				const remainder = days.length % 7;
-				if (remainder !== 0) {
-					const trailing = 7 - remainder;
-					for (let d = 1; d <= trailing; d++) {
-						const date = new Date(year, month, d);
-						days.push({
-							date: date.toISOString().slice(0, 10),
-							dayNumber: d,
-							isCurrentMonth: false,
-							isToday: false,
-							events: [],
-						});
-					}
-				}
-
-				this.calendarDays = days;
-				console.log(days)
-			},
-
-			attachEventsToDays(daysData) {
-				const indexByDate = {};
-				this.calendarDays.forEach((day, idx) => { 
-					day.events = []; 
-					indexByDate[day.date] = idx; 
+		async init() {
+			console.log('Inicializando Calendario...');
+			this.todayISO = this.formatTodayISO();
+			
+			const socket = Alpine.store('cache').socket;
+			if (socket) {
+				socket.removeAllListeners();
+				socket.on("calendar_update_dashboard", async () => {
+					await Alpine.store('cache').refresh(['calendar_dashboard']);
 				});
-
-                daysData.forEach(dayObj => {
-                    const dayDate = dayObj.date;
-                    const idx = indexByDate[dayDate];
-                    if (idx === undefined) return;
-
-                    const apiEvents = dayObj.events || [];
-                    const unique = {};
-                    apiEvents.forEach(ev => {
-                        if (ev && ev.id != null) {
-                            if (unique[ev.id]) return;
-                            unique[ev.id] = true;
-                        }
-                        const label = ev.title || 'Evento';
-                        const hexColor = ev.hex_color || null;
-                        
-                        let timeStr = '';
-                        try {
-                            if (ev.start_datetime) {
-                                const dt = new Date(ev.start_datetime);
-                                const startTime = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                                
-                                if (ev.end_datetime) {
-                                    const dtEnd = new Date(ev.end_datetime);
-                                    const endTime = dtEnd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                                    timeStr = `${startTime} - ${endTime}`;
-                                } else {
-                                    timeStr = startTime;
-                                }
-                            }
-                        } catch {}
-
-                        this.calendarDays[idx].events.push({ 
-                            id: ev.id,
-                            label, 
-                            time: timeStr,
-                            hexColor: hexColor,
-                            allDay: !!ev.all_day,
-                            fullColor: !!hexColor && !!ev.all_day
-                        });
-                    });
-                });
-            },
-
-			computeDayStyle(day) {
-				const count = (day?.events || []).length;
-				const baseRem = 7; // altura base
-				const perEventRem = 1.25; // incremento por evento
-				const minHeight = baseRem + (count > 0 ? count * perEventRem : 0);
-				return `min-height: ${minHeight}rem`;
-			},
-
-			computeServerOffset(targetYear, targetMonth) {
-				const now = new Date();
-				const y = now.getFullYear();
-				const m = now.getMonth() + 1;
-				return (targetYear - y) * 12 + (targetMonth - m);
-			},
-
-			nextMonth() {
-				if (this.currentMonth === 12) {
-					this.currentMonth = 1;
-					this.currentYear += 1;
-				} else {
-					this.currentMonth += 1;
-				}
-				this.buildMonthDays(this.currentYear, this.currentMonth);
-				this.getEvents();
-			},
-
-			goToCurrentMonth() {
-				const now = new Date();
-				this.currentYear = now.getFullYear();
-				this.currentMonth = now.getMonth() + 1;
-				this.buildMonthDays(this.currentYear, this.currentMonth);
-				this.getEvents();
-			},
-
-			prevMonth() {
-				if (this.currentMonth === 1) {
-					this.currentMonth = 12;
-					this.currentYear -= 1;
-				} else {
-					this.currentMonth -= 1;
-				}
-				this.buildMonthDays(this.currentYear, this.currentMonth);
-				this.getEvents();
-			},
-
-
-			resetEventForm() {
-				this.event_data = {
-					schedule_id: null,
-					creator_id: null,
-					title: '',
-					description: '',
-					// legacy
-					start_date: '',
-					end_date: '',
-					// datepicker
-					start_date_only: '',
-					start_time: '',
-					end_date_only: '',
-					end_time: '',
-					meet: '',
-					all_day: true,
-					color: '',
-					visibility: this.visibilityOptions[0]?.slug || 'all',
-					repeat: '',
-					notify: '',
-				};
-				this.can_edit = false;
-				this.clearErrors();
-			},
-
-            clearErrors() {
-                this.errors = { title: '', start_date_only: '' };
-            },
-
-
-			formatMonthLabel(year, month) {
-				const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
-							'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-				return `${months[month - 1]} ${year}`;
-			},
-
-			formatTodayISO() {
-				const d = new Date();
-				const y = d.getFullYear();
-				const m = String(d.getMonth() + 1).padStart(2, '0');
-				const day = String(d.getDate()).padStart(2, '0');
-				return `${y}-${m}-${day}`;
-			},
-
-            async saveEvent() {
-                // limpiar errores previos
-                this.clearErrors();
-                this.successMessage = '';
-                // Componer ISO desde datepicker: yyyy-mm-dd + HH:mm
-                const composeISO = (dateOnly, time) => {
-                    if (!dateOnly) return null;
-                    const t = time && time.length ? time : '00:00';
-                    return `${dateOnly}T${t}`;
-                };
-
-                // Validación: no permitir eventos antes de la fecha actual
-                const startOnly = this.event_data.start_date_only;
-                const today = this.todayISO || this.formatTodayISO();
-                let hasError = false;
-                if (!this.event_data.title || !this.event_data.title.trim().length) {
-                    this.errors.title = 'Este campo es obligatorio';
-                    hasError = true;
-                }
-                if (!startOnly) {
-                    this.errors.start_date_only = 'Selecciona la fecha de inicio';
-                    hasError = true;
-                } else if (startOnly < today) {
-                    this.errors.start_date_only = 'No se permite registrar eventos antes de la fecha actual';
-                    hasError = true;
-                }
-                if (hasError) return;
-
-                const startISO = composeISO(this.event_data.start_date_only, this.event_data.start_time);
-                const endISO = composeISO(this.event_data.end_date_only, this.event_data.end_time);
-
-                const payload = {
-                    event_id: this.event_data.schedule_id || null,
-                    user_id: this.user_id,
-                    title: (this.event_data.title || '').trim(),
-                    description: (this.event_data.description || '').trim(),
-                    start_datetime: startISO,
-                    end_datetime: endISO,
-                    meet: (this.event_data.meet || '').trim() || null,
-                    hex_color: this.event_data.color || this.colorOptions[0]?.hex || '#999',
-                    visibility: this.event_data.visibility || 'all',
-                    repeat: this.event_data.repeat || null,
-                    notify: this.event_data.notify || null,
-                    all_day: !!this.event_data.all_day
-                };
-
-				if (!payload.title) return alert('Ingresa un título');
-				if (!payload.start_datetime) return alert('Ingresa una fecha de inicio');
-
-                try {
-                    console.log('Enviando evento a /schedule/process:', payload);
-                    const res = await fetch(this.api + '/schedule/process', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    const data = await res.json();
-
-					console.log('Respuesta /schedule/process:', { status: res.status, data });
-
-                    if (res.ok) {
-                        this.successMessage = 'Evento registrado correctamente ✅';
-                        setTimeout(() => { this.successMessage = ''; }, 3500);
-                        this.resetEventForm();
-                        Alpine.store('cache').hideLastModal();
-                        await this.getEvents();
-                    } else {
-                        alert(typeof data === 'string' ? data : 'No se pudo registrar el evento');
-                    }
-                } catch (e) {
-                    console.error(e);
-                    alert('Error al conectar con el servidor');
-                }
-            },
-
-            async updateEvent() {
-                if (!this.can_edit) {
-                    alert('No tienes permiso para editar este evento');
-                    return;
-                }
-
-                this.clearErrors();
-                const composeISO = (dateOnly, time) => {
-                    if (!dateOnly) return null;
-                    const t = time && time.length ? time : '00:00';
-                    return `${dateOnly}T${t}`;
-                };
-
-                const startOnly = this.event_data.start_date_only;
-                let hasError = false;
-                if (!this.event_data.title || !this.event_data.title.trim().length) {
-                    this.errors.title = 'Este campo es obligatorio';
-                    hasError = true;
-                }
-                if (!startOnly) {
-                    this.errors.start_date_only = 'Selecciona la fecha de inicio';
-                    hasError = true;
-                }
-                if (hasError) return;
-
-                const startISO = composeISO(this.event_data.start_date_only, this.event_data.start_time);
-                const endISO = composeISO(this.event_data.end_date_only, this.event_data.end_time);
-
-                const payload = {
-                    event_id: this.event_data.schedule_id || null,
-                    user_id: this.user_id,
-                    title: (this.event_data.title || '').trim(),
-                    description: (this.event_data.description || '').trim(),
-                    start_datetime: startISO,
-                    end_datetime: endISO,
-                    meet: (this.event_data.meet || '').trim() || null,
-                    hex_color: this.event_data.color || this.colorOptions[0]?.hex || '#999',
-                    visibility: this.event_data.visibility || 'all',
-                    repeat: this.event_data.repeat || null,
-                    notify: this.event_data.notify || null,
-                    all_day: !!this.event_data.all_day
-                };
-
-                if (!payload.title) return alert('Ingresa un título');
-                if (!payload.start_datetime) return alert('Ingresa una fecha de inicio');
-                if (!payload.event_id) return alert('Falta el identificador del evento');
-
-                try {
-                    console.log('Actualizando evento en /schedule/process:', payload);
-                    const res = await fetch(this.api + '/schedule/process', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    const data = await res.json();
-
-                    console.log('Respuesta actualización /schedule/process:', { status: res.status, data });
-
-                    if (res.ok) {
-                        this.successMessage = 'Evento actualizado correctamente';
-                        setTimeout(() => { this.successMessage = ''; }, 3500);
-                        // Actualización local inmediata para evitar duplicados visuales
-                        try {
-                            const updatedId = payload.event_id;
-                            const updatedDate = this.event_data.start_date_only;
-                            const label = payload.title || 'Evento';
-                            const hexColor = payload.hex_color || null;
-                            const timeStr = (() => {
-                                const opts = { hour: '2-digit', minute: '2-digit' };
-                                if (payload.start_datetime && payload.end_datetime) {
-                                    const s = new Date(payload.start_datetime).toLocaleTimeString([], opts);
-                                    const e = new Date(payload.end_datetime).toLocaleTimeString([], opts);
-                                    return `${s} - ${e}`;
-                                }
-                                if (payload.start_datetime) {
-                                    return new Date(payload.start_datetime).toLocaleTimeString([], opts);
-                                }
-                                return '';
-                            })();
-
-                            // Reemplazar el evento en el día correspondiente
-                            const day = (this.calendarDays || []).find(d => d.date === updatedDate);
-                            if (day && Array.isArray(day.events)) {
-                                const idx = day.events.findIndex(ev => ev.id === updatedId);
-                                const newEv = { id: updatedId, label, time: timeStr, hexColor, fullColor: !!hexColor && !!payload.all_day };
-                                if (idx >= 0) {
-                                    day.events.splice(idx, 1, newEv);
-                                } else {
-                                    // Si no se encuentra, lo añadimos (caso borde)
-                                    day.events.push(newEv);
-                                }
-                            }
-                        } catch (e2) {
-                            console.warn('No se pudo actualizar localmente el calendario', e2);
-                        }
-
-                        this.resetEventForm();
-                        Alpine.store('cache').hideLastModal();
-                        await this.getEvents();
-                    } else {
-                        alert(typeof data === 'string' ? data : 'No se pudo actualizar el evento');
-                    }
-                } catch (e) {
-                    console.error(e);
-                    alert('Error al conectar con el servidor');
-                }
-            },
-
-			requestEnableEditing() {
-				// Eliminado flujo de confirmación: se habilita edición directamente
-				this.editing = true;
-			},
-
-
-            handlePrimaryAction() {
-                // Si es creación, siempre guardar
-                if (!this.edit) {
-                    return this.saveEvent();
-                }
-                // Si está en vista, pedir confirmación para editar
-                if (this.edit && !this.editing) {
-                    return this.requestEnableEditing();
-                }
-                // En edición: si existe schedule_id, actualizar el mismo evento
-                if (this.event_data.schedule_id) {
-                    return this.updateEvent();
-                }
-                // Fallback: si por alguna razón no hay id, evita duplicados y guarda como nuevo
-                return this.saveEvent();
-            },
-
-			async deleteEvent() {
-				try {
-					const eventId = this.event_data?.schedule_id;
-					if (!eventId) {
-						console.warn('No hay event_id para eliminar');
-						return;
-					}
-
-					const res = await fetch(this.api + '/schedule/delete', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ event_id: eventId })
-					});
-					const data = await res.json().catch(() => ({}));
-
-					console.log('Respuesta /schedule/delete:', { status: res.status, data });
-
-					if (res.ok) {
-						// Remueve el evento del calendario local inmediatamente
-						if (Array.isArray(this.calendarDays)) {
-							this.calendarDays.forEach(day => {
-								if (Array.isArray(day.events)) {
-									day.events = day.events.filter(ev => ev.id !== eventId);
-								}
-							});
-						}
-
-					// Cierra el modal de confirmación y el modal de evento
-					Alpine.store('cache').hideLastModal();
-					Alpine.store('cache').hideLastModal();
-					// Refresca desde el servidor para mantener consistencia
-					await this.getEvents();
-					} else {
-						alert(typeof data === 'string' ? data : 'No se pudo eliminar el evento');
-					}
-				} catch (e) {
-					console.error('Error al eliminar el evento', e);
-					alert('Error al conectar con el servidor');
-				}
 			}
-		}));
 
+			Alpine.store('cache').fetchData([
+				{ key: 'calendar_dashboard', url: `/schedule/month?offset=${this.offset}`, force: true },
+				{ key: 'visibility_options', url: '/schedule/options/visibility' },
+				{ key: 'repeat_options',     url: '/schedule/options/repeat' },
+				{ key: 'notify_options',     url: '/schedule/options/notify' },
+				{ key: 'color_options',      url: '/schedule/options/colors' },
+			]).then(() => Alpine.store('cache').verify()).catch(() => {});
+		},
+
+		getVisibilityDefault() {
+			const opts = Alpine.store('cache').getData('visibility_options') || [];
+			return opts[0]?.slug || 'all';
+		},
+
+		composeISO(dateOnly, time) {
+			if (!dateOnly) return null;
+			const t = time && time.length ? time : '00:00';
+			return `${dateOnly}T${t}`;
+		},
+
+		addEvent(selectedDate) {
+			if (selectedDate) {
+				const today = new Date();
+				today.setHours(0, 0, 0, 0);
+				const d = new Date(`${selectedDate}T00:00:00`);
+				if (d < today) return;
+			}
+			
+			this.edit = false;
+			this.editing = true;
+
+			this.resetEventForm();
+
+			this.event_data.creator_id = this.user_id;
+
+			if (selectedDate) {
+				const now = new Date();
+				let startHour = now.getHours() + 1;
+				let endHour   = startHour + 1;
+
+				if (startHour >= 23) {
+					startHour = 23;
+					endHour = 23;
+				}
+
+				const startHourStr = String(startHour).padStart(2, '0');
+				const endHourStr   = String(endHour).padStart(2, '0');
+
+				this.event_data.start_date_only = selectedDate;
+				this.event_data.start_time = `${startHourStr}:00`;
+
+				this.event_data.end_date_only = selectedDate;
+				this.event_data.end_time = `${endHourStr}:00`;
+			}
+			Alpine.store('cache').showModal('event');
+		},
+
+		isPastDate(dateStr) {
+			try {
+				const today = new Date();
+				today.setHours(0, 0, 0, 0);
+				const d = new Date(`${dateStr}T00:00:00`);
+				return d < today;
+			} catch {
+				return false;
+			}
+		},
+
+		formattedEventRange() {
+			const dStart = this.event_data.start_date_only;
+			const dEnd   = this.event_data.end_date_only;
+			const tStart = this.event_data.start_time;
+			const tEnd   = this.event_data.end_time;
+
+			if (!dStart && !dEnd) return '';
+
+			const months = ['ene.','feb.','mar.','abr.','may.','jun.',
+							'jul.','ago.','sep.','oct.','nov.','dic.'];
+
+			const fmtDate = (iso) => {
+				if (!iso) return '';
+				const [y, m, d] = iso.split('-');
+				return `${parseInt(d, 10)} ${months[parseInt(m, 10) - 1]} ${y}`;
+			};
+
+			const startLabel = fmtDate(dStart);
+			const endLabel   = dEnd && dEnd !== dStart ? fmtDate(dEnd) : '';
+
+			let timeLabel = '';
+			if (this.event_data.all_day) {
+				timeLabel = 'Todo el día';
+			} else if (tStart || tEnd) {
+				if (tStart && tEnd) timeLabel = `${tStart} - ${tEnd}`;
+				else timeLabel = tStart || tEnd || '';
+			}
+
+			let result = startLabel;
+			if (endLabel) result += ` - ${endLabel}`;
+			if (timeLabel) result += ` · ${timeLabel}`;
+			return result;
+		},
+
+		normalizeSlug(value) {
+			if (value === null || value === undefined) return '';
+			return String(value).trim();
+		},
+
+		async openEvent(eventId) {
+			NProgress.start();
+			try {
+				this.clearErrors();
+
+				const res = await fetch(`${this.api}/schedule/event/${eventId}`, { cache: 'no-cache' });
+				const json = await res.json();
+				const d = json?.data || {};
+
+				this.event_data.schedule_id  = d.id || null;
+				this.event_data.title        = d.title || '';
+				this.event_data.description  = d.description || '';
+				this.event_data.meet         = (d.meet || '').replace(/`/g, '').trim();
+				this.event_data.all_day      = !!d.all_day;
+				this.event_data.color        = d.hex_color || '';
+				this.event_data.visibility = this.normalizeSlug(d.visibility) || this.getVisibilityDefault();
+				this.event_data.repeat     = this.normalizeSlug(d.repeat);
+				this.event_data.notify     = this.normalizeSlug(d.notify);
+				this.event_data.creator_id   = (d.creator_id ?? d.user_id ?? null);
+				this.event_data.creator_name = d.creator_name || 'Fabrix';
+
+				this.edit = true;
+				this.can_edit = (this.user_id === this.event_data.creator_id);
+				this.editing  = !!this.can_edit;
+
+				const toDateOnly = (iso) => (iso && typeof iso === 'string') ? iso.slice(0, 10) : '';
+				const toTime     = (iso) => (iso && typeof iso === 'string') ? iso.slice(11, 16) : '';
+
+				this.event_data.start_date_only = toDateOnly(d.start_datetime);
+				this.event_data.start_time      = toTime(d.start_datetime);
+
+				this.event_data.end_date_only   = toDateOnly(d.end_datetime);
+				this.event_data.end_time        = toTime(d.end_datetime);
+		
+				Alpine.store('cache').showModal('event');
+			} catch (e) {
+				console.error('No se pudieron cargar los datos del evento', e);
+			} finally {
+				NProgress.done();
+			}
+		},
+
+		async next() {
+			this.offset++;
+			await Alpine.store('cache').refresh([
+				{ key: 'calendar_dashboard', url: `/schedule/month?offset=${this.offset}` }
+			]);
+		},
+
+		async prev() {
+			this.offset--;
+			await Alpine.store('cache').refresh([
+				{ key: 'calendar_dashboard', url: `/schedule/month?offset=${this.offset}` }
+			]);
+		},
+
+		async today() {
+			this.offset = 0;
+			await Alpine.store('cache').refresh([
+				{ key: 'calendar_dashboard', url: `/schedule/month` }
+			]);
+		},
+
+		resetEventForm() {
+			this.event_data = {
+				schedule_id: null,
+				creator_id: null,
+				title: '',
+				description: '',
+				start_date_only: '',
+				start_time: '',
+				end_date_only: '',
+				end_time: '',
+				meet: '',
+				all_day: true,
+				color: '',
+				visibility: this.getVisibilityDefault(),
+				repeat: '',
+				notify: '',
+			};
+			this.can_edit = false;
+			this.clearErrors();
+		},
+
+		clearErrors() {
+			this.errors = { title: '', start_date_only: '' };
+		},
+
+		formatMonthLabel(year, month) {
+			const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+							'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+			return `${months[month - 1]} ${year}`;
+		},
+
+		formatTodayISO() {
+			const d = new Date();
+			const y = d.getFullYear();
+			const m = String(d.getMonth() + 1).padStart(2, '0');
+			const day = String(d.getDate()).padStart(2, '0');
+			return `${y}-${m}-${day}`;
+		},
+
+		async saveEvent() {
+			const startISO = this.composeISO(this.event_data.start_date_only, this.event_data.start_time);
+			const endISO   = this.composeISO(this.event_data.end_date_only,   this.event_data.end_time);
+
+			NProgress.start();
+
+			const payload = {
+				event_id:       this.event_data.schedule_id || null,
+				user_id:        this.user_id,
+				title:          (this.event_data.title || '').trim(),
+				description:    (this.event_data.description || '').trim(),
+				start_datetime: startISO,
+				end_datetime:   endISO,
+				meet:           (this.event_data.meet || '').trim() || null,
+				hex_color:      this.event_data.color || '#999',
+				visibility:     this.event_data.visibility || this.getVisibilityDefault(),
+				repeat:         this.event_data.repeat || null,
+				notify:         this.event_data.notify || null,
+				all_day:        !!this.event_data.all_day
+			};
+
+			try {
+				const response = await fetch(`${this.api}/schedule/process`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload)
+				});
+				const jsonData = await response.json();
+				if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+				Alpine.store('cache').hideLastModal();
+				//this.resetEventForm();
+
+			} catch (error) {
+				if (this.edit) {
+					this.showError('update', error.message);
+				} else {
+					this.showError('save', error.message);
+				}
+			} finally {
+				NProgress.done();
+			}
+		},
+
+		async updateEvent() {
+			const startISO = this.composeISO(this.event_data.start_date_only, this.event_data.start_time);
+			const endISO   = this.composeISO(this.event_data.end_date_only,   this.event_data.end_time);
+
+			NProgress.start();
+
+			const payload = {
+				event_id:       this.event_data.schedule_id || null,
+				user_id:        this.user_id,
+				title:          (this.event_data.title || '').trim(),
+				description:    (this.event_data.description || '').trim(),
+				start_datetime: startISO,
+				end_datetime:   endISO,
+				meet:           (this.event_data.meet || '').trim() || null,
+				hex_color:      this.event_data.color || '#999',
+				visibility:     this.event_data.visibility || this.getVisibilityDefault(),
+				repeat:         this.event_data.repeat || null,
+				notify:         this.event_data.notify || null,
+				all_day:        !!this.event_data.all_day
+			};
+
+			try {
+				const response = await fetch(`${this.api}/schedule/process`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload)
+				});
+				const jsonData = await response.json();
+				if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+				Alpine.store('cache').hideLastModal();
+				//this.resetEventForm();
+
+			} catch (error) {
+				if (this.edit) {
+					this.showError('update', error.message);
+				} else {
+					this.showError('save', error.message);
+				}
+			} finally {
+				NProgress.done();
+			}
+		},
+
+		showError(btnKey, errorMsg) {
+			const originalText  = this.buttons[btnKey].text;
+			const originalClass = this.buttons[btnKey].class;
+
+			if (originalClass == 'error') {
+				return;
+			}
+			this.buttons[btnKey].text  = errorMsg;
+			this.buttons[btnKey].class = 'error';
+
+			setTimeout(() => {
+				this.buttons[btnKey].text  = originalText;
+				this.buttons[btnKey].class = originalClass;
+			}, 1000);
+		},
+
+		handlePrimaryAction() {
+			if (this.edit && this.event_data.schedule_id) {
+				return this.updateEvent();
+			}
+			return this.saveEvent();
+		},
+
+		async deleteEvent() {
+			NProgress.start();
+
+			try {
+				const eventId = this.event_data?.schedule_id;
+
+				const response = await fetch(`${this.api}/schedule/delete`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ event_id: eventId })
+				});
+				const jsonData = await response.json();
+				if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+				Alpine.store('cache').hideAllModals();
+				//this.resetEventForm();
+
+			} catch (e) {
+				console.error('Error al eliminar el evento', e);
+			} finally {
+				NProgress.done();
+			}
+		}
+	}));
 	</script>
 
 
@@ -1107,7 +750,13 @@
 
 
 
+
 	<style>
+		#modal-confirm-delete .modal {
+			max-width: 20rem;
+			gap: 1.5rem;
+			text-align: center;
+		}
 		#schedule {
 			user-select: none;
 			padding: 1rem;
@@ -1390,7 +1039,7 @@
 		#schedule .main .middle .bottom .month .body {
 			display: flex;
 			flex-direction: column;
-			margin-top: 2rem;
+			margin-top: 1.5rem;
 		}
         #schedule .main .middle .bottom .month .body .item {
             display: flex;
