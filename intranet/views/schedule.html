@@ -3,10 +3,11 @@
 		<header>
 
 			<div class="navigation desktop">
+				<div class="button white middle hover-opacity" @click="today()" x-text="formatMonthLabel()"></div>
+
 				<div class="button white hover-opacity" @click="prev()">
 					<img alt="prev" src="/static/images/arrow.svg" width="16" height="16">
 				</div>
-				<div class="button white middle hover-opacity" @click="today()" x-text="formatMonthLabel()"></div>
 				<div class="button white hover-opacity" @click="next()">
 					<img alt="next" src="/static/images/arrow.svg" width="16" height="16">
 				</div>
@@ -854,9 +855,11 @@
 			color: var(--primary);
 		}
 		
-		#modal-event .fields label.checkbox,
-		#modal-event .fields label.compact-color {
+		#modal-event .fields label.checkbox {
 			flex: 0 0 8rem;
+		}
+		#modal-event .fields label.compact-color {
+			flex: 0 0 4rem;
 		}
 		#modal-event .fields label.color-field {
 			flex: 0 0 12rem;
@@ -1175,6 +1178,7 @@
 			align-items: center;
 			justify-content: center;
 			font-weight: 600;
+			margin-right: auto;
 		}
 		#schedule header .navigation.desktop .button:last-child img {
 			transform: rotate(180deg);
