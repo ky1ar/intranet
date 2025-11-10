@@ -103,9 +103,9 @@ class ScheduleRepository:
             .filter(
                 Events.deleted_at.is_(None),
                 Events.start_datetime >= start_date,
-                Events.start_datetime < end_date + timedelta(days=1)  # 🔹 incluye el último día completo
+                Events.start_datetime < end_date + timedelta(days=1)
             )
-            .order_by(Events.start_datetime.asc())  # 🔹 orden cronológico
+            .order_by(Events.start_datetime.asc())
             .all()
         )
         return events, 200

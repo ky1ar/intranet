@@ -432,12 +432,11 @@
 			colorOptions: [],
 
             async init() {
-                console.log('Inicializando calendario...');
+                console.log('Inicializando Calendario...');
                 this.todayISO = this.formatTodayISO();
                 
                 this.buildMonthDays(this.currentYear, this.currentMonth);
                 
-                // Cargar en paralelo
                 this.getEvents();
                 this.loadOptions();
 
@@ -449,9 +448,10 @@
 					// });
 				}
 
-				// Alpine.store('cache').fetchData([
-				// 	{ key: 'attendance_period', url: `/attendance/period/summary?user_id=${this.user_id}&period_id=2`, force: true },
-				// ]).then(() => Alpine.store('cache').verify()).catch(() => {});
+				//  Alpine.store('cache').fetchData([
+				// 	{ key: 'calendar_dashboard', url: `/support/dashboard?user_id=${Alpine.store('cache').user.id}`, force: true },
+				// 	{ key: 'calendar_options', url: '/general/service_methods' },
+				//  ]).then(() => Alpine.store('cache').verify()).catch(() => {});
 
             },
 
@@ -705,15 +705,15 @@
 				}
 
 				this.calendarDays = days;
+				console.log(days)
 			},
 
-				attachEventsToDays(daysData) {
-					// daysData = [{ date: "2025-11-01", events: [...] }, ...]
-					const indexByDate = {};
-					this.calendarDays.forEach((day, idx) => { 
-						day.events = []; 
-						indexByDate[day.date] = idx; 
-					});
+			attachEventsToDays(daysData) {
+				const indexByDate = {};
+				this.calendarDays.forEach((day, idx) => { 
+					day.events = []; 
+					indexByDate[day.date] = idx; 
+				});
 
                 daysData.forEach(dayObj => {
                     const dayDate = dayObj.date;
@@ -724,13 +724,12 @@
                     const unique = {};
                     apiEvents.forEach(ev => {
                         if (ev && ev.id != null) {
-                            if (unique[ev.id]) return; // dedupe por id
+                            if (unique[ev.id]) return;
                             unique[ev.id] = true;
                         }
                         const label = ev.title || 'Evento';
                         const hexColor = ev.hex_color || null;
                         
-                        // Formato de hora
                         let timeStr = '';
                         try {
                             if (ev.start_datetime) {
@@ -752,23 +751,20 @@
                             label, 
                             time: timeStr,
                             hexColor: hexColor,
-                            // Evento de día completo
                             allDay: !!ev.all_day,
-                            // fullColor solo si es Todo el día con color
                             fullColor: !!hexColor && !!ev.all_day
                         });
                     });
                 });
             },
 
-				// Calcula estilo dinámico para cada día según cantidad de eventos
-				computeDayStyle(day) {
-					const count = (day?.events || []).length;
-					const baseRem = 7; // altura base
-					const perEventRem = 1.25; // incremento por evento
-					const minHeight = baseRem + (count > 0 ? count * perEventRem : 0);
-					return `min-height: ${minHeight}rem`;
-				},
+			computeDayStyle(day) {
+				const count = (day?.events || []).length;
+				const baseRem = 7; // altura base
+				const perEventRem = 1.25; // incremento por evento
+				const minHeight = baseRem + (count > 0 ? count * perEventRem : 0);
+				return `min-height: ${minHeight}rem`;
+			},
 
 			computeServerOffset(targetYear, targetMonth) {
 				const now = new Date();

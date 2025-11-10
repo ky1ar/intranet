@@ -16,6 +16,7 @@ class ScheduleService:
     def get_month(self, offset):
         now = datetime.now()
         offset = int(offset) if offset is not None else 0
+        
         target_month = now.month + offset
         target_year = now.year
 
