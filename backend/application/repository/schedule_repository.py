@@ -1,7 +1,7 @@
 import logging
 from datetime import date, datetime, timezone, timedelta
 from application.handlers import handle_db_exceptions
-from application.models import Events, Visibility, Repeat, Notify, Colors
+from application.models import Events, Visibility, Repeat, Notify, Colors, Holidays
 from flask import g
 from sqlalchemy import or_
 
@@ -9,7 +9,41 @@ class ScheduleRepository:
     def __init__(self):
         pass
 
-        
+    
+    @handle_db_exceptions
+    def add_holiday(self, name, date_value, hex_color=None):
+        holiday = Holidays(name=name, date=date_value, hex_color=hex_color)
+        g.db_session.add(holiday)
+        g.db_session.commit()
+        return holiday, 200
+
+
+    @handle_db_exceptions
+    def delete_holiday(self, holiday):
+        holiday.deleted_at = datetime.now()
+        g.db_session.add(holiday)
+        g.db_session.commit()
+        return True, 200
+    
+    
+    @handle_db_exceptions
+    def get_holidays_in_range(self, start_date, end_date):
+        start = start_date.date() if isinstance(start_date, datetime) else start_date
+        end = end_date.date() if isinstance(end_date, datetime) else end_date
+
+        holidays = (
+            g.db_session.query(Holidays)
+            .filter(
+                Holidays.date >= start,
+                Holidays.date <= end,
+                Holidays.deleted_at.is_(None)
+            )
+            .order_by(Holidays.date.asc())
+            .all()
+        )
+        return holidays, 200
+    
+
     @handle_db_exceptions
     def get_events(self):
         visibility = g.db_session.query(Events).filter(Events.deleted_at.is_(None)).all()

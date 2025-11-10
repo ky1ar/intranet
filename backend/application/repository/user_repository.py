@@ -21,6 +21,16 @@ class UserRepository:
         
 
     @handle_db_exceptions
+    def get_users_with_birthday(self):
+        users = (
+            g.db_session.query(Users)
+            .filter(Users.birthday.isnot(None))
+            .all()
+        )
+        return users, 200
+    
+    
+    @handle_db_exceptions
     def get_user_by_id(self, user_id):
         user = g.db_session.query(Users).filter_by(id=user_id).first()
         if not user:

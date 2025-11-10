@@ -110,10 +110,33 @@ class ScheduleService:
                 "fullColor": bool(ev.hex_color and all_day),
                 "creatorId": ev.user_id,
                 "creatorImage": ev.user.image,
+                "type": "EVENT",
+                "clickable": True, 
             })
 
         grid_start_date = start_grid_date.date()
         grid_end_date = end_grid_date.date()
+
+        holidays, hc = self.schedule_repository.get_holidays_in_range(start_grid_date, end_grid_date)
+        if hc != 200:
+            return holidays, hc
+
+        holidays_by_date = {}
+        for h in holidays:
+            key = h.date.isoformat()
+            holidays_by_date.setdefault(key, []).append(h)
+
+        users_with_birthday, ubc = self.user_repository.get_users_with_birthday()
+        if ubc != 200:
+            return users_with_birthday, ubc
+
+        birthdays_by_mmdd = {}
+        for u in users_with_birthday:
+            if not getattr(u, "birthday", None):
+                continue
+            mmdd = u.birthday.strftime("%m-%d")
+            birthdays_by_mmdd.setdefault(mmdd, []).append(u)
+
 
         for ev in events:
             if not ev.start_datetime:
@@ -208,13 +231,60 @@ class ScheduleService:
             date_obj = current.date()
             date_key = date_obj.isoformat()
 
-            day_events = occurrences_by_day.get(date_key, [])
+            # Eventos normales
+            normal_events = list(occurrences_by_day.get(date_key, []))
+
+            # ---- FERIADOS (pueden seguir siendo clickeables si quieres) ----
+            holiday_events = []
+            holiday_list = holidays_by_date.get(date_key, [])
+            for h in holiday_list:
+                holiday_events.append({
+                    "id": f"holiday-{h.id}",
+                    "label": h.name,
+                    "time": "",
+                    "hexColor": None,
+                    "allDay": True,
+                    "fullColor": False,
+                    "creatorId": None,
+                    "creatorImage": None,
+                    "type": "BIRTHDAY",
+                    "clickable": False,   # si no quieres que abran modal, pon False
+                })
+
+            # ---- CUMPLEAÑOS (van ARRIBA, no clickeables) ----
+            birthday_events = []
+            mmdd = date_obj.strftime("%m-%d")
+            birthday_users = birthdays_by_mmdd.get(mmdd, [])
+            for u in birthday_users:
+                birthday_events.append({
+                    "id": f"birthday-{u.id}",
+                    "label": f"🎂 {self.general_service.format_name(u.name)}",
+                    "time": "",
+                    "hexColor": None,       # o un color fijo desde front
+                    "allDay": True,
+                    "fullColor": False,
+                    "creatorId": u.id,
+                    "creatorImage": u.image,
+                    "type": "BIRTHDAY",
+                    "clickable": False,     # 👈 no clickeable
+                })
+
+            # Orden final: cumpleaños → feriados → eventos normales
+            day_events = birthday_events + holiday_events + normal_events
+
+            holiday_names = [h.name for h in holiday_list]
 
             days.append({
                 "date": date_key,
                 "dayNumber": date_obj.day,
                 "isCurrentMonth": (date_obj.month == target_month and date_obj.year == target_year),
                 "isToday": (date_obj == today_date),
+
+                # Para que puedas poner el día completo en gris/centrado
+                "isHoliday": bool(holiday_names),      # fondo gris del día
+                "holidayNames": holiday_names,         # por si quieres mostrar el nombre en el header del día
+
+                "hasBirthdays": bool(birthday_users),  # iconito 🎂 en el día
                 "events": day_events,
             })
 

@@ -57,6 +57,7 @@ class Users(BaseModel):
     document = db.Column(db.String(255), nullable=False, unique=True)
     name = db.Column(db.String(255))
     image = db.Column(db.String(255))
+    birthday = db.Column(db.Date)
     phone = db.Column(db.String(20))
     email = db.Column(db.String(255))
     password = db.Column(db.String(255))
@@ -561,3 +562,13 @@ class Colors(db.Model):
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
     name = db.Column(db.String(100), nullable=False)
     hex = db.Column(db.String(7), nullable=False)
+
+
+class Holidays(db.Model):
+    __tablename__ = 'schedule_holidays'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    hex_color = db.Column(db.String(7))
+    deleted_at = db.Column(db.DateTime)

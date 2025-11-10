@@ -386,7 +386,7 @@ body.modal-open {
     border-radius: 2rem;
     justify-content: center;
     align-items: center;
-    display: flex;
+    display: none;
     position: relative;
 }
 #sidebar .notification .dot {
@@ -400,6 +400,7 @@ body.modal-open {
 }
 #sidebar .user {
     border-radius: 2rem;
+    min-width: 2.5rem;
 }
 #sidebar .menu {
     position: absolute;
