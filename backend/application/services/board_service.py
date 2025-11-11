@@ -1,6 +1,6 @@
 import logging
 from application import redis_client
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from application.handlers import handle_exceptions
 from application.repository.board_repository import BoardRepository
 from application.repository.general_repository import GeneralRepository
@@ -67,7 +67,10 @@ class BoardService:
             for status in statuses
         }
 
-        today = datetime.now().date()
+        utc_now = datetime.now(timezone.utc)
+        peru_time = utc_now - timedelta(hours=5)
+
+        today = peru_time.date()
         start_of_week = today - timedelta(days=today.weekday())
         end_of_week = start_of_week + timedelta(days=4)
         

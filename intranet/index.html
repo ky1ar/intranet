@@ -31,12 +31,12 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
 
     <!--<link rel="stylesheet" href="static/css/style.css?v=0.1.0.7215">-->
-    <link rel="stylesheet" href="/static/css/new.css?v=0.3.8.9e">
+    <link rel="stylesheet" href="/static/css/new.css?v=0.4.0.0e">
 </head>
 
 <body class="container" x-data="data" :class="{'modal-open': $store.cache.hasActiveModals()}">
-    <script src="/static/js/firebase-config.js?v=0.3.8.9e"></script>
-    <script src="/static/js/main.js?v=0.3.8.9e"></script>
+    <script src="/static/js/firebase-config.js?v=0.4.0.0e"></script>
+    <script src="/static/js/main.js?v=0.4.0.0e"></script>
 
     <template x-route="/" x-handler="loginVerify" x-template.preload.target.content="/views/login.html"></template>
     <template x-route="/home" x-template.preload.target.content="/views/home.html"></template>
@@ -96,6 +96,13 @@
                                     <img alt="controls" src="/static/images/settings.svg" width="16" height="16">
                                 </div>-->
 
+                                <div class="image hover-opacity"
+                                    x-show="!$store.cache.notifications_enabled"
+                                    @click="$store.cache.requestPushPermission();">
+                                    Activar
+                                    <img alt="controls" src="/static/images/notifications.svg" width="16" height="16">
+                                </div>
+                                
                                 <div class="image hover-opacity" @click="$store.cache.logout()">
                                     Cerrar sesión
                                     <img alt="controls" src="/static/images/logout.svg" width="16" height="16">
@@ -105,6 +112,7 @@
                     </div>
                 </div>
             </div>
+
             <div
                 x-show="$store.cache.isVisibleModal('push-info')"
                 @mousedown.self="$store.cache.hideLastModal()"
@@ -120,17 +128,24 @@
                     </div>
 
                     <img alt="user" src="/static/images/uploads/users/00000000.jpg" width="64" height="64">
-                    <span class="title">¿Quieres estar al día de todo?</span>
-                    <p>Habilita las notificaciones y te avisaré cada vez que tengas nuevos eventos, envíos o actualizaciones</p>
+
+                    <span class="title">Activa tus avisos</span>
+
+                    <p>
+                        Activa las notificaciones y te avisaré de tus novedades.<br>
+                        En <strong>iOS</strong>, primero guarda esta página en la pantalla de inicio y luego activa las notificaciones.
+                    </p>
+
 
                     <div class="fields">
                         <button class="button blue hover-opacity"
                                 @click="$store.cache.requestPushPermission(); $store.cache.hideModal('push-info')">
-                            Activar ahora
+                            Activar notificaciones
                         </button>
                     </div>
                 </div>
             </div>
+
         </div>
         
     </template>

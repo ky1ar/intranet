@@ -58,7 +58,10 @@ class TrackingRepository:
 
     @handle_db_exceptions
     def get_all_list(self):
-        thirty_days_ago = datetime.now() - timedelta(days=15)
+        utc_now = datetime.now(timezone.utc)
+        peru_time = utc_now - timedelta(hours=5)
+
+        thirty_days_ago = peru_time - timedelta(days=15)
         recent_orders = (
             g.db_session.query(TrackingOrders)
             .filter(TrackingOrders.register_at >= thirty_days_ago)

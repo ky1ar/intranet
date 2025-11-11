@@ -53,3 +53,7 @@ class ScheduleController:
     def schedule_data(self, event_id):
         return self.schedule.data(event_id)
 
+
+    @handle_logs_and_exceptions
+    def schedule_notify_upcoming(self):
+        return self.schedule.notify_upcoming_events()

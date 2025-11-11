@@ -1,10 +1,11 @@
 import logging
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
 from calendar import monthrange
 from application.handlers import handle_exceptions
 from application.repository.schedule_repository import ScheduleRepository
 from application.repository.user_repository import UserRepository
 from application.services.general_service import GeneralService
+from application.services.push_service import PushSender 
 from application import socketio
 from flask_jwt_extended import get_jwt_identity
 
@@ -14,7 +15,112 @@ class ScheduleService:
         self.schedule_repository = ScheduleRepository()
         self.user_repository = UserRepository()
         self.general_service = GeneralService()
+        self.push_sender = PushSender()
 
+
+    def _get_recipients_for_event(self, event, for_reminder=False):
+        """
+        visibility_id:
+        1 = TODOS
+        2 = ÁREA (department)
+        3 = PRIVADO
+        """
+        visibility = event.visibility_id or 1
+        creator_id = event.user_id
+
+        # EVENTO PARA TODOS
+        if visibility == 1:
+            users, uc = self.user_repository.get_all_users()
+            if uc != 200:
+                logging.warning(f"[SCHEDULE] Error obteniendo usuarios: {users}")
+                return []
+            return [u.id for u in users]
+
+        # EVENTO PARA ÁREA DEL CREADOR
+        if visibility == 2:
+            creator, cc = self.user_repository.get_user_by_id(creator_id)
+            if cc != 200 or not getattr(creator, "department_id", None):
+                logging.warning(f"[SCHEDULE] Creador sin departamento o no encontrado (id={creator_id})")
+                return []
+            users, uc = self.user_repository.get_users_by_department(creator.department_id)
+            if uc != 200:
+                logging.warning(f"[SCHEDULE] Error obteniendo usuarios por área: {users}")
+                return []
+            return [u.id for u in users]
+
+        # PRIVADO:
+        #  - creación / actualización / eliminación: no se notifica (for_reminder=False)
+        #  - recordatorio: solo al creador
+        if visibility == 3:
+            return [creator_id] if for_reminder else []
+
+        return []
+    
+
+    def _notify_event_change(self, event_id: int, action: str, old_visibility_id: int | None = None):
+        # 👇 recargamos el evento con una sesión "limpia"
+        event, ec = self.schedule_repository.get_event_by_id(event_id)
+        if ec != 200:
+            logging.warning(f"[SCHEDULE] No se pudo cargar evento {event_id} para notificación: {event}")
+            return
+
+        visibility = event.visibility_id or 1
+        old_visibility = old_visibility_id or visibility
+
+        # Reglas de visibilidad como las que ya tenías:
+        if action in ("created", "deleted"):
+            if visibility == 3:
+                return
+
+        if action == "updated":
+            if old_visibility == 3 and visibility == 3:
+                return
+            if visibility == 3:
+                return
+
+        creator = getattr(event, "user", None)
+        creator_name = self.general_service.format_name(creator.name) if creator and creator.name else "Alguien"
+
+        if action == "created":
+            title = "Nuevo evento"
+            if visibility == 1:
+                body = f"{creator_name} creó un evento para todos: \"{event.title}\""
+            elif visibility == 2:
+                body = f"{creator_name} creó un evento para tu área: \"{event.title}\""
+            else:
+                body = f"{creator_name} creó un evento: \"{event.title}\""
+        elif action == "updated":
+            title = "Evento actualizado"
+            body = f"{creator_name} actualizó el evento \"{event.title}\""
+        elif action == "deleted":
+            title = "Evento eliminado"
+            body = f"{creator_name} eliminó el evento \"{event.title}\""
+        elif action == "reminder":
+            if event.all_day or event.all_day == 1:
+                title = "Evento de hoy"
+                body = f"Hoy tienes \"{event.title}\"."
+            else:
+                title = "Evento en curso"
+                body = f"\"{event.title}\" está comenzando ahora."
+        else:
+            return
+
+        recipients = self._get_recipients_for_event(event, for_reminder=(action == "reminder"))
+        if not recipients:
+            return
+
+        payload = {
+            "type": "SCHEDULE_EVENT",
+            "action": action,
+            "event_id": str(event.id),
+            "visibility_id": str(visibility),
+            "start_datetime": event.start_datetime.isoformat() if event.start_datetime else None,
+        }
+
+        for user_id in set(recipients):
+            self.push_sender.send_to_user(user_id, title, body, data=payload)
+
+            
 
     @handle_exceptions
     def get_month(self, offset):
@@ -31,7 +137,9 @@ class ScheduleService:
             if vc_user == 200:
                 viewer_dept_id = viewer.department_id
 
-        now = datetime.now()
+        utc_now = datetime.now(timezone.utc)
+        now = utc_now - timedelta(hours=5)
+        
         offset = int(offset) if offset is not None else 0
 
         target_month = now.month + offset
@@ -365,6 +473,8 @@ class ScheduleService:
     @handle_exceptions
     def process(self, data):
         event_id = data.get("event_id")
+
+        # ============ CREAR ============
         if not event_id:
             title = data.get("title", "").strip()
             if not title:
@@ -374,23 +484,34 @@ class ScheduleService:
             if not raw_start:
                 return "Ingresa un fecha", 422
             
-            add_event, aec = self.schedule_repository.add_event(data)
+            new_event_id, aec = self.schedule_repository.add_event(data)
             if aec != 200:
-                return add_event, aec
+                return new_event_id, aec
             
             socketio.emit("calendar_update_dashboard", {})
+
+            self._notify_event_change(new_event_id, "created")
+
             return "Evento registrado correctamente", 200
         
+        # ============ EDITAR ============
         event, ec = self.schedule_repository.get_event_by_id(event_id)
         if ec != 200:
             return event, ec
-        
-        update_event, uec = self.schedule_repository.update_event(event, data)
+
+        old_visibility_id = event.visibility_id
+
+        updated, uec = self.schedule_repository.update_event(event, data)
         if uec != 200:
-            return update_event, uec
+            return updated, uec
         
         socketio.emit("calendar_update_dashboard", {})
+
+        # 🔔 notificación por actualización usando el ID
+        self._notify_event_change(event_id, "updated", old_visibility_id=old_visibility_id)
+
         return "Evento actualizado correctamente", 200
+
 
 
     @handle_exceptions
@@ -399,6 +520,9 @@ class ScheduleService:
         if ec != 200:
             return event, ec
         
+        # 🔔 notificar ANTES de marcar como borrado
+        self._notify_event_change(event_id, "deleted")
+        
         delete_event, dec = self.schedule_repository.get_delete_event(event)
         if dec != 200:
             return delete_event, dec
@@ -406,6 +530,31 @@ class ScheduleService:
         socketio.emit("calendar_update_dashboard", {})
         return "Evento eliminado correctamente", 200
 
+
+    @handle_exceptions
+    def notify_upcoming_events(self):
+        utc_now = datetime.now(timezone.utc)
+        now = utc_now - timedelta(hours=5)
+
+        window_start = now
+        window_end = now + timedelta(minutes=1)
+
+        logging.info(window_start)
+        logging.info(window_end)
+
+        events, ec = self.schedule_repository.get_events_starting_between(window_start, window_end)
+        if ec != 200:
+            return events, ec
+
+        for ev in events:
+            logging.info(ev.title)
+            self._notify_event_change(ev.id, "reminder")
+
+        return {"ok": True, "count": len(events)}, 200
+        # crontab -e
+        # * * * * * curl -s -X POST "https://devapi.krear3d.com/schedule/notifications/upcoming" > /dev/null 2>&1
+
+    
 
     @handle_exceptions
     def data(self, event_id):

@@ -59,7 +59,8 @@ document.addEventListener('alpine:init', () => {
         sidebar_menu: false,
         device_id: null,
         fcm_token: null,
-        notifications_enabled: localStorage.getItem('push_registered') === '1',
+        notifications_enabled: !!localStorage.getItem('push_token'),
+        push_intro_seen: localStorage.getItem('push_intro_seen') === '1',
         
         getOrCreateDeviceId() {
             let id = localStorage.getItem('device_id');
@@ -77,42 +78,62 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
+            // Si ya está concedido, solo intentamos registrar
             if (Notification.permission === 'granted') {
-                this.notifications_enabled = true;
                 await this.initPush();
                 return;
             }
 
             if (Notification.permission === 'denied') {
-                alert('Las notificaciones están bloqueadas. Actívalas en ajustes del navegador.');
+                alert('Las notificaciones están bloqueadas. Actívalas en los ajustes del navegador.');
                 return;
             }
 
             const result = await Notification.requestPermission();
 
+            // Marcar que ya mostramos el flujo una vez
+            localStorage.setItem('push_intro_seen', '1');
+            this.push_intro_seen = true;
+
             if (result === 'granted') {
-                this.notifications_enabled = true;
-                localStorage.setItem('push_registered', '1');
                 await this.initPush();
+            } else if (result === 'denied') {
+                alert('Las notificaciones están bloqueadas. Actívalas en los ajustes del navegador.');
             }
         },
 
         maybeShowPushModal() {
-            if (localStorage.getItem('push_registered') === '1') return;
-
             if (!('Notification' in window)) return;
-
-            if (Notification.permission !== 'default') return;
-
             if (!this.user?.id) return;
 
-            this.showModal('push-info');
+            const hasToken = !!localStorage.getItem('push_token');
+
+            // Si el navegador ya tiene permiso pero aún no tenemos token,
+            // intentamos registrar en segundo plano (caso compañero roto).
+            if (Notification.permission === 'granted' && !hasToken) {
+                this.initPush();
+                return;
+            }
+
+            // Si ya tenemos token, no molestamos más
+            if (hasToken) return;
+
+            // Solo mostramos modal si es la primera vez y el permiso sigue "default"
+            if (!this.push_intro_seen && Notification.permission === 'default') {
+                this.showModal('push-info');
+            }
         },
+
 
         async initPush() {
             try {
                 if (!('serviceWorker' in navigator) || !('Notification' in window)) {
                     console.warn('Push no soportado');
+                    return;
+                }
+
+                if (Notification.permission !== 'granted') {
+                    console.warn('Push: permiso aún no concedido');
                     return;
                 }
 
@@ -126,19 +147,20 @@ document.addEventListener('alpine:init', () => {
 
                 if (!token) {
                     console.warn('No se pudo obtener FCM token');
+                    alert('No se pudo activar las notificaciones (sin token). Intenta de nuevo más tarde.');
                     return;
                 }
 
                 this.fcm_token = token;
                 console.log('FCM token:', token);
 
-                const savedToken   = localStorage.getItem('push_token');
-                const savedDevice  = localStorage.getItem('push_device_id');
+                const savedToken  = localStorage.getItem('push_token');
+                const savedDevice = localStorage.getItem('push_device_id');
 
+                // Ya estaba registrado exactamente este device/token
                 if (savedToken === token && savedDevice === this.device_id) {
-                    console.log('Push ya registrado para este dispositivo, no envío al backend');
+                    console.log('Push ya registrado para este dispositivo');
                     this.notifications_enabled = true;
-                    localStorage.setItem('push_registered', '1');
                     return;
                 }
 
@@ -158,18 +180,21 @@ document.addEventListener('alpine:init', () => {
                     if (res.ok) {
                         localStorage.setItem('push_token', token);
                         localStorage.setItem('push_device_id', this.device_id);
-                        localStorage.setItem('push_registered', '1');
                         this.notifications_enabled = true;
                     } else {
                         console.warn('Error registrando dispositivo en backend');
+                        alert('No se pudo registrar el dispositivo para notificaciones. Intenta de nuevo.');
                     }
                 }
 
             } catch (err) {
                 console.error('Error inicializando push:', err);
+                alert('Ocurrió un error al activar las notificaciones. Intenta de nuevo.');
             }
         },
-                
+
+
+                        
         sidebarOn() {
             this.sidebar = true;
         },

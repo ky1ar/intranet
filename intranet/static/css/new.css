@@ -434,6 +434,7 @@ body.modal-open {
 }
 #sidebar .menu .content .controls {
     display: flex;
+    flex-direction: column;
     gap: 1rem;
 }
 #sidebar .menu .content .controls .image {

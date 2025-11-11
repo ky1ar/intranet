@@ -97,7 +97,7 @@
 
     <div class="modal head glass2" @click.stop>
         <!--  ACCIONES SUPERIORES: independientes -->
-        <template x-if="edit && can_edit">
+        <template x-if="edit && can_edit && canDeleteEvent()">
             <button class="icon-button modal-delete hover-opacity"
                     @click.prevent.stop="Alpine.store('cache').showModal('confirm-delete')"
                     aria-label="Eliminar">
@@ -131,7 +131,7 @@
 						<button 
 							class="color-dot"
 							:style="`background-color: ${event_data.color || '#999'}`"
-							@click.prevent="open = edit ? false : !open"
+							@click.prevent="open = !open"
 							aria-label="Seleccionar color">
 						</button>
 
@@ -207,14 +207,6 @@
 				</label>
 			</div>
 
-			<!--  ENLACE DE GOOGLE MEET -->
-			<div class="fields">
-				<label class="white flex2-3">
-					<img alt="link" src="/static/images/icons/link.svg" width="16" height="16">
-					<input type="url" placeholder="Google Meet" x-model="event_data.meet">
-				</label>
-			</div>
-
 			<!-- VISIBILIDAD + REPETIR + NOTIFICACIÓN -->
 			<div class="fields">
 				<!-- VISIBILIDAD -->
@@ -239,8 +231,13 @@
 					</select>
 				</label>
 
+				<label class="white flex2-3">
+					<img alt="link" src="/static/images/icons/link.svg" width="16" height="16">
+					<input type="url" placeholder="Google Meet" x-model="event_data.meet">
+				</label>
+
 				<!-- NOTIFICACIÓN -->
-				<label class="white notify-field">
+				<!-- <label class="white notify-field">
 					<img alt="bell" src="/static/images/notifications.svg" width="16" height="16">
 					<select x-model="event_data.notify_id">
 						<option value="" disabled>Notificación</option>
@@ -248,7 +245,7 @@
 							<option :value="opt.id" x-text="opt.name"></option>
 						</template>
 					</select>
-				</label>
+				</label> -->
 			</div>
 
 			<!--  DESCRIPCIÓN -->
@@ -356,6 +353,7 @@
 		user_id: Alpine.store('cache').user.id,
 		offset: 0,
 		todayISO: '',
+		processing: false,
 		errors: {
 			title: '',
 			start_date_only: ''
@@ -382,6 +380,8 @@
 			visibility_id: null,
 			repeat_id: null,
 			notify_id: null,
+			start_iso: null,
+    		end_iso: null,
 		},
 
 		currentYear: 2025,
@@ -403,7 +403,7 @@
 				{ key: 'calendar_dashboard', url: `/schedule/month?offset=${this.offset}`, force: true },
 				{ key: 'visibility_options', url: '/schedule/options/visibility' },
 				{ key: 'repeat_options',     url: '/schedule/options/repeat' },
-				{ key: 'notify_options',     url: '/schedule/options/notify' },
+				//{ key: 'notify_options',     url: '/schedule/options/notify' },
 				{ key: 'color_options',      url: '/schedule/options/colors' },
 			]).then(() => Alpine.store('cache').verify()).catch(() => {});
 		},
@@ -498,6 +498,53 @@
 			return String(value).trim();
 		},
 
+		canDeleteEvent() {
+			const now = new Date();
+			console.log(now)
+			// 1) Si tenemos end_iso, lo usamos directamente (caso más preciso)
+			if (this.event_data.end_iso) {
+				const end = new Date(this.event_data.end_iso);
+				return now < end;   // solo mientras no haya terminado
+			}
+
+			// 2) Si hay end_date_only (y opcional end_time), calculamos fin
+			if (this.event_data.end_date_only) {
+				const dateStr = this.event_data.end_date_only;
+				const timeStr = this.event_data.end_time
+					|| this.event_data.start_time
+					|| '00:00';
+
+				const [ey, em, ed] = dateStr.split('-').map(Number);
+				const [hh, mm] = timeStr.split(':').map(Number);
+				const end = new Date(ey, em - 1, ed, hh || 0, mm || 0, 0, 0);
+
+				return now < end;
+			}
+
+			// 3) Evento TODO EL DÍA: mientras no haya pasado el día
+			if (this.event_data.all_day && this.event_data.start_date_only) {
+				const [y, m, d] = this.event_data.start_date_only.split('-').map(Number);
+				const endOfDay = new Date(y, m - 1, d, 23, 59, 59, 999);
+				return now < endOfDay;
+			}
+
+			// 4) Sin fin explícito: usamos la hora de inicio como límite (antes de que empiece)
+			if (this.event_data.start_iso) {
+				const start = new Date(this.event_data.start_iso);
+				return now < start;
+			}
+
+			if (this.event_data.start_date_only) {
+				const [y, m, d] = this.event_data.start_date_only.split('-').map(Number);
+				const [hh, mm] = (this.event_data.start_time || '00:00').split(':').map(Number);
+				const start = new Date(y, m - 1, d, hh || 0, mm || 0, 0, 0);
+				return now < start;
+			}
+
+			// Si algo está raro, mejor no mostrar el botón
+			return false;
+		},
+
 		async openEvent(eventId) {
 			NProgress.start();
 			try {
@@ -517,6 +564,8 @@
 				this.event_data.notify_id     = d.notify_id;
 				this.event_data.creator_id   = d.creator_id;
 				this.event_data.creator_name = d.creator_name || 'Fabrix';
+				this.event_data.start_iso = d.start_datetime || null;
+				this.event_data.end_iso   = d.end_datetime || null;
 
 				this.edit = true;
 				this.can_edit = (this.user_id == this.event_data.creator_id);
@@ -575,6 +624,8 @@
 				visibility_id: null,
 				repeat_id: null,
 				notify_id: null,
+				start_iso: null,
+        		end_iso: null,
 			};
 			this.can_edit = false;
 			//this.clearErrors();
@@ -608,6 +659,9 @@
 		},
 
 		async saveEvent() {
+			if (this.processing) return;
+			this.processing = true;
+
 			const startISO = this.composeISO(this.event_data.start_date_only, this.event_data.start_time);
 			const endISO   = this.composeISO(this.event_data.end_date_only,   this.event_data.end_time);
 
@@ -622,9 +676,9 @@
 				end_datetime:   endISO,
 				meet:           (this.event_data.meet || '').trim() || null,
 				hex_color:      this.event_data.color || '#999',
-				visibility_id:     this.event_data.visibility_id || 1,
-				repeat_id:         this.event_data.repeat_id || 1,
-				notify_id:         this.event_data.notify_id || 1,
+				visibility_id:  this.event_data.visibility_id || 1,
+				repeat_id:      this.event_data.repeat_id || 1,
+				notify_id:      this.event_data.notify_id || 1,
 				all_day:        !!this.event_data.all_day
 			};
 
@@ -638,8 +692,6 @@
 				if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
 
 				Alpine.store('cache').hideLastModal();
-				//this.resetEventForm();
-
 			} catch (error) {
 				if (this.edit) {
 					this.showError('update', error.message);
@@ -648,10 +700,14 @@
 				}
 			} finally {
 				NProgress.done();
+				this.processing = false; // 🔹 libera el lock
 			}
 		},
 
 		async updateEvent() {
+			if (this.processing) return;
+			this.processing = true;
+
 			const startISO = this.composeISO(this.event_data.start_date_only, this.event_data.start_time);
 			const endISO   = this.composeISO(this.event_data.end_date_only,   this.event_data.end_time);
 
@@ -666,9 +722,9 @@
 				end_datetime:   endISO,
 				meet:           (this.event_data.meet || '').trim() || null,
 				hex_color:      this.event_data.color || '#999',
-				visibility_id:     this.event_data.visibility_id || 1,
-				repeat_id:         this.event_data.repeat_id || 1,
-				notify_id:         this.event_data.notify_id || 1,
+				visibility_id:  this.event_data.visibility_id || 1,
+				repeat_id:      this.event_data.repeat_id || 1,
+				notify_id:      this.event_data.notify_id || 1,
 				all_day:        !!this.event_data.all_day
 			};
 
@@ -682,8 +738,6 @@
 				if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
 
 				Alpine.store('cache').hideLastModal();
-				//this.resetEventForm();
-
 			} catch (error) {
 				if (this.edit) {
 					this.showError('update', error.message);
@@ -692,6 +746,7 @@
 				}
 			} finally {
 				NProgress.done();
+				this.processing = false;
 			}
 		},
 
@@ -712,6 +767,7 @@
 		},
 
 		handlePrimaryAction() {
+			if (this.processing) return;
 			if (this.edit && this.event_data.schedule_id) {
 				return this.updateEvent();
 			}
@@ -719,6 +775,9 @@
 		},
 
 		async deleteEvent() {
+			if (this.processing) return;
+			this.processing = true;
+
 			NProgress.start();
 
 			try {
@@ -733,12 +792,11 @@
 				if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
 
 				Alpine.store('cache').hideAllModals();
-				//this.resetEventForm();
-
 			} catch (e) {
 				console.error('Error al eliminar el evento', e);
 			} finally {
 				NProgress.done();
+				this.processing = false;
 			}
 		}
 	}));

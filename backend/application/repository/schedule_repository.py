@@ -1,5 +1,5 @@
 import logging
-from datetime import date, datetime, timezone, timedelta
+from datetime import date, datetime, timezone, timedelta, timezone
 from application.handlers import handle_db_exceptions
 from application.models import Events, Visibility, Repeat, Notify, Colors, Holidays
 from flask import g
@@ -20,12 +20,29 @@ class ScheduleRepository:
 
     @handle_db_exceptions
     def delete_holiday(self, holiday):
-        holiday.deleted_at = datetime.now()
+        utc_now = datetime.now(timezone.utc)
+        peru_time = utc_now - timedelta(hours=5)
+        holiday.deleted_at = peru_time
+
         g.db_session.add(holiday)
         g.db_session.commit()
         return True, 200
     
     
+    @handle_db_exceptions
+    def get_events_starting_between(self, start_dt, end_dt):
+        events = (
+            g.db_session.query(Events)
+            .filter(
+                Events.deleted_at.is_(None),
+                Events.start_datetime >= start_dt,
+                Events.start_datetime < end_dt,
+            )
+            .all()
+        )
+        return events or [], 200
+
+
     @handle_db_exceptions
     def get_holidays_in_range(self, start_date, end_date):
         start = start_date.date() if isinstance(start_date, datetime) else start_date
@@ -96,29 +113,41 @@ class ScheduleRepository:
         utc_now = datetime.now(timezone.utc)
         peru_time = utc_now - timedelta(hours=5)
 
-        if raw_end:
-            end_datetime = datetime.fromisoformat(raw_end) if "T" in raw_end else datetime.strptime(raw_end, "%Y-%m-%d")
-        else:
-            end_datetime = None
+        # normalizamos all_day a bool
+        raw_all_day = data.get("all_day")
+        all_day_flag = True if raw_all_day in (True, 1, "1", "true", "True") else False
+
+        def parse_dt(raw):
+            if not raw:
+                return None
+            # 👇 si es all_day, solo usamos la fecha a las 00:00
+            if all_day_flag:
+                date_str = raw[:10]
+                return datetime.strptime(date_str, "%Y-%m-%d")
+            # si no es all_day, respetamos fecha y hora
+            return datetime.fromisoformat(raw) if "T" in raw else datetime.strptime(raw, "%Y-%m-%d")
+
+        start_datetime = parse_dt(raw_start)
+        end_datetime = parse_dt(raw_end)
 
         event = Events(
-            user_id = data.get("user_id"),
-            title = data.get("title"),
-            description = data.get("description"),
-            start_datetime=datetime.fromisoformat(raw_start) if "T" in raw_start else datetime.strptime(raw_start, "%Y-%m-%d"),
-            end_datetime=end_datetime,
-            meet = data.get("meet"),
-            hex_color = data.get("hex_color"),
-            visibility_id = data.get("visibility_id"), #
-            all_day = data.get("all_day"),
-            repeat_id = data.get("repeat_id"), #
-            notify_id = data.get("notify_id"), #
-            created_at = peru_time
+            user_id      = data.get("user_id"),
+            title        = data.get("title"),
+            description  = data.get("description"),
+            start_datetime = start_datetime,
+            end_datetime   = end_datetime,
+            meet         = data.get("meet"),
+            hex_color    = data.get("hex_color"),
+            visibility_id = data.get("visibility_id"),
+            all_day      = all_day_flag,
+            repeat_id    = data.get("repeat_id"),
+            notify_id    = data.get("notify_id"),
+            created_at   = peru_time
         )
 
         g.db_session.add(event)
         g.db_session.commit()
-        return True, 200
+        return event.id, 200
         
 
     @handle_db_exceptions
@@ -168,22 +197,31 @@ class ScheduleRepository:
         utc_now = datetime.now(timezone.utc)
         peru_time = utc_now - timedelta(hours=5)
 
-        if raw_end:
-            end_datetime = datetime.fromisoformat(raw_end) if "T" in raw_end else datetime.strptime(raw_end, "%Y-%m-%d")
-        else:
-            end_datetime = None
-            
-        event.title = data.get("title")
-        event.description = data.get("description")
-        event.start_datetime = datetime.fromisoformat(raw_start) if "T" in raw_start else datetime.strptime(raw_start, "%Y-%m-%d")
-        event.end_datetime = end_datetime
-        event.meet = data.get("meet")
-        event.hex_color = data.get("hex_color")
+        raw_all_day = data.get("all_day")
+        all_day_flag = True if raw_all_day in (True, 1, "1", "true", "True") else False
+
+        def parse_dt(raw):
+            if not raw:
+                return None
+            if all_day_flag:
+                date_str = raw[:10]
+                return datetime.strptime(date_str, "%Y-%m-%d")
+            return datetime.fromisoformat(raw) if "T" in raw else datetime.strptime(raw, "%Y-%m-%d")
+
+        start_datetime = parse_dt(raw_start)
+        end_datetime   = parse_dt(raw_end)
+
+        event.title         = data.get("title")
+        event.description   = data.get("description")
+        event.start_datetime = start_datetime
+        event.end_datetime   = end_datetime
+        event.meet          = data.get("meet")
+        event.hex_color     = data.get("hex_color")
         event.visibility_id = data.get("visibility_id")
-        event.all_day = data.get("all_day")
-        event.repeat_id = data.get("repeat_id")
-        event.notify_id = data.get("notify_id")
-        event.created_at = peru_time
+        event.all_day       = all_day_flag
+        event.repeat_id     = data.get("repeat_id")
+        event.notify_id     = data.get("notify_id")
+        event.created_at    = peru_time
 
         g.db_session.add(event)
         g.db_session.commit()

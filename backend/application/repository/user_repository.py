@@ -92,6 +92,23 @@ class UserRepository:
         team = query.order_by(Users.name).all()
 
         return team or [], 200
+
+
+    @handle_db_exceptions
+    def get_users_by_department(self, department_id):
+        users = (
+            g.db_session.query(Users)
+            .filter(Users.department_id == department_id)
+            .filter(Users.level_id != 1)
+            .all()
+        )
+        return users or [], 200
+    
+
+    @handle_db_exceptions
+    def get_all_users(self):
+        users = g.db_session.query(Users).filter(Users.level_id != 1).order_by(Users.name).all()
+        return users or [], 200
     
     
     @handle_db_exceptions
