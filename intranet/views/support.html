@@ -141,7 +141,7 @@
 
 				<template x-if="!revert_change">
 					<div>
-						<textarea x-model="status_notes" class="text-area" placeholder="Notas internas"></textarea>
+						<textarea x-model="status_notes" class="text-area glass2" placeholder="Notas internas"></textarea>
 
 						<div class="capture-proof">
 							<span class="name">Imágenes</span>
@@ -436,7 +436,7 @@
 					</label>
 				</div>
 
-				<textarea x-model="process_service.status_notes" class="text-area" placeholder="Problema reportado"></textarea>
+				<textarea x-model="process_service.status_notes" class="text-area glass2" placeholder="Problema reportado"></textarea>
 
 				<button class="button hover-opacity" @click="newOrder()" :class="buttons.add.class" x-text="buttons.add.text"></button>
 
