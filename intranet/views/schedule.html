@@ -197,8 +197,26 @@
 				</label>
 
 				<label class="white" x-show="!event_data.all_day">
-					<input type="time" x-model="event_data.start_time">
-					<input type="time" x-model="event_data.end_time">
+					<input 
+						type="time" 
+						x-model="event_data.start_time"
+						@change="
+							if (event_data.end_time && event_data.end_time <= event_data.start_time) {
+								event_data.end_time = event_data.start_time;
+							}
+						"
+					>
+
+					<input 
+						type="time" 
+						x-model="event_data.end_time"
+						:min="event_data.start_time || null"
+						@change="
+							if (event_data.start_time && event_data.end_time && event_data.end_time <= event_data.start_time) {
+								event_data.start_time = event_data.end_time;
+							}
+						"
+					>
 				</label>
 
 				<label class="white checkbox">
@@ -504,11 +522,16 @@
 			// 1) Si tenemos end_iso, lo usamos directamente (caso más preciso)
 			if (this.event_data.end_iso) {
 				const end = new Date(this.event_data.end_iso);
+				console.log("this.event_data.end_iso")
+				console.log(end)
+
+				console.log(now < end)
 				return now < end;   // solo mientras no haya terminado
 			}
 
 			// 2) Si hay end_date_only (y opcional end_time), calculamos fin
 			if (this.event_data.end_date_only) {
+				console.log("this.event_data.end_date_only")
 				const dateStr = this.event_data.end_date_only;
 				const timeStr = this.event_data.end_time
 					|| this.event_data.start_time
@@ -517,27 +540,35 @@
 				const [ey, em, ed] = dateStr.split('-').map(Number);
 				const [hh, mm] = timeStr.split(':').map(Number);
 				const end = new Date(ey, em - 1, ed, hh || 0, mm || 0, 0, 0);
-
+				console.log(now < end)
 				return now < end;
 			}
 
 			// 3) Evento TODO EL DÍA: mientras no haya pasado el día
 			if (this.event_data.all_day && this.event_data.start_date_only) {
+				console.log("this.event_data.all_day")
+
 				const [y, m, d] = this.event_data.start_date_only.split('-').map(Number);
 				const endOfDay = new Date(y, m - 1, d, 23, 59, 59, 999);
+				console.log(now < endOfDay)
 				return now < endOfDay;
 			}
 
 			// 4) Sin fin explícito: usamos la hora de inicio como límite (antes de que empiece)
 			if (this.event_data.start_iso) {
+				console.log("this.event_data.start_iso")
 				const start = new Date(this.event_data.start_iso);
+				console.log(now < start)
+
 				return now < start;
 			}
 
 			if (this.event_data.start_date_only) {
+				console.log("this.event_data.start_date_only")
 				const [y, m, d] = this.event_data.start_date_only.split('-').map(Number);
 				const [hh, mm] = (this.event_data.start_time || '00:00').split(':').map(Number);
 				const start = new Date(y, m - 1, d, hh || 0, mm || 0, 0, 0);
+				console.log(now < start)
 				return now < start;
 			}
 
@@ -676,7 +707,7 @@
 				end_datetime:   endISO,
 				meet:           (this.event_data.meet || '').trim() || null,
 				hex_color:      this.event_data.color || '#999',
-				visibility_id:  this.event_data.visibility_id || 1,
+				visibility_id:  this.event_data.visibility_id || 3,
 				repeat_id:      this.event_data.repeat_id || 1,
 				notify_id:      this.event_data.notify_id || 1,
 				all_day:        !!this.event_data.all_day
@@ -722,7 +753,7 @@
 				end_datetime:   endISO,
 				meet:           (this.event_data.meet || '').trim() || null,
 				hex_color:      this.event_data.color || '#999',
-				visibility_id:  this.event_data.visibility_id || 1,
+				visibility_id:  this.event_data.visibility_id || 3,
 				repeat_id:      this.event_data.repeat_id || 1,
 				notify_id:      this.event_data.notify_id || 1,
 				all_day:        !!this.event_data.all_day

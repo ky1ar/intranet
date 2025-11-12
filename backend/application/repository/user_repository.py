@@ -95,6 +95,29 @@ class UserRepository:
 
 
     @handle_db_exceptions
+    def get_all_user_ids(self):
+        rows = g.db_session.query(Users.id).filter(Users.level_id != 1).all()
+        return [r[0] for r in rows], 200
+
+
+    @handle_db_exceptions
+    def get_user_ids_by_department(self, department_id: int):
+        rows = (
+            g.db_session.query(Users.id)
+            .filter(Users.department_id == department_id)
+            .filter(Users.level_id != 1)
+            .all()
+        )
+        return [r[0] for r in rows], 200
+
+
+    @handle_db_exceptions
+    def get_user_department_id(self, user_id: int):
+        dep = g.db_session.query(Users.department_id).filter(Users.id == user_id).first()
+        return (dep[0] if dep else None), 200
+    
+
+    @handle_db_exceptions
     def get_users_by_department(self, department_id):
         users = (
             g.db_session.query(Users)

@@ -6,7 +6,7 @@ from application.repository.schedule_repository import ScheduleRepository
 from application.repository.user_repository import UserRepository
 from application.services.general_service import GeneralService
 from application.services.push_service import PushSender 
-from application import socketio
+from application import socketio, redis_client
 from flask_jwt_extended import get_jwt_identity
 
 
@@ -18,109 +18,128 @@ class ScheduleService:
         self.push_sender = PushSender()
 
 
-    def _get_recipients_for_event(self, event, for_reminder=False):
+    def _audience_for_visibility(self, visibility_id: int, creator_id: int, creator_dept_id: int) -> set[int]:
         """
         visibility_id:
-        1 = TODOS
-        2 = ÁREA (department)
-        3 = PRIVADO
+          1 = TODOS
+          2 = ÁREA (del creador)
+          3 = PRIVADO (nadie)
+        Excluye siempre al creador.
         """
-        visibility = event.visibility_id or 1
-        creator_id = event.user_id
+        try:
+            vis = int(visibility_id) if visibility_id is not None else 1
+        except (TypeError, ValueError):
+            vis = 1
 
-        # EVENTO PARA TODOS
-        if visibility == 1:
-            users, uc = self.user_repository.get_all_users()
-            if uc != 200:
-                logging.warning(f"[SCHEDULE] Error obteniendo usuarios: {users}")
-                return []
-            return [u.id for u in users]
-
-        # EVENTO PARA ÁREA DEL CREADOR
-        if visibility == 2:
-            creator, cc = self.user_repository.get_user_by_id(creator_id)
-            if cc != 200 or not getattr(creator, "department_id", None):
-                logging.warning(f"[SCHEDULE] Creador sin departamento o no encontrado (id={creator_id})")
-                return []
-            users, uc = self.user_repository.get_users_by_department(creator.department_id)
-            if uc != 200:
-                logging.warning(f"[SCHEDULE] Error obteniendo usuarios por área: {users}")
-                return []
-            return [u.id for u in users]
-
-        # PRIVADO:
-        #  - creación / actualización / eliminación: no se notifica (for_reminder=False)
-        #  - recordatorio: solo al creador
-        if visibility == 3:
-            return [creator_id] if for_reminder else []
-
-        return []
+        try:
+            if vis == 1:
+                ids, _ = self.user_repository.get_all_user_ids()
+                audience = set(ids)
+            elif vis == 2 and creator_dept_id:
+                ids, _ = self.user_repository.get_user_ids_by_department(creator_dept_id)
+                audience = set(ids)
+            else:
+                audience = set()
+            audience.discard(creator_id)
+            return audience
+        except Exception:
+            return set()
     
 
-    def _notify_event_change(self, event_id: int, action: str, old_visibility_id: int | None = None):
-        # 👇 recargamos el evento con una sesión "limpia"
-        event, ec = self.schedule_repository.get_event_by_id(event_id)
-        if ec != 200:
-            logging.warning(f"[SCHEDULE] No se pudo cargar evento {event_id} para notificación: {event}")
-            return
+    def _build_event_payload(self, event, action):
+        data = {
+            "type": "SCHEDULE_EVENT",
+            "action": action,              # created | updated | removed | reminder
+            "event_id": str(event.id),
+            "visibility_id": str(event.visibility_id or 1),
+            "all_day": bool(event.all_day),
+            "title": event.title or "",
+        }
+        if event.all_day:
+            if event.start_datetime:
+                data["start_date"] = event.start_datetime.date().isoformat()
+        else:
+            if event.start_datetime:
+                data["start_datetime"] = event.start_datetime.isoformat()
+            if event.end_datetime:
+                data["end_datetime"] = event.end_datetime.isoformat()
+        return data
+    
 
-        visibility = event.visibility_id or 1
-        old_visibility = old_visibility_id or visibility
-
-        # Reglas de visibilidad como las que ya tenías:
-        if action in ("created", "deleted"):
-            if visibility == 3:
-                return
-
-        if action == "updated":
-            if old_visibility == 3 and visibility == 3:
-                return
-            if visibility == 3:
-                return
+    def _format_title_body(self, event, action: str) -> tuple[str, str]:
+        titulo = (event.title or "").strip()
 
         creator = getattr(event, "user", None)
-        creator_name = self.general_service.format_name(creator.name) if creator and creator.name else "Alguien"
+        actor_name = "Alguien"
+
+        if creator and getattr(creator, "name", None):
+            full_name = self.general_service.format_name(creator.name or "").strip()
+            actor_name = full_name.split(" ", 1)[0] or "Alguien"
 
         if action == "created":
-            title = "Nuevo evento"
-            if visibility == 1:
-                body = f"{creator_name} creó un evento para todos: \"{event.title}\""
-            elif visibility == 2:
-                body = f"{creator_name} creó un evento para tu área: \"{event.title}\""
-            else:
-                body = f"{creator_name} creó un evento: \"{event.title}\""
-        elif action == "updated":
-            title = "Evento actualizado"
-            body = f"{creator_name} actualizó el evento \"{event.title}\""
-        elif action == "deleted":
-            title = "Evento eliminado"
-            body = f"{creator_name} eliminó el evento \"{event.title}\""
-        elif action == "reminder":
-            if event.all_day or event.all_day == 1:
-                title = "Evento de hoy"
-                body = f"Hoy tienes \"{event.title}\"."
-            else:
-                title = "Evento en curso"
-                body = f"\"{event.title}\" está comenzando ahora."
+            return (
+                "Nuevo evento en tu agenda ✨",
+                f"{actor_name} creó el evento «{titulo}»."
+            )
+
+        if action == "updated":
+            return (
+                "Actualización de evento ✏️",
+                f"{actor_name} actualizó el evento «{titulo}»."
+            )
+
+        if action == "removed":
+            return (
+                "Evento eliminado 🗑️",
+                f"{actor_name} eliminó el evento «{titulo}» de tu calendario."
+            )
+
+        if action == "reminder":
+            if event.all_day:
+                return (
+                    "Evento de hoy 📅",
+                    f"Hoy tienes «{titulo}» en tu agenda."
+                )
+            return (
+                "Tu evento está por empezar ⏰",
+                f"«{titulo}» está a punto de comenzar."
+            )
+
+        return (
+            "Notificación de tu agenda",
+            f"«{titulo}»"
+        )
+
+
+    def _notify_bulk(self, user_ids: set[int], event, action: str):
+        if not user_ids:
+            return
+        title, body = self._format_title_body(event, action)
+        payload = self._build_event_payload(event, action)
+        for uid in user_ids:
+            self.push_sender.send_to_user(uid, title, body, payload)
+
+
+    def _notify_reminder(self, event):
+        """
+        Recordatorios respetando visibilidad:
+        - TODOS / ÁREA: todos los que ven el evento + el creador
+        - PRIVADO: solo el creador
+        """
+        creator_id = event.user_id
+        creator_dept, _ = self.user_repository.get_user_department_id(creator_id)
+        visibility_id = event.visibility_id or 1
+
+        if visibility_id == 3:
+            # privado → solo creador
+            audience = {creator_id}
         else:
-            return
+            # misma lógica que el resto, pero sumando creador
+            audience = self._audience_for_visibility(visibility_id, creator_id, creator_dept)
+            audience.add(creator_id)
 
-        recipients = self._get_recipients_for_event(event, for_reminder=(action == "reminder"))
-        if not recipients:
-            return
+        self._notify_bulk(audience, event, "reminder")
 
-        payload = {
-            "type": "SCHEDULE_EVENT",
-            "action": action,
-            "event_id": str(event.id),
-            "visibility_id": str(visibility),
-            "start_datetime": event.start_datetime.isoformat() if event.start_datetime else None,
-        }
-
-        for user_id in set(recipients):
-            self.push_sender.send_to_user(user_id, title, body, data=payload)
-
-            
 
     @handle_exceptions
     def get_month(self, offset):
@@ -482,7 +501,7 @@ class ScheduleService:
 
             raw_start = data.get("start_datetime")
             if not raw_start:
-                return "Ingresa un fecha", 422
+                return "Ingresa una fecha", 422
             
             new_event_id, aec = self.schedule_repository.add_event(data)
             if aec != 200:
@@ -490,8 +509,13 @@ class ScheduleService:
             
             socketio.emit("calendar_update_dashboard", {})
 
-            self._notify_event_change(new_event_id, "created")
-
+            event, ec = self.schedule_repository.get_event_by_id(new_event_id)
+            if ec == 200:
+                creator_id = event.user_id
+                creator_dept, _ = self.user_repository.get_user_department_id(creator_id)
+                audience = self._audience_for_visibility(event.visibility_id or 1, creator_id, creator_dept)
+                self._notify_bulk(audience, event, "created")
+                
             return "Evento registrado correctamente", 200
         
         # ============ EDITAR ============
@@ -499,16 +523,38 @@ class ScheduleService:
         if ec != 200:
             return event, ec
 
-        old_visibility_id = event.visibility_id
+        old_vis = event.visibility_id or 1
+        creator_id = event.user_id
+        creator_dept, _ = self.user_repository.get_user_department_id(creator_id)
 
+        old_audience = self._audience_for_visibility(old_vis, creator_id, creator_dept)
+
+        raw_new_vis = data.get("visibility_id")
+
+        try:
+            new_vis = int(raw_new_vis) if raw_new_vis not in (None, "") else old_vis
+        except (TypeError, ValueError):
+            new_vis = old_vis
+
+        data["visibility_id"] = new_vis
         updated, uec = self.schedule_repository.update_event(event, data)
         if uec != 200:
             return updated, uec
         
-        socketio.emit("calendar_update_dashboard", {})
+        new_audience = self._audience_for_visibility(new_vis, creator_id, creator_dept)
+        added   = new_audience - old_audience    # ganan visibilidad
+        removed = old_audience - new_audience    # pierden visibilidad
+        stayed  = new_audience & old_audience    # se mantienen (opcional updated)
 
-        # 🔔 notificación por actualización usando el ID
-        self._notify_event_change(event_id, "updated", old_visibility_id=old_visibility_id)
+        event, ec = self.schedule_repository.get_event_by_id(event_id)
+        if ec != 200:
+            return event, ec
+
+        self._notify_bulk(added, event, "created")
+        self._notify_bulk(removed, event, "removed")
+        self._notify_bulk(stayed, event, "updated")
+
+        socketio.emit("calendar_update_dashboard", {})
 
         return "Evento actualizado correctamente", 200
 
@@ -520,13 +566,20 @@ class ScheduleService:
         if ec != 200:
             return event, ec
         
-        # 🔔 notificar ANTES de marcar como borrado
-        self._notify_event_change(event_id, "deleted")
-        
+        creator_id = event.user_id
+        creator_dept, _ = self.user_repository.get_user_department_id(creator_id)
+        audience = self._audience_for_visibility(event.visibility_id or 1, creator_id, creator_dept)
+
         delete_event, dec = self.schedule_repository.get_delete_event(event)
         if dec != 200:
             return delete_event, dec
+
+        event, ec = self.schedule_repository.get_event_by_id(event_id)
+        if ec != 200:
+            return event, ec
         
+        self._notify_bulk(audience, event, "removed")
+
         socketio.emit("calendar_update_dashboard", {})
         return "Evento eliminado correctamente", 200
 
@@ -536,21 +589,47 @@ class ScheduleService:
         utc_now = datetime.now(timezone.utc)
         now = utc_now - timedelta(hours=5)
 
-        window_start = now
-        window_end = now + timedelta(minutes=1)
+        window_start = now.replace(second=0, microsecond=0)
+        window_end = window_start + timedelta(minutes=1)
 
-        logging.info(window_start)
-        logging.info(window_end)
+        logging.info(f"[REMINDERS] {window_start.isoformat()} -> {window_end.isoformat()}")
 
+        sent = 0
+
+        # 1) Timed events (no all_day) que empiezan en este minuto
         events, ec = self.schedule_repository.get_events_starting_between(window_start, window_end)
         if ec != 200:
             return events, ec
 
         for ev in events:
-            logging.info(ev.title)
-            self._notify_event_change(ev.id, "reminder")
+            # Seguridad: ignorar all_day aquí
+            if bool(ev.all_day):
+                continue
 
-        return {"ok": True, "count": len(events)}, 200
+            # Dedupe por minuto: reminder:{event_id}:{YYYYMMDDHHMM}
+            stamp = window_start.strftime("%Y%m%d%H%M")
+            key = f"reminder:{ev.id}:{stamp}"
+            if redis_client.setnx(key, "1"):
+                redis_client.expire(key, 120)  # 2 min de margen
+                self._notify_reminder(ev)
+                sent += 1
+
+        # 2) All-day: sólo a las 00:00 (Lima) del día
+        if window_start.hour == 0 and window_start.minute == 0:
+            today = window_start.date()
+            all_day_events, ec2 = self.schedule_repository.get_all_day_events_for_date(today)
+            if ec2 != 200:
+                return all_day_events, ec2
+
+            for ev in all_day_events:
+                # Dedupe por día: reminder:allday:{event_id}:{YYYYMMDD}
+                dkey = f"reminder:allday:{ev.id}:{today.strftime('%Y%m%d')}"
+                if redis_client.setnx(dkey, "1"):
+                    redis_client.expire(dkey, 26 * 3600)
+                    self._notify_reminder(ev)
+                    sent += 1
+
+        return {"ok": True, "count": sent}, 200
         # crontab -e
         # * * * * * curl -s -X POST "https://devapi.krear3d.com/schedule/notifications/upcoming" > /dev/null 2>&1
 

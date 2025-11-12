@@ -72,7 +72,7 @@ class ScheduleRepository:
 
     @handle_db_exceptions
     def get_visibility(self):
-        visibility = g.db_session.query(Visibility).all()
+        visibility = g.db_session.query(Visibility).order_by(Visibility.id.desc()).all()
         if not visibility:
             return [], 200
 
@@ -107,6 +107,24 @@ class ScheduleRepository:
 
 
     @handle_db_exceptions
+    def get_all_day_events_for_date(self, day: date):
+        start_day = datetime.combine(day, datetime.min.time())
+        end_day = start_day + timedelta(days=1)
+
+        events = (
+            g.db_session.query(Events)
+            .filter(
+                Events.deleted_at.is_(None),
+                (Events.all_day == True) | (Events.all_day == 1),
+                Events.start_datetime >= start_day,
+                Events.start_datetime < end_day,
+            )
+            .all()
+        )
+        return events or [], 200
+
+
+    @handle_db_exceptions
     def add_event(self, data):
         raw_start = data.get("start_datetime")
         raw_end = data.get("end_datetime")
@@ -117,32 +135,49 @@ class ScheduleRepository:
         raw_all_day = data.get("all_day")
         all_day_flag = True if raw_all_day in (True, 1, "1", "true", "True") else False
 
-        def parse_dt(raw):
+        def parse_start(raw):
             if not raw:
                 return None
-            # 👇 si es all_day, solo usamos la fecha a las 00:00
             if all_day_flag:
                 date_str = raw[:10]
                 return datetime.strptime(date_str, "%Y-%m-%d")
-            # si no es all_day, respetamos fecha y hora
             return datetime.fromisoformat(raw) if "T" in raw else datetime.strptime(raw, "%Y-%m-%d")
 
-        start_datetime = parse_dt(raw_start)
-        end_datetime = parse_dt(raw_end)
+        def parse_end(raw, start_dt):
+            if all_day_flag:
+                if raw:
+                    date_str = raw[:10]
+                    d = datetime.strptime(date_str, "%Y-%m-%d")
+                else:
+                    d = start_dt
+                return d.replace(hour=23, minute=59, second=59)
+            else:
+                if not raw:
+                    return None
+                return datetime.fromisoformat(raw) if "T" in raw else datetime.strptime(raw, "%Y-%m-%d")
+
+        start_datetime = parse_start(raw_start)
+        end_datetime = parse_end(raw_end, start_datetime) if start_datetime else None
+
+        raw_visibility = data.get("visibility_id")
+        try:
+            visibility_id = int(raw_visibility) if raw_visibility not in (None, "") else 1
+        except (TypeError, ValueError):
+            visibility_id = 1
 
         event = Events(
-            user_id      = data.get("user_id"),
-            title        = data.get("title"),
-            description  = data.get("description"),
+            user_id       = data.get("user_id"),
+            title         = data.get("title"),
+            description   = data.get("description"),
             start_datetime = start_datetime,
             end_datetime   = end_datetime,
-            meet         = data.get("meet"),
-            hex_color    = data.get("hex_color"),
-            visibility_id = data.get("visibility_id"),
-            all_day      = all_day_flag,
-            repeat_id    = data.get("repeat_id"),
-            notify_id    = data.get("notify_id"),
-            created_at   = peru_time
+            meet          = data.get("meet"),
+            hex_color     = data.get("hex_color"),
+            visibility_id = visibility_id,
+            all_day       = all_day_flag,
+            repeat_id     = data.get("repeat_id"),
+            notify_id     = data.get("notify_id"),
+            created_at    = peru_time,
         )
 
         g.db_session.add(event)
@@ -198,30 +233,57 @@ class ScheduleRepository:
         peru_time = utc_now - timedelta(hours=5)
 
         raw_all_day = data.get("all_day")
-        all_day_flag = True if raw_all_day in (True, 1, "1", "true", "True") else False
+        if raw_all_day is None:
+            all_day_flag = bool(event.all_day)
+        else:
+            all_day_flag = True if raw_all_day in (True, 1, "1", "true", "True") else False
 
-        def parse_dt(raw):
+        def parse_start(raw):
             if not raw:
-                return None
+                return event.start_datetime
             if all_day_flag:
                 date_str = raw[:10]
-                return datetime.strptime(date_str, "%Y-%m-%d")
+                return datetime.strptime(date_str, "%Y-%m-%d")  # 00:00:00
             return datetime.fromisoformat(raw) if "T" in raw else datetime.strptime(raw, "%Y-%m-%d")
 
-        start_datetime = parse_dt(raw_start)
-        end_datetime   = parse_dt(raw_end)
+        def parse_end(raw, start_dt):
+            if all_day_flag:
+                if raw:
+                    date_str = raw[:10]
+                    d = datetime.strptime(date_str, "%Y-%m-%d")
+                else:
+                    base = start_dt or event.start_datetime
+                    d = base.date()
+                    d = datetime.combine(d, datetime.min.time())
+                return d.replace(hour=23, minute=59, second=59)
+            else:
+                if not raw:
+                    return event.end_datetime
+                return datetime.fromisoformat(raw) if "T" in raw else datetime.strptime(raw, "%Y-%m-%d")
 
-        event.title         = data.get("title")
-        event.description   = data.get("description")
+        start_datetime = parse_start(raw_start)
+        end_datetime   = parse_end(raw_end, start_datetime)
+
+        raw_visibility = data.get("visibility_id")
+        if raw_visibility not in (None, ""):
+            try:
+                visibility_id = int(raw_visibility)
+            except (TypeError, ValueError):
+                visibility_id = event.visibility_id
+        else:
+            visibility_id = event.visibility_id
+
+        event.title          = data.get("title")
+        event.description    = data.get("description")
         event.start_datetime = start_datetime
         event.end_datetime   = end_datetime
-        event.meet          = data.get("meet")
-        event.hex_color     = data.get("hex_color")
-        event.visibility_id = data.get("visibility_id")
-        event.all_day       = all_day_flag
-        event.repeat_id     = data.get("repeat_id")
-        event.notify_id     = data.get("notify_id")
-        event.created_at    = peru_time
+        event.meet           = data.get("meet")
+        event.hex_color      = data.get("hex_color")
+        event.visibility_id  = visibility_id
+        event.all_day        = all_day_flag
+        event.repeat_id      = data.get("repeat_id")
+        event.notify_id      = data.get("notify_id")
+        event.created_at     = peru_time  # idealmente aquí usarías updated_at
 
         g.db_session.add(event)
         g.db_session.commit()
