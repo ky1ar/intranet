@@ -1,7 +1,6 @@
 import logging
 from application.handlers import handle_logs_and_exceptions, validate_request
 from application.services.user_service import UserService
-from flask_jwt_extended import get_jwt_identity
 
 
 class UserController:
