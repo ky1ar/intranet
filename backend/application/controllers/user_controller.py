@@ -82,11 +82,13 @@ class UserController:
     def register_device(self, data):
         device_id = data.get("device_id")
         fcm_token = data.get("fcm_token")
+        device_platform = data.get("device_platform")
+        user_agent = data.get("user_agent")
 
         if not device_id or not fcm_token:
             return "device_id y fcm_token son requeridos", 400
 
-        return self.user.register_device(device_id, fcm_token)
+        return self.user.register_device(device_id, fcm_token, device_platform, user_agent)
     
         
     

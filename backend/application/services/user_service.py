@@ -185,6 +185,6 @@ class UserService:
 
 
     @handle_exceptions
-    def register_device(self, device_id, fcm_token):
+    def register_device(self, device_id, fcm_token, device_platform, user_agent):
         user_id = int(get_jwt_identity())
-        return self.push_repository.upsert_token(user_id, device_id, fcm_token)
+        return self.push_repository.upsert_token(user_id, device_id, fcm_token, device_platform, user_agent)

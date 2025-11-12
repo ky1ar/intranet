@@ -9,6 +9,8 @@ window.addEventListener('beforeunload', () => {
 document.addEventListener('alpine:init', () => {
     Alpine.data('data',() => ({
         init() {
+            Alpine.store('cache').detectPlatform();
+
             console.log('Inicializando Alpine...');
 
             const token = Alpine.store('cache').user.token;
@@ -61,6 +63,38 @@ document.addEventListener('alpine:init', () => {
         fcm_token: null,
         notifications_enabled: !!localStorage.getItem('push_token'),
         push_intro_seen: localStorage.getItem('push_intro_seen') === '1',
+        platform: 'desktop',
+
+        detectPlatform() {
+            const ua = navigator.userAgent || navigator.vendor || window.opera;
+
+            if (/android/i.test(ua)) {
+                this.platform = 'android';
+                return;
+            }
+
+            if (/iPad|iPhone|iPod/.test(ua) || 
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+                this.platform = 'ios';
+                return;
+            }
+
+            this.platform = 'desktop';
+        },
+
+        pushHelpMessage() {
+            const base = 'Activa las notificaciones y te avisaré de tus novedades en tiempo real.<br><br>';
+
+            if (this.platform === 'android') {
+                return base + 'En <strong>Android</strong>, te recomiendo instalar la app web (añadir esta página a la pantalla de inicio) y luego activar las notificaciones.';
+            }
+
+            if (this.platform === 'ios') {
+                return base + 'En <strong>iOS</strong>, primero debes guardar esta página en la pantalla de inicio (instalar la app web) y después activar las notificaciones desde allí.';
+            }
+
+            return base + 'En <strong>tu computadora</strong>, puedes activarlas directamente desde el navegador.';
+        },
         
         getOrCreateDeviceId() {
             let id = localStorage.getItem('device_id');
@@ -137,6 +171,8 @@ document.addEventListener('alpine:init', () => {
                     return;
                 }
 
+                this.detectPlatform();
+
                 this.getOrCreateDeviceId();
                 const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
 
@@ -157,7 +193,6 @@ document.addEventListener('alpine:init', () => {
                 const savedToken  = localStorage.getItem('push_token');
                 const savedDevice = localStorage.getItem('push_device_id');
 
-                // Ya estaba registrado exactamente este device/token
                 if (savedToken === token && savedDevice === this.device_id) {
                     console.log('Push ya registrado para este dispositivo');
                     this.notifications_enabled = true;
@@ -174,6 +209,8 @@ document.addEventListener('alpine:init', () => {
                         body: JSON.stringify({
                             device_id: this.device_id,
                             fcm_token: this.fcm_token,
+                            device_platform: this.platform,
+                            user_agent: navigator.userAgent || null,
                         }),
                     });
 

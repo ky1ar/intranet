@@ -104,6 +104,8 @@ class FireCloudTokens(BaseModel):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     device_id = db.Column(db.String(255), nullable=False)
     token = db.Column(db.String(255), nullable=False, unique=True)
+    device_platform = db.Column(db.String(16), nullable=True)
+    user_agent = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp())
     updated_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp())
 

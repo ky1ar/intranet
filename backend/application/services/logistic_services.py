@@ -1,10 +1,8 @@
 import logging
-import firebase_admin
 import threading
 
-from firebase_admin import messaging, credentials
-from datetime import date, datetime, timezone, timedelta
-from application.models import  ShippingHistory, ShippingStatusList, FireCloudTokens, HistoryType
+from datetime import date, timedelta
+from application.models import  ShippingHistory, ShippingStatusList, HistoryType
 from application.handlers import handle_exceptions, handle_db_exceptions
 from application.repository.logistic_repository import LogisticRepository
 from application.repository.client_repository import ClientRepository
@@ -15,7 +13,6 @@ from application import socketio
 
 class LogisticService:
     def __init__(self):
-        self.check_firebase_initialized()
         self.logistic_repository = LogisticRepository()
         self.client_repository = ClientRepository()
         self.whatsapp = Whatsapp()
@@ -629,136 +626,4 @@ class LogisticService:
 
 
 
-
-
-    
-    @handle_exceptions
-    def check_firebase_initialized(self):
-        if not firebase_admin._apps:
-            cred = credentials.Certificate('serviceAccountKey.json')
-            firebase_admin.initialize_app(cred)
-
-
-    @handle_db_exceptions
-    def get_fcm_token(self, token):
-        token = g.db_session.query(FireCloudTokens).filter_by(token=token).first()
-        if not token:
-            return None, 400
-
-        return token, 200
-
-
-    @handle_db_exceptions
-    def set_fcm_token(self, stored_token, user_id):
-        stored_token.user_id = user_id
-        g.db_session.add(stored_token)
-        g.db_session.commit()
-        return True, 200
-    
-
-    @handle_db_exceptions
-    def revome_fcm_token(self, stored_token):
-        stored_token.user_id = None
-        g.db_session.add(stored_token)
-        g.db_session.commit()
-        return True, 200
-
-
-    @handle_db_exceptions
-    def register_token(self, data):
-        utc_now = datetime.now(timezone.utc)
-        peru_time = utc_now - timedelta(hours=5)
-
-        user_id = data.get("user_id")
-        device_id = data.get("device_id")
-        token = data.get("token")
-        old_token = data.get("old_token")
-
-        if old_token:
-            stored_token, stored_token_status = self.get_fcm_token(old_token)
-            if stored_token_status != 200:
-                return stored_token, stored_token_status
-            
-            stored_token.token = token
-            stored_token.updated_at = peru_time
-
-        else:
-            new_fcm_token = FireCloudTokens(
-                user_id=user_id,
-                device_id=device_id,
-                token=token,
-                created_at=peru_time
-            )
-            g.db_session.add(new_fcm_token)
-
-        g.db_session.commit()
-        return True, 200
-    
-
-    @handle_db_exceptions
-    def send_notification(self, shipping_order):
-        status_id = shipping_order.status_id
-        if status_id == 1:
-            return True, 200
-        
-        vendor_id = shipping_order.vendor_id
-        order_number = shipping_order.order_number
-        vendor_name = shipping_order.vendor.name.split()[0]
-        date_obj = datetime.strptime(str(shipping_order.delivery_date), "%Y-%m-%d")
-        schedule_name = shipping_order.schedule.name
-
-        months = {
-            1: "enero", 2: "febrero", 3: "marzo", 4: "abril",
-            5: "mayo", 6: "junio", 7: "julio", 8: "agosto",
-            9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre"
-        }
-        
-        if status_id == 2:
-            title = f"Orden {order_number} programada"
-            body = f"Hola {vendor_name}, la orden {order_number} ha sido programada para el {date_obj.day} de {months[date_obj.month]} en el turno {schedule_name}."
-        if status_id == 3:
-            title = f"Orden {order_number} en camino a su destino"
-            body = f"Hola {vendor_name}, la orden {order_number} se encuentra en camino a su destino."
-        if status_id == 4:
-            title = f"Orden {order_number} entregada"
-            body = f"Hola {vendor_name}, la orden {order_number} ha sido entregada con éxito."
-        if status_id == 6:
-            title = f"Orden {order_number} no entregada"
-            body = f"Hola {vendor_name}, la orden {order_number} no ha podido ser entregada y tiene que repogramarse."
-        
-        tokens = g.db_session.query(FireCloudTokens.token).filter(FireCloudTokens.user_id == vendor_id).all()
-        #tokens = g.db_session.query(FireCloudTokens.token).filter(FireCloudTokens.user_id.isnot(None)).all()
-
-        tokens = [t[0] for t in tokens if t[0].strip()]
-
-        if not tokens:
-            logging.warning("No hay tokens registrados para enviar notificaciones")
-            return "No hay dispositivos registrados", 400
-
-        logging.info(f"Enviando a {len(tokens)} dispositivos")
-
-        message = messaging.MulticastMessage(
-            data={ 
-                "title": title,
-                "body": body
-            },
-            tokens=tokens
-        )
-
-        response = messaging.send_each_for_multicast(message)
-        logging.info(f"Notificaciones enviadas: {response.success_count}, fallidas: {response.failure_count}")
-
-        invalid_tokens = [
-            tokens[i] for i, result in enumerate(response.responses)
-            if not result.success and result.exception
-        ]
-
-        if invalid_tokens:
-            logging.info(f"Eliminando {len(invalid_tokens)} tokens inválidos de la BD")
-            g.db_session.query(FireCloudTokens).filter(
-                FireCloudTokens.token.in_(invalid_tokens)
-            ).delete(synchronize_session=False)
-            g.db_session.commit()
-            
-        return True, 200
 
