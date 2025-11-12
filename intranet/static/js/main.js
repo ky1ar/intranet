@@ -52,7 +52,7 @@ document.addEventListener('alpine:init', () => {
         ],
         restricted_pages: [
             { name: 'driver', label: 'Conductor', image: 'driver', title: 'Krear 3D - Conductor' },
-            { name: 'marketing', label: 'Marketing', image: 'marketing', title: 'Krear 3D - Marketing' },
+            //{ name: 'marketing', label: 'Marketing', image: 'marketing', title: 'Krear 3D - Marketing' },
             { name: 'guest', label: 'Fabrix', image: 'fabrix', title: 'Krear 3D - Fabrix' },
         ],
 

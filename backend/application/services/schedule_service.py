@@ -79,30 +79,30 @@ class ScheduleService:
         if action == "created":
             return (
                 "Nuevo evento en tu agenda ✨",
-                f"{actor_name} creó el evento «{titulo}»."
+                f"{actor_name} creó el evento: {titulo}."
             )
 
         if action == "updated":
             return (
                 "Actualización de evento ✏️",
-                f"{actor_name} actualizó el evento «{titulo}»."
+                f"{actor_name} actualizó el evento: {titulo}."
             )
 
         if action == "removed":
             return (
                 "Evento eliminado 🗑️",
-                f"{actor_name} eliminó el evento «{titulo}» de tu calendario."
+                f"{actor_name} eliminó el evento: {titulo}."
             )
 
         if action == "reminder":
             if event.all_day:
                 return (
                     "Evento de hoy 📅",
-                    f"Hoy tienes «{titulo}» en tu agenda."
+                    f"Hoy tienes: {titulo}, en tu agenda."
                 )
             return (
-                "Tu evento está por empezar ⏰",
-                f"«{titulo}» está a punto de comenzar."
+                "Un evento está por empezar ⏰",
+                f"{titulo}, está a punto de comenzar."
             )
 
         return (

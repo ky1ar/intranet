@@ -88,7 +88,7 @@
                             <div class="text">
                                 <b x-text="$store.cache.user.name"></b>
                                 <span x-text="$store.cache.user.department_name"></span>
-                                <span x-text="`ver. ${localStorage.getItem('app_version')}`"></span>
+                                <span class="ver" x-text="`versión ${localStorage.getItem('app_version')}`"></span>
 
                             </div>
 
@@ -97,7 +97,7 @@
                                     <img alt="controls" src="/static/images/settings.svg" width="16" height="16">
                                 </div>-->
 
-                                <div class="image hover-opacity"
+                                <div class="image hover-opacity primary"
                                     x-show="!$store.cache.notifications_enabled"
                                     @click="$store.cache.requestPushPermission();">
                                     Activar
