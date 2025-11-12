@@ -6,12 +6,14 @@ from application.repository.board_repository import BoardRepository
 from application.repository.general_repository import GeneralRepository
 from application.repository.user_repository import UserRepository
 from application.services.push_service import PushSender
+from application.services.general_service import GeneralService
 from application.models import HistoryType
 from application import socketio
 
 
 class BoardService:
     def __init__(self):
+        self.general_service = GeneralService()
         self.repository = BoardRepository()
         self.user_repository = UserRepository()
         self.push_service = PushSender()
@@ -47,7 +49,26 @@ class BoardService:
             11: 'noviembre',
             12: 'diciembre'
         }
+
+    def _format_datetime_es(self, dt):
+        meses_cortos = ["ene.", "feb.", "mar.", "abr.", "may.", "jun.","jul.", "ago.", "sep.", "oct.", "nov.", "dic."]
+        if not dt:
+            return ""
+
+        if isinstance(dt, str):
+            s = dt.replace("Z", "") 
+            try:
+                dt = datetime.fromisoformat(s)
+            except Exception:
+                return ""
+
+        if getattr(dt, "tzinfo", None) is not None:
+            dt = dt.replace(tzinfo=None)
+
+        hora = dt.strftime("%I:%M %p").lower().lstrip("0")
+        return f"{dt.day} de {meses_cortos[dt.month-1]} a las {hora}"
     
+
     @handle_exceptions
     def dashboard(self, department_id):
         board, board_status = self.repository.get_board(department_id)
@@ -204,8 +225,21 @@ class BoardService:
         issue, issue_status = self.repository.get_issue(issue_id)
         if issue_status != 200:
             return issue, issue_status
-        
-        return issue.to_dict(), 200
+        #issue
+        return {
+            "assignee_id": issue.assignee_id,
+            "created_at": issue.created_at,
+            "description": issue.description,
+            "id": issue.id,
+            "priority_id":issue.priority_id,
+            "reporter_id": issue.reporter_id,
+            "status_id": issue.status_id,
+            "title": issue.title,
+            "type_id": issue.type_id,
+            "updated_at": issue.updated_at,
+            "reporter_name": self.general_service.format_name(issue.reporter.name),
+            "formatted_date": self._format_datetime_es(issue.created_at),
+        }, 200
     
 
     @handle_exceptions
