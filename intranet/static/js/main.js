@@ -172,13 +172,15 @@ document.addEventListener('alpine:init', () => {
                 }
 
                 this.detectPlatform();
-
                 this.getOrCreateDeviceId();
-                const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+
+                await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+
+                const swRegistration = await navigator.serviceWorker.ready;
 
                 const token = await window.messaging.getToken({
                     vapidKey: 'BPsd2S7djGQTrd2IUttk19xkLI4t7fNyeYXZLQKmnhVlkqCWWboHNbnSMx0B-cFc_QDrUqizmVlVC5TnSrLO3Q0',
-                    serviceWorkerRegistration: registration,
+                    serviceWorkerRegistration: swRegistration,
                 });
 
                 if (!token) {
@@ -225,7 +227,7 @@ document.addEventListener('alpine:init', () => {
                 }
 
             } catch (err) {
-                console.error('Error inicializando push:', err);
+                console.error('Error inicializando push:', err, err.code, err.message);
                 alert('Ocurrió un error al activar las notificaciones. Intenta de nuevo.');
             }
         },
