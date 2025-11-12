@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap');
-/*@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600&display=swap');
-*/
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
+/*@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600&display=swap');*/
+
 
 :root {
     --primary: #ea7134;
@@ -19,6 +19,7 @@
 
     --transition: 0.2s ease-in-out; 
     --font: "Lexend";
+    --pop: "Poppins";
 }
 *, 
 *:before, 
@@ -176,24 +177,21 @@ body.modal-open {
 .modal .text-area {
     padding: 1rem;
     border-radius: 1rem;
-    line-height: 1rem;
     resize: none;
     outline: none;
-    width: 100%;
-    min-width: 24rem;
-    background-color: transparent;
-    border: 1px dashed hsl(0deg 0% 0% / 45%);
-    height: 7rem;
-    min-height: 7rem;
     transition: var(--transition);
-    overflow-y: hidden;
+    field-sizing: content;
+    width: 26rem;
+    font-weight: 300;
+    font-family: var(--font);
+    font-size: 0.85rem;
+    letter-spacing: 0.2px;
+    line-height: 1.15rem;
 }
 .modal .text-area:focus {
     box-shadow: 0 0 2rem hsl(0deg 0% 0% / 5%);
     background-color: white;
-    border: 1px dashed white;
-    height: 10rem;
-    overflow-y: auto;
+    border: 2px dashed white;
 }
 .modal .button {
     background-color: var(--primary);
@@ -573,7 +571,7 @@ body.modal-open {
         flex-direction: column;
     }
     .modal .text-area {
-        min-width: initial;
+        width: 100%;
     }
     .hover-opacity:hover {
         opacity: 1 !important;

@@ -82,7 +82,7 @@
                         <span x-text="selected_order?.client_phone?.replace(/(.{3})/g, '$1 ').trim()"></span>
                     </div>
                 </div>
-                <textarea x-model="status_notes" class="text-area" placeholder="Notas internas"></textarea>
+                <textarea x-model="status_notes" class="text-area glass2" placeholder="Notas internas"></textarea>
 
                 <div class="capture-proof">
                     <label class="dotted-button" x-show="!preview" @click.prevent="openFileInput()">+ Subir foto</label>
