@@ -496,6 +496,10 @@ class BoardHistory(BaseModel):
 
 
 
+
+
+# WSP
+
 class UserContext(BaseModel):
     __tablename__ = 'user_context'
 
@@ -509,6 +513,10 @@ class UserContext(BaseModel):
     updated_at = db.Column(db.TIMESTAMP)
 
 
+
+
+
+# EVENTS
 
 class Events(db.Model):
     __tablename__ = 'schedule_events'
@@ -574,3 +582,47 @@ class Holidays(db.Model):
     date = db.Column(db.Date, nullable=False)
     hex_color = db.Column(db.String(7))
     deleted_at = db.Column(db.DateTime)
+
+
+
+
+
+# PURCHASE
+
+class PurchaseType(db.Model):
+    __tablename__ = 'purchase_type'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(50), nullable=False)
+    slug = db.Column(db.String(50), nullable=False)
+
+
+class PurchaseUrgency(db.Model):
+    __tablename__ = 'purchase_urgency'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(50), nullable=False)
+    slug = db.Column(db.String(50), nullable=False)
+
+
+class PurchaseRequest(db.Model):
+    __tablename__ = 'purchase_requests'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    type_id = db.Column(db.Integer, db.ForeignKey('purchase_type.id'), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    reason = db.Column(db.Text)
+    urgency_id = db.Column(db.Integer, db.ForeignKey('purchase_urgency.id'))
+    quantity = db.Column(db.Integer)
+    price = db.Column(db.Float)
+    needed_date = db.Column(db.Date)
+    express = db.Column(db.Integer, default=0, nullable=False)
+    status = db.Column(db.String(50), default="created", nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False)
+    department_approved_at = db.Column(db.DateTime)
+    approved_at = db.Column(db.DateTime)
+
+    user = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
+    purchase_type = db.relationship("PurchaseType", lazy="joined", foreign_keys=[type_id])
+    purchase_urgency = db.relationship("PurchaseUrgency", lazy="joined", foreign_keys=[urgency_id])
