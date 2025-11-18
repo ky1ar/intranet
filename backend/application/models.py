@@ -611,18 +611,46 @@ class PurchaseRequest(db.Model):
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     type_id = db.Column(db.Integer, db.ForeignKey('purchase_type.id'), nullable=False)
-    title = db.Column(db.String(255), nullable=False)
-    reason = db.Column(db.Text)
+    user_comment = db.Column(db.Text)
     urgency_id = db.Column(db.Integer, db.ForeignKey('purchase_urgency.id'))
-    quantity = db.Column(db.Integer)
-    price = db.Column(db.Float)
     needed_date = db.Column(db.Date)
     express = db.Column(db.Integer, default=0, nullable=False)
-    status = db.Column(db.String(50), default="created", nullable=False)
+    total_amount = db.Column(db.Numeric(10, 2))
+    total_items = db.Column(db.Integer)
+    status_id = db.Column(db.Integer, db.ForeignKey('purchase_status.id'), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False)
-    department_approved_at = db.Column(db.DateTime)
-    approved_at = db.Column(db.DateTime)
+    leader_approved_at = db.Column(db.DateTime)
+    leader_comment = db.Column(db.Text)
+    management_approved_at = db.Column(db.DateTime)
+    management_comment = db.Column(db.Text)
+    deleted_at = db.Column(db.DateTime)
 
     user = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
     purchase_type = db.relationship("PurchaseType", lazy="joined", foreign_keys=[type_id])
     purchase_urgency = db.relationship("PurchaseUrgency", lazy="joined", foreign_keys=[urgency_id])
+    status = db.relationship("PurchaseStatus", lazy="joined", foreign_keys=[status_id])
+
+
+class PurchaseItems(db.Model):
+    __tablename__ = 'purchase_items'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    purchase_id = db.Column(db.Integer, db.ForeignKey('purchase_requests.id'), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
+    quantity = db.Column(db.Integer, nullable=False)
+    price = db.Column(db.Numeric(10, 2))
+    url = db.Column(db.Text)
+    ruc = db.Column(db.String(11))
+    legal_name = db.Column(db.String(255))
+    deleted_at = db.Column(db.DateTime)
+
+    purchase_request = db.relationship("PurchaseRequest", lazy="joined", foreign_keys=[purchase_id], backref=db.backref("items", lazy="selectin"),)
+
+
+class PurchaseStatus(db.Model):
+    __tablename__ = 'purchase_status'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(50), nullable=False)
+    slug = db.Column(db.String(50), nullable=False)

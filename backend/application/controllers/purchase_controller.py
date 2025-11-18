@@ -25,10 +25,18 @@ class PurchaseController:
 
     @handle_logs_and_exceptions
     def purchase_process(self, data):
-        if validation_error := validate_request(data, {"title"}):
-            return validation_error, 400
         return self.purchase.process(data)
 
+
+    @handle_logs_and_exceptions
+    def purchase_get(self, purchase_id):
+        return self.purchase.get(purchase_id)
+    
+
+    @handle_logs_and_exceptions
+    def purchase_update(self, data):
+        return self.purchase.update(data)
+    
 
     @handle_logs_and_exceptions
     def purchase_approve(self, data):

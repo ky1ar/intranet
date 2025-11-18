@@ -1,0 +1,1018 @@
+<div x-data="purchases_data">
+	<div id="purchases" class="dashboard">
+        <div class="header">
+			<div class="menu">
+				<div class="item" @click="search()">
+					<div class="button">
+						<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
+					</div>
+					<span>Buscar</span>
+				</div>
+            </div>
+
+			<div class="menu primary">
+				<div class="item" @click="addPurchase()">
+					<div class="button">
+						<img alt="" width="20" height="20" src="/static/images/icons/add.svg">
+					</div>
+					<span>Añadir</span>
+				</div>
+			</div>
+		</div>
+
+		<div class="main glass">
+			<div class="table-header">
+				<div>Orden</div>
+				<div>Usuario</div>
+				<div>Área</div>
+				<div>Tipo</div>
+				<div>Solicitud</div>
+				<div>Prioridad</div>
+				<div>Estado</div>
+				<div>Fecha de solicitud</div>
+			</div>
+
+			<template x-for="purchase in $store.cache.getData('purchases_dashboard')" :key="purchase.id">
+				<div class="table-row">
+					<div class="table-row-main" @click="viewPurchase(purchase)">
+						<div x-text="`PR-00${purchase.id}`"></div>
+						<div>
+							<img alt="user" class="image" :src="'/static/images/uploads/users/' + purchase.requester_image" width="24" height="24">
+							<span x-text="purchase.requester_name"></span>
+						</div>
+						<div x-text="purchase.requester_department"></div>
+						<div x-text="purchase.type_name"></div>
+						<div x-text="purchase.express == 1 ? 'Express':'Estándar'"></div>
+						<div x-text="purchase.urgency_name"></div>
+						<div>
+							<div :class="purchase.status_slug" x-text="purchase.status_name"></div>
+						</div>
+						<div x-text="purchase.created_at"></div>
+					</div>
+				</div>
+			</template>
+		</div>
+
+		<div
+			x-show="$store.cache.isVisibleModal('process_purchase')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-add"
+			x-cloak>
+			
+			<div x-show="!process_purchase.editable && editing" class="modal glass2" @click.stop>
+				<div class="title">
+					<div class="dot"></div>
+					<span>Solicitud</span>
+				</div>
+
+				<div class="view-box">
+					<div class="view-header">
+						<span>#</span>
+						<span>Ítem</span>
+						<span>Cant.</span>
+						<span>Precio</span>
+						<span>URL</span>
+					</div>
+
+					<template x-for="(item, index) in process_purchase.items" :key="index">
+						<div class="view-row">
+							<span x-text="(index + 1) + '.'"></span>
+							<span x-text="item.title"></span>
+							<span x-text="item.quantity"></span>
+							<span x-text="item.price"></span>
+							<template x-if="item.url">
+								<a :href="item.url">
+									<img alt="" width="16" height="16" src="/static/images/icons/link.svg">
+								</a>
+							</template>
+							<template x-if="!item.url">
+								<span>-</span>
+							</template>
+						</div>
+					</template>
+					
+				</div>
+
+				<div class="comments-box">
+					<div class="user-comment">
+						<img alt="user" :src="'/static/images/uploads/users/' + process_purchase.user_image" width="24" height="24">
+						<p class="glass2" x-text="process_purchase.user_comment"></p>
+					</div>
+
+					<div x-show="process_purchase.leader_comment" class="user-comment">
+						<img alt="user" :src="'/static/images/uploads/users/' + process_purchase.leader_image" width="24" height="24">
+						<p class="glass2" x-text="process_purchase.leader_comment"></p>
+					</div>
+				</div>
+				
+				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
+					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">
+				</div>
+			</div>
+
+
+			<div x-show="process_purchase.editable || !editing" class="modal glass2" @click.stop >
+				<div class="title">
+					<div class="dot"></div>
+					<span x-text="!editing ? 'Nueva solicitud':'Editando solicitud'"></span>
+				</div>
+
+				<div class="fields">
+					<label class="white">
+						<select x-model="process_purchase.type_id">
+							<template x-if="$store.cache.getData('purchases_type')?.length !== 1">
+								<option value="" disabled>Tipo</option>
+							</template>
+
+							<template x-for="type in $store.cache.getData('purchases_type')" :key="type.id">
+								<option :value="type.id" x-text="type.name"></option>
+							</template>
+						</select>
+					</label>
+
+					<label class="white">
+						<select x-model="process_purchase.urgency_id">
+							<template x-if="$store.cache.getData('purchases_urgency')?.length !== 1">
+								<option value="">Urgencia</option>
+							</template>
+
+							<template x-for="urgency in $store.cache.getData('purchases_urgency')" :key="urgency.id">
+								<option :value="urgency.id" x-text="urgency.name"></option>
+							</template>
+						</select>
+					</label>
+
+					<!-- <label class="white">
+						<input type="date" x-model="process_purchase.register_date">
+					</label> -->
+
+					<label class="white express">
+						Express
+						<label class="box">
+							<input id="express" type="checkbox" x-model="process_purchase.express">
+							<span class="slider"></span>
+						</label>
+					</label>
+				</div>
+
+				<div class="items-box">
+					<div class="items-header">
+						<button type="button" class="new hover-opacity" @click="addItem()">
+							<img alt="eliminar" width="16" height="16" src="/static/images/icons/add.svg">
+						</button>
+						<span>Ítem</span>
+						<span>Cant.</span>
+						<span>Precio</span>
+						<span>URL</span>
+						<span></span>
+					</div>
+
+					<template x-for="(item, index) in process_purchase.items" :key="index">
+						<div class="items-row">
+							<label x-text="(index + 1) + '.'"></label>
+							<label class="white">
+								<input type="text" placeholder="Agregar título" x-model="item.title">
+							</label>
+
+							<label class="white">
+								<input type="number" min="1" step="1" placeholder="1" x-model.number="item.quantity">
+							</label>
+
+							<label class="white">
+								<input type="number" min="0" step="0.01" placeholder="0.00" x-model.number="item.price">
+							</label>
+
+							<label class="white">
+								<input type="url" placeholder="Añadir URL" x-model="item.url">
+							</label>
+							
+							<button type="button" class="remove hover-opacity" @click="removeItem(index)">
+								<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
+							</button>
+						</div>
+					</template>
+				</div>
+
+				<template x-if="!editing">
+					<textarea x-model="process_purchase.user_comment" class="text-area white" placeholder="Comentarios"></textarea>
+				</template>
+
+				<template x-if="editing">
+					<div>
+						<div class="comments-box" x-show="process_purchase.status_id == 1">
+							<textarea x-show="!process_purchase.can_approve" x-model="process_purchase.user_comment" class="text-area white" placeholder="Comentarios"></textarea>
+							
+							<div x-show="process_purchase.can_approve && process_purchase.user_comment" class="user-comment">
+								<img alt="user" :src="'/static/images/uploads/users/' + process_purchase.user_image" width="24" height="24">
+								<p class="glass2" x-text="process_purchase.user_comment"></p>
+							</div>
+							
+							<textarea x-show="process_purchase.can_approve" x-model="process_purchase.leader_comment" class="text-area white" placeholder="Comentarios"></textarea>
+						</div>
+
+						<div class="comments-box" x-show="process_purchase.status_id == 2">
+							<div x-show="process_purchase.user_comment" class="user-comment">
+								<img alt="user" :src="'/static/images/uploads/users/' + process_purchase.user_image" width="24" height="24">
+								<p class="glass2" x-text="process_purchase.user_comment"></p>
+							</div>
+							<textarea x-show="!process_purchase.can_approve" x-model="process_purchase.leader_comment" class="text-area white" placeholder="Comentarios"></textarea>
+
+							<div x-show="process_purchase.can_approve && process_purchase.leader_comment" class="user-comment">
+								<img alt="user" :src="'/static/images/uploads/users/' + process_purchase.leader_image" width="24" height="24">
+								<p class="glass2" x-text="process_purchase.leader_comment"></p>
+							</div>
+							<textarea x-show="process_purchase.can_approve" x-model="process_purchase.management_comment" class="text-area white" placeholder="Comentarios"></textarea>
+						</div>
+					</div>
+				</template>
+
+				<template x-if="process_purchase.can_approve">
+					<div class="buttons">
+						<button class="button icon red hover-opacity" @click="rejectRequest()" :class="buttons.reject.class">
+							<img alt="eliminar" width="18" height="18" src="/static/images/icons/dislike.svg">
+							<span x-text="buttons.reject.text"></span>
+						</button>
+
+						<button class="button icon green hover-opacity" @click="approveRequest()" :class="buttons.approve.class">
+							<img alt="update" width="18" height="18" src="/static/images/icons/like.svg">
+							<span x-text="buttons.approve.text"></span>
+						</button>
+					</div>
+				</template>
+
+				<template x-if="!process_purchase.can_approve">
+					<div class="buttons">
+						<button x-show="editing" class="button icon black hover-opacity" @click="deleteRequest()" :class="buttons.remove.class">
+							<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
+							<span x-text="buttons.remove.text"></span>
+						</button>
+
+						<button class="button icon hover-opacity" @click="newRequest()" :class="buttons.add.class">
+							<img alt="update" width="16" height="16" src="/static/images/icons/update.svg">
+							<span x-text="buttons.add.text"></span>
+						</button>
+					</div>
+				</template>
+
+				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
+					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">
+				</div>
+			</div>
+		</div>
+
+	</div>
+	
+
+
+
+
+	<script>
+		Alpine.data('purchases_data', () => ({
+			api: Alpine.store('cache').api,
+			user_id: Alpine.store('cache').user.id,
+			processing: false,
+			buttons: {
+				add:   { text: 'Registrar solicitud', class: '' },
+				remove:   { text: 'Eliminar', class: '' },
+				approve:   { text: 'Aprobar', class: '' },
+				reject:   { text: 'Rechazar', class: '' },
+			},
+			process_purchase: {
+				id: null,
+				type_id: 1,
+				urgency_id: "",
+				express: false,
+				needed_date: "",
+				user_comment: "",
+				user_image: "00000000.jpg",
+				leader_comment: "",
+				can_approve: false,
+				items: [
+					{
+						title: "",
+						description: "",
+						quantity: 1,
+						price: "",
+						url: "",
+						ruc: "",
+					}
+				],
+			},
+			editing: false,
+
+			async init() {
+				console.log('Inicializando Purchases...');
+
+				const socket = Alpine.store('cache').socket;
+				if (socket) {
+					socket.removeAllListeners();
+					socket.on("purchase_update_dashboard", async () => {
+						await Alpine.store('cache').refresh('purchases_dashboard');
+					});
+				}
+
+				await Alpine.store('cache').fetchData([
+					{ key: 'purchases_dashboard', url: `/purchases/requests`, force: true },
+					{ key: 'purchases_type', url: '/purchases/options/type' },
+					{ key: 'purchases_urgency', url: '/purchases/options/urgency' },
+				]);
+				await Alpine.store('cache').verify();
+			},
+
+			resetOrder() {
+				this.editing = false;
+				this.process_purchase = {
+					id: null,
+					type_id: 1,
+					urgency_id: "",
+					express: false,
+					needed_date: "",
+					can_approve: false,
+					user_comment: "",
+					user_image: "00000000.jpg",
+					leader_comment: "",
+					items: [
+						{
+							title: "",
+							description: "",
+							quantity: 1,
+							price: "",
+							url: "",
+							ruc: "",
+						},
+					],
+				};
+				this.buttons.add.text = "Registrar solicitud";
+			},
+
+			async newRequest() {
+				if (this.processing) return;
+
+				if (!this.process_purchase.type_id) {
+					this.showError("add", "Selecciona un tipo");
+					return;
+				}
+
+				if (!this.process_purchase.urgency_id) {
+					this.showError("add", "Selecciona una urgencia");
+					return;
+				}
+
+				const validItems = this.process_purchase.items
+					.map((i) => ({
+						title: (i.title || "").trim(),
+						description: (i.description || "").trim(),
+						quantity: Number(i.quantity) || 0,
+						price:
+							i.price === "" || i.price === null || i.price === undefined
+								? null
+								: Number(i.price),
+						url: (i.url || "").trim(),
+						ruc: (i.ruc || "").trim(),
+					}))
+					.filter((i) => i.title && i.quantity > 0);
+
+				if (!validItems.length) {
+					this.showError("add", "Debe agregar al menos 1 ítem");
+					return;
+				}
+
+				let total_items = 0;
+				let total_amount = 0;
+
+				validItems.forEach((i) => {
+					total_items += i.quantity;
+					if (i.price) {
+						total_amount += i.quantity * i.price;
+					}
+				});
+
+				const method = this.editing ? "PUT" : "POST";
+				const url = this.editing
+					? `${this.api}/purchases/${this.process_purchase.id}`
+					: `${this.api}/purchases/process`;
+					
+				const payload = {
+					type_id: this.process_purchase.type_id || 1,
+					urgency_id: this.process_purchase.urgency_id,
+					express: this.process_purchase.express ? 1 : 0,
+					needed_date: this.process_purchase.needed_date || null,
+					user_comment: this.process_purchase.user_comment || "",
+					leader_comment: this.process_purchase.leader_comment || "",
+					total_items,
+					total_amount,
+					items: validItems,
+				};
+
+				this.processing = true;
+				NProgress.start();
+
+				try {
+					const response = await fetch(url, {
+						method: method,
+						headers: { 
+							"Content-Type": "application/json",
+							'Authorization': `Bearer ${Alpine.store('cache').user.token}`,
+					 },
+						body: JSON.stringify(payload),
+					});
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+						throw new Error(
+							jsonData?.data?.message ||
+								jsonData?.message ||
+								"Error al registrar la solicitud"
+						);
+					}
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process_purchase");
+					//await Alpine.store("cache").refresh("purchases_dashboard");
+				} catch (error) {
+					this.showError("add", error.message);
+				} finally {
+					NProgress.done();
+					this.processing = false;
+				}
+			},
+
+			async approveRequest() {
+				if (this.processing) return;
+
+				if (!this.process_purchase.urgency_id) {
+					this.showError("add", "Selecciona una urgencia");
+					return;
+				}
+
+				const validItems = this.process_purchase.items
+					.map((i) => ({
+						title: (i.title || "").trim(),
+						description: (i.description || "").trim(),
+						quantity: Number(i.quantity) || 0,
+						price:
+							i.price === "" || i.price === null || i.price === undefined
+								? null
+								: Number(i.price),
+						url: (i.url || "").trim(),
+						ruc: (i.ruc || "").trim(),
+					}))
+					.filter((i) => i.title && i.quantity > 0);
+
+				if (!validItems.length) {
+					this.showError("add", "Debe agregar al menos 1 ítem");
+					return;
+				}
+
+				let total_items = 0;
+				let total_amount = 0;
+
+				validItems.forEach((i) => {
+					total_items += i.quantity;
+					if (i.price) {
+						total_amount += i.quantity * i.price;
+					}
+				});
+
+				const payload = {
+					type_id: this.process_purchase.type_id,
+					urgency_id: this.process_purchase.urgency_id,
+					express: this.process_purchase.express ? 1 : 0,
+					needed_date: this.process_purchase.needed_date || null,
+					user_comment: this.process_purchase.user_comment || "",
+					leader_comment: this.process_purchase.leader_comment || "",
+					total_items,
+					total_amount,
+					items: validItems,
+				};
+
+				this.processing = true;
+				NProgress.start();
+
+				try {
+					const response = await fetch(`${this.api}/purchases/approve/${this.process_purchase.id}`, {
+						method: "PUT",
+						headers: { 
+							"Content-Type": "application/json",
+							'Authorization': `Bearer ${Alpine.store('cache').user.token}`,
+					 },
+						body: JSON.stringify(payload),
+					});
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+						throw new Error(
+							jsonData?.data?.message ||
+								jsonData?.message ||
+								"Error al registrar la solicitud"
+						);
+					}
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process_purchase");
+					//await Alpine.store("cache").refresh("purchases_dashboard");
+				} catch (error) {
+					this.showError("add", error.message);
+				} finally {
+					NProgress.done();
+					this.processing = false;
+				}
+			},
+
+			addPurchase() {
+				this.resetOrder();
+				Alpine.store('cache').showModal('process_purchase');
+			},
+
+			async viewPurchase(purchase) {
+				this.editing = true;
+				this.buttons.add.text = "Actualizar";
+
+				NProgress.start();
+
+				try {
+					const response = await fetch(`${this.api}/purchases/${purchase.id}`, {
+						headers: {
+							"Content-Type": "application/json",
+							"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+						},
+					});
+					const dataJson = await response.json();
+					const data = dataJson.data;
+
+					if (!response.ok) {
+						throw new Error(data?.message || "Error al obtener la solicitud");
+					}
+
+					this.process_purchase.id = data.id;
+					this.process_purchase.type_id = data.type_id;
+					this.process_purchase.urgency_id = data.urgency_id;
+					this.process_purchase.status_id = data.status_id;
+					this.process_purchase.express = !!data.express;
+					this.process_purchase.needed_date = data.needed_date || "";
+					this.process_purchase.user_image = data.user_image || "";
+					this.process_purchase.user_comment = data.user_comment || "";
+					this.process_purchase.leader_comment = data.leader_comment || "";
+					this.process_purchase.leader_image = data.leader_image || "";
+					this.process_purchase.can_approve =  data.can_approve || false,
+					this.process_purchase.editable =  data.editable || false,
+
+					this.process_purchase.items = (data.items || []).map((it) => ({
+						title: it.title,
+						description: it.description,
+						quantity: it.quantity,
+						price: it.price || '-',
+						url: it.url,
+						ruc: it.ruc,
+					}));
+
+					if (!this.process_purchase.items.length) {
+						this.process_purchase.items = [
+							{
+								title: "",
+								description: "",
+								quantity: 1,
+								price: "",
+								url: "",
+								ruc: "",
+							},
+						];
+					}
+
+					Alpine.store("cache").showModal("process_purchase");
+				} catch (error) {
+					console.error(error);
+					this.showError("add", error.message);
+				} finally {
+					NProgress.done();
+				}
+			},
+
+			addItem() {
+				this.process_purchase.items.push({
+					title: '',
+					description: '',
+					quantity: 1,
+					price: '',
+					url: '',
+					ruc: '',
+				});
+			},
+
+			removeItem(index) {
+				if (this.process_purchase.items.length === 1) {
+					this.process_purchase.items = [
+						{
+							title: '',
+							description: '',
+							quantity: 1,
+							price: '',
+							url: '',
+							ruc: '',
+						}
+					];
+					return;
+				}
+				this.process_purchase.items.splice(index, 1);
+			},
+			
+			showError(btnKey, errorMsg) {
+                const originalText = this.buttons[btnKey].text;
+                const originalClass = this.buttons[btnKey].class;
+
+                if (originalClass == 'error') {
+                    return;
+                }
+                this.buttons[btnKey].text = errorMsg;
+                this.buttons[btnKey].class = 'error';
+
+                setTimeout(() => {
+                    this.buttons[btnKey].text = originalText;
+                    this.buttons[btnKey].class = originalClass;
+                }, 1000);
+            },
+
+		}));
+	  </script>
+	
+	
+
+
+
+
+
+
+	<style>
+		#modal-add .express {
+			flex: initial;
+		}
+		#modal-add .express .dot {
+			width: 0.5rem;
+			height: 0.5rem;
+			background-color: var(--primary);
+			border-radius: 1rem;
+		}
+		#modal-add .express .box {
+			position: relative;
+			width: 2.5rem;
+			height: 1.5rem;
+			flex: initial;
+		}
+		#modal-add .express .box input {
+			opacity: 0;
+			width: 0;
+			height: 0;
+		}
+		#modal-add .express .box .slider {
+			border-radius: 2rem;
+			position: absolute;
+			cursor: pointer;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background-color: #ccc;
+			transition: all 0.25s ease-in-out;
+		}
+		#modal-add .express .box .slider:before {
+			position: absolute;
+			content: "";
+			height: 1rem;
+			width: 1rem;
+			left: 0.25rem;
+			bottom: 0.25rem;
+			background-color: white;
+			transition: all 0.25s ease-in-out;
+			border-radius: 50%;
+		}
+		#modal-add .express .box input:checked + .slider {
+			background-color: var(--primary);
+		}
+		#modal-add .express .box input:checked + .slider:before {
+			transform: translateX(1rem);
+		}
+
+
+		#modal-add .modal .title {
+			align-items: center;
+			gap: 0.5rem;
+			display: flex;
+		}
+		#modal-add .modal .title .dot {
+			width: 0.5rem;
+			height: 0.5rem;
+			background-color: var(--primary);
+			border-radius: 1rem;
+		}
+		#modal-add .items-box {
+			flex-direction: column;
+			position: relative;
+			display: flex;
+			gap: 0.75rem;
+			max-width: 48rem;
+			padding: 0.5rem 0;
+			margin: 0 -0.5rem;
+		}
+		#modal-add .items-header {
+			display: grid;
+			grid-template-columns: 0.15fr 2.25fr 0.4fr 0.5fr 1fr 0.2fr;
+			gap: 0.75rem;
+			align-items: center;
+			font-weight: 500;
+		}
+		#modal-add .items-header .new {
+			padding: 0;
+			margin: 0;
+			border: 0;
+			background-color: transparent;
+			width: 2rem;
+			height: 1.5rem;
+		}
+		#modal-add .items-row {
+			grid-template-columns: 0.15fr 2.25fr 0.4fr 0.5fr 1fr 0.2fr;
+			display: grid;
+			gap: 0.75rem;
+			align-items: center;
+		}
+		#modal-add .items-row label {
+			border-radius: 0.75rem;
+		}
+		#modal-add .items-row label input {
+			height: 2.25rem;
+		}
+		#modal-add .items-box .remove {
+			padding: 0;
+			margin: 0;
+			border: 0;
+			border-radius: 1rem;
+			background-color: transparent;
+			box-shadow: none;
+			width: 2rem;
+			height: 2.5rem;
+		}
+		#modal-add .text-area {
+			max-width: 48rem;
+    		border: none;
+		}
+		#modal-add .buttons {
+			display: flex;
+    		gap: 0.75rem;
+		}
+		#modal-add .comments-box {
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+		}
+		#modal-add .user-comment {
+			display: flex;
+			gap: 0.5rem;
+			align-items: start;
+			max-width: 47rem;
+		}
+		#modal-add .user-comment img {
+    		border-radius: 1rem;
+		}
+		#modal-add .user-comment p {
+			margin: 0;
+			font-size: 0.8rem;
+			width: 100%;
+			padding: 0.5rem;
+			border-radius: 0.75rem;
+			border-top-left-radius: 0.25rem;
+		}
+		#modal-add .view-box {
+			flex-direction: column;
+			position: relative;
+			display: flex;
+			gap: 0.75rem;
+			width: 40rem;
+			padding: 0.5rem 0;
+		}
+		#modal-add .view-header {
+			display: grid;
+			grid-template-columns: 0.15fr 3fr 0.5fr 0.5fr 0.5fr;
+			gap: 0.75rem;
+			align-items: center;
+			font-weight: 500;
+		}
+		#modal-add .view-row {
+			grid-template-columns: 0.15fr 3fr 0.5fr 0.5fr 0.5fr;
+			display: grid;
+			gap: 0.75rem;
+			align-items: center;
+		}
+		.main {
+			overflow: hidden;
+		}
+		.table-header {
+			display: grid;
+			grid-template-columns: 0.5fr 1.25fr 1fr 0.75fr 0.8fr 0.7fr 0.8fr 1.25fr;
+			gap: 1rem;
+			padding: 1rem;
+			font-weight: 600;
+			border-bottom: 2px solid #ffffff80;
+		}
+		.table-row {
+			border-bottom: 2px solid #ffffff80;
+		}
+		.table-row:last-child {
+			border-bottom: none;
+		}
+		.table-row-main {
+			display: grid;
+			grid-template-columns: 0.5fr 1.25fr 1fr 0.75fr 0.8fr 0.7fr 0.8fr 1.25fr;
+			gap: 1rem;
+			align-items: center;
+			padding: 1rem;
+			cursor: pointer;
+			transition: var(--transition);
+		}
+		.table-row-main:hover {
+			background-color: white;
+		}
+
+		.table-row-main > div:nth-child(2) {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		.table-row-main .image {
+			border-radius: 2rem;
+			object-fit: cover;
+		}
+		.table-row-main > div:nth-child(7) > div {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			padding: 0.25rem 1rem;
+			border-radius: 2rem;
+			font-size: 0.75rem;
+			font-weight: 600;
+		}
+		.pending {
+			background: var(--newgray);
+    		border: 2px solid #c7c6c6;
+		}
+		.leader_approve {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		.management_approve {
+			background-color: #d0f4ea;
+    		border: 2px solid #abe9d8;
+		}
+		.deleted {
+			background-color: #fee3e1;
+    		border: 2px solid #ffceca;
+		}
+		.rejected {
+			background: #fef2f2;
+			color: #b91c1c;
+		}
+
+
+		
+
+		#purchases table {
+			border-collapse: collapse;
+			width: 100%;
+		}
+		#purchases table th {
+			padding: 1rem;
+			text-align: left;
+			font-weight: 600;
+		}
+		#purchases table tbody tr {
+			transition: var(--transition);
+			border-top: 2px solid #ffffff80;
+		}
+		#purchases table tbody tr:hover {
+			background-color: var(--white);
+			border-top: 2px solid transparent;
+		}
+		#purchases table td {
+			padding: 1rem;
+			cursor: pointer;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		#purchases table td.user {
+			display: flex;
+			gap: 0.75rem;
+			align-items: center;
+		}
+		#purchases table td.user img {
+			border-radius: 2rem;
+		}
+		#purchases table.static tbody tr {
+			transition: none;
+		}
+		#purchases table.static tbody tr:hover {
+			background-color: transparent;
+		}
+		#purchases table.static td {
+			cursor: default;
+			line-height: 2rem;
+		}
+		#purchases table td.order {
+			width: 8rem;
+		}
+		#purchases table td.machine_box {
+			width: 12rem;
+			max-width: 12rem;
+		}
+		#purchases table td.client {
+			width: 20rem;
+			max-width: 20rem;
+		}
+		#purchases table td .controlls {
+			display: flex;
+    		gap: 0.5rem;
+		}
+		#purchases table td .controlls .action {
+			width: 1.5rem;
+			height: 1.5rem;
+			display: flex;
+			justify-content: center;
+		}
+		#purchases table .machine {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		#purchases table .link-id {
+			background-color: var(--white);
+			width: 1.75rem;
+			height: 1.75rem;
+			border-radius: 1rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-weight: 500;
+			font-size: 0.8rem;
+			border: 1px solid var(--graydark);
+		}
+		#purchases table .link-status {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#purchases table .link-status.status-1 {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		#purchases table .link-status.status-2 {
+			background-color: #dff5ff;
+    		border: 2px solid #b4e1f2;
+		}
+		#purchases table .link-status.status-3 {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+		}
+		#purchases table .link-status.status-4 {
+			background-color: #e4d4fb;
+    		border: 2px solid #d0beeb;
+		}
+		#purchases table .link-status.status-5 {
+			background-color: #fee3e1;
+    		border: 2px solid #ffceca;
+		}
+		#purchases table .finished {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#purchases table .finished.active {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		#purchases table .machine img {
+			mix-blend-mode: darken;
+		}
+		#purchases table .machine .model {
+			display: flex;
+    		flex-direction: column;
+		}
+		#purchases table .machine .model span {
+			font-weight: 500;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 8rem;
+		}
+		#purchases table .machine .model span + span {
+			font-weight: 400;
+			font-size: 0.75rem;
+			opacity: 0.6;
+		}
+	</style>
+</div>
