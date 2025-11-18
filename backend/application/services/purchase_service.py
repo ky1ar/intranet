@@ -15,6 +15,9 @@ class PurchaseService:
         self.purchase_repository = PurchaseRepository()
         self.user_repository = UserRepository()
         self.management_department = 7
+        self.worker_level = 2
+        self.leader_level = 3
+        self.management_level = 4
 
 
     @handle_exceptions
@@ -145,34 +148,46 @@ class PurchaseService:
 
 
     @handle_exceptions
-    def requests(self):
-        user_id = int(get_jwt_identity())
-        user, uc = self.user_repository.get_user_by_id(user_id)
-        if uc != 200:
-            return user, uc
-        
-        if user.level_id == 4:
-            visibility = []
-        elif user.level_id == 3:
-            user_ids, uic = self.user_repository.get_user_ids_by_department(user_id)
-            if uic != 200:
-                return user_ids, uic
-            visibility = user_ids
-        else:
-            visibility = [user_id]
-
-        purchase_requests, prc = self.purchase_repository.get_purchase_requests(visibility)
+    def _get_worker_request(self, user_id):
+        purchase_requests, prc = self.purchase_repository.get_purchase_requests([user_id])
         if prc != 200:
             return purchase_requests, prc
         
-        purchase_requests_list = [
+        return self._format_requests_reponse(purchase_requests, user_id, self.worker_level)
+
+
+    @handle_exceptions
+    def _get_leader_request(self, user_id):
+        department_user_ids, duic = self.user_repository.get_user_ids_by_department(user_id)
+        if duic != 200:
+            return department_user_ids, duic
+    
+        purchase_requests, prc = self.purchase_repository.get_purchase_requests(department_user_ids)
+        if prc != 200:
+            return purchase_requests, prc
+        
+        return self._format_requests_reponse(purchase_requests, user_id, self.leader_level)
+
+    
+    @handle_exceptions
+    def _get_mamagement_request(self, user_id):
+        purchase_requests, prc = self.purchase_repository.get_purchase_requests([])
+        if prc != 200:
+            return purchase_requests, prc
+        
+        return self._format_requests_reponse(purchase_requests, user_id, self.leader_level)
+    
+
+    @handle_exceptions
+    def _format_requests_reponse(self, purchase_requests, user_id, level):
+        return [
             {
+                "viewer_level_id": self.leader_level,
                 "id": purchase.id,
                 "requester_name": format_name(purchase.user.name) if user_id != purchase.user_id else 'Tú',
                 "requester_department": purchase.user.department.name,
                 "requester_image": purchase.user.image,
                 "type_name": purchase.purchase_type.name,
-                "user_comment": purchase.user_comment,
                 "urgency_name": purchase.purchase_urgency.name,
                 "express": purchase.express,
                 "status_name": purchase.status.name,
@@ -180,10 +195,27 @@ class PurchaseService:
                 "created_at": format_datetime(purchase.created_at),
 
             } for purchase in purchase_requests
-        ]
-        return purchase_requests_list, 200
+        ], 200
 
 
+    @handle_exceptions
+    def requests(self):
+        user_id = int(get_jwt_identity())
+        user, uc = self.user_repository.get_user_by_id(user_id)
+        if uc != 200:
+            return user, uc
+        
+        user_level_id = user.level_id
+
+        if user_level_id == self.worker_level:
+            return self._get_worker_request(user_id)
+
+        if user_level_id == self.leader_level:
+            return self._get_leader_request(user_id)
+        
+        return self._get_mamagement_request(user_id)
+    
+    
     @handle_exceptions
     def type_options(self):
         purchase_type, ptc = self.purchase_repository.get_purchase_type()
