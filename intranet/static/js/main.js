@@ -47,6 +47,7 @@ document.addEventListener('alpine:init', () => {
             { name: 'logistics', label: 'Envíos', image: 'logistics', title: 'Krear 3D - Envíos' },
             { name: 'tracking', label: 'Tracking', image: 'tracking', title: 'Krear 3D - Trackings' },
             { name: 'support', label: 'Soporte', image: 'support', title: 'Krear 3D - Soporte' },
+            //{ name: 'purchases', label: 'Compras', image: 'purchases', title: 'Krear 3D - Compras' },
             //{ name: 'training', label: 'Capacitaciones', image: 'training', title: 'Krear 3D - Capacitaciones' },
             //{ name: 'clients', label: 'Clientes', image: 'clients', title: 'Krear 3D - Clientes' },
         ],
@@ -64,6 +65,7 @@ document.addEventListener('alpine:init', () => {
         notifications_enabled: !!localStorage.getItem('push_token'),
         push_intro_seen: localStorage.getItem('push_intro_seen') === '1',
         platform: 'desktop',
+        cached_keys: new Set(),
 
         detectPlatform() {
             const ua = navigator.userAgent || navigator.vendor || window.opera;
@@ -341,18 +343,34 @@ document.addEventListener('alpine:init', () => {
         logout() {
             console.log('Logout...');
             this.closeSocket();
+            this.clearDataCache();
             this.unsetData();
             this.sidebarOff();
             localStorage.removeItem('user_data');
+            localStorage.removeItem('push_token');
+            localStorage.removeItem('push_device_id');
+            localStorage.removeItem('device_id');
             window.PineconeRouter.context.navigate('/');
         },
 
         setData(key, value, url) {
             this[key] = { data: value, url: url || (this[key]?.url) };
+            this.cached_keys.add(key);
         },
+
+        clearDataCache() {
+            this.cached_keys.forEach((key) => {
+                if (this[key]) {
+                    delete this[key];
+                }
+            });
+            this.cached_keys.clear();
+        },
+
         getData(key) {
             return this[key]?.data;
         },
+
         isLoaded(key) {
             const value = this[key]?.data;
 
@@ -364,6 +382,7 @@ document.addEventListener('alpine:init', () => {
             }
             return false;
         },
+
         getUrl(key) {
             return this[key]?.url;
         },

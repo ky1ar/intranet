@@ -8,6 +8,7 @@ from flask import g
 class UserRepository:
     def __init__(self):
         self.support_department = 5
+        self.management_department = 7
         self.admin_level = 3
 
 
@@ -38,7 +39,6 @@ class UserRepository:
 
         return user, 200
     
-
     @handle_db_exceptions
     def get_user_name_by_id(self, user_id):
         user = g.db_session.query(Users).filter_by(id=user_id).first()
@@ -157,3 +157,24 @@ class UserRepository:
             ).first()
             
         return leader
+
+
+    @handle_db_exceptions
+    def get_leader(self, department_id):
+        leader =  g.db_session.query(Users).filter(
+            Users.department_id == department_id,
+            Users.level_id == self.admin_level
+        ).first()
+        
+        if not leader:
+            leader = g.db_session.query(Users).filter(
+                Users.department_id == department_id,
+                Users.level_id != 1
+            ).first()
+            
+        return leader, 200
+    
+    @handle_db_exceptions
+    def get_manager(self):
+        return g.db_session.query(Users).filter(Users.department_id == self.management_department).first(), 200
+    

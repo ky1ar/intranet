@@ -42,6 +42,7 @@ from application.routes.tracking_routes import tracking_bp
 from application.routes.general_routes import general_bp
 from application.routes.board_routes import board_bp
 from application.routes.schedule_routes import schedule_bp
+from application.routes.purchase_routes import purchase_bp
 
 
 app.register_blueprint(dev_bp)
@@ -55,6 +56,7 @@ app.register_blueprint(tracking_bp)
 app.register_blueprint(general_bp)
 app.register_blueprint(board_bp)
 app.register_blueprint(schedule_bp)
+app.register_blueprint(purchase_bp)
 
 
 def api_key_required():
