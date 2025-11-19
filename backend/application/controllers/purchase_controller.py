@@ -14,6 +14,16 @@ class PurchaseController:
     
 
     @handle_logs_and_exceptions
+    def purchase_get(self, purchase_id):
+        return self.purchase.get_request(purchase_id)
+    
+
+    @handle_logs_and_exceptions
+    def purchase_update(self, data):
+        return self.purchase.update(data)
+    
+
+    @handle_logs_and_exceptions
     def purchase_type_options(self):
         return self.purchase.type_options()
     
@@ -27,16 +37,6 @@ class PurchaseController:
     def purchase_process(self, data):
         return self.purchase.process(data)
 
-
-    @handle_logs_and_exceptions
-    def purchase_get(self, purchase_id):
-        return self.purchase.get(purchase_id)
-    
-
-    @handle_logs_and_exceptions
-    def purchase_update(self, data):
-        return self.purchase.update(data)
-    
 
     @handle_logs_and_exceptions
     def purchase_approve(self, data):

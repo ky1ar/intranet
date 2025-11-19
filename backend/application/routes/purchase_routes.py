@@ -13,18 +13,6 @@ def requests():
     return controller.purchase_requests()
 
 
-@purchase_bp.route("/options/type", methods=["GET"])
-#@jwt_required()
-def type_options():
-    return controller.purchase_type_options()
-
-
-@purchase_bp.route("/options/urgency", methods=["GET"])
-#@jwt_required()
-def urgency_options():
-    return controller.purchase_urgency_options()
-
-
 @purchase_bp.route("/<int:purchase_id>", methods=["GET"])
 @jwt_required()
 def get_purchase(purchase_id):
@@ -37,6 +25,18 @@ def update_purchase(purchase_id):
     data = request.get_json()
     data["purchase_id"] = purchase_id
     return controller.purchase_update(data)
+
+
+@purchase_bp.route("/options/type", methods=["GET"])
+#@jwt_required()
+def type_options():
+    return controller.purchase_type_options()
+
+
+@purchase_bp.route("/options/urgency", methods=["GET"])
+#@jwt_required()
+def urgency_options():
+    return controller.purchase_urgency_options()
 
 
 @purchase_bp.route("/approve/<int:purchase_id>", methods=["PUT"])

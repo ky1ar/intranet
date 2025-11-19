@@ -39,7 +39,7 @@ class PurchaseService:
     
 
     @handle_exceptions
-    def get(self, purchase_id):
+    def get_request(self, purchase_id):
         purchase, code = self.purchase_repository.get_purchase_by_id(purchase_id)
         if code != 200:
             return purchase, code
@@ -49,75 +49,64 @@ class PurchaseService:
         if uc != 200:
             return user, uc
         
-        user_level = user.level_id
-        user_department = user.department_id
-        user_image = user.image
-        editable = True
-        can_approve = True
+        user_level_id = user.level_id
 
-        if user_level == 2:
-            leader, lc = self.user_repository.get_leader(user_department)
-            if lc != 200:
-                return leader, lc
-            
-            leader_image = leader.image
-            can_approve = False
+        if user_level_id == self.worker_level:
+            return self._get_worker_request(user, purchase)
 
-            if purchase.status_id > 1:
-                editable = False
-
-        elif user_level == 3:
-            leader_image = user_image
-            if purchase.status_id > 1:
-                can_approve = False
-
-            if purchase.status_id > 2:
-                editable = False
-
-        else:
-            requester, uc = self.user_repository.get_user_by_id(purchase.user_id)
-            if uc != 200:
-                return requester, uc
-            
-            leader, lc = self.user_repository.get_leader(requester.department_id)
-            if lc != 200:
-                return leader, lc
-            
-            leader_image = leader.image
-                #editable = False
-            
-        # can_approve = False
-        # if user_level == 4:
-        #     can_approve = True
-        # elif user_level == 3 and purchase.user_id != user_id:
-        #     can_approve = True
+        if user_level_id == self.leader_level:
+            return self._get_leader_request(user, purchase)
         
-        # editable = False
-        # if purchase.status_id == 1:
-        #     editable = True
-        # elif purchase.status_id == 2:
-        #     if user_level == 3:
-        #         editable = True
-        #     else:
-        #         editable = False
+        return self._get_manager_request(user, purchase)
+    
 
+    @handle_exceptions
+    def _get_worker_request(self, user, purchase):
+        status_id = purchase.status_id
+        leader = None
+        manager = None
+
+        if status_id > 1:
+            leader, lc = self.user_repository.get_leader(user.department_id)
+            if lc != 200:
+                return leader, lc
+        
+        if status_id > 2:
+            manager, lc = self.user_repository.get_manager()
+            if lc != 200:
+                return manager, lc
+            
+        modal = {
+            1: "edit",
+        }
         dto = {
+            "modal": modal.get(status_id, "view"),
             "id": purchase.id,
-            "editable": editable,
+            "pr": f"PR-{purchase.id:04d}",
             "type_id": purchase.type_id,
-            "can_approve": can_approve,
             "urgency_id": purchase.urgency_id,
             "express": bool(purchase.express),
             "needed_date": purchase.needed_date.isoformat() if purchase.needed_date else None,
-            "user_comment": purchase.user_comment,
-            "user_image": purchase.user.image,
-            "leader_image": leader_image,
-            "leader_comment": purchase.leader_comment,
-            "total_items": purchase.total_items,
-            "total_amount": float(purchase.total_amount) if purchase.total_amount is not None else None,
             "status_name": purchase.status.name,
             "status_slug": purchase.status.slug,
-            "status_id": purchase.status_id,
+            "status_id": status_id,
+            "self_created": True if user.id == purchase.user.id else False,
+            
+            "user_name": format_name(purchase.user.name),
+            "user_image": purchase.user.image,
+            "user_comment": purchase.user_comment,
+            "created_at": format_datetime(purchase.created_at),
+
+            "leader_name": format_name(leader.name) if leader else None,
+            "leader_image": leader.image if leader else None,
+            "leader_comment": purchase.leader_comment,
+            "leader_at": format_datetime(purchase.leader_approved_at),
+
+            "manager_name": format_name(manager.name) if manager else None,
+            "manager_image": manager.image if manager else None,
+            "manager_comment": purchase.manager_comment,
+            "manager_at": format_datetime(purchase.manager_approved_at),
+
             "items": [],
         }
 
@@ -138,6 +127,129 @@ class PurchaseService:
     
 
     @handle_exceptions
+    def _get_leader_request(self, user, purchase):
+        status_id = purchase.status_id
+        manager = None
+        
+        if status_id > 2:
+            manager, lc = self.user_repository.get_manager()
+            if lc != 200:
+                return manager, lc
+        
+        modal = {
+            1: "approve",
+            2: "delete",
+        }
+        dto = {
+            "modal": modal.get(status_id, "view"),
+            "id": purchase.id,
+            "pr": f"PR-{purchase.id:04d}",
+            "type_id": purchase.type_id,
+            "urgency_id": purchase.urgency_id,
+            "express": bool(purchase.express),
+            "needed_date": purchase.needed_date.isoformat() if purchase.needed_date else None,
+            "status_name": purchase.status.name,
+            "status_slug": purchase.status.slug,
+            "status_id": status_id,
+            "self_created": True if user.id == purchase.user.id else False,
+
+            "user_name": purchase.user.name,
+            "user_image": purchase.user.image,
+            "user_comment": purchase.user_comment,
+            "created_at": format_datetime(purchase.created_at),
+
+            "leader_name": user.name,
+            "leader_image": user.image,
+            "leader_comment": purchase.leader_comment,
+            "leader_at": format_datetime(purchase.leader_approved_at),
+
+            "manager_name": manager.name if manager else None,
+            "manager_image": manager.image if manager else None,
+            "manager_comment": purchase.manager_comment,
+            "manager_at": format_datetime(purchase.manager_approved_at),
+
+            "items": [],
+        }
+
+        for item in purchase.items:
+            if item.deleted_at:
+                continue
+            dto["items"].append({
+                "id": item.id,
+                "title": item.title,
+                "description": item.description,
+                "quantity": item.quantity,
+                "price": float(item.price) if item.price is not None else None,
+                "url": item.url,
+                "ruc": item.ruc,
+            })
+
+        return dto, 200
+    
+
+    @handle_exceptions
+    def _get_manager_request(self, user, purchase):
+        status_id = purchase.status_id
+        leader = None
+        
+        if status_id > 1:
+            leader, lc = self.user_repository.get_leader(purchase.user.department_id)
+            if lc != 200:
+                return leader, lc
+            
+        modal = {
+            1: "approve",
+            2: "approve",
+            3: "delete",
+        }
+        dto = {
+            "modal": modal.get(status_id, "view"),
+            "id": purchase.id,
+            "pr": f"PR-{purchase.id:04d}",
+            "type_id": purchase.type_id,
+            "urgency_id": purchase.urgency_id,
+            "express": bool(purchase.express),
+            "needed_date": purchase.needed_date.isoformat() if purchase.needed_date else None,
+            "status_name": purchase.status.name,
+            "status_slug": purchase.status.slug,
+            "status_id": status_id,
+            "self_created": True if user.id == purchase.user.id else False,
+
+            "user_name": purchase.user.name,
+            "user_image": purchase.user.image,
+            "user_comment": purchase.user_comment,
+            "created_at": format_datetime(purchase.created_at),
+
+            "leader_name": leader.name if leader else None,
+            "leader_image": leader.image if leader else None,
+            "leader_comment": purchase.leader_comment,
+            "leader_at": format_datetime(purchase.leader_approved_at),
+
+            "manager_name": user.name,
+            "manager_image": user.image,
+            "manager_comment": purchase.manager_comment,
+            "manager_at": format_datetime(purchase.manager_approved_at),
+
+            "items": [],
+        }
+
+        for item in purchase.items:
+            if item.deleted_at:
+                continue
+            dto["items"].append({
+                "id": item.id,
+                "title": item.title,
+                "description": item.description,
+                "quantity": item.quantity,
+                "price": float(item.price) if item.price is not None else None,
+                "url": item.url,
+                "ruc": item.ruc,
+            })
+
+        return dto, 200
+
+
+    @handle_exceptions
     def update(self, data):
         result, code = self.purchase_repository.update_purchase(data)
         if code != 200:
@@ -148,7 +260,7 @@ class PurchaseService:
 
 
     @handle_exceptions
-    def _get_worker_request(self, user_id):
+    def _get_worker_request_list(self, user_id):
         purchase_requests, prc = self.purchase_repository.get_purchase_requests([user_id])
         if prc != 200:
             return purchase_requests, prc
@@ -157,7 +269,7 @@ class PurchaseService:
 
 
     @handle_exceptions
-    def _get_leader_request(self, user_id):
+    def _get_leader_request_list(self, user_id):
         department_user_ids, duic = self.user_repository.get_user_ids_by_department(user_id)
         if duic != 200:
             return department_user_ids, duic
@@ -170,7 +282,7 @@ class PurchaseService:
 
     
     @handle_exceptions
-    def _get_mamagement_request(self, user_id):
+    def _get_manager_request_list(self, user_id):
         purchase_requests, prc = self.purchase_repository.get_purchase_requests([])
         if prc != 200:
             return purchase_requests, prc
@@ -180,22 +292,25 @@ class PurchaseService:
 
     @handle_exceptions
     def _format_requests_reponse(self, purchase_requests, user_id, level):
-        return [
-            {
-                "viewer_level_id": self.leader_level,
-                "id": purchase.id,
-                "requester_name": format_name(purchase.user.name) if user_id != purchase.user_id else 'Tú',
-                "requester_department": purchase.user.department.name,
-                "requester_image": purchase.user.image,
-                "type_name": purchase.purchase_type.name,
-                "urgency_name": purchase.purchase_urgency.name,
-                "express": purchase.express,
-                "status_name": purchase.status.name,
-                "status_slug": purchase.status.slug,
-                "created_at": format_datetime(purchase.created_at),
+        return {
+            "requests": [
+                {
+                    "id": purchase.id,
+                    "pr": f"PR-{purchase.id:04d}",
+                    "requester_name": format_name(purchase.user.name) if user_id != purchase.user_id else 'Tú',
+                    "requester_department": purchase.user.department.name,
+                    "requester_image": purchase.user.image,
+                    "type_name": purchase.purchase_type.name,
+                    "urgency_name": purchase.purchase_urgency.name,
+                    "express": purchase.express,
+                    "status_name": purchase.status.name,
+                    "status_slug": purchase.status.slug,
+                    "created_at": format_datetime(purchase.created_at),
 
-            } for purchase in purchase_requests
-        ], 200
+                } for purchase in purchase_requests
+            ],
+            "viewer_level_id": level,
+        }, 200
 
 
     @handle_exceptions
@@ -208,12 +323,12 @@ class PurchaseService:
         user_level_id = user.level_id
 
         if user_level_id == self.worker_level:
-            return self._get_worker_request(user_id)
+            return self._get_worker_request_list(user_id)
 
         if user_level_id == self.leader_level:
-            return self._get_leader_request(user_id)
+            return self._get_leader_request_list(user_id)
         
-        return self._get_mamagement_request(user_id)
+        return self._get_manager_request_list(user_id)
     
     
     @handle_exceptions

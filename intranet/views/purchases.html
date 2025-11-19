@@ -32,7 +32,7 @@
 				<div>Fecha de solicitud</div>
 			</div>
 
-			<template x-for="purchase in $store.cache.getData('purchases_dashboard')" :key="purchase.id">
+			<template x-for="purchase in $store.cache.getData('purchases_dashboard')?.requests" :key="purchase.id">
 				<div class="table-row">
 					<div class="table-row-main" @click="viewPurchase(purchase)">
 						<div x-text="`PR-00${purchase.id}`"></div>
@@ -61,11 +61,12 @@
 			id="modal-add"
 			x-cloak>
 			
-			<div x-show="!process_purchase.editable && editing" class="modal glass2" @click.stop>
+			<div x-show="process_purchase.modal == 'view'" class="modal glass2" @click.stop>
 				<div class="title">
 					<div class="dot"></div>
-					<span>Solicitud</span>
+					<span x-text="`Solicitud ${process_purchase.pr}`"></span>
 				</div>
+				<p class="created" x-text="`Creado por ${(process_purchase.self_created ? 'ti':process_purchase.user_name)} el ${process_purchase.created_at}`"></p>
 
 				<div class="view-box">
 					<div class="view-header">
@@ -112,12 +113,12 @@
 				</div>
 			</div>
 
-
-			<div x-show="process_purchase.editable || !editing" class="modal glass2" @click.stop >
+			<div x-show="process_purchase.modal == 'edit'" class="modal glass2" @click.stop>
 				<div class="title">
 					<div class="dot"></div>
-					<span x-text="!editing ? 'Nueva solicitud':'Editando solicitud'"></span>
+					<span x-text="`Solicitud ${process_purchase.pr}`"></span>
 				</div>
+				<p class="created" x-text="`Creado por ${(process_purchase.self_created ? 'ti':process_purchase.user_name)} el ${process_purchase.created_at}`"></p>
 
 				<div class="fields">
 					<label class="white">
@@ -152,6 +153,14 @@
 						Express
 						<label class="box">
 							<input id="express" type="checkbox" x-model="process_purchase.express">
+							<span class="slider"></span>
+						</label>
+					</label>
+
+					<label class="white express">
+						Validación TI
+						<label class="box">
+							<input id="it-validation" type="checkbox" x-model="process_purchase.it_validation">
 							<span class="slider"></span>
 						</label>
 					</label>
@@ -223,7 +232,7 @@
 								<img alt="user" :src="'/static/images/uploads/users/' + process_purchase.leader_image" width="24" height="24">
 								<p class="glass2" x-text="process_purchase.leader_comment"></p>
 							</div>
-							<textarea x-show="process_purchase.can_approve" x-model="process_purchase.management_comment" class="text-area white" placeholder="Comentarios"></textarea>
+							<textarea x-show="process_purchase.can_approve" x-model="process_purchase.manager_comment" class="text-area white" placeholder="Comentarios"></textarea>
 						</div>
 					</div>
 				</template>
@@ -546,27 +555,30 @@
 						throw new Error(data?.message || "Error al obtener la solicitud");
 					}
 
-					this.process_purchase.id = data.id;
-					this.process_purchase.type_id = data.type_id;
-					this.process_purchase.urgency_id = data.urgency_id;
-					this.process_purchase.status_id = data.status_id;
-					this.process_purchase.express = !!data.express;
-					this.process_purchase.needed_date = data.needed_date || "";
-					this.process_purchase.user_image = data.user_image || "";
-					this.process_purchase.user_comment = data.user_comment || "";
-					this.process_purchase.leader_comment = data.leader_comment || "";
-					this.process_purchase.leader_image = data.leader_image || "";
-					this.process_purchase.can_approve =  data.can_approve || false,
-					this.process_purchase.editable =  data.editable || false,
+					this.process_purchase = data;
 
-					this.process_purchase.items = (data.items || []).map((it) => ({
-						title: it.title,
-						description: it.description,
-						quantity: it.quantity,
-						price: it.price || '-',
-						url: it.url,
-						ruc: it.ruc,
-					}));
+					// this.process_purchase.created_at = data.created_at;
+					// this.process_purchase.id = data.id;
+					// this.process_purchase.type_id = data.type_id;
+					// this.process_purchase.urgency_id = data.urgency_id;
+					// this.process_purchase.status_id = data.status_id;
+					// this.process_purchase.express = !!data.express;
+					// this.process_purchase.needed_date = data.needed_date || "";
+					// this.process_purchase.user_image = data.user_image || "";
+					// this.process_purchase.user_comment = data.user_comment || "";
+					// this.process_purchase.leader_comment = data.leader_comment || "";
+					// this.process_purchase.leader_image = data.leader_image || "";
+					// this.process_purchase.can_approve =  data.can_approve || false,
+					// this.process_purchase.editable =  data.editable || false,
+
+					// this.process_purchase.items = (data.items || []).map((it) => ({
+					// 	title: it.title,
+					// 	description: it.description,
+					// 	quantity: it.quantity,
+					// 	price: it.price || '-',
+					// 	url: it.url,
+					// 	ruc: it.ruc,
+					// }));
 
 					if (!this.process_purchase.items.length) {
 						this.process_purchase.items = [
@@ -705,6 +717,13 @@
 			height: 0.5rem;
 			background-color: var(--primary);
 			border-radius: 1rem;
+		}
+		#modal-add .modal .created {
+			align-items: center;
+			gap: 0.5rem;
+			display: flex;
+			margin-top: -0.5rem;
+    		opacity: 0.5;
 		}
 		#modal-add .items-box {
 			flex-direction: column;
@@ -859,7 +878,7 @@
 			background-color: #fff0de;
     		border: 2px solid #fcdab1;
 		}
-		.management_approve {
+		.manager_approve {
 			background-color: #d0f4ea;
     		border: 2px solid #abe9d8;
 		}

@@ -173,3 +173,8 @@ class UserRepository:
             ).first()
             
         return leader, 200
+    
+    @handle_db_exceptions
+    def get_manager(self):
+        return g.db_session.query(Users).filter(Users.department_id == self.management_department).first(), 200
+    

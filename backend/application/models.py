@@ -621,8 +621,8 @@ class PurchaseRequest(db.Model):
     created_at = db.Column(db.DateTime, nullable=False)
     leader_approved_at = db.Column(db.DateTime)
     leader_comment = db.Column(db.Text)
-    management_approved_at = db.Column(db.DateTime)
-    management_comment = db.Column(db.Text)
+    manager_approved_at = db.Column(db.DateTime)
+    manager_comment = db.Column(db.Text)
     deleted_at = db.Column(db.DateTime)
 
     user = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
