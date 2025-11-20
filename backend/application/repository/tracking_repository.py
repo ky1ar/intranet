@@ -161,6 +161,17 @@ class TrackingRepository:
     
 
     @handle_db_exceptions
+    def get_open_tracking_orders(self):
+        tracking_orders = (
+            g.db_session.query(TrackingOrders)
+            .filter(TrackingOrders.status_id != 3)
+            .all()
+        )
+
+        return tracking_orders, 200
+
+        
+    @handle_db_exceptions
     def get_tracking_history(self, tracking_order_id):
         order_history = (
             g.db_session.query(TrackingOrderStatus)

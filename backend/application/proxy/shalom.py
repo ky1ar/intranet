@@ -19,7 +19,7 @@ class Shalom:
             return "Error al consultar Shalom API", 502
 
         shalom_response = response.json()
-        #logging.info(shalom_response)
+        logging.info(shalom_response)
 
         if shalom_response.get('success') == False:
             return "Códigos de tracking incorrectos", 404
@@ -75,7 +75,7 @@ class Shalom:
             return "Error al consultar Shalom API", 502
         
         olva_response = response.json()
-        #logging.info(olva_response)
+        logging.info(olva_response)
 
         data = olva_response.get('data')
         origen = data.get('origen')
