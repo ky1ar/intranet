@@ -1135,68 +1135,93 @@
 			},
 
 			buildTechChart(statistics) {
-				const canvas = this.$refs.ordersByTechChart;
-				if (!canvas) return;
+	const canvas = this.$refs.ordersByTechChart;
+	if (!canvas) return;
 
-				const byTech = Array.isArray(statistics.by_tech) ? statistics.by_tech : [];
+	const byTech = Array.isArray(statistics.by_tech) ? statistics.by_tech : [];
 
-				// Destruir si ya había uno
-				if (chartTech) {
-					chartTech.destroy();
-					chartTech = null;
-				}
+	// Destruir si ya había uno
+	if (chartTech) {
+		chartTech.destroy();
+		chartTech = null;
+	}
 
-				const ctx = canvas.getContext('2d');
-				if (!ctx) {
-					console.warn('No se pudo obtener el contexto 2D para ordersByTechChart');
-					return;
-				}
+	const ctx = canvas.getContext('2d');
+	if (!ctx) {
+		console.warn('No se pudo obtener el contexto 2D para ordersByTechChart');
+		return;
+	}
 
-				chartTech = new Chart(ctx, {
-					type: 'bar',
-					data: {
-						labels: byTech.map(r => r.technician),
-						datasets: [{
-							label: 'Órdenes',
-							data: byTech.map(r => r.count),
-							backgroundColor: 'rgba(15, 32, 39, 0.75)',
-							borderWidth: 0
-						}]
-					},
-					options: {
-						responsive: true,
-						plugins: {
-							legend: { display: false }
-						},
-						scales: {
-							x: {
-								ticks: {
-									color: '#666',
-									font: {
-										size: 12,
-										family: 'Lexend',
-										weight: '500'
-									}
-								},
-								grid: { color: 'transparent' },
-								border: { display: false }
-							},
-							y: {
-								ticks: {
-									color: '#666',
-									font: {
-										size: 12,
-										family: 'Lexend',
-										weight: '500'
-									}
-								},
-								grid: { color: '#fff' },
-								border: { display: false }
-							}
+	chartTech = new Chart(ctx, {
+		type: 'bar',
+		data: {
+			labels: byTech.map(r => r.technician),
+			datasets: [{
+				label: 'Órdenes',
+				data: byTech.map(r => r.count),
+				backgroundColor: 'rgba(15, 32, 39, 0.75)',
+				borderWidth: 0
+			}]
+		},
+		options: {
+			responsive: true,
+			plugins: {
+				legend: { display: false },
+				// 🔸 Quitar tooltip (hover)
+				tooltip: { enabled: false }
+			},
+			scales: {
+				x: {
+					ticks: {
+						color: '#666',
+						font: {
+							size: 12,
+							family: 'Lexend',
+							weight: '500'
 						}
 					},
+					grid: { color: 'transparent' },
+					border: { display: false }
+				},
+				y: {
+					ticks: {
+						color: '#666',
+						font: {
+							size: 12,
+							family: 'Lexend',
+							weight: '500'
+						}
+					},
+					grid: { color: '#fff' },
+					border: { display: false }
+				}
+			}
+		},
+		// 🔸 Plugin inline para escribir el número encima de cada barra
+		plugins: [{
+			id: 'valueAboveBar',
+			afterDatasetsDraw(chart, args, pluginOptions) {
+				const { ctx } = chart;
+				ctx.save();
+				ctx.textAlign = 'center';
+				ctx.textBaseline = 'bottom';
+				ctx.fillStyle = '#333';
+				ctx.font = '600 12px Lexend';
+
+				const dataset = chart.getDatasetMeta(0);
+				dataset.data.forEach((bar, index) => {
+					const value = chart.data.datasets[0].data[index];
+					if (value == null) return;
+					const x = bar.x;
+					const y = bar.y - 4; // un poco encima de la barra
+					ctx.fillText(value, x, y);
 				});
-			},
+
+				ctx.restore();
+			}
+		}]
+	});
+},
 
 
 			async reloadTechStatistics() {

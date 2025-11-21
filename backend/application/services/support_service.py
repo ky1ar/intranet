@@ -861,14 +861,12 @@ class SupportService:
             for period, count in orders_by_month
         ]
 
-        logging.info(start_date)
-        logging.info(end_date)
         orders_by_tech, orders_by_tech_code = self.support_repository.get_orders_by_tech(start_date, end_date) 
         if orders_by_tech_code != 200:
             return orders_by_tech, orders_by_tech_code
         
         by_tech = [
-            {'technician': format_name(name), 'count': count}
+            {'technician': format_name(name, True), 'count': count}
             for name, count in orders_by_tech
         ]
         result = {
