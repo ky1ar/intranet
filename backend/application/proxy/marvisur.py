@@ -19,7 +19,7 @@ class Marvisur:
             return "Error al consultar Marvisur API", 502
         
         marvisur_response = response.json()
-        #logging.info(marvisur_response)
+        logging.info(marvisur_response)
 
         if marvisur_response.get('success') == False:
             return "Códigos de tracking incorrectos", 404

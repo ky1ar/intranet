@@ -3,11 +3,11 @@ from weasyprint import HTML
 from flask import render_template, make_response
 from datetime import datetime, timezone, timedelta, date
 from application.handlers import handle_exceptions
+from application.utils import format_name, format_datetime
 from application.repository.support_repository import SupportRepository
 from application.repository.machine_repository import MachineRepository
 from application.repository.user_repository import UserRepository
 from application.repository.general_repository import GeneralRepository
-from application.services.general_service import GeneralService
 from application.repository.client_repository import ClientRepository
 from application.proxy.whatsapp import Whatsapp
 from application import socketio
@@ -20,7 +20,6 @@ class SupportService:
         self.machine_repository = MachineRepository()
         self.user_repository = UserRepository()
         self.general_repository = GeneralRepository()
-        self.general_service = GeneralService()
         self.client_repository = ClientRepository()
         self.initial_status_id = 2
         self.whatsapp = Whatsapp()
@@ -79,7 +78,7 @@ class SupportService:
             
         order_data = {
             "order_number": f"{service_order.order_number}",
-            "technician_name": self.general_service.format_name(service_order.technician.name),
+            "technician_name": format_name(service_order.technician.name),
             "machine": f"{service_order.machine.brand.name} {service_order.machine.model}",
             "machine_image": service_order.machine.image,
             "client_name": service_order.client.name.title(),
@@ -239,7 +238,7 @@ class SupportService:
                 "status_id": row.status_id,
                 "user_name": row.user.name.split()[0],
                 "notes": row.notes if row.notes else "",
-                "register_at":  row.register_at.strftime("%d-%m-%y")
+                "register_at":  format_datetime(row.register_at)
 
             } for row in history
         ]
@@ -727,7 +726,7 @@ class SupportService:
                 "url": f"{Config.EXTERNAL_REGISTER_URL}{link.token}",
                 "order_number": link.order_number if link.order_number else '-',
                 "client_name": link.client.name.title() if link.client_id else '-',
-                "user_name": self.general_service.format_name(link.user.name) if link.user_id else '-',
+                "user_name": format_name(link.user.name) if link.user_id else '-',
                 "status": link.status.name,
                 "status_id": link.status_id,
                 "register_at": link.created_at.strftime('%d/%m/%y %I:%M %p').lower()
@@ -770,7 +769,16 @@ class SupportService:
             if row.status_id in [1, 4, 6, 7]
         }
 
-        html_out = render_template('order_report.html', order=service_order, history=history_dict)
+        photos, photos_status = self.support_repository.get_photos(service_order.id)
+        if photos_status != 200:
+            return photos, photos_status
+
+        html_out = render_template(
+            'order_report.html',
+            order=service_order,
+            history=history_dict,
+            photos=photos,
+        )
 
         pdf = HTML(string=html_out).write_pdf()
         client_slug = self.slugify(service_order.client.name)
@@ -855,7 +863,7 @@ class SupportService:
             return orders_by_tech, orders_by_tech_code
         
         by_tech = [
-            {'technician': self.general_service.format_name(name), 'count': count}
+            {'technician': format_name(name), 'count': count}
             for name, count in orders_by_tech
         ]
         result = {

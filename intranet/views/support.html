@@ -139,37 +139,39 @@
 					</div>
 				</template>
 
-				<template x-if="!revert_change">
-					<div>
-						<textarea x-model="status_notes" class="text-area glass2" placeholder="Notas internas"></textarea>
+				<span class="alert">Las notas e imágenes serán visibles, usa lenguaje adecuado.</span>
 
-						<div class="capture-proof">
-							<span class="name">Imágenes</span>
-							<div class="thumbnails-grid">
-								<template x-for="(photo, index) in proof_photos" :key="index">
-									<div class="thumbnail-wrapper hover-opacity">
-										<img class="delete" alt="delete" width="24" height="24" src="/static/images/icons/delete.svg">
-										<img class="thumbnail" :src="photo.preview" alt="preview" @click="removePhoto(index)">
-									</div>
-								</template>
-								<div class="dotted-button hover-opacity" x-show="!preview" @click.prevent="openFileInput()">
-									<img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
+				<template x-if="!revert_change">
+					<textarea x-model="status_notes" class="text-area glass2" placeholder="Notas"></textarea>
+				</template>
+				
+				<template x-if="!revert_change">
+					<div class="capture-proof">
+						<span class="name">Imágenes</span>
+						<div class="thumbnails-grid">
+							<template x-for="(photo, index) in proof_photos" :key="index">
+								<div class="thumbnail-wrapper hover-opacity">
+									<img class="delete" alt="delete" width="24" height="24" src="/static/images/icons/delete.svg">
+									<img class="thumbnail" :src="photo.preview" alt="preview" @click="removePhoto(index)">
 								</div>
-								<input
-									type="file"
-									accept="image/*"
-									capture="environment"
-									style="display: none;"
-									x-ref="fileInput"
-									@change="addFiles($event)"
-									multiple 
-								>
+							</template>
+							<div class="dotted-button hover-opacity" x-show="!preview" @click.prevent="openFileInput()">
+								<img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
 							</div>
+							<input
+								type="file"
+								accept="image/*"
+								capture="environment"
+								style="display: none;"
+								x-ref="fileInput"
+								@change="addFiles($event)"
+								multiple 
+							>
 						</div>
 					</div>
 				</template>
 
-				<button class="hover-opacity button" @click="updateStatus()" x-text="selected_service?.status_id == 8 ? 'Finalizar orden': revert_change ? 'Retroceder':'Actualizar'"></button>
+				<button class="hover-opacity button" @click="updateStatus()" :class="buttons.move_status.class" x-text="buttons.move_status.text"></button>
 
 				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
 					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">
@@ -290,6 +292,7 @@
 							<div class="left">
 								<div class="head">
 									<span class="name" x-text="$store.cache.getById('service_status', history.status_id)?.name"></span>
+									<span class="user_name" x-text="history.user_name"></span>
 									<div class="right">
 										<span class="date" x-text="history.register_at"></span>
 									</div>
@@ -303,7 +306,7 @@
 					<div class="hover-opacity finish" @click="finish(service_order)" x-show="service_order?.status_id == 8">Finalizar</div>
 				</template>
 				<template x-if="editAllowed()">
-					<div class="hover-opacity finish" @click="createPDF(service_order.order_number)" x-show="service_order?.status_id >= 8">Descargar Reporte</div>
+					<div class="hover-opacity finish" :class="{ 'black': service_order && service_order.status_id == 8 }" @click="createPDF(service_order.order_number)" x-show="service_order?.status_id >= 8">Descargar Reporte</div>
 				</template>
 				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
 					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">
@@ -744,9 +747,6 @@
 			selected_service: null,
 			status_notes: '',
 			show_document: false,
-			buttons: {
-                add: { class: '', text: 'Añadir' },
-            },
 			process_service: {},
 			client_found: false,
 			chartStatus: null,
@@ -758,6 +758,11 @@
 			showing_photo: '',
 			selected_group_id: null,
 			revert_change: false,
+
+			buttons: {
+                add: { class: '', text: 'Añadir' },
+                move_status: { class: '', text: this.selected_service?.status_id == 8 ? 'Finalizar orden': this.revert_change ? 'Retroceder estado':'Actualizar estado' },
+            },
             api: Alpine.store('cache').api,
 
 			async init() {
@@ -1499,8 +1504,15 @@
 						this.processing = false;
 					}
 				} else {
+					total_photos = this.proof_photos.length;
+					if (total_photos < 1) {
+						this.showError('move_status', 'Añade al menos 1 imagen');
+						this.processing = false;
+						return;
+					}
+
 					const formData = new FormData();
-					for (let i = 0; i < this.proof_photos.length; i++) {
+					for (let i = 0; i < total_photos; i++) {
 						const resized = await Alpine.store('cache').resizeImage(this.proof_photos[i].file, 1024, 1024);
 						formData.append('images[]', resized);
 					}
@@ -2155,8 +2167,15 @@
 			color: #f96161;
 		}
 		/***********************************************************************************/
+		.modal .text-area {
+			max-width: initial;
+			width: 100%;
+		}
 		#modal-status {
 			z-index: 40;
+		}
+		#modal-status .modal{
+			max-width: 28rem;
 		}
 		#modal-status .capture-proof {
 			max-width: 24rem;
@@ -2211,6 +2230,11 @@
 		}
 		#modal-status .capture-proof .thumbnail-wrapper:hover .thumbnail {
 			filter: brightness(0.65) blur(2px);
+		}
+		#modal-status .alert {
+			font-size: 0.75rem;
+			color: var(--primary);
+			margin-bottom: -0.5rem;
 		}
 		#modal-status .update {
 			display: flex;
@@ -2495,6 +2519,10 @@
 			justify-content: center;
 			line-height: 1.75rem;
 		}
+		#modal-view .hover-opacity.finish.black {
+			background-color: var(--secondary);
+			border: 2px solid var(--secondary);
+		}
 		#modal-view .history {
 			display: flex;
 			flex-direction: column;
@@ -2525,12 +2553,18 @@
 			font-weight: 500;
 			line-height: 1.25rem;
 		}
+		#modal-view .history .row .user_name {
+			opacity: 0.5;
+			font-size: 0.65rem;
+			margin-left: -0.5rem;
+		}
 		#modal-view .history .row .right {
 			margin-left: auto;
 			display: flex;
 			gap: 0.5rem;
 			opacity: 0.75;
 			align-items: center;
+			font-size: 0.65rem;
 		}
 		#modal-view .history .row .admin {
 			font-size: 0.6rem;
@@ -2575,6 +2609,9 @@
 
 
 		@media only screen and (max-width: 48rem) {
+			.modal {
+				padding: 1.5rem 0.75rem 0.75rem 0.75rem;
+			}
 			#support-dashboard {
 				min-height: calc(100dvh - 5.5rem);
 			}

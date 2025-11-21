@@ -42,7 +42,12 @@ class TrackingController:
             return validation_error, 400
         order_id = data.get("order_id")
         return self.tracking_service.force(order_id)
-    
+
+
+    @handle_logs_and_exceptions
+    def tracking_force_all(self):
+        return self.tracking_service.force_all()
+
 
     @handle_logs_and_exceptions
     def tracking_client_list(self, data):

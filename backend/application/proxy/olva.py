@@ -25,7 +25,7 @@ class Olva:
             return "Error al consultar Olva API", 502
         
         olva_response = response.json()
-        #logging.info(olva_response)
+        logging.info(olva_response)
 
         data = olva_response.get('data')
         general = data.get('general')
