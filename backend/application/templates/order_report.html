@@ -128,6 +128,12 @@
       margin-top: 1rem;
     }
 
+    .step,
+    .flex-row {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
     .step .head {
       display: flex;
       justify-content: space-between;
@@ -166,6 +172,32 @@
       text-align: center;
       color: #888;
     }
+
+    .photos-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+
+    .photo-item {
+      position: relative;
+      width: 6.3rem;
+      height: 6.3rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      border-radius: 0.75rem;
+      border: 2px solid #c3c3c375;
+    }
+
+    .photo-item img {
+      vertical-align: middle;
+      max-width: 100%;
+      height: auto;
+    }
+
   </style>
 </head>
 <body>
@@ -235,6 +267,20 @@
       </div>
       <div class="notes">{{ history.get(7, {}).get('notes', '').replace('\n', '<br>') | safe }}</div>
     </div>
+
+    {% if photos %}
+    <h2>Registro fotográfico</h2>
+    <div class="photos-grid">
+      {% for photo in photos %}
+        <div class="photo-item">
+          <img 
+            src="https://devintranet.krear3d.com/static/images/uploads/{{ photo.filename }}" 
+            alt="Foto servicio {{ loop.index }}"
+          >
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
 
    <h2>Resumen de Pago</h2>
     <div class="flex-row">
