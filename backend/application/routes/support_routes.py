@@ -124,7 +124,13 @@ def finish():
 
 @support_bp.route("/statistics", methods=["GET"])
 def statistics():
-    return controller.support_statistics()
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+    data = {
+        "start_date": start_date,
+        "end_date": end_date,
+    }
+    return controller.support_statistics(data)
 
 
 @support_bp.route("/find/<order_number>", methods=["GET"])

@@ -147,8 +147,8 @@ class SupportController:
 
 
     @handle_logs_and_exceptions
-    def support_statistics(self):
-        return self.support.statistics()
+    def support_statistics(self, data):
+        return self.support.statistics(data)
     
 
     @handle_logs_and_exceptions

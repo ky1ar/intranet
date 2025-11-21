@@ -712,6 +712,17 @@
 
 					<div class="glass2 box">
 						<span>Órdenes por Técnico</span>
+						<div class="date-filters">
+							<label>
+								<span>Desde</span>
+								<input type="date" x-model="tech_start_date" @change.debounce.300ms="reloadTechStatistics()">
+							</label>
+							<label>
+								<span>Hasta</span>
+								<input type="date" x-model="tech_end_date" @change.debounce.300ms="reloadTechStatistics()">
+							</label>
+							
+						</div>
 						<canvas x-ref="ordersByTechChart" width="160" height="80"></canvas>
 					</div>
 				</div>
@@ -725,12 +736,12 @@
 
 
 
-
-
-
-
-
-
+	<script>
+		let chartStatus = null;
+		let chartMonth  = null;
+		let chartTech   = null;
+		let techReloading = false;
+	</script>
 
 	<script>
 		Alpine.data('support_data',() => ({
@@ -749,15 +760,14 @@
 			show_document: false,
 			process_service: {},
 			client_found: false,
-			chartStatus: null,
-			chartMonth: null,
-			chartTech: null,
 			processing: false,
             preview: null,
 			proof_photos: [],
 			showing_photo: '',
 			selected_group_id: null,
 			revert_change: false,
+			tech_start_date: '',
+			tech_end_date: '',
 
 			buttons: {
                 add: { class: '', text: 'Añadir' },
@@ -792,7 +802,16 @@
 
 			},
 
-			
+			setDefaultTechDates() {
+				const today = new Date();
+				const first = new Date(today.getFullYear(), today.getMonth(), 1);
+				const last  = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+				const toIso = d => d.toISOString().slice(0, 10);
+
+				this.tech_start_date = this.tech_start_date || toIso(first);
+				this.tech_end_date   = this.tech_end_date   || toIso(last);
+			},
 
 			async getMachine() {
                 const machine_search = this.process_service.machine;
@@ -1102,28 +1121,159 @@
 			},
 
 			async viewStatistics() {
-				await Alpine.store('cache').fetchData([
-					{ key: 'support_statistics', url: `/support/statistics`, force: true },
+				this.setDefaultTechDates();
+
+				 await Alpine.store('cache').fetchData([
+					{ 
+						key: 'support_statistics', 
+						url: `/support/statistics?start_date=${this.tech_start_date}&end_date=${this.tech_end_date}`, 
+						force: true 
+					},
 				]);
 				Alpine.store('cache').showModal('statistics');
 				await this.initCharts();
 			},
 
+			buildTechChart(statistics) {
+				const canvas = this.$refs.ordersByTechChart;
+				if (!canvas) return;
+
+				const byTech = Array.isArray(statistics.by_tech) ? statistics.by_tech : [];
+
+				// Destruir si ya había uno
+				if (chartTech) {
+					chartTech.destroy();
+					chartTech = null;
+				}
+
+				const ctx = canvas.getContext('2d');
+				if (!ctx) {
+					console.warn('No se pudo obtener el contexto 2D para ordersByTechChart');
+					return;
+				}
+
+				chartTech = new Chart(ctx, {
+					type: 'bar',
+					data: {
+						labels: byTech.map(r => r.technician),
+						datasets: [{
+							label: 'Órdenes',
+							data: byTech.map(r => r.count),
+							backgroundColor: 'rgba(15, 32, 39, 0.75)',
+							borderWidth: 0
+						}]
+					},
+					options: {
+						responsive: true,
+						plugins: {
+							legend: { display: false }
+						},
+						scales: {
+							x: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: { color: 'transparent' },
+								border: { display: false }
+							},
+							y: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: { color: '#fff' },
+								border: { display: false }
+							}
+						}
+					},
+				});
+			},
+
+
+			async reloadTechStatistics() {
+				// Evitar múltiples ejecuciones simultáneas
+				if (techReloading) return;
+				techReloading = true;
+
+				try {
+					if (!this.tech_start_date || !this.tech_end_date) {
+						return;
+					}
+
+					// Copias locales, no tocamos los x-model
+					let startDate = this.tech_start_date;
+					let endDate   = this.tech_end_date;
+
+					const start = new Date(startDate);
+					const end   = new Date(endDate);
+
+					// Normalizar solo en variables locales, no sobre this.*
+					if (start > end) {
+						const tmp = startDate;
+						startDate = endDate;
+						endDate   = tmp;
+					}
+
+					// 1) Pedir estadísticas al backend con el nuevo rango
+					await Alpine.store('cache').fetchData([
+						{ 
+							key: 'support_statistics', 
+							url: `/support/statistics?start_date=${startDate}&end_date=${endDate}`, 
+							force: true 
+						},
+					]);
+
+					const statistics = Alpine.store('cache').getData('support_statistics');
+					if (!statistics) return;
+
+					const byTech = Array.isArray(statistics.by_tech) ? statistics.by_tech : [];
+
+					// 2) Si no hay chart aún, lo construimos desde cero
+					if (!chartTech) {
+						this.buildTechChart(statistics);
+						return;
+					}
+
+					// 3) Si ya existe, solo actualizamos datos
+					chartTech.data.labels = byTech.map(r => r.technician);
+					chartTech.data.datasets[0].data = byTech.map(r => r.count);
+					chartTech.update();
+
+				} catch (e) {
+					console.error('Error en reloadTechStatistics:', e);
+				} finally {
+					techReloading = false;
+				}
+			},
+
 			async initCharts() {
 				const statistics = Alpine.store('cache').getData('support_statistics');
+				if (!statistics) return;
+
+				if (
+					!this.$refs.ordersByStatusChart ||
+					!this.$refs.ordersByMonthChart  ||
+					!this.$refs.ordersByTechChart
+				) {
+					return;
+				}
+
 				await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)));
 
-				if (this.chartStatus) {
-					this.chartStatus.destroy();
-				}
-				if (this.chartMonth) {
-					this.chartMonth.destroy();
-				}
-				if (this.chartTech) {
-					this.chartTech.destroy();
-				}
+				if (chartStatus) chartStatus.destroy();
+				if (chartMonth)  chartMonth.destroy();
+
 				
-				this.chartStatus = new Chart(this.$refs.ordersByStatusChart, {
+				chartStatus = new Chart(this.$refs.ordersByStatusChart, {
 					type: 'bar',
 					data: {
 						labels: statistics.by_status.map(r => r.status),
@@ -1177,7 +1327,7 @@
 					
 				});
 
-				this.chartMonth = new Chart(this.$refs.ordersByMonthChart, {
+				chartMonth = new Chart(this.$refs.ordersByMonthChart, {
 					type: 'line',
 					data: {
 						labels: statistics.by_month.map(r => r.period),
@@ -1232,58 +1382,7 @@
 					},
 				});
 
-				this.chartTech =new Chart(this.$refs.ordersByTechChart, {
-					type: 'bar',
-					data: {
-						labels: statistics.by_tech.map(r => r.technician),
-						datasets: [{
-							label: 'Órdenes',
-							data: statistics.by_tech.map(r => r.count),
-							backgroundColor: 'rgba(15, 32, 39, 0.75)',
-							borderWidth: 0
-						}]
-					},
-					options: {
-						responsive: true,
-						plugins: {
-							legend: { display: false }
-						},
-						scales: {
-							x: {
-								ticks: {
-									color: '#666',
-									font: {
-										size: 12,
-										family: 'Lexend',
-										weight: '500'
-									}
-								},
-								grid: {
-									color: 'transparent',
-								},
-								border: {
-									display: false
-								}
-							},
-							y: {
-								ticks: {
-									color: '#666',
-									font: {
-										size: 12,
-										family: 'Lexend',
-										weight: '500'
-									}
-								},
-								grid: {
-									color: '#fff',
-								},
-								border: {
-									display: false
-								}
-							}
-						}
-					},
-				});
+				this.buildTechChart(statistics);
 			},
 				
 			async getHistory() {
@@ -1613,6 +1712,23 @@
 
 
 	<style>
+
+		#modal-statistics .date-filters {
+			display: flex;
+			gap: 0.5rem;
+			align-items: center;
+			font-size: 0.8rem;
+		}
+
+		#modal-statistics .date-filters input[type="date"] {
+			font-family: inherit;
+			font-size: 0.8rem;
+			border-radius: 0.5rem;
+			border: 1px solid var(--graydark);
+			padding: 0.25rem 0.5rem;
+			background-color: #fff;
+		}
+
 		#modal-image {
 			z-index: 50;
 		}
@@ -1773,7 +1889,6 @@
 		}
 		#modal-statistics .charts .box span {
 			font-weight: 500;
-    		font-size: 1rem;
 		}
 		#modal-history .top {
     		justify-content: space-between;
@@ -2660,6 +2775,17 @@
 			}
 			#support-dashboard ul li .update-status {
 				display: block;
+			}
+
+			#modal-statistics .top {
+				flex-direction: column;
+				align-items: flex-start;
+			}
+
+			#modal-statistics .date-filters {
+				width: 100%;
+				justify-content: flex-start;
+				flex-wrap: wrap;
 			}
         }
 	</style>
