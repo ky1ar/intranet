@@ -825,7 +825,10 @@ class SupportService:
 
 
     @handle_exceptions
-    def statistics(self):
+    def statistics(self, data):
+        start_date = data.get("start_date")
+        end_date = data.get("end_date")
+
         total_orders, total_orders_code = self.support_repository.get_total_orders() 
         if total_orders_code != 200:
             return total_orders, total_orders_code
@@ -857,8 +860,10 @@ class SupportService:
             {'period': f"{self.months.get(int(period.split('-')[1]), 'Mes inválido')}", 'count': count}
             for period, count in orders_by_month
         ]
-        
-        orders_by_tech, orders_by_tech_code = self.support_repository.get_orders_by_tech() 
+
+        logging.info(start_date)
+        logging.info(end_date)
+        orders_by_tech, orders_by_tech_code = self.support_repository.get_orders_by_tech(start_date, end_date) 
         if orders_by_tech_code != 200:
             return orders_by_tech, orders_by_tech_code
         

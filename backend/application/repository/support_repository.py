@@ -1,4 +1,5 @@
 import logging
+import calendar
 from datetime import datetime, timezone, timedelta, date
 from application.handlers import handle_db_exceptions
 from application.models import ServiceOrders, ServiceOrderStatus, ServiceLinks, ServiceStatus, Users, Clients, ServiceOrderPhotos, db
@@ -76,23 +77,34 @@ class SupportRepository:
     
 
     @handle_db_exceptions
-    def get_orders_by_tech(self):
-        today = date.today()
-        current_year = today.year
-        current_month = today.month
-
-        orders_by_tech = (
+    def get_orders_by_tech(self, start_date=None, end_date=None):
+        q = (
             g.db_session.query(Users.name, func.count(ServiceOrders.id))
             .join(ServiceOrders, ServiceOrders.technician_id == Users.id)
             .filter(Users.level_id != 1)
             .filter(Users.id != 21)
             .filter(Users.id != 19)
             .filter(ServiceOrders.status_id > 7)
-            .filter(extract('year', ServiceOrders.updated_at) == current_year)
-            .filter(extract('month', ServiceOrders.updated_at) == current_month)
-            .group_by(Users.name)
-            .all()
         )
+
+        if start_date and end_date:
+            try:
+                start = datetime.strptime(start_date, "%Y-%m-%d")
+                end   = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1) - timedelta(seconds=1)
+            except ValueError:
+                today = date.today()
+                q = q.filter(extract('year', ServiceOrders.updated_at) == today.year)
+                q = q.filter(extract('month', ServiceOrders.updated_at) == today.month)
+            else:
+                q = q.filter(ServiceOrders.updated_at >= start)
+                q = q.filter(ServiceOrders.updated_at <= end)
+        else:
+            today = date.today()
+            q = q.filter(extract('year', ServiceOrders.updated_at) == today.year)
+            q = q.filter(extract('month', ServiceOrders.updated_at) == today.month)
+
+        orders_by_tech = q.group_by(Users.name).all()
+
         if not orders_by_tech:
             return [], 200
 
