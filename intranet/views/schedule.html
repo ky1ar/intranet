@@ -267,15 +267,10 @@
 			</div>
 
 			<!--  DESCRIPCIÓN -->
-			<div class="fields">
-				<label class="white flex2-3">
-					<img alt="desc" src="/static/images/icons/tag.svg" width="16" height="16">
-					<input placeholder="Descripción (opcional)"
-							x-model="event_data.description"
-							rows="3"
-							class="percent100">
-				</label>
-			</div>
+			<textarea placeholder="Descripción (opcional)" x-model="event_data.description" class="text-area" style="
+				max-width: 100%;
+				border: 2px solid white;
+			"></textarea>
 
 			<!--  BOTONES DE ACCIÓN -->
 			<div class="fields">
@@ -307,7 +302,7 @@
 							<img alt="repeat" src="/static/images/icons/board.svg" width="16" height="16">
 							Descripción
 						</span>
-						<span class="readonly-value" x-text="event_data.description"></span>
+						<span class="readonly-value" x-html="event_data.description"></span>
 					</div>
 				</template>
 
@@ -894,6 +889,7 @@
 			display: flex;
 			gap: 1rem;
 			flex-direction: column;
+			overflow: auto;
 		}
 
 		#modal-event .readonly-view {

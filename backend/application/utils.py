@@ -6,7 +6,7 @@ def peru_time():
     return datetime.now(timezone.utc) - timedelta(hours=5)
 
 
-def format_name(full_name):
+def format_name(full_name, simple=False):
     if not full_name:
         return "Usuario"
 
@@ -15,6 +15,9 @@ def format_name(full_name):
 
     if n == 0:
         return "Usuario"
+    if simple:
+        return words[0]
+    
     if n == 1:
         return words[0]
     if n == 2:
