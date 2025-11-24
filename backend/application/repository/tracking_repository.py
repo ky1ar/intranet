@@ -17,8 +17,9 @@ class TrackingRepository:
         elif last_status_id == 2:
             last_status_date = status_data.get("onway_at")
         elif last_status_id == 3:
+            last_status_date = status_data.get("arrived_at")
+        elif last_status_id == 4:
             last_status_date = status_data.get("delivered_at")
-
         utc_now = datetime.now(timezone.utc)
         peru_time = utc_now - timedelta(hours=5)
 
@@ -121,6 +122,8 @@ class TrackingRepository:
         elif last_status_id == 2:
             last_status_date = status_data.get("onway_at")
         elif last_status_id == 3:
+            last_status_date = status_data.get("arrived_at")
+        elif last_status_id == 4:
             last_status_date = status_data.get("delivered_at")
 
         tracking = g.db_session.query(TrackingOrders).filter_by(id=tracking_id).first()
@@ -139,7 +142,8 @@ class TrackingRepository:
         status_mapping = {
             'agency_at': 1,
             'onway_at': 2,
-            'delivered_at': 3
+            'arrived_at': 3,
+            'delivered_at': 4
         }
             
         for key, timestamp in status_data.items():
@@ -164,7 +168,7 @@ class TrackingRepository:
     def get_open_tracking_orders(self):
         tracking_orders = (
             g.db_session.query(TrackingOrders)
-            .filter(TrackingOrders.status_id != 3)
+            .filter(TrackingOrders.status_id != 4)
             .all()
         )
 

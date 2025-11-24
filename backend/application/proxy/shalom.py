@@ -80,10 +80,12 @@ class Shalom:
         data = olva_response.get('data')
         origen = data.get('origen')
         transito = data.get('transito')
+        destino = data.get('destino')
         entregado = data.get('entregado')
-
+        
         agency_at = None
         onway_at = None
+        arrived_at = None
         delivered_at = None
         last_status_id = None
 
@@ -95,14 +97,19 @@ class Shalom:
             onway_at = transito.get('fecha')
             last_status_id = 2
 
+        if destino:
+            arrived_at = destino.get('fecha')
+            last_status_id = 3
+
         if entregado:
             delivered_at = entregado.get('fecha')
-            last_status_id = 3
+            last_status_id = 4
 
         return {
             "status_data": {
                 "agency_at": datetime.strptime(agency_at, "%Y-%m-%d %H:%M:%S") if agency_at else None,
                 "onway_at": datetime.strptime(onway_at, "%Y-%m-%d %H:%M:%S") if onway_at else None,
+                "arrived_at": datetime.strptime(arrived_at, "%Y-%m-%d %H:%M:%S") if arrived_at else None,
                 "delivered_at": datetime.strptime(delivered_at, "%Y-%m-%d %H:%M:%S") if delivered_at else None,
             },
             "last_status_id": last_status_id

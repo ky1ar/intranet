@@ -205,8 +205,8 @@ class TrackingService:
             1: (1, "Registrado", ShippingStatusList.PENDING),
             2: (1, "Programado", ShippingStatusList.SCHEDULED),
             3: (2, "En ruta", ShippingStatusList.ON_THE_WAY),
-            4: (3, "Entregado", ShippingStatusList.DELIVERED),
-            6: (4, "No entregado", ShippingStatusList.NOT_DELIVERED),
+            4: (4, "Entregado", ShippingStatusList.DELIVERED),
+            6: (5, "No entregado", ShippingStatusList.NOT_DELIVERED),
         }
 
         AGENCY_IMAGE_URL = "https://www.tiendakrear3d.com/wp-content/uploads/2024/08/krear3dlogo.webp"
@@ -350,8 +350,8 @@ class TrackingService:
             "PENDING": (1, "Registrado"),
             "SCHEDULED": (1, "Programado"),
             "ON_THE_WAY": (2, "En ruta"),
-            "DELIVERED": (3, "Entregado"),
-            "NOT_DELIVERED": (4, "No entregado"),
+            "DELIVERED": (4, "Entregado"),
+            "NOT_DELIVERED": (5, "No entregado"),
         }
 
         STATUS_ORDER = ["PENDING", "SCHEDULED", "ON_THE_WAY", "DELIVERED", "NOT_DELIVERED"]
@@ -425,7 +425,7 @@ class TrackingService:
         }
             
         tracking_client = agency_clients.get(tracking_order.agency_id)
-        if tracking_order.status_id < 3:
+        if tracking_order.status_id < 4:
             tracking_data, tracking_status = tracking_client.tracking(tracking_order.code1, tracking_order.code2)
             if tracking_status == 200:
                 self.tracking_repository.update_tracking_order(tracking_order.id, tracking_data)
@@ -465,7 +465,7 @@ class TrackingService:
                 })
                 continue
 
-            if tracking_order.status_id >= 3:
+            if tracking_order.status_id >= 4:
                 skipped.append({
                     "order_id": tracking_order.id,
                     "reason": "Orden ya entregada"
@@ -520,7 +520,7 @@ class TrackingService:
                 "agency_id": order.agency_id,
                 "agency_name": order.agency.name,
                 "status_id": order.status_id,
-                "finished": False if order.status_id < 3 else True,
+                "finished": False if order.status_id < 4 else True,
                 "register_at": self.date_format(order.register_at)
             }
             list.append(order_data)

@@ -28,6 +28,7 @@ class Marvisur:
         destination_agency = ''
         agency_at = None
         onway_at = None
+        arrived_at = None
         delivered_at = None
         last_status_id = None
 
@@ -45,11 +46,17 @@ class Marvisur:
                 onway_at = item.get('FECEVENTO')
                 last_status_id = 2
                 break
+        
+        for item in marvisur_data:
+            if item.get('COMENTARIO') == "EN ALMACÉN":
+                arrived_at = item.get('FECEVENTO')
+                last_status_id = 3
+                break
 
         for item in marvisur_data:
             if item.get('COMENTARIO') == "ENTREGADO":
                 delivered_at = item.get('FECEVENTO')
-                last_status_id = 3
+                last_status_id = 4
                 break
 
 
@@ -59,6 +66,7 @@ class Marvisur:
             "status_data": {
                 "agency_at": datetime.fromisoformat(agency_at) if agency_at else None,
                 "onway_at": datetime.fromisoformat(onway_at) if onway_at else None,
+                "arrived_at": datetime.fromisoformat(arrived_at) if arrived_at else None,
                 "delivered_at": datetime.fromisoformat(delivered_at) if delivered_at else None,
             },
             "last_status_id": last_status_id
