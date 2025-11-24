@@ -161,7 +161,6 @@
 							<input
 								type="file"
 								accept="image/*"
-								capture="environment"
 								style="display: none;"
 								x-ref="fileInput"
 								@change="addFiles($event)"
@@ -1016,10 +1015,14 @@
 						reader.readAsDataURL(f);
 					}
 				}
+				event.target.value = '';
 			},
 
 			openFileInput() {
-                //this.$refs.fileInput.value = null;
+                if (this.$refs.fileInput) {
+					this.$refs.fileInput.value = '';
+					// o: this.$refs.fileInput.value = null;
+				}
                 this.$refs.fileInput.click();
             },
 
