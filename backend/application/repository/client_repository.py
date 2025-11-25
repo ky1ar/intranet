@@ -30,6 +30,15 @@ class ClientRepository:
     
 
     @handle_db_exceptions
+    def get_client_order(self, order_number, client_id):
+        user_order = g.db_session.query(ClientOrders).filter(ClientOrders.number == order_number, ClientOrders.client_id == client_id).first()
+        if not user_order:
+            return 'Orden de cliente no encontrada', 404
+
+        return user_order, 200
+    
+
+    @handle_db_exceptions
     def get_client_by_id(self, id):
         client = g.db_session.query(Clients).filter_by(id=id).first()
         if not client:
