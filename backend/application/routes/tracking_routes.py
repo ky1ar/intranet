@@ -40,7 +40,7 @@ def client_list():
     return controller.tracking_client_list(request.get_json())
 
 
-@tracking_bp.route("/order", methods=["POST"])##
+@tracking_bp.route("/client/order", methods=["POST"])##
 def get_order():
     return controller.tracking_get_order(request.get_json())
 

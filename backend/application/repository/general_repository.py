@@ -47,7 +47,7 @@ class GeneralRepository:
 
     @handle_db_exceptions
     def get_tracking_status(self):
-        agencies = g.db_session.query(TrackingStatus).filter(TrackingStatus.id != 4).order_by(TrackingStatus.id).all()
+        agencies = g.db_session.query(TrackingStatus).filter(TrackingStatus.id != 5).order_by(TrackingStatus.id).all()
         
         if not agencies:
             return [], 400

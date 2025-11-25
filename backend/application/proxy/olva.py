@@ -32,25 +32,32 @@ class Olva:
         details = data.get('details')
         agency_at = None
         onway_at = None
+        arrived_at = None
         delivered_at = None
         last_status_id = None
 
         for item in details:
-            if item.get('estado_tracking') == "RECEPCION TIENDA":
+            if item.get('estado_tracking') == "REGISTRADO":
                 agency_at = item.get('fecha_creacion')
                 last_status_id = 1
                 break
-        
+
         for item in details:
-            if item.get('estado_tracking') == "ASIGNADO":
+            if item.get('estado_tracking') == "RECEPCION TIENDA":
                 onway_at = item.get('fecha_creacion')
                 last_status_id = 2
+                break
+        
+        for item in details:
+            if item.get('estado_tracking') == "RECEPCION DESPACHO":
+                arrived_at = item.get('fecha_creacion')
+                last_status_id = 3
                 break
 
         for item in details:
             if item.get('estado_tracking') == "ENTREGADO":
                 delivered_at = item.get('fecha_creacion')
-                last_status_id = 3
+                last_status_id = 4
                 break
 
         return {
@@ -59,6 +66,7 @@ class Olva:
             "status_data": {
                 "agency_at": datetime.fromisoformat(agency_at) if agency_at else None,
                 "onway_at": datetime.fromisoformat(onway_at) if onway_at else None,
+                "arrived_at": datetime.fromisoformat(arrived_at) if arrived_at else None,
                 "delivered_at": datetime.fromisoformat(delivered_at) if delivered_at else None,
             },
             "last_status_id": last_status_id
