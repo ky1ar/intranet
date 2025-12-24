@@ -611,18 +611,14 @@ class PurchaseRequest(db.Model):
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     type_id = db.Column(db.Integer, db.ForeignKey('purchase_type.id'), nullable=False)
-    user_comment = db.Column(db.Text)
     urgency_id = db.Column(db.Integer, db.ForeignKey('purchase_urgency.id'))
     needed_date = db.Column(db.Date)
     express = db.Column(db.Integer, default=0, nullable=False)
-    total_amount = db.Column(db.Numeric(10, 2))
-    total_items = db.Column(db.Integer)
+    it_validation = db.Column(db.Integer, default=0, nullable=False)
     status_id = db.Column(db.Integer, db.ForeignKey('purchase_status.id'), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False)
     leader_approved_at = db.Column(db.DateTime)
-    leader_comment = db.Column(db.Text)
     manager_approved_at = db.Column(db.DateTime)
-    manager_comment = db.Column(db.Text)
     deleted_at = db.Column(db.DateTime)
 
     user = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
@@ -654,3 +650,16 @@ class PurchaseStatus(db.Model):
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
     name = db.Column(db.String(50), nullable=False)
     slug = db.Column(db.String(50), nullable=False)
+
+
+class PurchaseChats(db.Model):
+    __tablename__ = 'purchase_chats'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+    purchase_id = db.Column(db.Integer, db.ForeignKey('purchase_requests.id'), nullable=False)
+    comment = db.Column(db.Text, nullable=False)
+    commenter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column( db.DateTime, nullable=False)
+    
+    commenter = db.relationship( "Users", lazy="joined", foreign_keys=[commenter_id])
+    purchase_request = db.relationship( "PurchaseRequest", lazy="joined", foreign_keys=[purchase_id], backref=db.backref("chats", lazy="selectin"))
