@@ -22,7 +22,12 @@ class PurchaseService:
 
     @handle_exceptions
     def process(self, data):
-        new_purchase_id, aec = self.purchase_repository.add_purchase(data)
+        user_id = int(get_jwt_identity())
+        user, uc = self.user_repository.get_user_by_id(user_id)
+        if uc != 200:
+            return user, uc
+
+        new_purchase_id, aec = self.purchase_repository.add_purchase(data, user)
         if aec != 200:
             return new_purchase_id, aec
         
@@ -86,6 +91,7 @@ class PurchaseService:
             "type_id": purchase.type_id,
             "urgency_id": purchase.urgency_id,
             "express": bool(purchase.express),
+            "it_validation": bool(purchase.it_validation),
             "needed_date": purchase.needed_date.isoformat() if purchase.needed_date else None,
             "status_name": purchase.status.name,
             "status_slug": purchase.status.slug,
@@ -93,21 +99,19 @@ class PurchaseService:
             "self_created": True if user.id == purchase.user.id else False,
             
             "user_name": format_name(purchase.user.name),
-            "user_image": purchase.user.image,
-            "user_comment": purchase.user_comment,
+            #"user_image": purchase.user.image,
             "created_at": format_datetime(purchase.created_at),
 
-            "leader_name": format_name(leader.name) if leader else None,
-            "leader_image": leader.image if leader else None,
-            "leader_comment": purchase.leader_comment,
-            "leader_at": format_datetime(purchase.leader_approved_at),
+            #"leader_name": format_name(leader.name) if leader else None,
+            #"leader_image": leader.image if leader else None,
+            #"leader_at": format_datetime(purchase.leader_approved_at),
 
-            "manager_name": format_name(manager.name) if manager else None,
-            "manager_image": manager.image if manager else None,
-            "manager_comment": purchase.manager_comment,
-            "manager_at": format_datetime(purchase.manager_approved_at),
+            #"manager_name": format_name(manager.name) if manager else None,
+            #"manager_image": manager.image if manager else None,
+            #"manager_at": format_datetime(purchase.manager_approved_at),
 
             "items": [],
+            "chats": [],
         }
 
         for item in purchase.items:
@@ -122,7 +126,16 @@ class PurchaseService:
                 "url": item.url,
                 "ruc": item.ruc,
             })
-
+        
+        for chat in purchase.chats:
+            dto["chats"].append({
+                "id": chat.id,
+                "comment": chat.comment,
+                "commenter_id": chat.commenter_id,
+                "commenter_name": format_name(chat.commenter.name),
+                "commenter_image": chat.commenter.image,
+                "created_at": format_datetime(chat.created_at),
+            })
         return dto, 200
     
 
@@ -147,28 +160,27 @@ class PurchaseService:
             "type_id": purchase.type_id,
             "urgency_id": purchase.urgency_id,
             "express": bool(purchase.express),
+            "it_validation": bool(purchase.it_validation),
             "needed_date": purchase.needed_date.isoformat() if purchase.needed_date else None,
             "status_name": purchase.status.name,
             "status_slug": purchase.status.slug,
             "status_id": status_id,
             "self_created": True if user.id == purchase.user.id else False,
 
-            "user_name": purchase.user.name,
-            "user_image": purchase.user.image,
-            "user_comment": purchase.user_comment,
+            "user_name": format_name(purchase.user.name),
+            #"user_image": purchase.user.image,
             "created_at": format_datetime(purchase.created_at),
 
-            "leader_name": user.name,
-            "leader_image": user.image,
-            "leader_comment": purchase.leader_comment,
-            "leader_at": format_datetime(purchase.leader_approved_at),
+            # "leader_name": format_name(user.name),
+            # "leader_image": user.image,
+            # "leader_at": format_datetime(purchase.leader_approved_at),
 
-            "manager_name": manager.name if manager else None,
-            "manager_image": manager.image if manager else None,
-            "manager_comment": purchase.manager_comment,
-            "manager_at": format_datetime(purchase.manager_approved_at),
+            # "manager_name": format_name(manager.name) if manager else None,
+            # "manager_image": manager.image if manager else None,
+            # "manager_at": format_datetime(purchase.manager_approved_at),
 
             "items": [],
+            "chats": [],
         }
 
         for item in purchase.items:
@@ -182,6 +194,18 @@ class PurchaseService:
                 "price": float(item.price) if item.price is not None else None,
                 "url": item.url,
                 "ruc": item.ruc,
+            })
+
+        for chat in purchase.chats:
+            dto["chats"].append({
+                "id": chat.id,
+                "comment": chat.comment,
+                "commenter_id": chat.commenter_id,
+                "commenter_name": format_name(chat.commenter.name),
+                "commenter_image": chat.commenter.image,
+                #"self_comment": True if chat.commenter_id == user.id else False,
+                #"self": format_name(chat.commenter.name),
+                "created_at": format_datetime(chat.created_at),
             })
 
         return dto, 200
@@ -200,7 +224,6 @@ class PurchaseService:
         modal = {
             1: "approve",
             2: "approve",
-            3: "delete",
         }
         dto = {
             "modal": modal.get(status_id, "view"),
@@ -209,28 +232,30 @@ class PurchaseService:
             "type_id": purchase.type_id,
             "urgency_id": purchase.urgency_id,
             "express": bool(purchase.express),
+            "it_validation": bool(purchase.it_validation),
             "needed_date": purchase.needed_date.isoformat() if purchase.needed_date else None,
             "status_name": purchase.status.name,
             "status_slug": purchase.status.slug,
             "status_id": status_id,
             "self_created": True if user.id == purchase.user.id else False,
 
-            "user_name": purchase.user.name,
-            "user_image": purchase.user.image,
-            "user_comment": purchase.user_comment,
+            "user_name": format_name(purchase.user.name),
+            #"user_image": purchase.user.image,
             "created_at": format_datetime(purchase.created_at),
 
-            "leader_name": leader.name if leader else None,
-            "leader_image": leader.image if leader else None,
-            "leader_comment": purchase.leader_comment,
-            "leader_at": format_datetime(purchase.leader_approved_at),
+            #"leader_name": format_name(leader.name) if leader else None,
+            #"leader_image": leader.image if leader else None,
+            #"leader_comment": purchase.leader_comment,
+            #"leader_at": format_datetime(purchase.leader_approved_at),
 
-            "manager_name": user.name,
-            "manager_image": user.image,
-            "manager_comment": purchase.manager_comment,
-            "manager_at": format_datetime(purchase.manager_approved_at),
+            #"manager_name": format_name(user.name),
+            #"manager_image": user.image,
+            #"manager_comment": purchase.manager_comment,
+            #"manager_at": format_datetime(purchase.manager_approved_at),
 
             "items": [],
+            "chats": [],
+
         }
 
         for item in purchase.items:
@@ -246,16 +271,81 @@ class PurchaseService:
                 "ruc": item.ruc,
             })
 
+        for chat in purchase.chats:
+            dto["chats"].append({
+                "id": chat.id,
+                "comment": chat.comment,
+                "commenter_id": chat.commenter_id,
+                "commenter_name": format_name(chat.commenter.name),
+                "commenter_image": chat.commenter.image,
+                #"self_comment": True if chat.commenter_id == user.id else False,
+                #"self": format_name(chat.commenter.name),
+                "created_at": format_datetime(chat.created_at),
+            })
+
         return dto, 200
 
 
     @handle_exceptions
     def update(self, data):
-        result, code = self.purchase_repository.update_purchase(data)
-        if code != 200:
-            return result, code
-        socketio.emit("purchase_update_dashboard", {})
+        user_id = int(get_jwt_identity())
+        user, uc = self.user_repository.get_user_by_id(user_id)
+        if uc != 200:
+            return user, uc
 
+        action = data.get("action")
+
+        if data.get("delete") is True:
+            result, code = self.purchase_repository.soft_delete(data["purchase_id"])
+            if code != 200:
+                return result, code
+
+        elif action == "payed":
+            result, code = self.purchase_repository.set_status(
+                data["purchase_id"], status_id=4
+            )
+            if code != 200:
+                return result, code
+            
+        elif action == "invoiced":
+            result, code = self.purchase_repository.set_status(
+                data["purchase_id"], status_id=5
+            )
+            if code != 200:
+                return result, code
+            
+        elif action == "reject":
+            result, code = self.purchase_repository.set_status(
+                data["purchase_id"], status_id=10
+            )
+            if code != 200:
+                return result, code
+
+        elif action == "approve":
+            result, code = self.purchase_repository.update_purchase(data)
+            if code != 200:
+                return result, code
+
+            status_id = None
+            if user.level_id == self.leader_level:
+                status_id = 2
+            elif user.level_id == self.management_level:
+                status_id = 3
+            else:
+                return "No autorizado para aprobar", 403
+
+            result, code = self.purchase_repository.set_status(
+                data["purchase_id"], status_id
+            )
+            if code != 200:
+                return result, code
+
+        else:
+            result, code = self.purchase_repository.update_purchase(data)
+            if code != 200:
+                return result, code
+
+        socketio.emit("purchase_update_dashboard", {})
         return "Solicitud actualizada correctamente", 200
 
 
@@ -325,7 +415,7 @@ class PurchaseService:
         if user_level_id == self.worker_level:
             return self._get_worker_request_list(user_id)
 
-        if user_level_id == self.leader_level:
+        if user_level_id == self.leader_level and user_id != 1:
             return self._get_leader_request_list(user_id)
         
         return self._get_manager_request_list(user_id)
@@ -382,3 +472,36 @@ class PurchaseService:
         return urgency_list, 200
 
     
+    @handle_exceptions
+    def send_chat(self, data):
+        if not data.get("purchase_id"):
+            return "purchase_id requerido", 400
+
+        comment = (data.get("comment") or "").strip()
+        if not comment:
+            return "Comentario vacío", 400
+
+        user_id = int(get_jwt_identity())
+
+        purchase, pc = self.purchase_repository.get_purchase_by_id(data["purchase_id"])
+        if pc != 200:
+            return purchase, pc
+
+        chat, cc = self.purchase_repository.add_chat(
+            purchase_id=purchase.id,
+            user_id=user_id,
+            comment=comment
+        )
+        if cc != 200:
+            return chat, cc
+
+        socketio.emit("purchase_update_dashboard", {})
+
+        return {
+            "id": chat.id,
+            "comment": chat.comment,
+            "commenter_id": chat.commenter_id,
+            "commenter_name": format_name(chat.commenter.name),
+            "commenter_image": chat.commenter.image,
+            "created_at": format_datetime(chat.created_at),
+        }, 200

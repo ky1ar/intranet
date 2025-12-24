@@ -2,7 +2,7 @@ import logging
 from decimal import Decimal
 from datetime import date, datetime, timezone, timedelta, timezone
 from application.handlers import handle_db_exceptions
-from application.models import PurchaseRequest, PurchaseType, PurchaseUrgency, PurchaseItems
+from application.models import PurchaseRequest, PurchaseType, PurchaseUrgency, PurchaseItems, PurchaseChats
 from application.utils import peru_time
 from flask import g
 from sqlalchemy import or_
@@ -12,12 +12,21 @@ from sqlalchemy.orm import selectinload
 
 class PurchaseRepository:
     def __init__(self):
-        pass
+        self.worker_level = 2
+        self.leader_level = 3
+        self.management_level = 4
 
 
     @handle_db_exceptions
-    def add_purchase(self, data):
-        user_id = get_jwt_identity()
+    def add_purchase(self, data, user):
+        user_level_id = user.level_id
+        initial_status_id = 1
+
+        if user_level_id == self.leader_level:
+            initial_status_id = 2
+        
+        if user_level_id == self.management_level:
+            initial_status_id = 3
 
         items_data = data.get("items") or []
         if not items_data:
@@ -32,23 +41,18 @@ class PurchaseRepository:
                 return "Fecha inválida", 400
 
         purchase = PurchaseRequest(
-            user_id=user_id,
-            type_id=data.get("type_id", 1),
-            user_comment=data.get("comments") or data.get("user_comment"),
-            urgency_id=data.get("urgency_id", 1),
+            user_id=user.id,
+            type_id=data.get("type_id"),
+            urgency_id=data.get("urgency_id"),
             needed_date=needed_date,
-            express=1 if data.get("express") else 0,
-            total_amount=Decimal("0.00"),
-            total_items=0,
-            status_id=1,
+            express=data.get("express"),
+            it_validation=data.get("it_validation"),
+            status_id=initial_status_id,
             created_at=peru_time(),
         )
 
         g.db_session.add(purchase)
         g.db_session.flush()
-
-        total_items = 0
-        total_amount = Decimal("0.00")
 
         for item in items_data:
             title = (item.get("title") or "").strip()
@@ -73,18 +77,37 @@ class PurchaseRepository:
             )
             g.db_session.add(purchase_item)
 
-            total_items += quantity
-            if price is not None:
-                total_amount += price * quantity
+        comment = data.get("comment")
 
-        if total_items == 0:
-            g.db_session.rollback()
-            return "Debe registrar al menos un ítem válido", 400
-
-        purchase.total_items = total_items
-        purchase.total_amount = total_amount
+        if comment:
+            purchase_chat = PurchaseChats(
+                purchase_id=purchase.id,
+                comment=comment,
+                commenter_id=user.id,
+                created_at=peru_time(),
+            )
+            g.db_session.add(purchase_chat)
 
         g.db_session.commit()
+        return purchase.id, 200
+
+
+    @handle_db_exceptions
+    def set_status(self, purchase_id, status_id):
+        purchase = (
+            g.db_session.query(PurchaseRequest)
+            .filter(
+                PurchaseRequest.id == purchase_id,
+                PurchaseRequest.deleted_at.is_(None),
+            )
+            .first()
+        )
+        if not purchase:
+            return "Solicitud no encontrada", 404
+
+        purchase.status_id = status_id
+        g.db_session.commit()
+
         return purchase.id, 200
 
 
@@ -92,7 +115,10 @@ class PurchaseRepository:
     def get_purchase_by_id(self, purchase_id):
         purchase = (
             g.db_session.query(PurchaseRequest)
-            .options(selectinload(PurchaseRequest.items))
+            .options(
+                selectinload(PurchaseRequest.items),
+                selectinload(PurchaseRequest.chats)
+            )
             .filter(
                 PurchaseRequest.id == purchase_id,
                 PurchaseRequest.deleted_at.is_(None),
@@ -113,7 +139,6 @@ class PurchaseRepository:
     @handle_db_exceptions
     def update_purchase(self, data):
         purchase_id = data.get("purchase_id")
-        current_user_id = int(get_jwt_identity())
 
         purchase = (
             g.db_session.query(PurchaseRequest)
@@ -126,10 +151,6 @@ class PurchaseRepository:
         )
         if not purchase:
             return "Solicitud no encontrada", 404
-
-        # Solo el dueño puede editar (ajusta según tu caso de uso)
-        #if purchase.user_id != int(current_user_id):
-        #    return "No autorizado para editar esta solicitud", 403
 
         items_data = data.get("items") or []
         if not items_data:
@@ -144,26 +165,14 @@ class PurchaseRepository:
                 return "Fecha inválida", 400
 
         purchase.type_id = data.get("type_id", purchase.type_id)
-        purchase.user_comment = data.get("user_comment") or purchase.user_comment
-        purchase.urgency_id = data.get("urgency_id", purchase.urgency_id)
         purchase.urgency_id = data.get("urgency_id", purchase.urgency_id)
         purchase.needed_date = needed_date
-        purchase.express = 1 if data.get("express") else 0
-
-        status_id = data.get("status_id")
-        if status_id:
-            purchase.leader_comment = data.get("leader_comment") or purchase.leader_comment
-            purchase.status_id = status_id
-
-        # Marcamos ítems anteriores como eliminados (soft delete)
-        now = peru_time()
+        purchase.express = data.get("express")
+        purchase.it_validation = data.get("it_validation")
+        
         for item in purchase.items:
             if not item.deleted_at:
-                item.deleted_at = now
-
-        # Creamos nuevos ítems desde el payload
-        total_items = 0
-        total_amount = Decimal("0.00")
+                item.deleted_at = peru_time()
 
         for item in items_data:
             title = (item.get("title") or "").strip()
@@ -187,17 +196,6 @@ class PurchaseRepository:
                 ruc=item.get("ruc"),
             )
             g.db_session.add(new_item)
-
-            total_items += quantity
-            if price is not None:
-                total_amount += price * quantity
-
-        if total_items == 0:
-            g.db_session.rollback()
-            return "Debe registrar al menos un ítem válido", 400
-
-        purchase.total_items = total_items
-        purchase.total_amount = total_amount
 
         g.db_session.commit()
         return purchase.id, 200
@@ -240,3 +238,37 @@ class PurchaseRepository:
             return [], 200
 
         return urgency, 200
+
+
+    @handle_db_exceptions
+    def add_chat(self, purchase_id, user_id, comment):
+        chat = PurchaseChats(
+            purchase_id=purchase_id,
+            commenter_id=user_id,
+            comment=comment,
+            created_at=peru_time(),
+        )
+        g.db_session.add(chat)
+        g.db_session.commit()
+        g.db_session.refresh(chat)
+
+        return chat, 200
+    
+
+    @handle_db_exceptions
+    def soft_delete(self, purchase_id):
+        purchase = (
+            g.db_session.query(PurchaseRequest)
+            .filter(
+                PurchaseRequest.id == purchase_id,
+                PurchaseRequest.deleted_at.is_(None),
+            )
+            .first()
+        )
+        if not purchase:
+            return "Solicitud no encontrada", 404
+
+        purchase.deleted_at = peru_time()
+        g.db_session.commit()
+
+        return "Solicitud eliminada", 200
