@@ -46,3 +46,7 @@ class PurchaseController:
         purchase_id = data.get("purchase_id")
         return self.purchase.approve(purchase_id)
     
+
+    @handle_logs_and_exceptions
+    def purchase_send_chat(self, data):
+        return self.purchase.send_chat(data)

@@ -87,6 +87,11 @@ body.modal-open {
     box-shadow: 0 0 1rem hsl(0deg 0% 0% / 5%);
     border-radius: 0.75rem;
 }
+.gradient {
+    background: linear-gradient(315deg, hsl(20deg 22% 85% / 80%), hsl(211deg 22% 85% / 80%));
+    border: 2px solid hsl(0deg 0% 100% / 60%);
+    box-shadow: 0 0 2rem hsl(0deg 0% 0% / 5%);
+}
 .hover-opacity {
     transition: var(--transition);
     cursor: pointer;
@@ -240,6 +245,14 @@ body.modal-open {
 .modal .button.red {
     opacity: 1;
     background-color: #c75661;
+}
+.modal .button.blue {
+    background-color: #648fad;
+    color: var(--white);
+}
+.modal .button.violet {
+    background-color: #9473c6;
+    color: var(--white);
 }
 .modal .fields {
     position: relative;
