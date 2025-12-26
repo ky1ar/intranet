@@ -15,4 +15,6 @@ class TrainingController:
         return self.training.get_calendar(int(offset))
     
 
-
+    @handle_logs_and_exceptions
+    def training_get_by_id(self, training_id):
+        return self.training.get_by_id(training_id)

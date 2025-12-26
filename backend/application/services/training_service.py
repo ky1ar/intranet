@@ -1,15 +1,15 @@
-import logging, requests, os
-import calendar
-
+import logging, requests, os, calendar
 from datetime import date, datetime, timezone, timedelta
 from application.handlers import handle_exceptions
+from application.utils import format_name, format_datetime
+
 from application.repository.training_repository import TrainingRepository
 from flask import g
 
 
 class TrainingService:
     def __init__(self):
-        self.repository = TrainingRepository()
+        self.training_repository = TrainingRepository()
 
     MONTH_NAMES_ES = [
         "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -30,7 +30,7 @@ class TrainingService:
         last_day = date(year, month, calendar.monthrange(year, month)[1])
         first_day_num = first_day.isoweekday()
 
-        calendar_data, calendar_status = self.repository.get_calendar(first_day, last_day)
+        calendar_data, calendar_status = self.training_repository.get_calendar(first_day, last_day)
         if calendar_status != 200:
             return calendar_data, calendar_status
         
@@ -42,9 +42,8 @@ class TrainingService:
             if day_trainings:
                 trainings_for_day = [
                     {
-                        "technician_name": t.technician.name.split()[0],
-                        "training_id": t.id,
-                        "client_name": t.client.name.title(),
+                        "technician_name": format_name(t.technician.name, True),
+                        "id": t.id,
                         "machine_model": t.machine.model,
                         "machine_image": t.machine.image,
                         "status_id": t.status_id,
@@ -66,3 +65,22 @@ class TrainingService:
             "empty_days": first_day_num
         }, 200
     
+
+    @handle_exceptions
+    def get_by_id(self, training_id):
+        training, tc = self.training_repository.get_training_by_id(training_id)
+        if tc != 200:
+            return training, tc
+  
+        result = {
+            "technician_name": format_name(training.technician.name, True),
+            "client_name": format_name(training.client.name),
+            "client_document": training.client.document,
+            "client_phone": training.client.phone,
+            "id": training.id,
+            "machine_model": training.machine.model,
+            "machine_image": training.machine.image,
+            "status_id": training.status_id,
+            "training_start": training.training_start.strftime('%H:%M'),
+        }
+        return result, 200

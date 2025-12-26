@@ -149,7 +149,6 @@ class ScheduleService:
         except (TypeError, ValueError):
             viewer_id = None
 
-        # ===================== USUARIO ACTUAL =====================
         viewer_dept_id = None
         if viewer_id:
             viewer, vc_user = self.user_repository.get_user_by_id(viewer_id)
@@ -182,7 +181,6 @@ class ScheduleService:
         if vc != 200:
             return events, vc
 
-        # ===================== FILTRO POR VISIBILITY =====================
         filtered_events = []
         for ev in events:
             # El creador siempre ve sus eventos
@@ -208,8 +206,6 @@ class ScheduleService:
             filtered_events.append(ev)
 
         events = filtered_events
-        # ===================== FIN FILTRO VISIBILITY =====================
-
         today_date = now.date()
 
         def format_time(dt: datetime) -> str:
@@ -263,7 +259,6 @@ class ScheduleService:
                 continue
             mmdd = u.birthday.strftime("%m-%d")
             birthdays_by_mmdd.setdefault(mmdd, []).append(u)
-
 
         for ev in events:
             if not ev.start_datetime:
@@ -361,7 +356,6 @@ class ScheduleService:
             # Eventos normales
             normal_events = list(occurrences_by_day.get(date_key, []))
 
-            # ---- FERIADOS (pueden seguir siendo clickeables si quieres) ----
             holiday_events = []
             holiday_list = holidays_by_date.get(date_key, [])
             for h in holiday_list:
@@ -375,10 +369,9 @@ class ScheduleService:
                     "creatorId": None,
                     "creatorImage": None,
                     "type": "BIRTHDAY",
-                    "clickable": False,   # si no quieres que abran modal, pon False
+                    "clickable": False,
                 })
 
-            # ---- CUMPLEAÑOS (van ARRIBA, no clickeables) ----
             birthday_events = []
             mmdd = date_obj.strftime("%m-%d")
             birthday_users = birthdays_by_mmdd.get(mmdd, [])
@@ -387,18 +380,16 @@ class ScheduleService:
                     "id": f"birthday-{u.id}",
                     "label": f"🎂 {self.general_service.format_name(u.name)}",
                     "time": "",
-                    "hexColor": None,       # o un color fijo desde front
+                    "hexColor": None,
                     "allDay": True,
                     "fullColor": False,
                     "creatorId": u.id,
                     "creatorImage": u.image,
                     "type": "BIRTHDAY",
-                    "clickable": False,     # 👈 no clickeable
+                    "clickable": False,
                 })
 
-            # Orden final: cumpleaños → feriados → eventos normales
             day_events = birthday_events + holiday_events + normal_events
-
             holiday_names = [h.name for h in holiday_list]
 
             days.append({
@@ -407,11 +398,10 @@ class ScheduleService:
                 "isCurrentMonth": (date_obj.month == target_month and date_obj.year == target_year),
                 "isToday": (date_obj == today_date),
 
-                # Para que puedas poner el día completo en gris/centrado
-                "isHoliday": bool(holiday_names),      # fondo gris del día
-                "holidayNames": holiday_names,         # por si quieres mostrar el nombre en el header del día
+                "isHoliday": bool(holiday_names),
+                "holidayNames": holiday_names,
 
-                "hasBirthdays": bool(birthday_users),  # iconito 🎂 en el día
+                "hasBirthdays": bool(birthday_users),
                 "events": day_events,
             })
 

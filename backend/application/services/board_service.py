@@ -2,6 +2,7 @@ import logging
 from application import redis_client
 from datetime import datetime, timedelta, timezone
 from application.handlers import handle_exceptions
+from application.utils import format_name, format_datetime
 from application.repository.board_repository import BoardRepository
 from application.repository.general_repository import GeneralRepository
 from application.repository.user_repository import UserRepository
@@ -104,15 +105,9 @@ class BoardService:
                 if not (start_of_week <= created_date <= end_of_week):
                     continue
 
-            raw_date = issue.created_at.strftime("%d-%m-%Y")
-            date_obj = datetime.strptime(raw_date, "%d-%m-%Y")
-            dia_semana = self.dias_semana[date_obj.weekday()]
-            mes = self.meses[date_obj.month]
-            dia = date_obj.day
-
             grouped[issue.status.id]["issues"].append({
                 "id": issue.id,
-                "created_at": f"{dia_semana} {dia} de {mes}",
+                "created_at": format_datetime(issue.created_at),
                 "title": issue.title,
                 "status_id": issue.status_id,
                 "assignee_image": issue.assignee.image if issue.assignee and issue.assignee.image else 'user_default.jpg',

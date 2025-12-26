@@ -88,271 +88,282 @@
 				</div>
 
         <div
-    x-show="$store.cache.isVisibleModal('event')"
-    @mousedown.self="$store.cache.hideLastModal()"
-    x-transition.duration.300ms
-    class="modal-wrap"
-    id="modal-event"
-    x-cloak>
+			x-show="$store.cache.isVisibleModal('event')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-event"
+			x-cloak
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+		>
 
-    <div class="modal head glass2" @click.stop>
-        <!--  ACCIONES SUPERIORES: independientes -->
-        <template x-if="edit && can_edit && canDeleteEvent()">
-            <button class="icon-button modal-delete hover-opacity"
-                    @click.prevent.stop="Alpine.store('cache').showModal('confirm-delete')"
-                    aria-label="Eliminar">
-                <img alt="eliminar" src="/static/images/icons/delete.svg">
-            </button>
-        </template>
-        <div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-            <img alt="close" src="/static/images/x.svg" width="12" height="12">
-        </div>
+			<div class="modal glass2 small" @click.stop>
+				
 
-        <!-- ============ MODO FORM (crear / editar creador) ============ -->
-		<div class="container" x-show="!edit || can_edit">
-			<!--  TÍTULO -->
-			<div class="fields">
-				<label class="white flex2-3">
-					<input 
-						class="percent100 title" 
-						type="text" 
-						placeholder="Título" 
-						x-model="event_data.title" 
-						@input="errors.title = ''">
-					<small class="error-text" x-show="errors.title" x-text="errors.title"></small>
-				</label>
+				<div class="modal-content" x-show="!edit || can_edit">
+					<!--  TÍTULO -->
+					<div class="fields">
+						<label class="white flex2-3">
+							<input 
+								class="percent100 title" 
+								type="text" 
+								placeholder="Título" 
+								x-model="event_data.title" 
+								@input="errors.title = ''">
+							<small class="error-text" x-show="errors.title" x-text="errors.title"></small>
+						</label>
 
-				<!-- COLOR DEL EVENTO -->
-				<label class="white compact-color">
-					<img alt="color" src="/static/images/icons/tag.svg" width="16" height="16">
+						<!-- COLOR DEL EVENTO -->
+						<label class="white compact-color">
+							<img alt="color" src="/static/images/icons/tag.svg" width="16" height="16">
 
-					<div class="color-select" x-data="{ open: false }" @click.outside="open = false">
-						<!-- Círculo principal -->
-						<button 
-							class="color-dot"
-							:style="`background-color: ${event_data.color || '#999'}`"
-							@click.prevent="open = !open"
-							aria-label="Seleccionar color">
-						</button>
-
-						<!-- Panel flotante con lista de colores -->
-						<div class="color-panel" x-show="open" x-transition>
-							<template x-for="(c, index) in $store.cache.getData('color_options')" :key="c.id || index">
+							<div class="color-select" x-data="{ open: false }" @click.outside="open = false">
+								<!-- Círculo principal -->
 								<button 
-									class="color-option"
-									:title="c.name"
-									:style="`background-color: ${c.hex}`"
-									:class="{ 'selected': event_data.color === c.hex }"
-									@click.prevent="
-										event_data.color = c.hex;
-										open = false;
-									">
+									class="color-dot"
+									:style="`background-color: ${event_data.color || '#999'}`"
+									@click.prevent="open = !open"
+									aria-label="Seleccionar color">
 								</button>
-							</template>
-						</div>
+
+								<!-- Panel flotante con lista de colores -->
+								<div class="color-panel" x-show="open" x-transition>
+									<template x-for="(c, index) in $store.cache.getData('color_options')" :key="c.id || index">
+										<button 
+											class="color-option"
+											:title="c.name"
+											:style="`background-color: ${c.hex}`"
+											:class="{ 'selected': event_data.color === c.hex }"
+											@click.prevent="
+												event_data.color = c.hex;
+												open = false;
+											">
+										</button>
+									</template>
+								</div>
+							</div>
+						</label>
 					</div>
-				</label>
-			</div>
 
-			<!--  FECHAS DE INICIO Y FIN -->
-			<div class="fields">
-				<label class="white">
-					<span
-						style="cursor: pointer; flex: 1; line-height: 2.5rem;"
-						@click="
-							if ($refs.start_date_input.showPicker) {
-								$refs.start_date_input.showPicker();
-							} else {
-								$refs.start_date_input.focus();
-							}
-						"
-						x-text="
-							event_data.start_date_only
-								? (() => {
-									const [y, m, d] = event_data.start_date_only.split('-');
-									const months = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.'];
-									return `${parseInt(d)} ${months[parseInt(m) - 1]} ${y}`;
-								})()
-								: 'Selecciona una fecha'
-						"
-					></span>
+					<!--  FECHAS DE INICIO Y FIN -->
+					<div class="fields">
+						<label class="white">
+							<span
+								style="cursor: pointer; flex: 1; line-height: 2.5rem;"
+								@click="
+									if ($refs.start_date_input.showPicker) {
+										$refs.start_date_input.showPicker();
+									} else {
+										$refs.start_date_input.focus();
+									}
+								"
+								x-text="
+									event_data.start_date_only
+										? (() => {
+											const [y, m, d] = event_data.start_date_only.split('-');
+											const months = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.'];
+											return `${parseInt(d)} ${months[parseInt(m) - 1]} ${y}`;
+										})()
+										: 'Selecciona una fecha'
+								"
+							></span>
 
-					<input
-						x-ref="start_date_input"
-						type="date"
-						x-model="event_data.start_date_only"
-						:min="todayISO"
-						@change="errors.start_date_only = ''"
-						style="
-							position:absolute;
-							inset:0;
-							opacity:0;
-							pointer-events:none;
-						"
-					>
-				</label>
-				
-				<label class="white" x-show="false">
-					<input type="date" x-model="event_data.end_date_only" :min="todayISO">
-				</label>
+							<input
+								x-ref="start_date_input"
+								type="date"
+								x-model="event_data.start_date_only"
+								:min="todayISO"
+								@change="errors.start_date_only = ''"
+								style="
+									position:absolute;
+									inset:0;
+									opacity:0;
+									pointer-events:none;
+								"
+							>
+						</label>
 
-				<label class="white" x-show="!event_data.all_day">
-					<input 
-						type="time" 
-						x-model="event_data.start_time"
-						@change="
-							if (event_data.end_time && event_data.end_time <= event_data.start_time) {
-								event_data.end_time = event_data.start_time;
-							}
-						"
-					>
+						<label class="white checkbox">
+							<input type="checkbox" x-model="event_data.all_day">
+							<span>Todo el día</span>
+						</label>
 
-					<input 
-						type="time" 
-						x-model="event_data.end_time"
-						:min="event_data.start_time || null"
-						@change="
-							if (event_data.start_time && event_data.end_time && event_data.end_time <= event_data.start_time) {
-								event_data.start_time = event_data.end_time;
-							}
-						"
-					>
-				</label>
+						<label class="white" x-show="false">
+							<input type="date" x-model="event_data.end_date_only" :min="todayISO">
+						</label>
 
-				<label class="white checkbox">
-					<input type="checkbox" x-model="event_data.all_day">
-					<span>Todo el día</span>
-				</label>
-			</div>
+						<label class="white" x-show="!event_data.all_day">
+							<input 
+								type="time" 
+								x-model="event_data.start_time"
+								@change="
+									if (event_data.end_time && event_data.end_time <= event_data.start_time) {
+										event_data.end_time = event_data.start_time;
+									}
+								"
+							>
 
-			<!-- VISIBILIDAD + REPETIR + NOTIFICACIÓN -->
-			<div class="fields">
-				<!-- VISIBILIDAD -->
-				<label class="white flex2-3">
-					<img alt="eye" src="/static/images/icons/eye.svg" width="16" height="16">
-					<select x-model="event_data.visibility_id">
-						<option value="" disabled>Visibilidad</option>
-						<template x-for="opt in ($store.cache.getData('visibility_options') || [])" :key="opt.id">
-							<option :value="opt.id" x-text="opt.name"></option>
-						</template>
-					</select>
-				</label>
-
-				<!-- REPETIR -->
-				<label class="white">
-					<img alt="repeat" src="/static/images/pending.svg" width="16" height="16">
-					<select x-model="event_data.repeat_id">
-						<option value="" disabled>Repetición</option>
-						<template x-for="opt in ($store.cache.getData('repeat_options') || [])" :key="opt.id">
-							<option :value="opt.id" x-text="opt.name"></option>
-						</template>
-					</select>
-				</label>
-
-				<label class="white flex2-3">
-					<img alt="link" src="/static/images/icons/link.svg" width="16" height="16">
-					<input type="url" placeholder="Google Meet" x-model="event_data.meet">
-				</label>
-
-				<!-- NOTIFICACIÓN -->
-				<!-- <label class="white notify-field">
-					<img alt="bell" src="/static/images/notifications.svg" width="16" height="16">
-					<select x-model="event_data.notify_id">
-						<option value="" disabled>Notificación</option>
-						<template x-for="opt in ($store.cache.getData('notify_options') || [])" :key="opt.id">
-							<option :value="opt.id" x-text="opt.name"></option>
-						</template>
-					</select>
-				</label> -->
-			</div>
-
-			<!--  DESCRIPCIÓN -->
-			<textarea placeholder="Descripción (opcional)" x-model="event_data.description" class="text-area" style="
-				max-width: 100%;
-				border: 2px solid white;
-			"></textarea>
-
-			<!--  BOTONES DE ACCIÓN -->
-			<div class="fields">
-				<button 
-					x-show="!edit || can_edit"
-					class="button hover-opacity" 
-					@click="handlePrimaryAction()" 
-					:class="!edit ? buttons.save.class : buttons.update.class"
-					x-text="!edit ? buttons.save.text : 'Actualizar'">
-				</button>
-			</div>
-		</div>
-
-        <!-- ============ MODO SOLO LECTURA (no creador) ============ -->
-		<div class="readonly-view" x-show="edit && !can_edit">
-			<div class="readonly-title">
-				
-				<span x-text="event_data.title || 'Sin título'" :style="`color: ${event_data.color}`"></span>
-			</div>
-			
-			<div class="readonly-row">
-				<span class="readonly-creator" x-text="`Creado por ${event_data.creator_name}`"></span>
-			</div>
-
-			<div class="readonly-box white">
-				<template x-if="event_data.description">
-					<div class="readonly-row">
-						<span class="readonly-label">
-							<img alt="repeat" src="/static/images/icons/board.svg" width="16" height="16">
-							Descripción
-						</span>
-						<span class="readonly-value" x-html="event_data.description"></span>
+							<input 
+								type="time" 
+								x-model="event_data.end_time"
+								:min="event_data.start_time || null"
+								@change="
+									if (event_data.start_time && event_data.end_time && event_data.end_time <= event_data.start_time) {
+										event_data.start_time = event_data.end_time;
+									}
+								"
+							>
+						</label>
 					</div>
-				</template>
 
-				<div class="readonly-row">
-					<span class="readonly-label">
-						<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
-						Fecha y hora
-					</span>
-					<span class="readonly-value" x-text="formattedEventRange()"></span>
+					<!-- VISIBILIDAD + REPETIR + NOTIFICACIÓN -->
+					<div class="fields">
+						<!-- VISIBILIDAD -->
+						<label class="white flex2-3">
+							<img alt="eye" src="/static/images/icons/eye.svg" width="16" height="16">
+							<select x-model="event_data.visibility_id">
+								<option value="" disabled>Visibilidad</option>
+								<template x-for="opt in ($store.cache.getData('visibility_options') || [])" :key="opt.id">
+									<option :value="opt.id" x-text="opt.name"></option>
+								</template>
+							</select>
+						</label>
+
+						<!-- REPETIR -->
+						<label class="white">
+							<img alt="repeat" src="/static/images/pending.svg" width="16" height="16">
+							<select x-model="event_data.repeat_id">
+								<option value="" disabled>Repetición</option>
+								<template x-for="opt in ($store.cache.getData('repeat_options') || [])" :key="opt.id">
+									<option :value="opt.id" x-text="opt.name"></option>
+								</template>
+							</select>
+						</label>
+
+						<label class="white flex2-3">
+							<img alt="link" src="/static/images/icons/link.svg" width="16" height="16">
+							<input type="url" placeholder="Google Meet" x-model="event_data.meet">
+						</label>
+
+						<!-- NOTIFICACIÓN -->
+						<!-- <label class="white notify-field">
+							<img alt="bell" src="/static/images/notifications.svg" width="16" height="16">
+							<select x-model="event_data.notify_id">
+								<option value="" disabled>Notificación</option>
+								<template x-for="opt in ($store.cache.getData('notify_options') || [])" :key="opt.id">
+									<option :value="opt.id" x-text="opt.name"></option>
+								</template>
+							</select>
+						</label> -->
+					</div>
+
+					<!--  DESCRIPCIÓN -->
+					<textarea placeholder="Descripción (opcional)" x-model="event_data.description" class="text-area" style="
+						max-width: 100%;
+						border: 2px solid white;
+					"></textarea>
+
+					
 				</div>
+				<!--  BOTONES DE ACCIÓN -->
+				<div class="buttons" x-show="!edit || can_edit">
+					<button
+						x-show="edit && can_edit && canDeleteEvent()"
+						class="button black hover-opacity"
+						@click.prevent.stop="Alpine.store('cache').showModal('confirm-delete')"
+					>
+						<span>Eliminar</span>
+					</button>
+					
+					<button 
+						x-show="!edit || can_edit"
+						class="button icon hover-opacity" 
+						@click="handlePrimaryAction()" 
+						:class="!edit ? buttons.save.class : buttons.update.class"
+					>
+						<span x-text="!edit ? buttons.save.text : 'Actualizar'"></span>
+					</button>
+				</div>
+				
 
-				<template x-if="event_data.meet">
-					<div class="readonly-row">
-						<span class="readonly-label">
-							<img alt="repeat" src="/static/images/icons/link.svg" width="16" height="16">
-							Google Meet
-						</span>
-						<a class="readonly-value readonly-link"
-						:href="event_data.meet"
-						target="_blank"
-						rel="noopener"
-						x-text="event_data.meet"></a>
+				<!-- ============ MODO SOLO LECTURA (no creador) ============ -->
+				<div class="readonly-view" x-show="edit && !can_edit">
+					<div class="readonly-title">
+						
+						<span x-text="event_data.title || 'Sin título'" :style="`color: ${event_data.color}`"></span>
 					</div>
-				</template>
+					
+					<div class="readonly-row">
+						<span class="readonly-creator" x-text="`Creado por ${event_data.creator_name}`"></span>
+					</div>
+
+					<div class="readonly-box white">
+						<template x-if="event_data.description">
+							<div class="readonly-row">
+								<span class="readonly-label">
+									<img alt="repeat" src="/static/images/icons/board.svg" width="16" height="16">
+									Descripción
+								</span>
+								<span class="readonly-value" x-html="event_data.description"></span>
+							</div>
+						</template>
+
+						<div class="readonly-row">
+							<span class="readonly-label">
+								<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
+								Fecha y hora
+							</span>
+							<span class="readonly-value" x-text="formattedEventRange()"></span>
+						</div>
+
+						<template x-if="event_data.meet">
+							<div class="readonly-row">
+								<span class="readonly-label">
+									<img alt="repeat" src="/static/images/icons/link.svg" width="16" height="16">
+									Google Meet
+								</span>
+								<a class="readonly-value readonly-link"
+								:href="event_data.meet"
+								target="_blank"
+								rel="noopener"
+								x-text="event_data.meet"></a>
+							</div>
+						</template>
+					</div>
+				</div>
 			</div>
 		</div>
-    </div>
-</div>
 
+		<div
+			x-show="$store.cache.isVisibleModal('confirm-delete')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-confirm-delete"
+			x-cloak
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			>
+
+			<div class="modal head glass2" @click.stop>
+				<span class="title">¿Realmente deseas eliminar el evento?</span>
+				<div class="buttons">
+					<button class="button black hover-opacity" @click="deleteEvent()">Sí, eliminar</button>
+					<button class="button hover-opacity" @click="$store.cache.hideLastModal()">No</button>
+				</div>
+			</div>
+		</div>
+		
 	</div>
-        <!-- Modal de confirmación para eliminar etiqueta -->
-    <div
-        x-show="$store.cache.isVisibleModal('confirm-delete')"
-        @mousedown.self="$store.cache.hideLastModal()"
-        x-transition.duration.300ms
-        class="modal-wrap"
-        id="modal-confirm-delete"
-        x-cloak>
 
-        <div class="modal head glass2" @click.stop>
-            <div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-                <img alt="close" src="/static/images/x.svg" width="12" height="12">
-            </div>
-            <span class="title">¿Realmente deseas eliminar el evento?</span>
-            <div class="fields" style="justify-content: flex-end; gap: 0.5rem;">
-                <button class="button black hover-opacity" @click="deleteEvent()">Sí, eliminar</button>
-                <button class="button hover-opacity" @click="$store.cache.hideLastModal()">No</button>
-            </div>
-        </div>
-    </div>
+	
 
 
 
@@ -375,8 +386,8 @@
 		can_edit: false,
 
 		buttons: {
-			save:   { text: 'Crear evento', class: 'blue' },
-			update: { text: 'Actualizar',   class: 'blue' },
+			save:   { text: 'Crear evento', class: '' },
+			update: { text: 'Actualizar',   class: '' },
 		},
 
 		event_data: {
@@ -840,7 +851,6 @@
 
 	<style>
 		#modal-confirm-delete .modal {
-			max-width: 20rem;
 			gap: 1.5rem;
 			text-align: center;
 		}
@@ -884,16 +894,13 @@
 			align-items: center;
 			gap: 0.75rem;
 		}
-
 		#modal-event .container {
 			display: flex;
 			gap: 1rem;
 			flex-direction: column;
 			overflow: auto;
 		}
-
 		#modal-event .readonly-view {
-			margin-top: -1.5rem;
 			display: flex;
 			flex-direction: column;
 			gap: 1rem;
@@ -1006,7 +1013,7 @@
 			position: absolute;
 			z-index: 10;
 			top: 120%;
-			left: 0;
+			left: -100px;
 			background: #fff;
 			border: 1px solid #eee;
 			border-radius: 0.5rem;
@@ -1217,9 +1224,6 @@
             width: 1rem;
             height: 1rem;
         }
-		#modal-event .modal {
-			max-width: 34rem;
-		}
         /* Posición independiente de los íconos del modal */
         #modal-event .modal-delete {
             position: absolute;
@@ -1559,6 +1563,9 @@
 			#modal-event .fields label.checkbox,
 			#modal-event .fields label.compact-color {
 				flex: 0 0 2.5rem;
+			}
+			#modal-event .color-panel {
+				left: 0;
 			}
 		}
 		

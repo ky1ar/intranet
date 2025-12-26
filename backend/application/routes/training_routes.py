@@ -9,3 +9,8 @@ controller = TrainingController()
 def training_calendar():
     offset = request.args.get('offset', None)
     return controller.training_calendar(offset)
+
+
+@training_bp.route("/id/<training_id>", methods=["GET"])
+def get_training_by_id(training_id):
+    return controller.training_get_by_id(training_id)

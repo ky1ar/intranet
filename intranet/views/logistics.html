@@ -1,7 +1,7 @@
 <div x-data="logistics_data">
 	<div id="logistics">
-		<div class="header">
-			<div class="menu">
+		<div class="controls">
+			<div class="left">
 				<div class="item" @click="search()">
 					<div class="button">
 						<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
@@ -21,7 +21,6 @@
 					</div>
 					<span>Estadísticas</span>
 				</div>
-				
 			</div>
 				
 			<div class="navigation desktop">
@@ -34,8 +33,8 @@
 				</div>
 			</div>
 
-			<template x-if="editAllowed()">
-				<div class="menu primary">
+			<!-- <template x-if="editAllowed()"> -->
+				<div class="right">
 					<div class="item" @click="pendings_open = !pendings_open">
 						<div class="button">
 							<img alt="" width="20" height="20" src="/static/images/icons/pending.svg">
@@ -49,10 +48,8 @@
 						<span>Añadir</span>
 					</div>
 				</div>
-			</template>
-
+			<!-- </template> -->
 		</div>
-
 		
 		
 		<div class="schedule-container">
