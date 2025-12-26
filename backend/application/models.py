@@ -638,6 +638,7 @@ class PurchaseItems(db.Model):
     price = db.Column(db.Numeric(10, 2))
     url = db.Column(db.Text)
     ruc = db.Column(db.String(11))
+    order_number = db.Column(db.String(64))
     legal_name = db.Column(db.String(255))
     deleted_at = db.Column(db.DateTime)
 

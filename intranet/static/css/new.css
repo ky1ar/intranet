@@ -250,6 +250,11 @@ body.modal-open {
     background-color: #648fad;
     color: var(--white);
 }
+.modal .button.lime {
+    background-color: #94b274;
+    color: var(--white);
+}
+
 .modal .button.violet {
     background-color: #9473c6;
     color: var(--white);
