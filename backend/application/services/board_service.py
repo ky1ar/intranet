@@ -1,5 +1,4 @@
 import logging
-from application import redis_client
 from datetime import datetime, timedelta, timezone
 from application.handlers import handle_exceptions
 from application.repository.board_repository import BoardRepository

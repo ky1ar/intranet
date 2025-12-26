@@ -42,7 +42,7 @@
 						</div>
 						<div x-text="purchase.requester_department"></div>
 						<div x-text="purchase.type_name"></div>
-						<div :class="{'express': purchase.express == 1}" x-text="purchase.express == 1 ? 'Express':'Estándar'"></div>
+						<div :class="{'express': purchase.express == 1}" x-text="purchase.express == 1 ? 'Caja chica':'Estándar'"></div>
 						<div x-text="purchase.urgency_name"></div>
 						<div>
 							<div :class="purchase.status_slug" x-text="purchase.status_name"></div>
@@ -51,7 +51,16 @@
 					</div>
 				</div>
 			</template>
+
+			<div x-show="$store.cache.getData('purchases_dashboard')?.requests?.length == 0" class="table-row" style="
+				padding: 8rem;
+				text-align: center;
+				opacity: 0.5;
+			">
+				No se encontraron solicitudes de compra
+			</div>
 		</div>
+
 
 		<div
 			x-show="$store.cache.isVisibleModal('process_purchase')"
@@ -61,20 +70,29 @@
 			id="modal"
 			x-cloak>
 			
-			<!-- ********** VIEW ********* -->
-			<div x-show="process_purchase.modal == 'view'" class="modal glass2" @click.stop>
+			<div class="modal glass2" @click.stop>
 				<div class="title">
-					<span x-text="`Solicitud ${process_purchase.pr}`"></span>
-					<p class="created" x-text="`Creada por ${(process_purchase.self_created ? 'ti' : process_purchase.user_name)} el ${process_purchase.created_at}`"></p>
+					<span x-text="process_purchase.modal === 'add'
+						? 'Nueva solicitud'
+						: `Solicitud ${process_purchase.pr}`">
+					</span>
+
+					<p class="created"
+						x-show="process_purchase.modal !== 'add'"
+						x-text="`Creada por ${(process_purchase.self_created ? 'ti' : process_purchase.user_name)} el ${process_purchase.created_at}`">
+					</p>
 				</div>
 
-				<div class="view-box white">
+				<!-- VIEW FIELDS -->
+
+				<div class="view-box white" x-show="['view','delete'].includes(process_purchase.modal)">
 					<div class="view-header">
 						<span>Nº</span>
 						<span>Ítem</span>
 						<span>Cant.</span>
 						<span>Precio</span>
 						<span>URL</span>
+						<span># Pedido</span>
 					</div>
 
 					<template x-for="(item, index) in process_purchase.items" :key="index">
@@ -89,68 +107,17 @@
 										src="/static/images/icons/link.svg">
 								</a>
 							</template>
-
 							<template x-if="!item.url">
 								<span>-</span>
 							</template>
+							<span x-text="item.order_number ? item.order_number:'-'"></span>
 						</div>
 					</template>
 				</div>
 
-				<div class="comments-container">
-					<div class="comments-box gradient" :class="{'over': process_purchase.status_id > 4}">
-						<template x-for="chat in process_purchase.chats" :key="chat.id">
-							<div class="user-comment" :class="{'self': chat.commenter_id == user_id}">
-								<img alt="user" :src="'/static/images/uploads/users/' + chat.commenter_image" width="24" height="24">
-								<div class="white bubble">
-									<div class="top">
-										<span x-text="chat.commenter_id == user_id ? 'Tú' :chat.commenter_name"></span>
-										<p x-text="chat.created_at"></p>
-									</div>
-									<p x-text="chat.comment"></p>
-								</div>
-							</div>
-						</template>
-					</div>
+				<!-- INPUTS -->
 
-					<div class="comments-input white" x-show="process_purchase.status_id <= 4">
-						<label>
-							<input type="text" x-model="process_purchase.message" placeholder="Ingresa un mensaje...">
-						</label>
-						<div class="send hover-opacity" @click="sendChat()" :class="{'disabled': process_purchase.message == '' || process_purchase.message === undefined}">
-							<img alt="enviar" width="16" height="16" src="/static/images/icons/send.svg">
-						</div>
-					</div>
-				</div>
-
-				<div class="buttons" x-show="process_purchase.status_id == 3 && user_id == 1">
-					<button class="button icon blue hover-opacity" @click="payRequest()" :class="buttons.payed.class">
-						<img alt="eliminar" width="16" height="16" src="/static/images/icons/payed.svg">
-						<span x-text="buttons.payed.text"></span>
-					</button>
-				</div>
-				
-				<div class="buttons" x-show="process_purchase.status_id == 4 && user_id == 1">
-					<button class="button icon violet hover-opacity" @click="invoiceRequest()" :class="buttons.invoiced.class">
-						<img alt="update" width="16" height="16" src="/static/images/icons/invoiced.svg">
-						<span x-text="buttons.invoiced.text"></span>
-					</button>
-				</div>
-
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">
-				</div>
-			</div>
-
-
-			<!-- ********** EDIT ********* -->
-			<div x-show="process_purchase.modal == 'edit'" class="modal glass2" @click.stop>
-				<div class="title">
-					<span x-text="`Solicitud ${process_purchase.pr}`"></span>
-					<p class="created" x-text="`Creada por ${(process_purchase.self_created ? 'ti':process_purchase.user_name)} el ${process_purchase.created_at}`"></p>
-				</div>
-
-				<div class="fields">
+				<div class="fields" x-show="['edit','approve','add'].includes(process_purchase.modal)">
 					<label class="white">
 						<select x-model="process_purchase.type_id">
 							<template x-for="type in $store.cache.getData('purchases_type')" :key="type.id">
@@ -172,7 +139,7 @@
 					</label> -->
 
 					<label class="white express">
-						Express
+						Caja chica
 						<label class="box">
 							<input id="express" type="checkbox" x-model="process_purchase.express">
 							<span class="slider"></span>
@@ -188,347 +155,7 @@
 					</label>
 				</div>
 
-				<div class="items-box">
-					<div class="items-header">
-						<span>Nº</span>
-						<span>Ítem</span>
-						<span>Cant.</span>
-						<span>Precio</span>
-						<span>URL</span>
-						<button type="button" class="new hover-opacity" @click="addItem()">
-							<img alt="eliminar" width="16" height="16" src="/static/images/icons/add.svg">
-						</button>
-					</div>
-
-					<template x-for="(item, index) in process_purchase.items" :key="index">
-						<div class="items-row">
-							<span x-text="(index + 1) + '.'"></span>
-							<label class="white">
-								<input type="text" placeholder="Agregar título" x-model="item.title">
-							</label>
-
-							<label class="white">
-								<input type="number" min="1" step="1" placeholder="1" x-model.number="item.quantity">
-							</label>
-
-							<label class="white">
-								<input type="number" min="0" step="0.01" placeholder="0.00" x-model.number="item.price">
-							</label>
-
-							<label class="white">
-								<input type="url" placeholder="Añadir URL" x-model="item.url">
-							</label>
-							
-							<button type="button" class="remove hover-opacity" @click="removeItem(index)">
-								<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
-							</button>
-						</div>
-					</template>
-				</div>
-
-				<div class="comments-container">
-					<div class="comments-box gradient">
-						<template x-for="chat in process_purchase.chats" :key="chat.id">
-							<div class="user-comment" :class="{'self': chat.commenter_id == user_id}">
-								<img alt="user" :src="'/static/images/uploads/users/' + chat.commenter_image" width="24" height="24">
-								<div class="white bubble">
-									<div class="top">
-										<span x-text="chat.commenter_id == user_id ? 'Tú' :chat.commenter_name"></span>
-										<p x-text="chat.created_at"></p>
-									</div>
-									<p x-text="chat.comment"></p>
-								</div>
-							</div>
-						</template>
-					</div>
-
-					<div class="comments-input white">
-						<label>
-							<input type="text" x-model="process_purchase.message" placeholder="Ingresa un mensaje...">
-						</label>
-						<div class="send hover-opacity" @click="sendChat()" :class="{'disabled': process_purchase.message == '' || process_purchase.message === undefined}">
-							<img alt="enviar" width="16" height="16" src="/static/images/icons/send.svg">
-						</div>
-					</div>
-				</div>
-
-				<div class="buttons">
-					<button class="button icon black hover-opacity" @click="deleteRequest()" :class="buttons.remove.class">
-						<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
-						<span x-text="buttons.remove.text"></span>
-					</button>
-
-					<button class="button icon hover-opacity" @click="updateRequest()" :class="buttons.update.class">
-						<img alt="update" width="16" height="16" src="/static/images/icons/update.svg">
-						<span x-text="buttons.update.text"></span>
-					</button>
-				</div>
-
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">
-				</div>
-			</div>
-
-
-
-			<!-- ********** APPROVE ********* -->
-			<div x-show="process_purchase.modal == 'approve'" class="modal glass2" @click.stop>
-				<div class="title">
-					<span x-text="`Solicitud ${process_purchase.pr}`"></span>
-					<p class="created" x-text="`Creada por ${(process_purchase.self_created ? 'ti':process_purchase.user_name)} el ${process_purchase.created_at}`"></p>
-				</div>
-
-				<div class="fields">
-					<label class="white">
-						<select x-model="process_purchase.type_id">
-							<template x-for="type in $store.cache.getData('purchases_type')" :key="type.id">
-								<option :value="type.id" x-text="type.name"></option>
-							</template>
-						</select>
-					</label>
-
-					<label class="white">
-						<select x-model="process_purchase.urgency_id">
-							<template x-for="urgency in $store.cache.getData('purchases_urgency')" :key="urgency.id">
-								<option :value="urgency.id" x-text="urgency.name"></option>
-							</template>
-						</select>
-					</label>
-
-					<!-- <label class="white">
-						<input type="date" x-model="process_purchase.register_date">
-					</label> -->
-
-					<label class="white express">
-						Express
-						<label class="box">
-							<input id="express" type="checkbox" x-model="process_purchase.express">
-							<span class="slider"></span>
-						</label>
-					</label>
-
-					<label class="white express">
-						Validación TI
-						<label class="box">
-							<input id="it-validation" type="checkbox" x-model="process_purchase.it_validation">
-							<span class="slider"></span>
-						</label>
-					</label>
-				</div>
-
-				<div class="items-box">
-					<div class="items-header">
-						<span>Nº</span>
-						<span>Ítem</span>
-						<span>Cant.</span>
-						<span>Precio</span>
-						<span>URL</span>
-						<button type="button" class="new hover-opacity" @click="addItem()">
-							<img alt="eliminar" width="16" height="16" src="/static/images/icons/add.svg">
-						</button>
-					</div>
-
-					<template x-for="(item, index) in process_purchase.items" :key="index">
-						<div class="items-row">
-							<span x-text="(index + 1) + '.'"></span>
-							<label class="white">
-								<input type="text" placeholder="Agregar título" x-model="item.title">
-							</label>
-
-							<label class="white">
-								<input type="number" min="1" step="1" placeholder="1" x-model.number="item.quantity">
-							</label>
-
-							<label class="white">
-								<input type="number" min="0" step="0.01" placeholder="0.00" x-model.number="item.price">
-							</label>
-
-							<label class="white">
-								<input type="url" placeholder="Añadir URL" x-model="item.url">
-							</label>
-							
-							<button type="button" class="remove hover-opacity" @click="removeItem(index)">
-								<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
-							</button>
-						</div>
-					</template>
-				</div>
-
-				<div class="comments-container">
-					<div class="comments-box gradient">
-						<template x-for="chat in process_purchase.chats" :key="chat.id">
-							<div class="user-comment" :class="{'self': chat.commenter_id == user_id}">
-								<img alt="user" :src="'/static/images/uploads/users/' + chat.commenter_image" width="24" height="24">
-								<div class="white bubble">
-									<div class="top">
-										<span x-text="chat.commenter_id == user_id ? 'Tú' :chat.commenter_name"></span>
-										<p x-text="chat.created_at"></p>
-									</div>
-									<p x-text="chat.comment"></p>
-								</div>
-							</div>
-						</template>
-					</div>
-
-					<div class="comments-input white">
-						<label>
-							<input type="text" x-model="process_purchase.message" placeholder="Ingresa un mensaje...">
-						</label>
-						<div class="send hover-opacity" @click="sendChat()" :class="{'disabled': process_purchase.message == '' || process_purchase.message === undefined}">
-							<img alt="enviar" width="16" height="16" src="/static/images/icons/send.svg">
-						</div>
-					</div>
-				</div>
-
-				<div class="buttons">
-					<button class="button icon red hover-opacity" @click="rejectRequest()" :class="buttons.reject.class">
-						<img alt="eliminar" width="18" height="18" src="/static/images/icons/dislike.svg">
-						<span x-text="buttons.reject.text"></span>
-					</button>
-
-					<button class="button icon green hover-opacity" @click="approveRequest()" :class="buttons.approve.class">
-						<img alt="update" width="18" height="18" src="/static/images/icons/like.svg">
-						<span x-text="buttons.approve.text"></span>
-					</button>
-				</div>
-
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">
-				</div>
-			</div>
-
-
-			<!-- ********** DELETE ********* -->
-			<div x-show="process_purchase.modal == 'delete'" class="modal glass2" @click.stop>
-				<div class="title">
-					<span x-text="`Solicitud ${process_purchase.pr}`"></span>
-					<p class="created" x-text="`Creada por ${(process_purchase.self_created ? 'ti' : process_purchase.user_name)} el ${process_purchase.created_at}`"></p>
-				</div>
-
-				<div class="view-box white">
-					<div class="view-header">
-						<span>Nº</span>
-						<span>Ítem</span>
-						<span>Cant.</span>
-						<span>Precio</span>
-						<span>URL</span>
-					</div>
-
-					<template x-for="(item, index) in process_purchase.items" :key="index">
-						<div class="view-row">
-							<span x-text="(index + 1) + '.'"></span>
-							<span x-text="item.title"></span>
-							<span x-text="item.quantity"></span>
-							<span x-text="item.price ? item.price:'-'"></span>
-							<template x-if="item.url">
-								<a :href="item.url" target="_blank" rel="noopener">
-									<img alt="link" width="16" height="16"
-										src="/static/images/icons/link.svg">
-								</a>
-							</template>
-
-							<template x-if="!item.url">
-								<span>-</span>
-							</template>
-						</div>
-					</template>
-				</div>
-
-				<div class="comments-container">
-					<div class="comments-box gradient">
-						<template x-for="chat in process_purchase.chats" :key="chat.id">
-							<div class="user-comment" :class="{'self': chat.commenter_id == user_id}">
-								<img alt="user" :src="'/static/images/uploads/users/' + chat.commenter_image" width="24" height="24">
-								<div class="white bubble">
-									<div class="top">
-										<span x-text="chat.commenter_id == user_id ? 'Tú' :chat.commenter_name"></span>
-										<p x-text="chat.created_at"></p>
-									</div>
-									<p x-text="chat.comment"></p>
-								</div>
-							</div>
-						</template>
-					</div>
-
-					<div class="comments-input white">
-						<label>
-							<input type="text" x-model="process_purchase.message" placeholder="Ingresa un mensaje...">
-						</label>
-						<div class="send hover-opacity" @click="sendChat()" :class="{'disabled': process_purchase.message == '' || process_purchase.message === undefined}">
-							<img alt="enviar" width="16" height="16" src="/static/images/icons/send.svg">
-						</div>
-					</div>
-				</div>
-
-				<div class="buttons">
-					<button class="button icon red hover-opacity" @click="deleteRequest()" :class="buttons.remove.class">
-						<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
-						<span x-text="buttons.remove.text"></span>
-					</button>
-
-					<button x-show="user_id == 1 && process_purchase.express" class="button icon blue hover-opacity" @click="payRequest()" :class="buttons.payed.class">
-						<img alt="eliminar" width="16" height="16" src="/static/images/icons/payed.svg">
-						<span x-text="buttons.payed.text"></span>
-					</button>
-				</div>
-
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">
-				</div>
-			</div>
-
-
-			<!-- ********** ADD ********* -->
-			<div x-show="process_purchase.modal == 'add'" class="modal glass2" @click.stop>
-				<div class="title">Nueva solicitud</div>
-
-				<div class="fields">
-					<label class="white">
-						<select x-model="process_purchase.type_id">
-							<template x-if="$store.cache.getData('purchases_type')?.length !== 1">
-								<option value="" disabled>Tipo</option>
-							</template>
-
-							<template x-for="type in $store.cache.getData('purchases_type')" :key="type.id">
-								<option :value="type.id" x-text="type.name"></option>
-							</template>
-						</select>
-					</label>
-
-					<label class="white">
-						<select x-model="process_purchase.urgency_id">
-							<template x-if="$store.cache.getData('purchases_urgency')?.length !== 1">
-								<option value="" disabled>Urgencia</option>
-							</template>
-
-							<template x-for="urgency in $store.cache.getData('purchases_urgency')" :key="urgency.id">
-								<option :value="urgency.id" x-text="urgency.name"></option>
-							</template>
-						</select>
-					</label>
-
-					<!-- <label class="white">
-						<input type="date" x-model="process_purchase.register_date">
-					</label> -->
-
-					<label class="white express">
-						Express
-						<label class="box">
-							<input id="express" type="checkbox" x-model="process_purchase.express">
-							<span class="slider"></span>
-						</label>
-					</label>
-
-					<label class="white express">
-						Validación TI
-						<label class="box">
-							<input id="it-validation" type="checkbox" x-model="process_purchase.it_validation">
-							<span class="slider"></span>
-						</label>
-					</label>
-				</div>
-
-				<div class="items-box">
+				<div class="items-box" x-show="['edit','approve','add'].includes(process_purchase.modal)">
 					<div class="items-header">
 						<span>Nº</span>
 						<span>Ítem</span>
@@ -566,14 +193,97 @@
 					</template>
 				</div>
 
-				<label class="white">
+				<!-- COMMENTS -->
+
+				<label class="white" x-show="process_purchase.modal === 'add'">
 					<input type="text" x-model="process_purchase.comment" placeholder="Ingresa un comentario...">
 				</label>
 
-				<div class="buttons">
+				<div class="comments-container" x-show="process_purchase.modal !== 'add'">
+					<div class="comments-box gradient" :class="{'over': process_purchase.status_id > 4}">
+						<template x-for="chat in process_purchase.chats" :key="chat.id">
+							<div class="user-comment" :class="{'self': chat.commenter_id == user_id}">
+								<img alt="user" :src="'/static/images/uploads/users/' + chat.commenter_image" width="24" height="24">
+								<div class="white bubble">
+									<div class="top">
+										<span x-text="chat.commenter_id == user_id ? 'Tú' :chat.commenter_name"></span>
+										<p x-text="chat.created_at"></p>
+									</div>
+									<p x-text="chat.comment"></p>
+								</div>
+							</div>
+						</template>
+					</div>
+
+					<div class="comments-input white" x-show="process_purchase.status_id <= 4">
+						<label>
+							<input type="text" x-model="process_purchase.message" placeholder="Ingresa un mensaje...">
+						</label>
+						<div class="send hover-opacity" @click="sendChat()" :class="{'disabled': process_purchase.message == '' || process_purchase.message === undefined}">
+							<img alt="enviar" width="16" height="16" src="/static/images/icons/send.svg">
+						</div>
+					</div>
+				</div>
+
+				<!-- BUTTONS -->
+
+				<div class="buttons" x-show="process_purchase.modal === 'add'">
 					<button class="button icon hover-opacity" @click="newRequest()" :class="buttons.add.class">
 						<img alt="update" width="16" height="16" src="/static/images/icons/add.svg">
 						<span x-text="buttons.add.text"></span>
+					</button>
+				</div>	
+
+				<div class="buttons" x-show="process_purchase.modal === 'view'">
+					<button x-show="process_purchase.status_id == 3 && user_id == 1" class="button icon lime hover-opacity" @click="progressRequest()" :class="buttons.progress.class">
+						<img alt="eliminar" width="16" height="16" src="/static/images/icons/payed.svg">
+						<span x-text="buttons.progress.text"></span>
+					</button>
+
+					<button x-show="process_purchase.status_id == 4 && user_id == 1" class="button icon blue hover-opacity" @click="payRequest()" :class="buttons.payed.class">
+						<img alt="eliminar" width="16" height="16" src="/static/images/icons/payed.svg">
+						<span x-text="buttons.payed.text"></span>
+					</button>
+				
+					<button x-show="process_purchase.status_id == 5 && user_id == 1" class="button icon violet hover-opacity" @click="invoiceRequest()" :class="buttons.invoiced.class">
+						<img alt="update" width="16" height="16" src="/static/images/icons/invoiced.svg">
+						<span x-text="buttons.invoiced.text"></span>
+					</button>
+				</div>
+
+				<div class="buttons" x-show="process_purchase.modal === 'edit'">
+					<button class="button icon black hover-opacity" @click="deleteRequest()" :class="buttons.remove.class">
+						<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
+						<span x-text="buttons.remove.text"></span>
+					</button>
+
+					<button class="button icon hover-opacity" @click="updateRequest()" :class="buttons.update.class">
+						<img alt="update" width="16" height="16" src="/static/images/icons/update.svg">
+						<span x-text="buttons.update.text"></span>
+					</button>
+				</div>
+
+				<div class="buttons" x-show="process_purchase.modal === 'approve'">
+					<button class="button icon red hover-opacity" @click="rejectRequest()" :class="buttons.reject.class">
+						<img alt="eliminar" width="18" height="18" src="/static/images/icons/dislike.svg">
+						<span x-text="buttons.reject.text"></span>
+					</button>
+
+					<button class="button icon green hover-opacity" @click="approveRequest()" :class="buttons.approve.class">
+						<img alt="update" width="18" height="18" src="/static/images/icons/like.svg">
+						<span x-text="buttons.approve.text"></span>
+					</button>
+				</div>
+
+				<div class="buttons" x-show="process_purchase.modal === 'delete'">
+					<button class="button icon red hover-opacity" @click="deleteRequest()" :class="buttons.remove.class">
+						<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
+						<span x-text="buttons.remove.text"></span>
+					</button>
+
+					<button x-show="user_id == 1 && process_purchase.express" class="button icon lime hover-opacity" @click="progressRequest()" :class="buttons.progress.class">
+						<img alt="eliminar" width="16" height="16" src="/static/images/icons/payed.svg">
+						<span x-text="buttons.progress.text"></span>
 					</button>
 				</div>
 
@@ -601,6 +311,7 @@
 				approve:   { text: 'Aprobar', class: '' },
 				reject:   { text: 'Rechazar', class: '' },
 				payed:   { text: 'Marcar como pagado', class: '' },
+				progress:   { text: 'En progreso', class: '' },
 				invoiced:   { text: 'Marcar como facturado', class: '' },
 			},
 			process_purchase: {
@@ -700,6 +411,41 @@
 
 				} catch (error) {
 					this.showError("remove", error.message);
+				} finally {
+					this.processing = false;
+					NProgress.done();
+				}
+			},
+
+			async progressRequest() {
+				if (this.processing) return;
+
+				this.processing = true;
+				NProgress.start();
+
+				try {
+					const response = await fetch(
+						`${this.api}/purchases/${this.process_purchase.id}`,
+						{
+							method: "PUT",
+							headers: {
+								"Content-Type": "application/json",
+								"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+							},
+							body: JSON.stringify({ action: "progress" }),
+						}
+					);
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || "Error al eliminar");
+					}
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process_purchase");
+
+				} catch (error) {
+					this.showError("payed", error.message);
 				} finally {
 					this.processing = false;
 					NProgress.done();
@@ -1025,7 +771,7 @@
 
 			addPurchase() {
 				this.resetOrder();
-				this.process_purchase.modal == 'add';
+				this.process_purchase.modal = 'add';
 				Alpine.store('cache').showModal('process_purchase');
 			},
 
@@ -1322,9 +1068,6 @@
     		border-top-right-radius: 0.25rem;
 			padding: 0.25rem 0.7rem 0.5rem 0.6rem;
 		}
-		#modal .user-comment.self .bubble span {
-			/* display: none; */
-		}
 		#modal .view-box {
 			flex-direction: column;
 			position: relative;
@@ -1335,14 +1078,14 @@
 		}
 		#modal .view-header {
 			display: grid;
-			grid-template-columns: 0.15fr 3fr 0.5fr 0.5fr 0.5fr;
+			grid-template-columns: 0.15fr 3fr 0.5fr 0.5fr 0.5fr 1.25fr;
 			gap: 0.75rem;
 			align-items: center;
 			font-weight: 500;
 			padding: 0.5rem 0.75rem;
 		}
 		#modal .view-row {
-			grid-template-columns: 0.15fr 3fr 0.5fr 0.5fr 0.5fr;
+			grid-template-columns: 0.15fr 3fr 0.5fr 0.5fr 0.5fr 1.25fr;
 			display: grid;
 			gap: 0.75rem;
 			align-items: center;
@@ -1425,6 +1168,10 @@
 		.payed {
 			background-color: #dff5ff;
     		border: 2px solid #b4e1f2;
+		}
+		.progress {
+			background-color: #f0ffde;
+    		border: 2px solid #c0dba0;
 		}
 		.billed {
 			background-color: #e4d4fb;
