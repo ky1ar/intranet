@@ -42,7 +42,7 @@
 						</div>
 						<div x-text="purchase.requester_department"></div>
 						<div x-text="purchase.type_name"></div>
-						<div :class="{'express': purchase.express == 1}" x-text="purchase.express == 1 ? 'Express':'Estándar'"></div>
+						<div :class="{'express': purchase.express == 1}" x-text="purchase.express == 1 ? 'Caja chica':'Estándar'"></div>
 						<div x-text="purchase.urgency_name"></div>
 						<div>
 							<div :class="purchase.status_slug" x-text="purchase.status_name"></div>
@@ -103,6 +103,7 @@
 							<span>Cant.</span>
 							<span>Precio</span>
 							<span>URL</span>
+							<span># Pedido</span>
 						</div>
 
 						<template x-for="(item, index) in process_purchase.items" :key="index">
@@ -117,10 +118,10 @@
 											src="/static/images/icons/link.svg">
 									</a>
 								</template>
-
 								<template x-if="!item.url">
 									<span>-</span>
 								</template>
+								<span x-text="item.order_number ? item.order_number:'-'"></span>
 							</div>
 						</template>
 					</div>
@@ -149,7 +150,7 @@
 						</label> -->
 
 						<label class="white express">
-							Express
+							Caja chica
 							<label class="box">
 								<input id="express" type="checkbox" x-model="process_purchase.express">
 								<span class="slider"></span>
@@ -247,19 +248,20 @@
 				</div>	
 
 				<div class="buttons" x-show="process_purchase.modal === 'view'">
-					<div class="buttons" x-show="process_purchase.status_id == 3 && user_id == 1">
-						<button class="button icon blue hover-opacity" @click="payRequest()" :class="buttons.payed.class">
-							<img alt="eliminar" width="16" height="16" src="/static/images/icons/payed.svg">
-							<span x-text="buttons.payed.text"></span>
-						</button>
-					</div>
-					
-					<div class="buttons" x-show="process_purchase.status_id == 4 && user_id == 1">
-						<button class="button icon violet hover-opacity" @click="invoiceRequest()" :class="buttons.invoiced.class">
-							<img alt="update" width="16" height="16" src="/static/images/icons/invoiced.svg">
-							<span x-text="buttons.invoiced.text"></span>
-						</button>
-					</div>
+					<button x-show="process_purchase.status_id == 3 && user_id == 1" class="button icon lime hover-opacity" @click="progressRequest()" :class="buttons.progress.class">
+						<img alt="eliminar" width="16" height="16" src="/static/images/icons/payed.svg">
+						<span x-text="buttons.progress.text"></span>
+					</button>
+
+					<button x-show="process_purchase.status_id == 4 && user_id == 1" class="button icon blue hover-opacity" @click="payRequest()" :class="buttons.payed.class">
+						<img alt="eliminar" width="16" height="16" src="/static/images/icons/payed.svg">
+						<span x-text="buttons.payed.text"></span>
+					</button>
+
+					<button x-show="process_purchase.status_id == 5 && user_id == 1" class="button icon violet hover-opacity" @click="invoiceRequest()" :class="buttons.invoiced.class">
+						<img alt="update" width="16" height="16" src="/static/images/icons/invoiced.svg">
+						<span x-text="buttons.invoiced.text"></span>
+					</button>
 				</div>
 
 				<div class="buttons" x-show="process_purchase.modal === 'edit'">
@@ -292,9 +294,9 @@
 						<span x-text="buttons.remove.text"></span>
 					</button>
 
-					<button x-show="user_id == 1 && process_purchase.express" class="button icon blue hover-opacity" @click="payRequest()" :class="buttons.payed.class">
+					<button x-show="user_id == 1 && process_purchase.express" class="button icon lime hover-opacity" @click="progressRequest()" :class="buttons.progress.class">
 						<img alt="eliminar" width="16" height="16" src="/static/images/icons/payed.svg">
-						<span x-text="buttons.payed.text"></span>
+						<span x-text="buttons.progress.text"></span>
 					</button>
 				</div>
 			</div>
@@ -317,6 +319,7 @@
 				remove:   { text: 'Eliminar solicitud', class: '' },
 				approve:   { text: 'Aprobar', class: '' },
 				reject:   { text: 'Rechazar', class: '' },
+				progress:   { text: 'En progreso', class: '' },
 				payed:   { text: 'Marcar como pagado', class: '' },
 				invoiced:   { text: 'Marcar como facturado', class: '' },
 			},
@@ -417,6 +420,41 @@
 
 				} catch (error) {
 					this.showError("remove", error.message);
+				} finally {
+					this.processing = false;
+					NProgress.done();
+				}
+			},
+
+			async progressRequest() {
+				if (this.processing) return;
+
+				this.processing = true;
+				NProgress.start();
+
+				try {
+					const response = await fetch(
+						`${this.api}/purchases/${this.process_purchase.id}`,
+						{
+							method: "PUT",
+							headers: {
+								"Content-Type": "application/json",
+								"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+							},
+							body: JSON.stringify({ action: "progress" }),
+						}
+					);
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || "Error al eliminar");
+					}
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process_purchase");
+
+				} catch (error) {
+					this.showError("payed", error.message);
 				} finally {
 					this.processing = false;
 					NProgress.done();
@@ -1037,9 +1075,7 @@
     		border-top-right-radius: 0.25rem;
 			padding: 0.25rem 0.7rem 0.5rem 0.6rem;
 		}
-		#modal .user-comment.self .bubble span {
-			/* display: none; */
-		}
+
 		#modal .view-box {
 			flex-direction: column;
 			position: relative;
@@ -1049,14 +1085,14 @@
 		}
 		#modal .view-header {
 			display: grid;
-			grid-template-columns: 0.15fr 3fr 0.5fr 0.5fr 0.5fr;
+			grid-template-columns: 0.15fr 3fr 0.5fr 0.5fr 0.5fr 1.25fr;
 			gap: 0.75rem;
 			align-items: center;
 			font-weight: 500;
 			padding: 0.5rem 0.75rem;
 		}
 		#modal .view-row {
-			grid-template-columns: 0.15fr 3fr 0.5fr 0.5fr 0.5fr;
+			grid-template-columns: 0.15fr 3fr 0.5fr 0.5fr 0.5fr 1.25fr;
 			display: grid;
 			gap: 0.75rem;
 			align-items: center;
@@ -1135,6 +1171,10 @@
 		.rejected {
 			background-color: #fee3e1;
 			border: 2px solid #ffceca;
+		}
+		.progress {
+			background-color: #f0ffde;
+    		border: 2px solid #c0dba0;
 		}
 		.payed {
 			background-color: #dff5ff;

@@ -1,12 +1,10 @@
 import logging
-from decimal import Decimal
-from datetime import datetime, timedelta, date, timezone
-from calendar import monthrange
 from application.handlers import handle_exceptions
 from application.utils import format_name, format_datetime
+from application.services.push_service import PushSender
 from application.repository.purchase_repository import PurchaseRepository
 from application.repository.user_repository import UserRepository
-from application import socketio, redis_client
+from application import socketio
 from flask_jwt_extended import get_jwt_identity
 
 
@@ -14,6 +12,7 @@ class PurchaseService:
     def __init__(self):
         self.purchase_repository = PurchaseRepository()
         self.user_repository = UserRepository()
+        self.push_service = PushSender()
         self.management_department = 7
         self.worker_level = 2
         self.leader_level = 3
@@ -99,16 +98,7 @@ class PurchaseService:
             "self_created": True if user.id == purchase.user.id else False,
             
             "user_name": format_name(purchase.user.name),
-            #"user_image": purchase.user.image,
             "created_at": format_datetime(purchase.created_at),
-
-            #"leader_name": format_name(leader.name) if leader else None,
-            #"leader_image": leader.image if leader else None,
-            #"leader_at": format_datetime(purchase.leader_approved_at),
-
-            #"manager_name": format_name(manager.name) if manager else None,
-            #"manager_image": manager.image if manager else None,
-            #"manager_at": format_datetime(purchase.manager_approved_at),
 
             "items": [],
             "chats": [],
@@ -125,6 +115,7 @@ class PurchaseService:
                 "price": float(item.price) if item.price is not None else None,
                 "url": item.url,
                 "ruc": item.ruc,
+                "order_number": item.order_number,
             })
         
         for chat in purchase.chats:
@@ -136,6 +127,7 @@ class PurchaseService:
                 "commenter_image": chat.commenter.image,
                 "created_at": format_datetime(chat.created_at),
             })
+
         return dto, 200
     
 
@@ -168,16 +160,7 @@ class PurchaseService:
             "self_created": True if user.id == purchase.user.id else False,
 
             "user_name": format_name(purchase.user.name),
-            #"user_image": purchase.user.image,
             "created_at": format_datetime(purchase.created_at),
-
-            # "leader_name": format_name(user.name),
-            # "leader_image": user.image,
-            # "leader_at": format_datetime(purchase.leader_approved_at),
-
-            # "manager_name": format_name(manager.name) if manager else None,
-            # "manager_image": manager.image if manager else None,
-            # "manager_at": format_datetime(purchase.manager_approved_at),
 
             "items": [],
             "chats": [],
@@ -194,6 +177,7 @@ class PurchaseService:
                 "price": float(item.price) if item.price is not None else None,
                 "url": item.url,
                 "ruc": item.ruc,
+                "order_number": item.order_number,
             })
 
         for chat in purchase.chats:
@@ -203,8 +187,6 @@ class PurchaseService:
                 "commenter_id": chat.commenter_id,
                 "commenter_name": format_name(chat.commenter.name),
                 "commenter_image": chat.commenter.image,
-                #"self_comment": True if chat.commenter_id == user.id else False,
-                #"self": format_name(chat.commenter.name),
                 "created_at": format_datetime(chat.created_at),
             })
 
@@ -240,22 +222,10 @@ class PurchaseService:
             "self_created": True if user.id == purchase.user.id else False,
 
             "user_name": format_name(purchase.user.name),
-            #"user_image": purchase.user.image,
             "created_at": format_datetime(purchase.created_at),
-
-            #"leader_name": format_name(leader.name) if leader else None,
-            #"leader_image": leader.image if leader else None,
-            #"leader_comment": purchase.leader_comment,
-            #"leader_at": format_datetime(purchase.leader_approved_at),
-
-            #"manager_name": format_name(user.name),
-            #"manager_image": user.image,
-            #"manager_comment": purchase.manager_comment,
-            #"manager_at": format_datetime(purchase.manager_approved_at),
 
             "items": [],
             "chats": [],
-
         }
 
         for item in purchase.items:
@@ -269,6 +239,7 @@ class PurchaseService:
                 "price": float(item.price) if item.price is not None else None,
                 "url": item.url,
                 "ruc": item.ruc,
+                "order_number": item.order_number,
             })
 
         for chat in purchase.chats:
@@ -278,8 +249,6 @@ class PurchaseService:
                 "commenter_id": chat.commenter_id,
                 "commenter_name": format_name(chat.commenter.name),
                 "commenter_image": chat.commenter.image,
-                #"self_comment": True if chat.commenter_id == user.id else False,
-                #"self": format_name(chat.commenter.name),
                 "created_at": format_datetime(chat.created_at),
             })
 
@@ -300,16 +269,23 @@ class PurchaseService:
             if code != 200:
                 return result, code
 
-        elif action == "payed":
+        elif action == "progress":
             result, code = self.purchase_repository.set_status(
                 data["purchase_id"], status_id=4
             )
             if code != 200:
                 return result, code
             
-        elif action == "invoiced":
+        elif action == "payed":
             result, code = self.purchase_repository.set_status(
                 data["purchase_id"], status_id=5
+            )
+            if code != 200:
+                return result, code
+        
+        elif action == "invoiced":
+            result, code = self.purchase_repository.set_status(
+                data["purchase_id"], status_id=6
             )
             if code != 200:
                 return result, code
