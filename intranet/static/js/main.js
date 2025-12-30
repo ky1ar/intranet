@@ -38,7 +38,7 @@ document.addEventListener('alpine:init', () => {
     }));
 
     Alpine.store('cache', {
-        api: 'https://devapi.krear3d.com', //https://devapi.krear3d.com
+        api: 'https://api.krear3d.com', //https://devapi.krear3d.com
         user: {},
         active_page: window.location.pathname,
         common_pages: [
@@ -60,6 +60,7 @@ document.addEventListener('alpine:init', () => {
         modals: new Set(),
         sidebar: false,
         sidebar_menu: false,
+        more_menu: false,
         device_id: null,
         fcm_token: null,
         notifications_enabled: !!localStorage.getItem('push_token'),
@@ -249,6 +250,14 @@ document.addEventListener('alpine:init', () => {
             this.sidebar_menu = !this.sidebar_menu;
         },
 
+        toogleMoreMenu() { 
+            this.more_menu = !this.more_menu;
+        },
+
+        hideMoreMenu() { 
+            this.more_menu = false;
+        },
+
         hideSidebarMenu() { 
             this.sidebar_menu = false;
         },
@@ -414,7 +423,7 @@ document.addEventListener('alpine:init', () => {
             );
 
             if (!toFetch.length) return;
-
+            NProgress.start();
             try {
                 const responses = await Promise.all(
                     toFetch.map(ep =>
@@ -431,6 +440,8 @@ document.addEventListener('alpine:init', () => {
                 responses.forEach(({ key, data, url }) => this.setData(key, data, url));
             } catch (error) {
                 console.error('Error fetching endpoints:', error);
+            } finally {
+                NProgress.done();
             }
         },
 
@@ -571,6 +582,115 @@ document.addEventListener('alpine:init', () => {
 			},
         
     });
+
+    (function () {
+        const isMobile = () =>
+            window.matchMedia('(pointer: coarse)').matches ||
+            window.matchMedia('(max-width: 768px)').matches;
+
+        const THRESHOLD = 120;
+        const CLOSE_Y = '120%';
+        const SWIPE_MS = 200;
+        const LEAVE_MS = 220;
+
+        const getModalKeyFromWrap = (wrap) => {
+            const id = (wrap?.id || '').trim();
+            if (!id.startsWith('modal-')) return null;
+            return id.replace(/^modal-/, '');
+        };
+
+        document.addEventListener('pointerdown', (e) => {
+            if (!isMobile()) return;
+
+            const grabber = e.target.closest('.modal-grabber');
+            if (!grabber) return;
+
+            const wrap = grabber.closest('.modal-wrap');
+            if (!wrap) return;
+
+            const modal = wrap.querySelector('.modal');
+            if (!modal) return;
+
+            e.preventDefault();
+
+            const modalKey = getModalKeyFromWrap(wrap);
+
+            const startY = e.clientY;
+            let currentY = startY;
+
+            modal.style.transition = 'none';
+
+            const onMove = (ev) => {
+            ev.preventDefault();
+            currentY = ev.clientY;
+
+            const dy = Math.max(0, currentY - startY);
+            modal.style.transform = `translateY(${dy}px)`;
+            };
+
+            let closed = false;
+            let fallbackTimer = null;
+
+            const cleanup = () => {
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', onEnd);
+            window.removeEventListener('pointercancel', onEnd);
+            if (fallbackTimer) clearTimeout(fallbackTimer);
+            };
+
+            const closeThisModal = () => {
+            if (closed) return;
+            closed = true;
+
+            if (modalKey) Alpine.store('cache').hideModal(modalKey);
+            else Alpine.store('cache').hideLastModal(); // fallback
+
+            setTimeout(() => {
+                modal.style.transition = '';
+                modal.style.transform = '';
+            }, LEAVE_MS);
+            };
+
+            const onEnd = () => {
+            cleanup();
+
+            const dy = Math.max(0, currentY - startY);
+
+            if (dy <= THRESHOLD) {
+                modal.style.transition = `transform ${SWIPE_MS}ms ease`;
+                modal.style.transform = 'translateY(0px)';
+                setTimeout(() => {
+                modal.style.transition = '';
+                modal.style.transform = '';
+                }, SWIPE_MS + 30);
+                return;
+            }
+
+            modal.style.transition = `transform ${SWIPE_MS}ms ease`;
+            requestAnimationFrame(() => {
+                modal.style.transform = `translateY(${CLOSE_Y})`;
+            });
+
+            const onTransitionEnd = (ev) => {
+                if (ev.propertyName !== 'transform') return;
+                modal.removeEventListener('transitionend', onTransitionEnd);
+                closeThisModal();
+            };
+
+            modal.addEventListener('transitionend', onTransitionEnd);
+
+            fallbackTimer = setTimeout(() => {
+                modal.removeEventListener('transitionend', onTransitionEnd);
+                closeThisModal();
+            }, SWIPE_MS + 80);
+            };
+
+            window.addEventListener('pointermove', onMove, { passive: false });
+            window.addEventListener('pointerup', onEnd, { passive: true });
+            window.addEventListener('pointercancel', onEnd, { passive: true });
+        }, { passive: false });
+        })();
+
 });
 
 function logisticsHandler({ params }) {

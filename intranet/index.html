@@ -2,12 +2,12 @@
 <html lang="es-PE">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-touch-fullscreen" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Krear 3D" />
+    <meta name="apple-touch-fullscreen" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Krear 3D">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="#F07E46">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="theme-color" content="#F07E46">
     <title>Krear 3D</title>
 
@@ -31,12 +31,12 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
 
     <!--<link rel="stylesheet" href="static/css/style.css?v=0.1.0.7215">-->
-    <link rel="stylesheet" href="/static/css/new.css?v=0.4.0.8a">
+    <link rel="stylesheet" href="/static/css/new.css?v=1.1.0">
 </head>
 
 <body class="container" x-data="data" :class="{'modal-open': $store.cache.hasActiveModals()}">
-    <script src="/static/js/firebase-config.js?v=0.4.0.8a"></script>
-    <script src="/static/js/main.js?v=0.4.0.8a"></script>
+    <script src="/static/js/firebase-config.js?v=1.1.0"></script>
+    <script src="/static/js/main.js?v=1.1.0"></script>
 
     <template x-route="/" x-handler="loginVerify" x-template.preload.target.content="/views/login.html"></template>
     <template x-route="/home" x-template.preload.target.content="/views/home.html"></template>
@@ -58,11 +58,11 @@
     <template x-if="$store.cache.user.id">
         <div>
             <div id="sidebar">
-                <div class="config" href="/home">
+                <div class="home-logo white-frost" href="/home">
                     <img class="home" src="/static/images/single-logo.svg" alt="Logo" width="32" height="32">
                 </div>
                 
-                <ul>
+                <ul class="white-frost">
                     <template x-for="page in $store.cache.getPages()" :key="page.name">
                         <li :class="{'active': $store.cache.active_page == '/' + page.name}">
                             <a :href="'/' + page.name">
@@ -73,43 +73,34 @@
                     </template>
                 </ul>
 
-                <div class="config">
-                    <div class="notification hover-opacity"
-                        @click="$store.cache.requestPushPermission()">
-                        <img alt="notification" src="/static/images/notifications.svg" width="18" height="18">
-                        <div class="dot" x-show="$store.cache.notifications_enabled"></div>
+                <div class="config white-frost">
+                    <img alt="user" @click="$store.cache.toogleSidebarMenu()" class="user hover-opacity" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="40" height="40">
+                </div>
+
+                <div x-show="$store.cache.sidebar_menu" x-transition.duration.300ms x-cloak @click.outside="$store.cache.hideSidebarMenu()" class="frost menu">
+                    <img alt="user" class="image" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
+                    
+                    <div class="text">
+                        <b x-text="$store.cache.user.name"></b>
+                        <span x-text="$store.cache.user.department_name"></span>
+                        <span class="ver" x-text="`versión ${localStorage.getItem('app_version')}`"></span>
+
                     </div>
 
-                    <img alt="user" @click="$store.cache.toogleSidebarMenu()" class="user hover-opacity" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="40" height="40">
-            
-                    <div x-show="$store.cache.sidebar_menu" x-transition.duration.300ms x-cloak @click.outside="$store.cache.hideSidebarMenu()" class="menu">
-                        <div class="content">
-                            <img alt="user" class="image" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
-                            
-                            <div class="text">
-                                <b x-text="$store.cache.user.name"></b>
-                                <span x-text="$store.cache.user.department_name"></span>
-                                <span class="ver" x-text="`versión ${localStorage.getItem('app_version')}`"></span>
+                    <div class="controlss">
+                        <!--<div class="image hover-opacity">
+                            <img alt="controls" src="/static/images/settings.svg" width="16" height="16">
+                        </div>-->
 
-                            </div>
-
-                            <div class="controls">
-                                <!--<div class="image hover-opacity">
-                                    <img alt="controls" src="/static/images/settings.svg" width="16" height="16">
-                                </div>-->
-
-                                <div class="image hover-opacity primary"
-                                    x-show="!$store.cache.notifications_enabled"
-                                    @click="$store.cache.requestPushPermission();">
-                                    Activar
-                                    <img alt="controls" src="/static/images/notifications.svg" width="16" height="16">
-                                </div>
-                                
-                                <div class="image hover-opacity" @click="$store.cache.logout()">
-                                    Cerrar sesión
-                                    <img alt="controls" src="/static/images/logout.svg" width="16" height="16">
-                                </div>
-                            </div>
+                        <div class="image hover-opacity primary"
+                            x-show="!$store.cache.notifications_enabled"
+                            @click="$store.cache.requestPushPermission();">
+                            Activar
+                            <img alt="controls" src="/static/images/notifications.svg" width="16" height="16">
+                        </div>
+                        
+                        <div class="button hover-opacity" @click="$store.cache.logout()">
+                            Cerrar sesión
                         </div>
                     </div>
                 </div>
@@ -118,17 +109,21 @@
             <div
                 x-show="$store.cache.isVisibleModal('push-info')"
                 @mousedown.self="$store.cache.hideLastModal()"
-                x-transition.duration.300ms
                 class="modal-wrap"
                 id="modal-push-info"
+                x-transition:enter="modal-enter"
+                x-transition:enter-start="modal-enter-start"
+                x-transition:enter-end="modal-enter-end"
+                x-transition:leave="modal-leave"
+                x-transition:leave-start="modal-leave-start"
+                x-transition:leave-end="modal-leave-end"
                 x-cloak
             >
-                <div class="modal head glass2" @click.stop>
-                    <div class="hover-opacity modal-close"
-                        @click="$store.cache.hideModal('push-info')">
-                        <img alt="close" src="/static/images/x.svg" width="12" height="12">
+                <div class="modal glass2" @click.stop>
+                    <div class="modal-grabber">
+                        <div class="modal-grabber-bar"></div>
                     </div>
-
+                    
                     <img alt="user" src="/static/images/uploads/users/00000000.jpg" width="64" height="64">
 
                     <span class="title">Activa tus avisos</span>
@@ -136,7 +131,7 @@
                     <p x-html="$store.cache.pushHelpMessage()"></p>
 
                     <div class="fields">
-                        <button class="button blue hover-opacity"
+                        <button class="button hover-opacity"
                                 @click="$store.cache.requestPushPermission(); $store.cache.hideModal('push-info')">
                             Activar notificaciones
                         </button>

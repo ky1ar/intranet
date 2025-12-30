@@ -28,7 +28,7 @@ def format_name(full_name, simple=False):
     return "Usuario"
 
 
-def format_datetime(dt):
+def format_datetime(dt, simple=False):
         meses_cortos = ["ene.", "feb.", "mar.", "abr.", "may.", "jun.","jul.", "ago.", "sep.", "oct.", "nov.", "dic."]
         if not dt:
             return ""
@@ -44,4 +44,6 @@ def format_datetime(dt):
             dt = dt.replace(tzinfo=None)
 
         hora = dt.strftime("%I:%M %p").lower().lstrip("0")
+        if simple:
+            return hora
         return f"{dt.day} de {meses_cortos[dt.month-1]} a las {hora}"

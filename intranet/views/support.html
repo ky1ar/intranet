@@ -1,45 +1,49 @@
 <div x-data="support_data">
 	<div id="support-dashboard">
-		<div class="header">
-			<div class="menu">
+		<div class="controls">
+			<div class="toggle-collapse frost" @click="$store.cache.toogleMoreMenu()" @click.outside="$store.cache.hideMoreMenu()">
+				<div class="item">
+					<img alt="" width="24" height="24" src="/static/images/icons/more.svg">
+				</div>
+			</div>
+
+			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
 				<div class="item" @click="search()">
-					<div class="button">
-						<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
-					</div>
+					<img alt="" width="18" height="18" src="/static/images/icons/find.svg">
+				</div>
+				<div class="item" @click="viewHistory()">
+					<img alt="" width="18" height="18" src="/static/images/icons/history.svg">
+				</div>
+				<div class="item" @click="viewStatistics()">
+					<img alt="" width="18" height="18" src="/static/images/icons/report.svg">
+				</div>
+			</div>
+			
+			<div class="left mobile-hide frost">
+				<div class="item" @click="search()">
+					<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
 					<span>Buscar</span>
 				</div>
 				<div class="item" @click="viewHistory()">
-					<div class="button">
-						<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
-					</div>
+					<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
 					<span>Historial</span>
 				</div>
 				<div class="item" @click="viewStatistics()">
-					<div class="button">
-						<img alt="" width="20" height="20" src="/static/images/icons/report.svg">
-					</div>
+					<img alt="" width="20" height="20" src="/static/images/icons/report.svg">
 					<span>Estadísticas</span>
 				</div>
-            </div>
+			</div>
 
-			<div class="menu primary">
+			<div class="right frost-dark" x-show="editAllowed()">
 				<div class="item" @click="viewLinks()">
-					<div class="button">
-						<img alt="" width="20" height="20" src="/static/images/icons/link.svg">
-					</div>
+					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/link.svg">
 					<span>Enlaces</span>
 				</div>
-
-				<template x-if="editAllowed()">
-					<div class="item" @click="addOrder()">
-						<div class="button">
-							<img alt="" width="20" height="20" src="/static/images/icons/add.svg">
-						</div>
-						<span>Añadir</span>
-					</div>
-				</template>
-            </div>
-			
+				<div class="item" @click="addOrder()">
+					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
+					<span>Añadir</span>
+				</div>
+			</div>
 		</div>
 
 		<div class="board glass">
@@ -100,80 +104,92 @@
 		<div
 			x-show="$store.cache.isVisibleModal('status')"
 			@mousedown.self="$store.cache.hideLastModal()"
-			x-transition.duration.300ms
 			class="modal-wrap"
 			id="modal-status"
-			x-cloak>
-			<div class="modal glass2" @click.stop>
-				<span class="title" x-text="selected_service?.order_number"></span>
-				<template x-if="!revert_change">
-					<div class="send-whatsapp">
-						Whatsapp
-						<label class="box">
-							<input id="send-whatsapp" type="checkbox" x-model="sendWhatsapp">
-							<span class="slider"></span>
-						</label>
-					</div>
-				</template>
-				
-				<div class="update">
-					<div class="box">
-						<img alt="" width="20" height="20"
-							:src="'/static/images/support/' + ($store.cache.getById('service_status', revert_change ? selected_group_id:selected_service?.status_id)?.image)"
-							alt="from">
-						<span x-text="($store.cache.getById('service_status', revert_change ? selected_group_id:selected_service?.status_id))?.name"></span>
-					</div>
-
-					<div class="box">
-						<img alt="" width="20" height="20"
-							:src="'/static/images/support/' + ($store.cache.getById('service_status', revert_change ? selected_service?.status_id:selected_group_id)?.image)"
-							alt="to">
-						<span x-text="($store.cache.getById('service_status', revert_change ? selected_service?.status_id:selected_group_id))?.name"></span>
-					</div>
-					<img alt="" class="arrow" :class="revert_change ? 'revert':''" width="16" height="16" src="/static/images/arrownext.svg">
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal little glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
 				</div>
-					
-				<template x-if="revert_change">
-					<div class="revert">
-						<img width="20" height="20" src="/static/images/icons/delete.svg" alt="alert"> Se eliminarán los datos del último estado registrado, esta acción no se puede revertir.
-					</div>
-				</template>
 
-				<span class="alert">Las notas e imágenes serán visibles, usa lenguaje adecuado.</span>
-
-				<template x-if="!revert_change">
-					<textarea x-model="status_notes" class="text-area glass2" placeholder="Notas"></textarea>
-				</template>
-				
-				<template x-if="!revert_change">
-					<div class="capture-proof">
-						<span class="name">Imágenes</span>
-						<div class="thumbnails-grid">
-							<template x-for="(photo, index) in proof_photos" :key="index">
-								<div class="thumbnail-wrapper hover-opacity">
-									<img class="delete" alt="delete" width="24" height="24" src="/static/images/icons/delete.svg">
-									<img class="thumbnail" :src="photo.preview" alt="preview" @click="removePhoto(index)">
-								</div>
-							</template>
-							<div class="dotted-button hover-opacity" x-show="!preview" @click.prevent="openFileInput()">
-								<img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
-							</div>
-							<input
-								type="file"
-								accept="image/*"
-								style="display: none;"
-								x-ref="fileInput"
-								@change="addFiles($event)"
-								multiple 
-							>
+				<div class="title">
+					<span x-text="selected_service?.order_number"></span>
+					<template x-if="!revert_change">
+						<div class="send-whatsapp">
+							Whatsapp
+							<label class="box">
+								<input id="send-whatsapp" type="checkbox" x-model="sendWhatsapp">
+								<span class="slider"></span>
+							</label>
 						</div>
+					</template>
+				</div>
+				
+				<div class="modal-content">
+					<div class="update">
+						<div class="box">
+							<img alt="" width="20" height="20"
+								:src="'/static/images/support/' + ($store.cache.getById('service_status', revert_change ? selected_group_id:selected_service?.status_id)?.image)"
+								alt="from">
+							<span x-text="($store.cache.getById('service_status', revert_change ? selected_group_id:selected_service?.status_id))?.name"></span>
+						</div>
+
+						<div class="box">
+							<img alt="" width="20" height="20"
+								:src="'/static/images/support/' + ($store.cache.getById('service_status', revert_change ? selected_service?.status_id:selected_group_id)?.image)"
+								alt="to">
+							<span x-text="($store.cache.getById('service_status', revert_change ? selected_service?.status_id:selected_group_id))?.name"></span>
+						</div>
+						<img alt="" class="arrow" :class="revert_change ? 'revert':''" width="16" height="16" src="/static/images/arrownext.svg">
 					</div>
-				</template>
+						
+					<template x-if="revert_change">
+						<div class="revert">
+							<img width="20" height="20" src="/static/images/icons/delete.svg" alt="alert"> Se eliminarán los datos del último estado registrado, esta acción no se puede revertir.
+						</div>
+					</template>
 
-				<button class="hover-opacity button" @click="updateStatus()" :class="buttons.move_status.class" x-text="buttons.move_status.text"></button>
+					<span class="alert">Las notas e imágenes serán visibles, usa lenguaje adecuado.</span>
 
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">
+					<template x-if="!revert_change">
+						<textarea x-model="status_notes" class="text-area glass2" placeholder="Notas"></textarea>
+					</template>
+					
+					<template x-if="!revert_change">
+						<div class="capture-proof">
+							<span class="name">Imágenes</span>
+							<div class="thumbnails-grid">
+								<template x-for="(photo, index) in proof_photos" :key="index">
+									<div class="thumbnail-wrapper hover-opacity">
+										<img class="delete" alt="delete" width="24" height="24" src="/static/images/icons/delete.svg">
+										<img class="thumbnail" :src="photo.preview" alt="preview" @click="removePhoto(index)">
+									</div>
+								</template>
+								<div class="dotted-button hover-opacity" x-show="!preview" @click.prevent="openFileInput()">
+									<img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
+								</div>
+								<input
+									type="file"
+									accept="image/*"
+									style="display: none;"
+									x-ref="fileInput"
+									@change="addFiles($event)"
+									multiple 
+								>
+							</div>
+						</div>
+					</template>
+				</div>
+
+				<div class="buttons">
+					<button class="hover-opacity button" @click="updateStatus()" :class="buttons.move_status.class" x-text="buttons.move_status.text"></button>
 				</div>
 			</div>
 		</div>
@@ -182,11 +198,21 @@
 		<div
 			x-show="$store.cache.isVisibleModal('view')"
 			@mousedown.self="$store.cache.hideLastModal()"
-			x-transition.duration.300ms
 			class="modal-wrap"
 			id="modal-view"
-			x-cloak>
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
 			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
 				<div class="top">
 					<span class="title" x-text="`${service_order?.order_number}`"></span>
 					<span class="days" :class="service_order?.priority" x-text="`${service_order?.passed_days}`"></span>
@@ -220,13 +246,6 @@
 					</template>
 				</div>
 
-				<template x-if="!editAllowed()">
-					<div class="fields no-edit">
-						<div class="glass2" x-text="service_order.method_name"></div>
-						<div class="glass2" x-text="service_order.origin_name"></div>
-					</div>
-				</template>
-
 				<div class="client">
 					<template x-if="service_order?.photos?.length !== 0">
 						<div class="show-photos hover-opacity" @click="$store.cache.showModal('photos');">
@@ -255,60 +274,65 @@
 					</div>
 				</div>
 
-				<template x-if="editAllowed()">
-					<div class="fields">
-						<label class="white">
-							<select x-model="service_order.method_id" @change="updateOrder('method_id')">
-								<template x-for="method in $store.cache.getData('service_methods')" :key="method.id">
-									<option :value="method.id" x-text="method.name"></option>
-								</template>
-							</select>
-						</label>
-
-						<label class="white flex1-5">
-							<select x-model="service_order.technician_id" @change="updateOrder('technician_id')">
-								<template x-for="technician in $store.cache.getData('technicians')" :key="technician.id">
-									<option :value="technician.id" x-text="technician.name"></option>
-								</template>
-							</select>
-						</label>
-
-						<label class="white">
-							<select x-model="service_order.origin_id" @change="updateOrder('origin_id')">
-								<template x-for="origin in $store.cache.getData('service_origin')" :key="origin.id">
-									<option :value="origin.id" x-text="origin.name"></option>
-								</template>
-							</select>
-						</label>
-					</div>
-				</template>
-
-				<div class="history">
-					<template x-for="history in service_order?.history" :key="history.status_id">
-						<div class="row">
-							<img alt="" width="20" height="20" :src="'/static/images/support/' + $store.cache.getById('service_status', history.status_id)?.image" alt="">
-
-							<div class="left">
-								<div class="head">
-									<span class="name" x-text="$store.cache.getById('service_status', history.status_id)?.name"></span>
-									<span class="user_name" x-text="history.user_name"></span>
-									<div class="right">
-										<span class="date" x-text="history.register_at"></span>
-									</div>
-								</div>
-								<span class="notes" x-html="history.notes.replace(/\n/g, '<br>')"></span>
-							</div>
+				<div class="modal-content">
+					<template x-if="!editAllowed()">
+						<div class="fields no-edit">
+							<div class="glass2" x-text="service_order.method_name"></div>
+							<div class="glass2" x-text="service_order.origin_name"></div>
 						</div>
 					</template>
+
+					<template x-if="editAllowed()">
+						<div class="fields options">
+							<label class="white">
+								<select x-model="service_order.method_id" @change="updateOrder('method_id')">
+									<template x-for="method in $store.cache.getData('service_methods')" :key="method.id">
+										<option :value="method.id" x-text="method.name"></option>
+									</template>
+								</select>
+							</label>
+
+							<label class="white flex1-5">
+								<select x-model="service_order.technician_id" @change="updateOrder('technician_id')">
+									<template x-for="technician in $store.cache.getData('technicians')" :key="technician.id">
+										<option :value="technician.id" x-text="technician.name"></option>
+									</template>
+								</select>
+							</label>
+
+							<label class="white">
+								<select x-model="service_order.origin_id" @change="updateOrder('origin_id')">
+									<template x-for="origin in $store.cache.getData('service_origin')" :key="origin.id">
+										<option :value="origin.id" x-text="origin.name"></option>
+									</template>
+								</select>
+							</label>
+						</div>
+					</template>
+
+					<div class="history">
+						<template x-for="history in service_order?.history" :key="history.status_id">
+							<div class="row">
+								<img alt="" width="20" height="20" :src="'/static/images/support/' + $store.cache.getById('service_status', history.status_id)?.image" alt="">
+
+								<div class="left">
+									<div class="head">
+										<span class="name" x-text="$store.cache.getById('service_status', history.status_id)?.name"></span>
+										<span class="user_name" x-text="history.user_name"></span>
+										<div class="right">
+											<span class="date" x-text="history.register_at"></span>
+										</div>
+									</div>
+									<span class="notes" x-html="history.notes.replace(/\n/g, '<br>')"></span>
+								</div>
+							</div>
+						</template>
+					</div>
 				</div>
-				<template x-if="editAllowed()">
-					<div class="hover-opacity finish" @click="finish(service_order)" x-show="service_order?.status_id == 8">Finalizar</div>
-				</template>
-				<template x-if="editAllowed()">
-					<div class="hover-opacity finish" :class="{ 'black': service_order && service_order.status_id == 8 }" @click="createPDF(service_order.order_number)" x-show="service_order?.status_id >= 8">Descargar Reporte</div>
-				</template>
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">
+
+				<div class="buttons" x-show="editAllowed() && service_order?.status_id >= 8">
+					<button class="button hover-opacity" :class="{ 'black': service_order && service_order.status_id == 8 }" @click="createPDF(service_order.order_number)">Descargar Reporte</button>
+					<button class="button hover-opacity" @click="finish(service_order)"  x-show="service_order?.status_id == 8">Finalizar</button>
 				</div>
 			</div>
 		</div>
@@ -317,21 +341,28 @@
 		<div 
 			x-show="$store.cache.isVisibleModal('photos')"
 			@mousedown.self="$store.cache.hideLastModal()"
-			x-transition.duration.300ms
 			class="modal-wrap"
 			id="modal-photos"
-			x-cloak>
-			<div class="modal glass2">
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-					<img alt="close" src="/static/images/x.svg" width="12" height="12">
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal small glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
 				</div>
+
 				<div class="top">
 					<span class="title">Galería</span>
 				</div>
 				<div class="bottom thumbnails-grid">
 					<template x-for="photo_item in service_order?.photos" :key="photo_item.id">
 						<div class="thumbnail-wrapper hover-opacity" @click="showPhoto(photo_item.filename);">
-							<img class="thumbnail" :src="'/static/images/uploads/' + photo_item.filename" alt="preview">
+							<img class="hover-opacity" :src="'/static/images/uploads/' + photo_item.filename" alt="preview">
 						</div>
 					</template>
 				</div>
@@ -342,130 +373,151 @@
 		<div 
 			x-show="$store.cache.isVisibleModal('image')"
 			@mousedown.self="$store.cache.hideLastModal()"
-			x-transition.duration.300ms
 			class="modal-wrap"
 			id="modal-image"
-			x-cloak>
-			<div class="modal glass2">
-				<img 
-					@click="$store.cache.hideLastModal()"
-					:src="'/static/images/uploads/' + showing_photo"
-					alt="preview"
-				>
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal small glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="modal-content">
+					<img 
+						:src="'/static/images/uploads/' + showing_photo"
+						alt="preview"
+					>
+				</div>
 			</div>
-			
 		</div>
 
 		<div
 			x-show="$store.cache.isVisibleModal('add')"
 			@mousedown.self="$store.cache.hideLastModal()"
-			x-transition.duration.300ms
 			class="modal-wrap"
 			id="modal-add"
-			x-cloak>
-			<div class="modal glass2" @click.stop>
-				<span class="title"><img alt="" alt="user" width="20" height="20" src="/static/images/uploads/users/00000000.jpg">Nueva orden</span>
-				
-				<div class="fields">
-					<label class="white">
-						<select x-model="process_service.method_id">
-							<template x-if="$store.cache.getData('service_methods')?.length !== 1">
-								<option value="">Tipo</option>
-							</template>
-
-							<template x-for="method in $store.cache.getData('service_methods')" :key="method.id">
-								<option :value="method.id" x-text="method.name"></option>
-							</template>
-						</select>
-					</label>
-
-					<label class="white">
-						<input type="date" x-model="process_service.register_date">
-					</label>
-
-					<label class="white">
-						<img alt="" alt="user" src="/static/images/id.svg" width="16" height="16">
-						<input type="text" maxlength="11" @input="process_service.client_document = process_service.client_document.replace(/\D/g, '')" placeholder="DNI / RUC" x-model="process_service.client_document" @blur="fetchClientData()">
-					</label>
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal small glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
 				</div>
 
-				<div class="fields">
-					<label :class="client_found ? 'glass2' : 'white'">
-						<img alt="" alt="user" src="/static/images/user.svg" width="16" height="16">
-						<input :disabled="client_found" type="text" placeholder="Nombre o Razón Social" x-model="process_service.client_name">
-					</label>
-				</div>
+				<div class="modal-content">
+					<div class="fields">
+						<label class="white">
+							<select x-model="process_service.method_id">
+								<template x-if="$store.cache.getData('service_methods')?.length !== 1">
+									<option value="">Tipo</option>
+								</template>
 
-				<div class="fields">
-					<label class="white">
-						<img alt="" alt="phone" src="/static/images/phone.svg" width="16" height="16">
-						<input type="text" maxlength="9" @input="process_service.client_phone = process_service.client_phone.replace(/\D/g, '')" placeholder="Celular" x-model="process_service.client_phone">
-					</label>
+								<template x-for="method in $store.cache.getData('service_methods')" :key="method.id">
+									<option :value="method.id" x-text="method.name"></option>
+								</template>
+							</select>
+						</label>
 
-					<label class="white">
-						<img alt="" alt="email" src="/static/images/email.svg" width="16" height="16">
-						<input type="text" placeholder="Email" x-model="process_service.client_email">
-					</label>
-				</div>
+						<label class="white">
+							<input type="date" x-model="process_service.register_date">
+						</label>
 
-				<div class="fields">
-					<label class="white flex2-3">
-						<img alt="" alt="phone" src="/static/images/icons/printer.svg" width="16" height="16">
-						<input type="text" x-model="process_service.machine" placeholder="Nombre del equipo" @input="getMachine()">
-						<div class="white machines">
-							<template x-for="machine in machines" :key="machine.id">
-								<span
-								x-text="machine.name"
-								@click="
-									process_service.machine = machine.name;
-									process_service.machine_id = machine.id;
-									process_service.machine_image = machine.image;
-									machines = [];
-								">
-								</span>
-							</template>
-						</div>
+						<label class="white">
+							<img alt="" alt="user" src="/static/images/id.svg" width="16" height="16">
+							<input type="text" maxlength="11" @input="process_service.client_document = process_service.client_document.replace(/\D/g, '')" placeholder="DNI / RUC" x-model="process_service.client_document" @blur="fetchClientData()">
+						</label>
+					</div>
+
+					<div class="fields">
+						<label :class="client_found ? 'glass2' : 'white'">
+							<img alt="" alt="user" src="/static/images/user.svg" width="16" height="16">
+							<input :disabled="client_found" type="text" placeholder="Nombre o Razón Social" x-model="process_service.client_name">
+						</label>
+					</div>
+
+					<div class="fields">
+						<label class="white">
+							<img alt="" alt="phone" src="/static/images/phone.svg" width="16" height="16">
+							<input type="text" maxlength="9" @input="process_service.client_phone = process_service.client_phone.replace(/\D/g, '')" placeholder="Celular" x-model="process_service.client_phone">
+						</label>
+
+						<label class="white">
+							<img alt="" alt="email" src="/static/images/email.svg" width="16" height="16">
+							<input type="text" placeholder="Email" x-model="process_service.client_email">
+						</label>
+					</div>
+
+					<div class="fields">
+						<label class="white flex2-3">
+							<img alt="" alt="phone" src="/static/images/icons/printer.svg" width="16" height="16">
+							<input type="text" x-model="process_service.machine" placeholder="Modelo de equipo" @input="getMachine()">
+							<div class="white machines">
+								<template x-for="machine in machines" :key="machine.id">
+									<span
+									x-text="machine.name"
+									@click="
+										process_service.machine = machine.name;
+										process_service.machine_id = machine.id;
+										process_service.machine_image = machine.image;
+										machines = [];
+									">
+									</span>
+								</template>
+							</div>
+							
+						</label>
+
 						
-					</label>
+						<label class="white">
+							<select x-model="process_service.origin_id">
+								<template x-for="origin in $store.cache.getData('service_origin')" :key="origin.id">
+									<option :value="origin.id" x-text="origin.name"></option>
+								</template>
+							</select>
+						</label>
+					</div>
 
-					
-					<label class="white">
-						<select x-model="process_service.origin_id">
-							<template x-for="origin in $store.cache.getData('service_origin')" :key="origin.id">
-								<option :value="origin.id" x-text="origin.name"></option>
-							</template>
-						</select>
-					</label>
+					<textarea x-model="process_service.status_notes" class="text-area glass2" placeholder="Problema reportado"></textarea>
 				</div>
 
-				<textarea x-model="process_service.status_notes" class="text-area glass2" placeholder="Problema reportado"></textarea>
-
-				<button class="button hover-opacity" @click="newOrder()" :class="buttons.add.class" x-text="buttons.add.text"></button>
-
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">
+				<div class="buttons">
+					<button class="button hover-opacity" @click="newOrder()" :class="buttons.add.class" x-text="buttons.add.text"></button>
 				</div>
 			</div>
 		</div>
 
 
-
-
-
-
 		<div
 			x-show="$store.cache.isVisibleModal('history')"
 			@mousedown.self="$store.cache.hideLastModal()"
-			x-transition.duration.300ms
-			class="modal-wrap"
+			class="modal-wrap common-modal"
 			id="modal-history"
-			x-cloak>
-			<div class="modal glass2" @click.stop>
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()" >
-					<img alt="close" src="/static/images/x.svg" width="12" height="12">
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal big glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
 				</div>
+
 				<div class="top">
-					<span class="title">Historial de equipos</span>
+					<span class="title">Historial</span>
 
 					<div class="pagination">
 						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstPage()" title="Primera página">
@@ -481,11 +533,10 @@
 							<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
 						</span>
 					</div>
-
 				</div>
 
-				<div class="history">
-					<table>
+				<div class="modal-content history">
+					<table class="mobile-hide">
 						<thead>
 							<tr>
 								<th>Orden</th>
@@ -525,6 +576,28 @@
 							</template>
 						</tbody>
 					</table>
+
+					<div class="mobile-show mobile-table">
+						<template x-for="history in history_list" :key="history.id">
+							<div class="row white" @click="viewOrder(history.order_number)">
+								<div class="head">
+									<div class="info">
+										<span class="id" x-text="history.order_number"></span>
+										<span class="date" x-text="history.register_at"></span>
+									</div>
+									<div class="status" :class="!history.finished ? 'active' : 'finished'" x-text="history.finished ? 'Finalizado':'Activo'"></div>
+								</div>
+								<div class="body">
+									<span class="label">Cliente</span>
+									<span class="name" x-text="history.client_name"></span>
+								</div>
+								<div class="body">
+									<span class="label">Equipo</span>
+									<span class="name" x-text="`${history.brand} ${history.machine}`"></span>
+								</div>
+							</div>
+						</template>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -571,11 +644,21 @@
 		<div
 			x-show="$store.cache.isVisibleModal('links')"
 			@mousedown.self="$store.cache.hideLastModal()"
-			x-transition.duration.300ms
-			class="modal-wrap"
-			id="modal-history"
-			x-cloak>
-			<div class="modal glass2" @click.stop>
+			class="modal-wrap common-modal"
+			id="modal-links"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal extra glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
 				<div class="top">
 					<button class="create-link button hover-opacity" @click="newLink()">
 						<img alt="" width="16" height="16" src="/static/images/icons/add.svg">
@@ -600,67 +683,113 @@
 					</template>
 				</div>
 
-				<template x-if="link_list.length == 0">
-					<span style="padding: 1rem;">Aún no has creado enlaces, añade uno y aparecerá aquí.</span>
-				</template>
+				<div class="modal-content">
+					<template x-if="link_list.length == 0">
+						<span style="padding: 1rem;">Aún no has creado enlaces, añade uno y aparecerá aquí.</span>
+					</template>
 
-				<template x-if="link_list.length > 0">
-					<div class="history">
-						<table class="static">
-							<thead>
-								<tr>
-									<th>ID</th>
-									<th>Orden</th>
-									<th>Cliente</th>
-									<th>Estado</th>
-									<th>Creado por</th>
-									<th>Fecha de creación</th>
-									<th></th>
-								</tr>
-							</thead>
-							<tbody>
-								<template x-for="link in link_list" :key="link.id">
+					<template x-if="link_list.length > 0">
+						<div class="history">
+							<table class="static mobile-hide">
+								<thead>
 									<tr>
-										<td>
-											<b class="link-id" x-text="link.id"></b>
-										</td>
-										<td>
-											<b x-text="link.order_number"></b>
-										</td>
-										<td x-text="link.client_name"></td>
-										<td>
-											<span class="link-status" :class="`status-${link.status_id}`" x-text="link.status"></span>
-										</td>
-										<td x-text="link.user_name"></td>
-										<td x-text="link.register_at"></td>
-										<td>
-											<template x-if="link.order_number == '-' && link.status_id < 3">
-												<div class="controlls">
-													<div class="action hover-opacity" title="Copiar link" @click="navigator.clipboard.writeText(link.url)">
-														<img alt="" alt="icon" src="/static/images/icons/copy.svg" width="16" height="16">
-													</div>
-													<div class="action hover-opacity" title="Eliminar link" @click="deleteLink(link.id)">
-														<img alt="" alt="icon" src="/static/images/icons/delete.svg" width="16" height="16">
-													</div>
-												</div>
-											</template>
-											<template x-if="link.order_number != '-'">
-												<div class="controlls">
-													<div class="action hover-opacity" title="Ver orden" @click="viewOrder(link.order_number)">
-														<img alt="" alt="icon" src="/static/images/icons/eye.svg" width="16" height="16">
-													</div>
-													<div class="action hover-opacity" title="Descargar rótulo" @click="getLinkPDF(link.order_number)">
-														<img alt="" alt="icon" src="/static/images/icons/pdf.svg" width="16" height="16">
-													</div>
-												</div>
-											</template>
-										</td>
+										<th>ID</th>
+										<th>Orden</th>
+										<th>Cliente</th>
+										<th>Estado</th>
+										<th>Creado por</th>
+										<th>Fecha de creación</th>
+										<th></th>
 									</tr>
+								</thead>
+								<tbody>
+									<template x-for="link in link_list" :key="link.id">
+										<tr>
+											<td>
+												<b class="link-id" x-text="link.id"></b>
+											</td>
+											<td>
+												<b x-text="link.order_number"></b>
+											</td>
+											<td x-text="link.client_name"></td>
+											<td>
+												<span class="link-status" :class="`status-${link.status_id}`" x-text="link.status"></span>
+											</td>
+											<td x-text="link.user_name"></td>
+											<td x-text="link.register_at"></td>
+											<td>
+												<template x-if="link.order_number == '-' && link.status_id < 3">
+													<div class="controlls">
+														<div class="action hover-opacity" title="Copiar link" @click="navigator.clipboard.writeText(link.url)">
+															<img alt="" alt="icon" src="/static/images/icons/copy.svg" width="16" height="16">
+														</div>
+														<div class="action hover-opacity" title="Eliminar link" @click="deleteLink(link.id)">
+															<img alt="" alt="icon" src="/static/images/icons/delete.svg" width="16" height="16">
+														</div>
+													</div>
+												</template>
+												<template x-if="link.order_number != '-'">
+													<div class="controlls">
+														<div class="action hover-opacity" title="Ver orden" @click="viewOrder(link.order_number)">
+															<img alt="" alt="icon" src="/static/images/icons/eye.svg" width="16" height="16">
+														</div>
+														<div class="action hover-opacity" title="Descargar rótulo" @click="getLinkPDF(link.order_number)">
+															<img alt="" alt="icon" src="/static/images/icons/pdf.svg" width="16" height="16">
+														</div>
+													</div>
+												</template>
+											</td>
+										</tr>
+									</template>
+								</tbody>
+							</table>
+
+							<div class="mobile-show mobile-table">
+								<template x-for="link in link_list" :key="link.id">
+									<div class="row white">
+										<div class="head">
+											<div class="info">
+												<span class="id" x-text="link.order_number == '-' ? 'Pendiente' : link.order_number" :class="{'pending': link.order_number == '-'}"></span>
+												<span class="date" x-text="link.register_at"></span>
+											</div>
+											<div class="status" :class="`status-${link.status_id}`" x-text="link.status"></div>
+										</div>
+										<div class="body">
+											<span class="label">Creado por</span>
+											<span class="name" x-text="link.user_name"></span>
+										</div>
+										<div class="body">
+											<span class="label">Cliente</span>
+											<span class="name" x-text="link.client_name"></span>
+										</div>
+
+										<div class="options" x-show="link.order_number == '-' && link.status_id < 3">
+											<div class="action hover-opacity" title="Copiar link" @click="navigator.clipboard.writeText(link.url)">
+												<span>Copiar link</span>
+												<img alt="" alt="icon" src="/static/images/icons/copy.svg" width="16" height="16">
+											</div>
+											<div class="action hover-opacity" title="Eliminar link" @click="deleteLink(link.id)">
+												<span>Eliminar</span>
+												<img alt="" alt="icon" src="/static/images/icons/delete.svg" width="16" height="16">
+											</div>
+										</div>
+
+										<div class="options" x-show="link.order_number != '-'">
+											<div class="action hover-opacity" title="Ver orden" @click="viewOrder(link.order_number)">
+												<span>Ver orden</span>
+												<img alt="" alt="icon" src="/static/images/icons/eye.svg" width="16" height="16">
+											</div>
+											<div class="action hover-opacity" title="Descargar rótulo" @click="getLinkPDF(link.order_number)">
+												<span>Rótulo</span>
+												<img alt="" alt="icon" src="/static/images/icons/pdf.svg" width="16" height="16">
+											</div>
+										</div>
+									</div>
 								</template>
-							</tbody>
-						</table>
-					</div>
-				</template>
+							</div>
+						</div>
+					</template>
+				</div>
 				
 			</div>
 		</div>
@@ -670,63 +799,72 @@
 		<div
 			x-show="$store.cache.isVisibleModal('statistics')"
 			@mousedown.self="$store.cache.hideLastModal()"
-			x-transition.duration.300ms
 			class="modal-wrap"
 			id="modal-statistics"
-			x-cloak>
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
 			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
 				<div class="top">
 					<span class="title">Estadísticas</span>
 				</div>
 
-				<div class="kpi">
-					<div class="item white">
-						<p>Total</p>
-						<span x-text="$store.cache.getData('support_statistics')?.count.total"></span>
-					</div>
-					<div class="item white">
-						<p>Hoy</p>
-						<span x-text="$store.cache.getData('support_statistics')?.count.today"></span>
-					</div>
-					<div class="item white">
-						<p>Semana</p>
-						<span x-text="$store.cache.getData('support_statistics')?.count.week"></span>
-					</div>
-					<div class="item white">
-						<p>Mes</p>
-						<span x-text="$store.cache.getData('support_statistics')?.count.month"></span>
-					</div>
-				</div>
-
-				<div class="charts">
-					<div class="glass2 box">
-						<span>Órdenes por Estado</span>
-						<canvas x-ref="ordersByStatusChart" width="160" height="80"></canvas>
-					</div>
-
-					<div class="glass2 box">
-						<span>Órdenes por Mes</span>
-						<canvas x-ref="ordersByMonthChart" width="160" height="80"></canvas>
-					</div>
-
-					<div class="glass2 box">
-						<span>Órdenes por Técnico</span>
-						<div class="date-filters">
-							<label>
-								<span>Desde</span>
-								<input type="date" x-model="tech_start_date" @change.debounce.300ms="reloadTechStatistics()">
-							</label>
-							<label>
-								<span>Hasta</span>
-								<input type="date" x-model="tech_end_date" @change.debounce.300ms="reloadTechStatistics()">
-							</label>
-							
+				<div class="modal-content">
+					<div class="kpi">
+						<div class="item white">
+							<p>Total</p>
+							<span x-text="$store.cache.getData('support_statistics')?.count.total"></span>
 						</div>
-						<canvas x-ref="ordersByTechChart" width="160" height="80"></canvas>
+						<div class="item white">
+							<p>Hoy</p>
+							<span x-text="$store.cache.getData('support_statistics')?.count.today"></span>
+						</div>
+						<div class="item white">
+							<p>Semana</p>
+							<span x-text="$store.cache.getData('support_statistics')?.count.week"></span>
+						</div>
+						<div class="item white">
+							<p>Mes</p>
+							<span x-text="$store.cache.getData('support_statistics')?.count.month"></span>
+						</div>
 					</div>
-				</div>
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">
+
+					<div class="charts">
+						<div class="glass2 box">
+							<span>Órdenes por Estado</span>
+							<canvas x-ref="ordersByStatusChart" width="160" height="80"></canvas>
+						</div>
+
+						<div class="glass2 box">
+							<span>Órdenes por Mes</span>
+							<canvas x-ref="ordersByMonthChart" width="160" height="80"></canvas>
+						</div>
+
+						<div class="glass2 box">
+							<span>Órdenes por Técnico</span>
+							<div class="date-filters">
+								<label>
+									<span>Desde</span>
+									<input type="date" x-model="tech_start_date" @change.debounce.300ms="reloadTechStatistics()">
+								</label>
+								<label>
+									<span>Hasta</span>
+									<input type="date" x-model="tech_end_date" @change.debounce.300ms="reloadTechStatistics()">
+								</label>
+								
+							</div>
+							<canvas x-ref="ordersByTechChart" width="160" height="80"></canvas>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -1740,7 +1878,92 @@
 
 
 	<style>
-
+		.mobile-table {
+			flex-direction: column;
+			gap: 0.75rem;
+		}
+		.mobile-table .row {
+			padding: 1rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+		}
+		.mobile-table .head {
+			display: flex;
+    		justify-content: space-between;
+			align-items: start;
+			margin-bottom: 0.5rem;
+		}
+		.mobile-table .head .info {
+			display: flex;
+    		flex-direction: column;
+		}
+		.mobile-table .head .info .id {
+			font-size: 1rem;
+    		font-weight: 600;
+		}
+		.mobile-table .head .info .id.pending {
+			font-size: 0.85rem;
+    		opacity: 0.5;
+		}
+		.mobile-table .head .info .date {
+			font-size: 0.75rem;
+    		opacity: 0.75;
+		}
+		.mobile-table .head .status {
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		.mobile-table .head .status.active {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		.mobile-table .head .status.finished {
+			background-color: #d0f4ea;
+    		border: 2px solid #abe9d8;
+		}
+		.mobile-table .body {
+			display: flex;
+    		justify-content: space-between;
+			align-items: center;
+		}
+		.mobile-table .body .label {
+			font-size: 0.75rem;
+			opacity: 0.5;
+		}
+		.mobile-table .body .name {
+			font-weight: 500;
+			font-size: 0.8rem;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 75%;
+		}
+		.mobile-table .options {
+			display: flex;
+			gap: 0.75rem;
+			margin-top: 0.5rem;
+		}
+		.mobile-table .options .action {
+			flex: 1;
+			background-color: var(--newgray);
+			padding: 0.5rem 0.75rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.5rem;
+			border-radius: 2rem;
+			box-shadow: 0 1px 0 hsl(0deg 0% 0% / 15%);
+		}
+		.mobile-table .options span {
+			font-weight: 500;
+    		font-size: 0.8rem;
+		}
+		.modal .fields.options {
+			flex-direction: row;
+		}
 		#modal-statistics .date-filters {
 			display: flex;
 			gap: 0.5rem;
@@ -1767,27 +1990,6 @@
 		#modal-photos {
 			z-index: 40;
 		}
-		#modal-photos .thumbnails-grid {
-			display: flex;
-			flex-wrap: wrap;
-			gap: 0.68rem;
-			width: 24rem;
-		}
-		#modal-photos .thumbnail-wrapper {
-			position: relative;
-			width: 4.25rem;
-			height: 4.25rem;
-			display: flex;
-			justify-content: center;
-			align-items: center;
-			overflow: hidden;
-			border-radius: 0.75rem;
-			border: 2px solid var(--newgray);
-		}
-		#modal-photos .thumbnail-wrapper .thumbnail {
-			transition: var(--transition);
-		}
-
 		#modal-search .modal {
 			gap: 0.5rem;
 			min-width: initial;
@@ -1918,16 +2120,36 @@
 		#modal-statistics .charts .box span {
 			font-weight: 500;
 		}
-		#modal-history .top {
+
+		.mobile-table .head .status.status-1 {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		.mobile-table .head .status.status-2 {
+			background-color: #dff5ff;
+    		border: 2px solid #b4e1f2;
+		}
+		.mobile-table .head .status.status-3 {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+		}
+		.mobile-table .head .status.status-4 {
+			background-color: #e4d4fb;
+    		border: 2px solid #d0beeb;
+		}
+		.mobile-table .head .status.status-5 {
+			background-color: #fee3e1;
+    		border: 2px solid #ffceca;
+		}
+		.common-modal .top {
     		justify-content: space-between;
 			display: flex;
 		}
-		#modal-history .pagination {
+		.common-modal .pagination {
 			display: flex;
 			gap: 0.75rem;
-			margin-right: 1rem;
 		}
-		#modal-history .create-link {
+		.common-modal .create-link {
 			display: flex;
 			gap: 0.25rem;
 			justify-content: center;
@@ -1938,17 +2160,17 @@
 			font-size: 0.8rem;
 			font-weight: 400;
 		}
-		#modal-history .create-link img {
+		.common-modal .create-link img {
 			filter: invert(1);
 		}
-		#modal-history .pagination .disabled {
+		.common-modal .pagination .disabled {
 			opacity: 0.5;
     		cursor: default !important;
 		}
-		#modal-history .pagination .left img {
+		.common-modal .pagination .left img {
 			transform: rotate(180deg);
 		}
-		#modal-history .pagination span {
+		.common-modal .pagination span {
 			width: 2rem;
 			height: 2rem;
 			display: flex;
@@ -1956,67 +2178,66 @@
 			align-items: center;
 			border-radius: 2rem;
 		}
-		#modal-history table {
+		.common-modal table {
 			border-collapse: collapse;
 		}
-		#modal-history table th {
+		.common-modal table th {
 			padding: 0.5rem 0.75rem;
 			text-align: left;
 			font-weight: 600;
 			font-size: 0.8rem;
 			opacity: 0.75;
 		}
-		#modal-history table tbody tr {
+		.common-modal table tbody tr {
 			transition: var(--transition);
-			border-top: 3px solid #ffffff80;
 		}
-		#modal-history table tbody tr:hover {
+		.common-modal table tbody tr:hover {
 			background-color: var(--white);
 		}
-		#modal-history table td {
+		.common-modal table td {
 			padding: 0.5rem 0.75rem;
 			cursor: pointer;
 			white-space: nowrap;
 			overflow: hidden;
 			text-overflow: ellipsis;
 		}
-		#modal-history table.static tbody tr {
+		.common-modal table.static tbody tr {
 			transition: none;
 		}
-		#modal-history table.static tbody tr:hover {
+		.common-modal table.static tbody tr:hover {
 			background-color: transparent;
 		}
-		#modal-history table.static td {
+		.common-modal table.static td {
 			cursor: default;
 			line-height: 2rem;
 		}
-		#modal-history table td.order {
+		.common-modal table td.order {
 			width: 6rem;
 		}
-		#modal-history table td.machine_box {
+		.common-modal table td.machine_box {
 			width: 12rem;
 			max-width: 12rem;
 		}
-		#modal-history table td.client {
+		.common-modal table td.client {
 			width: 20rem;
 			max-width: 20rem;
 		}
-		#modal-history table td .controlls {
+		.common-modal table td .controlls {
 			display: flex;
     		gap: 0.5rem;
 		}
-		#modal-history table td .controlls .action {
+		.common-modal table td .controlls .action {
 			width: 1.5rem;
 			height: 1.5rem;
 			display: flex;
 			justify-content: center;
 		}
-		#modal-history table .machine {
+		.common-modal table .machine {
 			display: flex;
 			align-items: center;
 			gap: 0.75rem;
 		}
-		#modal-history table .link-id {
+		.common-modal table .link-id {
 			background-color: var(--white);
 			width: 1.75rem;
 			height: 1.75rem;
@@ -2028,7 +2249,7 @@
 			font-size: 0.8rem;
 			border: 1px solid var(--graydark);
 		}
-		#modal-history table .link-status {
+		.common-modal table .link-status {
 			background-color: #d0f4ea;
 			border: 2px solid #abe9d8;
 			border-radius: 1rem;
@@ -2036,27 +2257,27 @@
 			font-size: 0.75rem;
 			font-weight: 500;
 		}
-		#modal-history table .link-status.status-1 {
+		.common-modal table .status-1 {
 			background-color: #fff0de;
     		border: 2px solid #fcdab1;
 		}
-		#modal-history table .link-status.status-2 {
+		.common-modal table .status-2 {
 			background-color: #dff5ff;
     		border: 2px solid #b4e1f2;
 		}
-		#modal-history table .link-status.status-3 {
+		.common-modal table .status-3 {
 			background-color: #d0f4ea;
 			border: 2px solid #abe9d8;
 		}
-		#modal-history table .link-status.status-4 {
+		.common-modal table .status-4 {
 			background-color: #e4d4fb;
     		border: 2px solid #d0beeb;
 		}
-		#modal-history table .link-status.status-5 {
+		.common-modal table .status-5 {
 			background-color: #fee3e1;
     		border: 2px solid #ffceca;
 		}
-		#modal-history table .finished {
+		.common-modal table .finished {
 			background-color: #d0f4ea;
 			border: 2px solid #abe9d8;
 			border-radius: 1rem;
@@ -2064,11 +2285,11 @@
 			font-size: 0.75rem;
 			font-weight: 500;
 		}
-		#modal-history table .finished.active {
+		.common-modal table .finished.active {
 			background-color: #fff0de;
     		border: 2px solid #fcdab1;
 		}
-		#modal-history table .machine b {
+		.common-modal table .machine b {
 			background-color: var(--white);
 			width: 1.75rem;
 			height: 1.75rem;
@@ -2080,101 +2301,31 @@
 			font-size: 0.8rem;
 			border: 1px solid var(--graydark);
 		}
-		#modal-history table .machine img {
+		.common-modal table .machine img {
 			mix-blend-mode: darken;
 		}
-		#modal-history table .machine .model {
+		.common-modal table .machine .model {
 			display: flex;
     		flex-direction: column;
 		}
-		#modal-history table .machine .model span {
+		.common-modal table .machine .model span {
 			font-weight: 500;
 			white-space: nowrap;
 			overflow: hidden;
 			text-overflow: ellipsis;
 			max-width: 8rem;
 		}
-		#modal-history table .machine .model span + span {
+		.common-modal table .machine .model span + span {
 			font-weight: 400;
 			font-size: 0.75rem;
 			opacity: 0.6;
 		}
 		#support-dashboard {
-			width: 100%;
-			padding: 1rem;
-			min-height: 100dvh;
 			display: flex;
-			flex-direction: column;
+			min-height: calc(100vh - 6.5rem);
 			gap: 1rem;
-			margin: 0 auto;
-			max-width: 118rem;
-		}
-		#support-dashboard .header {
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-		}
-		#support-dashboard .menu {
-			display: flex;
-			background-color: var(--white);
-			border-radius: 2rem;
-			padding: 0.5rem 0.75rem;
-			gap: 0.25rem;
-		}
-		#support-dashboard .menu .item {
-			display: flex;
-			justify-content: center;
-			align-items: center;
-			border-radius: 2rem;
-			padding: 0 0.75rem;
-			gap: 0.5rem;
-			cursor: pointer;
-			transition: var(--transition);
-		}
-		#support-dashboard .menu .item:hover {
-			background-color: var(--gray);
-		}
-		#support-dashboard .menu .item .button {
-			border-radius: 2rem;
-			transition: var(--transition);
-			height: 2rem;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-		}
-		#support-dashboard .menu .item span {
-			font-size: 0.75rem;
-    		font-weight: 600;
-		}
-		#support-dashboard .menu.primary {
-			background-color: var(--secondary);
-			color: var(--white);
-		}
-		#support-dashboard .menu.primary .item:hover {
-			background-color: hsl(0deg 0% 100% / 20%);
-		}
-		#support-dashboard .menu.primary img {
-			filter: invert(1);
-		}
-		#support-dashboard .controllers {
-			display: flex;
-			gap: 0.75rem;
-		}
-		#support-dashboard .controllers .button {
-			background-color: var(--secondary);
-			color: white;
-			padding: 0 1.5rem;
-			line-height: 2.5rem;
-			border-radius: 2rem;
-			display: flex;
-			align-items: center;
-			gap: 0.5rem;
-		}
-		#support-dashboard .controllers .button + .button{
-			background-color: var(--primary);
-		}
-		#support-dashboard .controllers .button img {
-			filter: invert(1);
+			overflow: auto;
+			flex-direction: column;
 		}
 		#support-dashboard .board {
 			display: flex;
@@ -2317,9 +2468,6 @@
 		#modal-status {
 			z-index: 40;
 		}
-		#modal-status .modal{
-			max-width: 28rem;
-		}
 		#modal-status .capture-proof {
 			max-width: 24rem;
 			display: flex;
@@ -2424,8 +2572,8 @@
 			align-items: center;
 			font-size: 0.75rem;
 			position: absolute;
-			right: 3.25rem;
-			top: 1.25rem;
+			right: 0;
+    		top: -0.25rem;
 		}
 		#modal-status .send-whatsapp .dot {
 			width: 0.5rem;
@@ -2475,10 +2623,6 @@
 		/***********************************************************************************/
 		#modal-view {
 		    z-index: 30;
-		}
-		#modal-view .modal {
-			min-width: 29rem;
-			max-width: 36rem;
 		}
 		#modal-view .header {
 			display: flex;
@@ -2587,7 +2731,7 @@
 		}
 		#modal-view .top {
 			display: flex;
-			gap: 1rem;
+			gap: 0.5rem;
 			align-items: center;
 		}
 		#modal-view .top .copy-pay {
@@ -2601,7 +2745,6 @@
 			display: flex;
 			gap: 0.5rem;
 			margin-left: auto;
-			margin-right: 1.75rem;
 		}
 		#modal-view .top .pay span {
 			padding: 0.5rem 0.75rem;
@@ -2669,7 +2812,6 @@
 		#modal-view .history {
 			display: flex;
 			flex-direction: column;
-			overflow-y: auto;
 		}
 		#modal-view .history .row {
 			align-items: start;
@@ -2752,18 +2894,19 @@
 
 
 		@media only screen and (max-width: 48rem) {
-			.modal {
-				padding: 1.5rem 0.75rem 0.75rem 0.75rem;
-			}
 			#support-dashboard {
 				min-height: calc(100dvh - 5.5rem);
 			}
 			#support-dashboard .board {
 				flex-direction: column;
+				border-radius: 0;
 			}
             #support-dashboard .group {
 				border-right: none;
 				border-bottom: 3px solid #ffffff80;
+			}
+			#support-dashboard .group:last-child {
+				border-bottom: none;
 			}
 			#modal-view .modal {
 				min-width: initial;

@@ -395,6 +395,7 @@ class ScheduleService:
             days.append({
                 "date": date_key,
                 "dayNumber": date_obj.day,
+                "dayName": self.get_day_name_es_3(date_obj),
                 "isCurrentMonth": (date_obj.month == target_month and date_obj.year == target_year),
                 "isToday": (date_obj == today_date),
 
@@ -408,6 +409,11 @@ class ScheduleService:
             current += timedelta(days=1)
 
         return days, 200
+
+
+    def get_day_name_es_3(self, date_obj):
+        names = ["lun", "mar", "mie", "jue", "vie", "sab", "dom"]
+        return names[date_obj.weekday()]
 
 
     @handle_exceptions

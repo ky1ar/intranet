@@ -1,91 +1,91 @@
 <div x-data="schedule_data">
 	<div id="schedule">
-		<header>
-
-			<div class="navigation desktop">
-				<div class="button white middle hover-opacity" @click="today()" x-text="formatMonthLabel()"></div>
-
-				<div class="button white hover-opacity" @click="prev()">
-					<img alt="prev" src="/static/images/arrow.svg" width="16" height="16">
+		<div class="controls">
+			<div class="left frost">
+				<div class="item" @click="prev()">
+					<img class="flip" alt="prev" src="/static/images/icons/right.svg" width="20" height="20">
 				</div>
-				<div class="button white hover-opacity" @click="next()">
-					<img alt="next" src="/static/images/arrow.svg" width="16" height="16">
+				<div class="item date" @click="today()" x-text="formatMonthLabel()"></div>
+				<div class="item" @click="next()">
+					<img alt="next" src="/static/images/icons/right.svg" width="20" height="20">
 				</div>
 			</div>
-			
-		</header>
+		</div>
 
-				<div class="main card glass">
-					<div class="center">
-						<span>
-							Lunes
-						</span>
-						<span>
-							Martes
-						</span>
-						<span>
-							Miércoles
-						</span>
-						<span>
-							Jueves
-						</span>
-						<span>
-							Viernes
-						</span>
-						<span>
-							Sábado
-						</span>
-						<span>
-							Domingo
-						</span>
+		<div class="main card glass">
+			<div class="center">
+				<span>
+					Lunes
+				</span>
+				<span>
+					Martes
+				</span>
+				<span>
+					Miércoles
+				</span>
+				<span>
+					Jueves
+				</span>
+				<span>
+					Viernes
+				</span>
+				<span>
+					Sábado
+				</span>
+				<span>
+					Domingo
+				</span>
+			</div>
+			
+			<div class="bottom">
+				<template x-for="day in $store.cache.getData('calendar_dashboard')" :key="day.date">
+					<div
+						class="month"
+						:class="[
+							day.isCurrentMonth ? 'white' : 'glass',
+							isPastDate(day.date) ? 'past' : '',
+							day.isHoliday ? 'holiday-day' : '',
+							day.hasBirthdays ? 'birthday-day' : ''
+						]"
+						@click="addEvent(day.date)"
+					>
+						<div class="number" :class="{ today: day.isToday }">
+							<span class="name" x-text="day.dayName"></span>
+							<span x-text="String(day.dayNumber).padStart(2, '0')"></span>
+						</div>
+						<div class="body">
+							<template x-if="day.events && day.events.length">
+								<template x-for="(ev, idx) in day.events" :key="idx">
+									<div
+										class="item"
+										:class="[
+											ev.fullColor ? 'full' : 'normal',
+											Number(ev.creatorId) === Number(user_id) ? 'mine' : '',
+											ev.type === 'BIRTHDAY' ? 'birthday' : '',
+											ev.type === 'HOLIDAY' ? 'holiday' : ''
+										]"
+										@click.stop="ev.type !== 'BIRTHDAY' && ev.clickable !== false && openEvent(ev.id)"
+										:style="ev.hexColor ? (ev.fullColor ? `background-color: ${ev.hexColor}; margin: 0.125rem 0;` : ``) : ''"
+									>
+										<div class="row">
+											<template x-if="ev.hexColor">
+												<span class="color-dot" :style="!ev.fullColor ? `background-color: ${ev.hexColor};`:`background-color: #fff;`"></span>
+												
+											</template>
+											<div class="content">
+												<span class="label" x-text="ev.label"></span>
+												<span class="date" x-show="!ev.allDay && ev.time" x-text="ev.time"></span>
+												<!-- <img class="thumb" x-show="ev.creatorId == user_id" width="24" height="24" src="/static/images/user.svg"> -->
+											</div>
+										</div>
+									</div>
+								</template>
+							</template>
+						</div>
 					</div>
-					
-					<div class="bottom">
-                        <template x-for="day in $store.cache.getData('calendar_dashboard')" :key="day.date">
-                            <div
-								class="month"
-								:class="[
-									day.isCurrentMonth ? 'white' : 'glass',
-									isPastDate(day.date) ? 'past' : '',
-									day.isHoliday ? 'holiday-day' : '',
-									day.hasBirthdays ? 'birthday-day' : ''
-								]"
-								@click="addEvent(day.date)"
-							>
-                                <span class="number" :class="{ today: day.isToday }" x-text="String(day.dayNumber).padStart(2, '0')"></span>
-                                <div class="body">
-									<template x-if="day.events && day.events.length">
-                                        <template x-for="(ev, idx) in day.events" :key="idx">
-                                            <div
-												class="item"
-												:class="[
-													ev.fullColor ? 'full' : 'normal',
-													Number(ev.creatorId) === Number(user_id) ? 'mine' : '',
-													ev.type === 'BIRTHDAY' ? 'birthday' : '',
-													ev.type === 'HOLIDAY' ? 'holiday' : ''
-												]"
-												@click.stop="ev.type !== 'BIRTHDAY' && ev.clickable !== false && openEvent(ev.id)"
-												:style="ev.hexColor ? (ev.fullColor ? `background-color: ${ev.hexColor}; margin: 0.125rem 0;` : ``) : ''"
-											>
-                                                <div class="row">
-                                                    <template x-if="ev.hexColor">
-														<span class="color-dot" :style="!ev.fullColor ? `background-color: ${ev.hexColor};`:`background-color: #fff;`"></span>
-                                                        
-                                                    </template>
-                                                    <div class="content">
-                                                        <span class="label" x-text="ev.label"></span>
-                                                        <span class="date" x-show="!ev.allDay && ev.time" x-text="ev.time"></span>
-														<!-- <img class="thumb" x-show="ev.creatorId == user_id" width="24" height="24" src="/static/images/user.svg"> -->
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </template>
-									</template>
-								</div>
-							</div>
-						</template>
-					</div>
-				</div>
+				</template>
+			</div>
+		</div>
 
         <div
 			x-show="$store.cache.isVisibleModal('event')"
@@ -102,8 +102,9 @@
 		>
 
 			<div class="modal glass2 small" @click.stop>
-				
-
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
 				<div class="modal-content" x-show="!edit || can_edit">
 					<!--  TÍTULO -->
 					<div class="fields">
@@ -351,8 +352,10 @@
 			x-transition:leave-start="modal-leave-start"
 			x-transition:leave-end="modal-leave-end"
 			>
-
-			<div class="modal head glass2" @click.stop>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
 				<span class="title">¿Realmente deseas eliminar el evento?</span>
 				<div class="buttons">
 					<button class="button black hover-opacity" @click="deleteEvent()">Sí, eliminar</button>
@@ -850,6 +853,9 @@
 
 
 	<style>
+		.controls {
+			justify-content: center;
+		}
 		#modal-confirm-delete .modal {
 			gap: 1.5rem;
 			text-align: center;
@@ -860,16 +866,10 @@
 		}
 		#schedule {
 			user-select: none;
-			padding: 1rem;
-			display: flex;
-			gap: 1rem;
-			margin: 0 auto;
-			max-width: 118rem;
-			flex-direction: column;
 		}
 		#schedule .main {
 			display: flex;
-			min-height: calc(100vh - 6rem);
+			min-height: calc(100vh - 6.5rem);
 			gap: 1rem;
 			padding: 0.75rem;
     		overflow: auto;
@@ -1039,13 +1039,6 @@
 		#modal-event .color-option.selected {
 			box-shadow: 0 0 0 2px var(--primary);
 		}
-
-		#schedule .main {
-			display: flex;
-			flex-direction: column;
-			gap: 1rem;
-			flex: 1;
-		}
 		#schedule .main .card {
 			flex: 1;
 		}
@@ -1090,6 +1083,12 @@
 			padding: 0.5rem;
 			top: 0;
 			left: 0;
+		}
+		#schedule .main .bottom .month .number .name {
+			display: none;
+			font-size: 0.65rem;
+		opacity: 0.75;
+		text-transform: uppercase;
 		}
 		#schedule .main .bottom .month .number.today {
 			background-color: var(--primary);
@@ -1549,6 +1548,10 @@
 			display: none;
 		}
 		@media only screen and (max-width: 48rem) {
+			
+			#schedule .main {
+				border-radius: 0;
+			}
 			#schedule .main .center {
 				display: none;
 			}
@@ -1556,9 +1559,20 @@
 				min-width: initial;
 				display: flex;
 				flex-direction: column;
+				margin-left: 3rem;
 			}
 			#schedule .main .bottom .month {
     			min-height: 4rem;
+			}
+			#schedule .main .bottom .month .number {
+				margin-left: -3rem;
+				border-radius: 0.5rem !important;
+			}
+			#schedule .main .bottom .month .number .name {
+				display: block;
+			}
+			#schedule .main .bottom .month .body {
+				margin: 0;
 			}
 			#modal-event .fields label.checkbox,
 			#modal-event .fields label.compact-color {

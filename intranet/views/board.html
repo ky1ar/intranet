@@ -1,7 +1,7 @@
 <div x-data="board_data">
 	<div id="board">
 		<div class="controls">
-			<div class="left">
+			<div class="left frost">
 				<template x-for="users in $store.cache.getData('user_team')" :key="users.id">
 					<div class="user">
 						<img
@@ -15,11 +15,9 @@
 				</template>
 			</div>
 
-			<div class="right">
+			<div class="right frost-dark">
 				<div class="item" @click="addIssueModal()">
-					<div class="button">
-						<img alt="" width="20" height="20" src="/static/images/icons/add.svg">
-					</div>
+					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
 					<span>Añadir</span>
 				</div>
 			</div>
@@ -70,8 +68,8 @@
 		<div
 			x-show="$store.cache.isVisibleModal('view')"
 			@mousedown.self="$store.cache.hideLastModal()"
-			class="modal-wrap"
-			id="modal-add"
+			class="modal-wrap common-modal"
+			id="modal-view"
 			x-cloak
 			x-transition:enter="modal-enter"
 			x-transition:enter-start="modal-enter-start"
@@ -81,6 +79,10 @@
 			x-transition:leave-end="modal-leave-end"
 		>
 			<div class="modal small glass2">
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
 				<div class="title">
 					<textarea x-model="view_issue.title" class="title" placeholder="Título de la actividad"></textarea>
 
@@ -151,10 +153,14 @@
 			x-transition:leave="modal-leave"
 			x-transition:leave-start="modal-leave-start"
 			x-transition:leave-end="modal-leave-end"
-			class="modal-wrap"
+			class="modal-wrap common-modal"
 			id="modal-add"
 			x-cloak>
 			<div class="modal small glass2">
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
 				<!--<div class="selects">
 					<div class="custom_select">
 						<div class="selected_option" @click="tooglePriorityOption()">
@@ -239,6 +245,10 @@
 			>
 
 			<div class="modal little glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
 				<div class="title center">
 					<span style="text-align: center;">¿Eliminar esta actividad?</span>
 					<p class="created">Esta acción no se puede deshacer</p>
@@ -582,6 +592,10 @@
 
 
 	<style>
+		.controls .left {
+			padding: 0.5rem 0.75rem;
+			overflow: visible;
+		}
 		.controls .user {
 			position: relative;
 		}
@@ -641,15 +655,11 @@
 			position: relative;
 		}
 		#board {
-			width: 100%;
-			user-select: none;
-			padding: 1rem;
-			min-height: 100vh;
 			display: flex;
-			flex-direction: column;
+			min-height: calc(100vh - 6.5rem);
 			gap: 1rem;
-			margin: 0 auto;
-			max-width: 118rem;
+			overflow: auto;
+			flex-direction: column;
 		}
 		#board .board {
 			display: flex;
@@ -751,10 +761,10 @@
 			color: #f96161;
 		}
 		/***********************************************************************************/
-		#modal-add .modal {
+		.common-modal .modal {
 			overflow-y: visible;
 		}
-		#modal-add .title {
+		.common-modal .title {
 			border: none;
 			background-color: transparent;
 			outline: none;
@@ -766,39 +776,39 @@
 			padding: 0;
 			field-sizing: content;
 		}
-		#modal-add .created {
+		.common-modal .created {
 			margin: 0;
 			margin-bottom: 0.25rem;
 			opacity: 0.4;
 			font-size: 0.75rem;
 		}
-		#modal-add .left {
+		.common-modal .left {
 			display: flex;
 			align-items: center;
 			gap: 0.5rem;
 			margin-bottom: -0.75rem;
 			font-weight: 600;
 		}
-		#modal-add .left .dot {
+		.common-modal .left .dot {
 			width: 0.5rem;
 			height: 0.5rem;
 			background-color: var(--primary);
 			border-radius: 1rem;
 		}
-		#modal-add .selects {
+		.common-modal .selects {
 			display: flex;
     		gap: 1rem;
 		}
-		#modal-add .custom_select {
+		.common-modal .custom_select {
 			cursor: pointer;
 			position: relative;
 			display: flex;
 			width: 100%;
 		}
-		#modal-add .custom_select img {
+		.common-modal .custom_select img {
 			border-radius: 2rem;
 		}
-		#modal-add .selected_option {
+		.common-modal .selected_option {
 			display: flex;
 			gap: 0.5rem;
 			align-items: center;
@@ -809,7 +819,7 @@
 			box-shadow: 0 0 1rem hsl(0deg 0% 0% / 2.5%);
 			width: 100%;
 		}
-		#modal-add .select_options {
+		.common-modal .select_options {
 			background-color: var(--white);
 			box-shadow: 0 0.5rem 1rem #00000040;
 			border-radius: 0.5rem;
@@ -824,7 +834,7 @@
 			border: 1px solid var(--graydarkest);
 			bottom: 0;
 		}
-		#modal-add .select_options .option {
+		.common-modal .select_options .option {
 			display: flex;
 			align-items: center;
 			gap: 0.5rem;
@@ -833,10 +843,10 @@
 			height: 2.5rem;
 			min-height: 2.45rem;
 		}
-		#modal-add .select_options .option:hover {
+		.common-modal .select_options .option:hover {
 			background-color: var(--gray);
 		}
-        #modal-add .select_options .option.pick {
+        .common-modal .select_options .option.pick {
 			background-color: var(--graydark);
 		}
 		/***********************************************************************************/
@@ -964,21 +974,26 @@
 			text-align: justify;
 		}
 		@media only screen and (max-width: 48rem) {
+			.controls .left {
+				padding: 0.5rem 0.75rem;
+				overflow-x: auto;
+			}
 			#board {
 				padding: 0;
 			}
 			#board .board {
 				flex-direction: column;
 				border-radius: 0;
-				border: 0;
-				background-color: transparent;
-				box-shadow: none;
 			}
 			#board ul {
 				padding: 1rem;
 			}
 			#board .group {
 				border-right: none;
+				border-bottom: 3px solid #ffffff80;
+			}
+			#board .group:last-child {
+				border-bottom: none;
 			}
 			.controls .user span {
 				display: none;

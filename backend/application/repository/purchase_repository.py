@@ -18,6 +18,40 @@ class PurchaseRepository:
 
 
     @handle_db_exceptions
+    def update_order_numbers(self, purchase_id, items):
+        if not items:
+            return "Items requeridos", 400
+
+        mapping = {}
+        for i in items:
+            if not i.get("id"):
+                continue
+            mapping[int(i["id"])] = (i.get("order_number") or "").strip() or None
+
+        if not mapping:
+            return "Items inválidos", 400
+
+        db_items = (
+            g.db_session.query(PurchaseItems)
+            .filter(
+                PurchaseItems.purchase_id == purchase_id,
+                PurchaseItems.deleted_at.is_(None),
+                PurchaseItems.id.in_(list(mapping.keys())),
+            )
+            .all()
+        )
+
+        if not db_items:
+            return "Items no encontrados", 404
+
+        for it in db_items:
+            it.order_number = mapping.get(it.id)
+
+        g.db_session.commit()
+        return "Nº de pedido actualizado", 200
+
+
+    @handle_db_exceptions
     def add_purchase(self, data, user):
         user_level_id = user.level_id
         initial_status_id = 1

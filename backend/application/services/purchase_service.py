@@ -277,6 +277,14 @@ class PurchaseService:
                 return result, code
             
         elif action == "payed":
+            items = data.get("items") or []
+            if items:
+                result, code = self.purchase_repository.update_order_numbers(
+                    data["purchase_id"], items
+                )
+                if code != 200:
+                    return result, code
+
             result, code = self.purchase_repository.set_status(
                 data["purchase_id"], status_id=5
             )
@@ -286,6 +294,13 @@ class PurchaseService:
         elif action == "invoiced":
             result, code = self.purchase_repository.set_status(
                 data["purchase_id"], status_id=6
+            )
+            if code != 200:
+                return result, code
+        
+        elif action == "delivered":
+            result, code = self.purchase_repository.set_status(
+                data["purchase_id"], status_id=7
             )
             if code != 200:
                 return result, code

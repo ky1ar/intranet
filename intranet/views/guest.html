@@ -1,13 +1,20 @@
 <div x-data="guest_data" class="fixed" id="guest">
     <div class="modal glass">
-        <div x-show="currentStep != 'select_type' && currentStep != 'success' && currentStep != 'finish_success'" class="hover-opacity modal-back" @click="prev()">
-            <img alt="close" src="/static/images/icons/back.svg" width="20" height="20">
+        <div class="controls">
+            <div x-show="currentStep != 'select_type' && currentStep != 'success' && currentStep != 'finish_success'" class="left frost" >
+                <div class="item" @click="prev()">
+                    <img alt="" width="20" height="20" src="/static/images/icons/back.svg">
+                    <span>Volver</span>
+                </div>
+            </div>
+        
+            <div x-show="currentStep != 'select_type' && currentStep != 'success' && currentStep != 'finish_success'" class="right frost">
+                <div class="item" @click="resetOrder()">
+                    <img alt="" width="20" height="20" src="/static/images/icons/home.svg">
+                    <span>Inicio</span>
+                </div>
+            </div>
         </div>
-
-        <div x-show="currentStep != 'select_type' && currentStep != 'success' && currentStep != 'finish_success'" class="hover-opacity modal-home" @click="resetOrder()">
-            <img alt="close" src="/static/images/icons/home.svg" width="20" height="20">
-        </div>
-
         <div x-show="currentStep == 'select_type'" class="content">
             <div class="top">
                 <img alt="user" :src="bot_image" width="80" height="80">
@@ -826,12 +833,11 @@
     <style>
         #guest {
             text-align: center;
+            margin-top: -4.5rem;
         }
         #guest .modal {
             padding: 4rem 5rem;
-            max-width: 42rem;
             max-height: initial;
-            margin: 1rem 0;
         }
         #guest .content {
             display: flex;
@@ -1122,15 +1128,14 @@
         /****************************************************	48rem	768px	 ***************************************************/ 
         @media only screen and (max-width: 48rem) {
             #guest {
-                min-height: calc(100dvh - 5.5rem);
+                margin-top: 0;
+                min-height: initial;
             }
             #guest .modal {
-                flex: 1;
                 justify-content: center;
-                padding: 2rem;
-                width: 100%;
                 border-radius: 0;
-                max-height: initial;
+                min-height: calc(100vh - 5.5rem);
+                padding: 1rem;
             }
             #guest .checkbox-group {
                 flex-direction: column;

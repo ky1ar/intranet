@@ -1,37 +1,45 @@
 <div x-data="tracking_data">
 	<div id="tracking-dashboard">
-        <div class="header">
-			<div class="menu">
+        <div class="controls">
+			<div class="toggle-collapse frost" @click="$store.cache.toogleMoreMenu()" @click.outside="$store.cache.hideMoreMenu()">
+				<div class="item">
+					<img alt="" width="24" height="24" src="/static/images/icons/more.svg">
+				</div>
+			</div>
+
+			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
 				<div class="item" @click="search()">
-					<div class="button">
-						<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
-					</div>
+					<img alt="" width="18" height="18" src="/static/images/icons/find.svg">
+				</div>
+				<div class="item" @click="viewHistory()">
+					<img alt="" width="18" height="18" src="/static/images/icons/history.svg">
+				</div>
+				<div class="item" @click="viewStatistics()">
+					<img alt="" width="18" height="18" src="/static/images/icons/report.svg">
+				</div>
+			</div>
+
+			<div class="left mobile-hide frost">
+				<div class="item" @click="search()">
+					<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
 					<span>Buscar</span>
 				</div>
 				<div class="item" @click="viewHistory()">
-					<div class="button">
-						<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
-					</div>
+					<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
 					<span>Historial</span>
 				</div>
 				<div class="item" @click="viewStatistics()">
-					<div class="button">
-						<img alt="" width="20" height="20" src="/static/images/icons/report.svg">
-					</div>
+					<img alt="" width="20" height="20" src="/static/images/icons/report.svg">
 					<span>Estadísticas</span>
 				</div>
-            </div>
+			</div>
 
-			<template x-if="editAllowed()">
-				<div class="menu primary">
-					<div class="item" @click="addTracking()">
-						<div class="button">
-							<img alt="" width="20" height="20" src="/static/images/icons/add.svg">
-						</div>
-						<span>Añadir</span>
-					</div>
+			<div class="right frost-dark" x-show="editAllowed()">
+				<div class="item" @click="addTracking()">
+					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
+					<span>Añadir</span>
 				</div>
-			</template>
+			</div>
 		</div>
 
 		<div class="container-tracking main glass">
@@ -72,14 +80,19 @@
 		<div
 			x-show="$store.cache.isVisibleModal('add')"
 			@mousedown.self="$store.cache.hideLastModal()"
-			x-transition.duration.300ms
 			class="modal-wrap"
 			id="modal-add"
-			x-cloak>
-
-			<form id="registerTrackings" x-ref="form" method="POST" class="modal glass2" @click.stop @submit.prevent="processTracking">
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-					<img alt="close" src="/static/images/x.svg" width="12" height="12">
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<form id="registerTrackings" x-ref="form" method="POST" class="modal small glass2" @click.stop @submit.prevent="processTracking">
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
 				</div>
 
 				<div class="header">
@@ -96,131 +109,131 @@
 					</div>
 				</div>
 				
-				
-				<div class="fields">
-					<label class="white">
-						<select name="agency" id="agency" x-model="agency" @change="updateFields">
-							<option value="1">Shalom</option>
-							<option value="2">Olva</option>
-							<option value="3">Marvisur</option>
-						</select>
-					</label>
-
-					<label class="white">
-						<img alt="user" src="/static/images/id.svg" width="16" height="16">
-						<input
-							type="text"
-							maxlength="15"
-							placeholder="DNI / RUC"
-							x-model="document"
-							x-bind:disabled="disableDoc"
-							@blur="fetchDocumentData()"
-							required>
-					</label>
-				</div>
-
-				<div class="fields">
-					<label :class="disableName ? 'glass2' : 'white'">
-						<img alt="user" src="/static/images/user.svg" width="16" height="16">
-						<input 
-							x-model="name"
-							type="text"
-							placeholder="Nombre o Razón Social" 
-							maxlength="40" 
-							x-bind:disabled="disableName"
-							required>
-					</label>
-				</div>
-				
-				<div class="fields">
-					<label class="white">
-						<img alt="phone" src="/static/images/phone.svg" width="16" height="16">
-						<input 
-							x-model="phone"
-							type="tel" 
-							placeholder="Celular" 
-							minlength="9"
-							maxlength="9" 
-							x-on:input="
-								let val = $event.target.value.replace(/[^0-9]/g, '');
-								if (val.length === 1 && val !== '9') {
-									val = '';
-								}
-								phone = val;
-							"
-							required>
-					</label>
-
-					<label class="white">
-						<img alt="email" src="/static/images/email.svg" width="16" height="16">
-						<input 
-							x-model="email"
-							type="email" 
-							placeholder="Correo"
-							maxlength="60">
-					</label>
-				</div>
-
-				<div class="fields">
-					<label class="white">
-						<input 
-						type="text" 
-						:placeholder="config[agency].p1" 
-						x-model="code1" 
-						x-on:input="
-							if (agency === '3') {
-								code1 = $event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-								if (!code1.startsWith('V')) {
-									code1 = '';
-								}
-							} else {
-								code1 = $event.target.value.replace(/[^0-9]/g, '');
-							}
-						" 
-						:maxlength="config[agency].m1" 
-						required>
-					</label>
-					
-					<template x-if="config[agency].type2 === 'select'">
+				<div class="modal-content">
+					<div class="fields">
 						<label class="white">
-							<select class="sp" x-model="code2" required>
-								<template x-for="opt in config[agency].options" :key="opt">
-									<option :value="opt" x-text="opt"></option>
-								</template>
+							<select name="agency" id="agency" x-model="agency" @change="updateFields">
+								<option value="1">Shalom</option>
+								<option value="2">Olva</option>
+								<option value="3">Marvisur</option>
 							</select>
 						</label>
-					</template>
-				
-					<template x-if="config[agency].type2 === 'text'">
+
 						<label class="white">
-							<input 
-								type="text" 
-								x-model="code2"
-								x-on:input="
-								if (agency === '3') {
-									code2 = $event.target.value.replace(/[^0-9]/g, '');
-								} else {
-									code2 = $event.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-								}
-								"
-								:placeholder="config[agency].p2" 
-								:maxlength="config[agency].m2" 
+							<img alt="user" src="/static/images/id.svg" width="16" height="16">
+							<input
+								type="text"
+								maxlength="15"
+								placeholder="DNI / RUC"
+								x-model="document"
+								x-bind:disabled="disableDoc"
+								@blur="fetchDocumentData()"
 								required>
 						</label>
-					</template>
+					</div>
 
-					<template x-if="agency === '1'">
+					<div class="fields">
+						<label :class="disableName ? 'glass2' : 'white'">
+							<img alt="user" src="/static/images/user.svg" width="16" height="16">
+							<input 
+								x-model="name"
+								type="text"
+								placeholder="Nombre o Razón Social" 
+								maxlength="40" 
+								x-bind:disabled="disableName"
+								required>
+						</label>
+					</div>
+					
+					<div class="fields">
+						<label class="white">
+							<img alt="phone" src="/static/images/phone.svg" width="16" height="16">
+							<input 
+								x-model="phone"
+								type="tel" 
+								placeholder="Celular" 
+								minlength="9"
+								maxlength="9" 
+								x-on:input="
+									let val = $event.target.value.replace(/[^0-9]/g, '');
+									if (val.length === 1 && val !== '9') {
+										val = '';
+									}
+									phone = val;
+								"
+								required>
+						</label>
+
+						<label class="white">
+							<img alt="email" src="/static/images/email.svg" width="16" height="16">
+							<input 
+								x-model="email"
+								type="email" 
+								placeholder="Correo"
+								maxlength="60">
+						</label>
+					</div>
+
+					<div class="fields">
 						<label class="white">
 							<input 
-								type="text" 
-								x-model="code3"
-								placeholder="Clave de recojo" 
-								maxlength="4">
+							type="text" 
+							:placeholder="config[agency].p1" 
+							x-model="code1" 
+							x-on:input="
+								if (agency === '3') {
+									code1 = $event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+									if (!code1.startsWith('V')) {
+										code1 = '';
+									}
+								} else {
+									code1 = $event.target.value.replace(/[^0-9]/g, '');
+								}
+							" 
+							:maxlength="config[agency].m1" 
+							required>
 						</label>
-					</template>
-				</div>
+						
+						<template x-if="config[agency].type2 === 'select'">
+							<label class="white">
+								<select class="sp" x-model="code2" required>
+									<template x-for="opt in config[agency].options" :key="opt">
+										<option :value="opt" x-text="opt"></option>
+									</template>
+								</select>
+							</label>
+						</template>
+					
+						<template x-if="config[agency].type2 === 'text'">
+							<label class="white">
+								<input 
+									type="text" 
+									x-model="code2"
+									x-on:input="
+									if (agency === '3') {
+										code2 = $event.target.value.replace(/[^0-9]/g, '');
+									} else {
+										code2 = $event.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+									}
+									"
+									:placeholder="config[agency].p2" 
+									:maxlength="config[agency].m2" 
+									required>
+							</label>
+						</template>
 
-				<div class="fields">
+						<template x-if="agency === '1'">
+							<label class="white">
+								<input 
+									type="text" 
+									x-model="code3"
+									placeholder="Clave de recojo" 
+									maxlength="4">
+							</label>
+						</template>
+					</div>
+				</div>
+				<div class="buttons">
 					<button class="button hover-opacity" type="submit" :class="buttons.add.class" x-text="buttons.add.text"></button>
 				</div>
 			</form>
@@ -235,16 +248,17 @@
 		<div
 			x-show="$store.cache.isVisibleModal('read')"
 			@mousedown.self="$store.cache.hideLastModal(); stopScan();"
-			x-transition.duration.300ms
 			class="modal-wrap"
-			id="modal-qr"
-			x-cloak>
-
+			id="modal-read"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+			>
 			<div class="modal glass2" @click.stop >
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal(); stopScan();">
-					<img alt="close" src="/static/images/x.svg" width="12" height="12">
-				</div>
-
 				<div id="scannerBox">
 					<video id="cameraFrame"></video>
 					<div class="scannerDots"></div>
@@ -257,20 +271,28 @@
 		<div
 			x-show="$store.cache.isVisibleModal('view')"
 			@mousedown.self="$store.cache.hideLastModal()"
-			x-transition.duration.300ms
 			class="modal-wrap"
 			id="modal-view"
-			x-cloak>
-			<div class="modal glass2" @click.stop>
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal small glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
 				<div class="top">
 					<span class="order" x-text="tracking_order.order_number"></span>
 					<div class="code3" x-show="tracking_order.code3" x-text="'Clave de recojo: ' +tracking_order.code3"></div>
 					<img class="agency" width="80" height="22" :src="'/static/images/tracking/' + $store.cache.getById('tracking_agencies', tracking_order.agency_id)?.icon" alt="">
 				</div>
 
-				<div class="content">
-					
-
+				<div class="content modal-content">
 					<div class="white user">
 						<span class="letter" x-text="tracking_order.client_name?.charAt(0)"></span>
 
@@ -309,10 +331,6 @@
 					</div>
 				</div>
 
-				
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()" >
-					<img alt="close" src="/static/images/x.svg" width="12" height="12">
-				</div>
 			</div>
 		</div>
 
@@ -321,16 +339,23 @@
 		<div
 			x-show="$store.cache.isVisibleModal('history')"
 			@mousedown.self="$store.cache.hideLastModal()"
-			x-transition.duration.300ms
 			class="modal-wrap"
 			id="modal-history"
-			x-cloak>
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
 			<div class="modal glass2" @click.stop>
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()" >
-					<img alt="close" src="/static/images/x.svg" width="12" height="12">
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
 				</div>
+
 				<div class="top">
-					<span class="title">Historial de envíos</span>
+					<span class="title">Historial</span>
 
 					<div class="pagination">
 						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstPage()">
@@ -349,8 +374,8 @@
 
 				</div>
 
-				<div class="history">
-					<table>
+				<div class="modal-content history">
+					<table class="mobile-hide">
 						<thead>
 							<tr>
 								<th>Orden</th>
@@ -377,6 +402,24 @@
 							</template>
 						</tbody>
 					</table>
+
+					<div class="mobile-show mobile-table">
+						<template x-for="history in history_list" :key="history.id">
+							<div class="row white" @click="viewOrder(history.id)">
+								<div class="head">
+									<div class="info">
+										<span class="id" x-text="history.order_number"></span>
+										<span class="date" x-text="history.register_at"></span>
+									</div>
+									<div class="status" :class="!history.finished ? 'active' : 'finished'" x-text="history.finished ? 'Finalizado':'Activo'"></div>
+								</div>
+								<div class="body">
+									<span class="label">Cliente</span>
+									<span class="name" x-text="history.client_name"></span>
+								</div>
+							</div>
+						</template>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -387,52 +430,61 @@
 		<div
 			x-show="$store.cache.isVisibleModal('statistics')"
 			@mousedown.self="$store.cache.hideLastModal()"
-			x-transition.duration.300ms
 			class="modal-wrap"
 			id="modal-statistics"
-			x-cloak>
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
 			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
 				<div class="top">
 					<span class="title">Estadísticas</span>
 				</div>
 
-				<div class="kpi">
-					<div class="item white">
-						<p>Envíos totales</p>
-						<span x-text="$store.cache.getData('tracking_statistics')?.count.total"></span>
-					</div>
-					<div class="item white">
-						<p>Envíos el día de hoy</p>
-						<span x-text="$store.cache.getData('tracking_statistics')?.count.today"></span>
-					</div>
-					<div class="item white">
-						<p>Envíos en la semana</p>
-						<span x-text="$store.cache.getData('tracking_statistics')?.count.week"></span>
-					</div>
-					<div class="item white">
-						<p>Envíos del mes</p>
-						<span x-text="$store.cache.getData('tracking_statistics')?.count.month"></span>
-					</div>
-				</div>
-
-				<div class="charts">
-					<div class="glass2 box">
-						<span>Envíos por agencia</span>
-						<canvas x-ref="ordersByStatusChart" width="160" height="80"></canvas>
+				<div class="modal-content">
+					<div class="kpi">
+						<div class="item white">
+							<p>Envíos totales</p>
+							<span x-text="$store.cache.getData('tracking_statistics')?.count.total"></span>
+						</div>
+						<div class="item white">
+							<p>Envíos el día de hoy</p>
+							<span x-text="$store.cache.getData('tracking_statistics')?.count.today"></span>
+						</div>
+						<div class="item white">
+							<p>Envíos en la semana</p>
+							<span x-text="$store.cache.getData('tracking_statistics')?.count.week"></span>
+						</div>
+						<div class="item white">
+							<p>Envíos del mes</p>
+							<span x-text="$store.cache.getData('tracking_statistics')?.count.month"></span>
+						</div>
 					</div>
 
-					<div class="glass2 box">
-						<span>Envíos por Mes</span>
-						<canvas x-ref="ordersByMonthChart" width="160" height="80"></canvas>
-					</div>
+					<div class="charts">
+						<div class="glass2 box">
+							<span>Envíos por agencia</span>
+							<canvas x-ref="ordersByStatusChart" width="160" height="80"></canvas>
+						</div>
 
-					<div class="glass2 box">
-						<span>Top 5 destinos</span>
-						<canvas x-ref="ordersByTechChart" width="160" height="80"></canvas>
+						<div class="glass2 box">
+							<span>Envíos por Mes</span>
+							<canvas x-ref="ordersByMonthChart" width="160" height="80"></canvas>
+						</div>
+
+						<div class="glass2 box">
+							<span>Top 5 destinos</span>
+							<canvas x-ref="ordersByTechChart" width="160" height="80"></canvas>
+						</div>
 					</div>
-				</div>
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-					<img alt="close" src="/static/images/x.svg" width="12" height="12">
 				</div>
 			</div>
 		</div>
@@ -1110,6 +1162,65 @@
 
 
 	<style>
+		.mobile-table {
+			flex-direction: column;
+			gap: 0.75rem;
+		}
+		.mobile-table .row {
+			padding: 1rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+		}
+		.mobile-table .head {
+			display: flex;
+    		justify-content: space-between;
+			align-items: start;
+		}
+		.mobile-table .head .info {
+			display: flex;
+    		flex-direction: column;
+		}
+		.mobile-table .head .info .id {
+			font-size: 1rem;
+    		font-weight: 600;
+		}
+		.mobile-table .head .info .date {
+			font-size: 0.75rem;
+    		opacity: 0.75;
+		}
+		.mobile-table .head .status {
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		.mobile-table .head .status.active {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		.mobile-table .head .status.finished {
+			background-color: #d0f4ea;
+    		border: 2px solid #abe9d8;
+		}
+		.mobile-table .body {
+			display: flex;
+    		justify-content: space-between;
+			align-items: center;
+		}
+		.mobile-table .body .label {
+			font-size: 0.75rem;
+			opacity: 0.5;
+			font-weight: 600;
+		}
+		.mobile-table .body .name {
+			font-weight: 500;
+			font-size: 0.8rem;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 75%;
+		}
 		#modal-statistics .kpi {
 			display: flex;
     		gap: 1rem;
@@ -1159,7 +1270,6 @@
 		#modal-history .pagination {
 			display: flex;
 			gap: 0.75rem;
-			margin-right: 1rem;
 		}
 		#modal-history .create-link {
 			display: flex;
@@ -1409,6 +1519,13 @@
 			top: 0;
 			right: 0;
 		}
+		#tracking-dashboard {
+			display: flex;
+			min-height: calc(100vh - 6.5rem);
+			gap: 1rem;
+			overflow: auto;
+			flex-direction: column;
+		}
 		#tracking-dashboard .menu {
 			display: flex;
 			background-color: var(--white);
@@ -1451,16 +1568,7 @@
 		#tracking-dashboard .menu.primary img {
 			filter: invert(1);
 		}
-        #tracking-dashboard {
-			width: 100%;
-			padding: 1rem;
-			min-height: 100vh;
-			display: flex;
-			flex-direction: column;
-			gap: 1rem;
-			margin: 0 auto;
-			max-width: 118rem;
-		}
+        
 		#tracking-dashboard .group {
 			flex: 1;
 			display: flex;
@@ -1521,21 +1629,6 @@
 			opacity: 0.75;
 			line-height: 0.8rem;
 			margin-top: 0.5rem;
-		}
-		
-		#tracking-dashboard .header {
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-		}
-		#tracking-dashboard .header .range {
-			font-size: 1rem;
-			font-weight: 600;
-			text-transform: capitalize;
-			display: flex;
-			align-items: center;
-			gap: 0.5rem;
-			position: relative;
 		}
 		#tracking-dashboard .container-tracking{
 			display: flex;
@@ -1638,23 +1731,16 @@
 			}
 		}
 
-		#modal-add .modal {
-			max-width: 36rem;
+		#modal-read {
+			align-items: center;
 		}
-		#modal-qr .modal {
+		#modal-read .modal {
 			align-items: center;
 			padding: 0;
 			overflow: hidden;
 			border: none;
-		}
-		#modal-qr .modal .modal-close {
-			background-color: #ffffff;
-			padding: 1rem;
-			top: 0px;
-			right: 0px;
-			border-radius: 0 1rem;
-			align-items: center;
-			z-index: 1;
+			width: initial;
+			border-radius: 1.5rem;
 		}
 		#registerTrackings .header {
 			display: flex;
@@ -1663,7 +1749,6 @@
 		#registerTrackings .header .button {
 			padding: 0 2rem;
 			width: initial;
-			margin-right: 1rem;
 		}
 		#registerTrackings .header .button img {
 			filter: invert(1);
@@ -1807,14 +1892,7 @@
 			font-size: 0.8rem;
 		}
 		#modal-view .top .agency {
-			margin-right: 1.5rem;
     		margin-left: auto;
-		}
-		#modal-view .content {
-			display: flex;
-			flex-wrap: wrap;
-			width: 28rem;
-			gap: 1rem;
 		}
 		#modal-view .content .codes {
 			display: flex;
@@ -1916,6 +1994,7 @@
 			}
 			#tracking-dashboard .container-tracking {
     			flex-direction: column;
+				border-radius: 0;
 			}
 			#tracking-dashboard .container-tracking .cont.ruta {
 				border-left: none;

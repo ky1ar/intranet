@@ -1,54 +1,64 @@
 <div x-data="logistics_data">
 	<div id="logistics">
 		<div class="controls">
-			<div class="left">
+			<div class="toggle-collapse frost" @click="$store.cache.toogleMoreMenu()" @click.outside="$store.cache.hideMoreMenu()">
+				<div class="item">
+					<img alt="" width="24" height="24" src="/static/images/icons/more.svg">
+				</div>
+			</div>
+
+			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
+				<div class="item" @click="pendings_open = !pendings_open">
+					<img alt="" width="22" height="22" src="/static/images/icons/pending.svg">
+				</div>
 				<div class="item" @click="search()">
-					<div class="button">
-						<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
-					</div>
+					<img alt="" width="18" height="18" src="/static/images/icons/find.svg">
+				</div>
+				<div class="item" @click="viewHistory()">
+					<img alt="" width="18" height="18" src="/static/images/icons/history.svg">
+				</div>
+				<div class="item" @click="viewStatistics()">
+					<img alt="" width="18" height="18" src="/static/images/icons/report.svg">
+				</div>
+			</div>
+			
+			<div class="left mobile-hide frost">
+				<div class="item" @click="search()">
+					<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
 					<span>Buscar</span>
 				</div>
 				<div class="item" @click="viewHistory()">
-					<div class="button">
-						<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
-					</div>
+					<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
 					<span>Historial</span>
 				</div>
-				
 				<div class="item" @click="viewStatistics()">
-					<div class="button">
-						<img alt="" width="20" height="20" src="/static/images/icons/report.svg">
-					</div>
+					<img alt="" width="20" height="20" src="/static/images/icons/report.svg">
 					<span>Estadísticas</span>
 				</div>
 			</div>
 				
-			<div class="navigation desktop">
-				<div class="button white hover-opacity" @click="prev">
-					<img alt="prev" src="/static/images/arrow.svg" width="16" height="16">
+			<div class="left frost">
+				<div class="item" @click="prev()">
+					<img class="flip" alt="prev" src="/static/images/icons/right.svg" width="20" height="20">
 				</div>
-				<div class="button white middle hover-opacity" @click="today" x-text="getDateRange($store.cache.getData('logistics_dashboard'))">Semana actual</div>
-				<div class="button white hover-opacity" @click="next">
-					<img alt="next" src="/static/images/arrow.svg" width="16" height="16">
+				<div class="item date" @click="today()" x-text="getDateRange($store.cache.getData('logistics_dashboard'))">
+					Semana actual
+				</div>
+				<div class="item" @click="next()">
+					<img alt="next" src="/static/images/icons/right.svg" width="20" height="20">
 				</div>
 			</div>
 
-			<!-- <template x-if="editAllowed()"> -->
-				<div class="right">
-					<div class="item" @click="pendings_open = !pendings_open">
-						<div class="button">
-							<img alt="" width="20" height="20" src="/static/images/icons/pending.svg">
-						</div>
-						<span x-text="`Pendientes ${$store.cache.getData('logistics_pendings')?.length || 0}`"></span>
-					</div>
-					<div class="item" @click="processShippingModal()">
-						<div class="button">
-							<img alt="" width="20" height="20" src="/static/images/icons/add.svg">
-						</div>
-						<span>Añadir</span>
-					</div>
+			<div class="right frost-dark" x-show="editAllowed()">
+				<div class="mobile-hide item" @click="pendings_open = !pendings_open">
+					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/pending.svg">
+					<span x-text="`Pendientes ${$store.cache.getData('logistics_pendings')?.length || 0}`"></span>
 				</div>
-			<!-- </template> -->
+				<div class="item" @click="processShippingModal()">
+					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
+					<span>Añadir</span>
+				</div>
+			</div>
 		</div>
 		
 		
@@ -80,16 +90,6 @@
 						</template>
 					</template>
 					<span class="empty glass" x-show="!Array.isArray($store.cache.getData('logistics_pendings'))">No hay pendientes</span>
-				</div>
-			</div>
-
-			<div class="navigation mobile">
-				<div class="button white hover-opacity" @click="prev">
-					<img alt="prev" src="/static/images/arrow.svg" width="16" height="16">
-				</div>
-				<div class="button white middle hover-opacity" @click="today" x-text="getDateRange($store.cache.getData('logistics_dashboard'))">Semana actual</div>
-				<div class="button white hover-opacity" @click="next">
-					<img alt="next" src="/static/images/arrow.svg" width="16" height="16">
 				</div>
 			</div>
 
@@ -149,122 +149,130 @@
 		<div
 			x-show="$store.cache.isVisibleModal('process')"
 			@mousedown.self="$store.cache.hideLastModal()"
-			x-transition.duration.300ms
 			class="modal-wrap"
-			id="modal-shipping"
-			x-cloak>
-			<div class="modal glass2" @click.stop>
-				<input class="percent40 title" type="text" placeholder="N° orden" x-model="process_shipping.order_number" :disabled="edit" @blur="fetchClientOrder()">
-
-				<div class="fields">
-					<label class="white">
-						<select x-model="process_shipping.method_id">
-							<template x-if="$store.cache.getData('shipping_method')?.length !== 1">
-								<option value="">Tipo de envío</option>
-							</template>
-
-							<template x-for="type in $store.cache.getData('shipping_method')" :key="type.id">
-								<option :value="type.id" x-text="type.name"></option>
-							</template>
-						</select>
-					</label>
-
-					<label class="white">
-						<input type="date" x-model="process_shipping.register_date_format">
-					</label>
-
-					<label :class="client_order_found || edit ? 'glass2' : 'white'">
-						<img alt="user" src="/static/images/id.svg" width="16" height="16">
-						<input
-							type="text"
-							maxlength="11"
-							:disabled="client_order_found || edit"
-							@input="process_shipping.client_document = process_shipping.client_document.replace(/\D/g, '')"
-							placeholder="DNI / RUC"
-							x-model="process_shipping.client_document"
-							@blur="fetchClientData()">
-						<input type="hidden" x-model="process_shipping.client_id">
-					</label>
+			id="modal-process"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal small glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
 				</div>
 
-				<div class="fields">
-					<label :class="client_order_found || client_found || edit ? 'glass2' : 'white'">
-						<img alt="user" src="/static/images/user.svg" width="16" height="16">
-						<input :disabled="client_order_found || client_found || edit" type="text" placeholder="Nombre o Razón Social" x-model="process_shipping.client_name">
-					</label>
+				<input class="title" type="text" placeholder="N° orden" x-model="process_shipping.order_number" :disabled="edit" @blur="fetchClientOrder()">
+
+				<div class="modal-content">
+					<div class="fields">
+						<label class="white">
+							<select x-model="process_shipping.method_id">
+								<template x-if="$store.cache.getData('shipping_method')?.length !== 1">
+									<option value="">Tipo de envío</option>
+								</template>
+
+								<template x-for="type in $store.cache.getData('shipping_method')" :key="type.id">
+									<option :value="type.id" x-text="type.name"></option>
+								</template>
+							</select>
+						</label>
+
+						<label class="white">
+							<input type="date" x-model="process_shipping.register_date_format">
+						</label>
+
+						<label :class="client_order_found || edit ? 'glass2' : 'white'">
+							<img alt="user" src="/static/images/id.svg" width="16" height="16">
+							<input
+								type="text"
+								maxlength="11"
+								:disabled="client_order_found || edit"
+								@input="process_shipping.client_document = process_shipping.client_document.replace(/\D/g, '')"
+								placeholder="DNI / RUC"
+								x-model="process_shipping.client_document"
+								@blur="fetchClientData()">
+							<input type="hidden" x-model="process_shipping.client_id">
+						</label>
+					</div>
+
+					<div class="fields">
+						<label :class="client_order_found || client_found || edit ? 'glass2' : 'white'">
+							<img alt="user" src="/static/images/user.svg" width="16" height="16">
+							<input :disabled="client_order_found || client_found || edit" type="text" placeholder="Nombre o Razón Social" x-model="process_shipping.client_name">
+						</label>
+					</div>
+
+					<div class="fields">
+						<label class="white">
+							<img alt="phone" src="/static/images/phone.svg" width="16" height="16">
+							<input type="text" maxlength="9" @input="process_shipping.client_phone = process_shipping.client_phone.replace(/\D/g, '')" placeholder="Celular" x-model="process_shipping.client_phone">
+						</label>
+
+						<label class="white flex2-3">
+							<img alt="location" src="/static/images/icons/tracking.svg" width="16" height="16">
+							<input type="text" placeholder="Dirección" x-model="process_shipping.address">
+						</label>
+						
+					</div>
+
+					<div class="fields">
+						<label class="white flex2-3">
+							<img alt="Referencia" src="/static/images/icons/tag.svg" width="16" height="16">
+							<input type="text" placeholder="Referencia" x-model="process_shipping.reference">
+						</label>
+
+						<label class="white">
+							<img alt="maps" src="/static/images/maps.svg" width="16" height="16">
+							<input type="text" placeholder="Google Maps" x-model="process_shipping.maps">
+						</label>
+					</div>
+
+					<div class="fields">
+						<label class="white">
+							<select x-model="process_shipping.district_id">
+								<template x-if="$store.cache.getData('districts')?.length !== 1">
+									<option value="">Distrito</option>
+								</template>
+								
+								<template x-for="district in $store.cache.getData('districts')" :key="district.id">
+									<option :value="district.id" x-text="district.name"></option>
+								</template>
+							</select>
+						</label>
+
+						<label class="white">
+							<select x-model="process_shipping.assigned_id">
+								<template x-if="$store.cache.getData('shipping_method')?.length !== 1">
+									<option value=null>Responsable</option>
+								</template>
+
+								<template x-for="vendor in $store.cache.getData('vendors')" :key="vendor.id">
+									<option :value="vendor.id" x-text="vendor.name"></option>
+								</template>
+							</select>   
+						</label>
+
+						<label class="white">
+							<select x-model="process_shipping.driver_id">
+								<template x-for="driver in $store.cache.getData('drivers')" :key="driver.id">
+									<option :value="driver.id" x-text="driver.name"></option>
+								</template>
+							</select>
+						</label>
+					</div>
 				</div>
 
-				<div class="fields">
-					<label class="white">
-						<img alt="phone" src="/static/images/phone.svg" width="16" height="16">
-						<input type="text" maxlength="9" @input="process_shipping.client_phone = process_shipping.client_phone.replace(/\D/g, '')" placeholder="Celular" x-model="process_shipping.client_phone">
-					</label>
-
-					<label class="white flex2-3">
-						<img alt="location" src="/static/images/icons/tracking.svg" width="16" height="16">
-						<input type="text" placeholder="Dirección" x-model="process_shipping.address">
-					</label>
-					
-				</div>
-
-				<div class="fields">
-					<label class="white flex2-3">
-						<img alt="Referencia" src="/static/images/icons/tag.svg" width="16" height="16">
-						<input type="text" placeholder="Referencia" x-model="process_shipping.reference">
-					</label>
-
-					<label class="white">
-						<img alt="maps" src="/static/images/maps.svg" width="16" height="16">
-						<input type="text" placeholder="Google Maps" x-model="process_shipping.maps">
-					</label>
-				</div>
-
-				<div class="fields">
-					<label class="white">
-						<select x-model="process_shipping.district_id">
-							<template x-if="$store.cache.getData('districts')?.length !== 1">
-								<option value="">Distrito</option>
-							</template>
-							
-							<template x-for="district in $store.cache.getData('districts')" :key="district.id">
-								<option :value="district.id" x-text="district.name"></option>
-							</template>
-						</select>
-					</label>
-
-					<label class="white">
-						<select x-model="process_shipping.assigned_id">
-							<template x-if="$store.cache.getData('shipping_method')?.length !== 1">
-								<option value=null>Responsable</option>
-							</template>
-
-							<template x-for="vendor in $store.cache.getData('vendors')" :key="vendor.id">
-								<option :value="vendor.id" x-text="vendor.name"></option>
-							</template>
-						</select>   
-					</label>
-
-					<label class="white">
-						<select x-model="process_shipping.driver_id">
-							<template x-for="driver in $store.cache.getData('drivers')" :key="driver.id">
-								<option :value="driver.id" x-text="driver.name"></option>
-							</template>
-						</select>
-					</label>
-				</div>
-				
-				<div class="fields">
+				<div class="buttons">
 					<template x-if="process_shipping.client_order_id && edit && process_shipping.status_id != 3 && process_shipping.status_id != 4">
 						<button class="button hover-opacity black" @click="deleteShipping()" :class="buttons.delete.class" x-text="buttons.delete.text"></button>
 					</template>
 					<button x-show="!edit" class="button hover-opacity" @click="processShipping()" :class="buttons.process.class" x-text="buttons.process.text"></button>
 					<button x-show="edit" class="button hover-opacity" @click="processShipping()" :class="buttons.update.class" x-text="buttons.update.text"></button>
-
 				</div>
-
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()" >
-					<img alt="close" src="/static/images/x.svg" width="12" height="12">
-				</div>
+				
 			</div>
 		</div>
 
@@ -273,11 +281,21 @@
 		<div
 			x-show="$store.cache.isVisibleModal('finish')"
 			@mousedown.self="$store.cache.hideLastModal()"
-			x-transition.duration.300ms
 			class="modal-wrap"
 			id="modal-finish"
-			x-cloak>
-			<div class="modal glass2" @click.stop>
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal small glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
 				<div class="top">
 					<span class="order" x-text="process_shipping.order_number"></span>
 					<span
@@ -291,7 +309,7 @@
 					</div>
 				</div>
 
-				<div class="content">
+				<div class="modal-content">
 					<div class="left">
 						<div class="white user">
 							<span class="letter" x-text="process_shipping.client_name?.charAt(0)"></span>
@@ -357,18 +375,16 @@
 						</div>
 					</div>
 
-					<div x-show="process_shipping.proof_photo" class="right">
-						<img 
-							class="thumbnail hover-opacity" 
-							:src="'/static/images/uploads/' + process_shipping.proof_photo" 
-							alt="preview" 
-							@click="$store.cache.showModal('image');"
-						>
+					<div class="thumbnails-grid" x-show="process_shipping.proof_photo">
+						<div class="thumbnail-wrapper">
+							<img 
+								class="thumbnail hover-opacity" 
+								:src="'/static/images/uploads/' + process_shipping.proof_photo" 
+								alt="preview" 
+								@click="$store.cache.showModal('image');">
+						</div>
 					</div>
-				</div>
-				
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()" >
-					<img alt="close" src="/static/images/x.svg" width="12" height="12">
+					
 				</div>
 			</div>
 		</div>
@@ -378,13 +394,22 @@
 		<div 
 			x-show="$store.cache.isVisibleModal('image')"
 			@mousedown.self="$store.cache.hideLastModal()"
-			x-transition.duration.300ms
 			class="modal-wrap"
 			id="modal-image"
-			x-cloak>
-			<div class="modal glass2">
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal small glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
 				<img 
-					@click="$store.cache.hideLastModal()"
 					:src="'/static/images/uploads/' + process_shipping.proof_photo"
 					alt="preview"
 					style="border-radius: 0.75rem;">
@@ -396,16 +421,23 @@
 		<div
 			x-show="$store.cache.isVisibleModal('history')"
 			@mousedown.self="$store.cache.hideLastModal()"
-			x-transition.duration.300ms
 			class="modal-wrap"
 			id="modal-history"
-			x-cloak>
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
 			<div class="modal glass2" @click.stop>
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()" >
-					<img alt="close" src="/static/images/x.svg" width="12" height="12">
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
 				</div>
+
 				<div class="top">
-					<span class="title">Historial de envíos</span>
+					<span class="title">Historial</span>
 
 					<div class="pagination">
 						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstPage()">
@@ -424,8 +456,8 @@
 
 				</div>
 
-				<div class="history">
-					<table>
+				<div class="modal-content history">
+					<table class="mobile-hide">
 						<thead>
 							<tr>
 								<th>Orden</th>
@@ -452,6 +484,24 @@
 							</template>
 						</tbody>
 					</table>
+
+					<div class="mobile-show mobile-table">
+						<template x-for="history in history_list" :key="history.id">
+							<div class="row white" @click="processShippingModal(history.id)">
+								<div class="head">
+									<div class="info">
+										<span class="id" x-text="history.order_number"></span>
+										<span class="date" x-text="history.register_date"></span>
+									</div>
+									<div class="status" :class="!history.finished ? 'active' : 'finished'" x-text="history.finished ? 'Finalizado':'Activo'"></div>
+								</div>
+								<div class="body">
+									<span class="label">Cliente</span>
+									<span class="name" x-text="history.client_name"></span>
+								</div>
+							</div>
+						</template>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -459,52 +509,61 @@
 		<div
 			x-show="$store.cache.isVisibleModal('statistics')"
 			@mousedown.self="$store.cache.hideLastModal()"
-			x-transition.duration.300ms
 			class="modal-wrap"
 			id="modal-statistics"
-			x-cloak>
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+			>
 			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+				
 				<div class="top">
 					<span class="title">Estadísticas</span>
 				</div>
 
-				<div class="kpi">
-					<div class="item white">
-						<p>Envíos totales</p>
-						<span x-text="$store.cache.getData('logistic_statistics')?.count.total"></span>
-					</div>
-					<div class="item white">
-						<p>Envíos el día de hoy</p>
-						<span x-text="$store.cache.getData('logistic_statistics')?.count.today"></span>
-					</div>
-					<div class="item white">
-						<p>Envíos en la semana</p>
-						<span x-text="$store.cache.getData('logistic_statistics')?.count.week"></span>
-					</div>
-					<div class="item white">
-						<p>Envíos del mes</p>
-						<span x-text="$store.cache.getData('logistic_statistics')?.count.month"></span>
-					</div>
-				</div>
-
-				<div class="charts">
-					<div class="glass2 box">
-						<span>Envíos por tipo</span>
-						<canvas x-ref="ordersByStatusChart" width="160" height="80"></canvas>
+				<div class="modal-content">
+					<div class="kpi">
+						<div class="item white">
+							<p>Envíos totales</p>
+							<span x-text="$store.cache.getData('logistic_statistics')?.count.total"></span>
+						</div>
+						<div class="item white">
+							<p>Envíos el día de hoy</p>
+							<span x-text="$store.cache.getData('logistic_statistics')?.count.today"></span>
+						</div>
+						<div class="item white">
+							<p>Envíos en la semana</p>
+							<span x-text="$store.cache.getData('logistic_statistics')?.count.week"></span>
+						</div>
+						<div class="item white">
+							<p>Envíos del mes</p>
+							<span x-text="$store.cache.getData('logistic_statistics')?.count.month"></span>
+						</div>
 					</div>
 
-					<div class="glass2 box">
-						<span>Envíos por Mes</span>
-						<canvas x-ref="ordersByMonthChart" width="160" height="80"></canvas>
-					</div>
+					<div class="charts">
+						<div class="glass2 box">
+							<span>Envíos por tipo</span>
+							<canvas x-ref="ordersByStatusChart" width="160" height="80"></canvas>
+						</div>
 
-					<div class="glass2 box">
-						<span>Distritos más visitados</span>
-						<canvas x-ref="ordersByTechChart" width="160" height="80"></canvas>
+						<div class="glass2 box">
+							<span>Envíos por Mes</span>
+							<canvas x-ref="ordersByMonthChart" width="160" height="80"></canvas>
+						</div>
+
+						<div class="glass2 box">
+							<span>Distritos más visitados</span>
+							<canvas x-ref="ordersByTechChart" width="160" height="80"></canvas>
+						</div>
 					</div>
-				</div>
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-					<img alt="close" src="/static/images/x.svg" width="12" height="12">
 				</div>
 			</div>
 		</div>
@@ -517,7 +576,7 @@
 			class="modal-wrap"
 			id="modal-search"
 			x-cloak>
-			<div class="modal" @click.stop>
+			<div class="modal small" @click.stop>
 				<div class="bottom glass2">
 					<img alt="" class="ico" width="20" height="20" src="/static/images/icons/find.svg">
 					<input type="text"
@@ -978,9 +1037,9 @@
 				const endYear = endDate.getFullYear();
 
 				if (startMonth === endMonth && startYear === endYear) {
-					return `${startMonth} ${startYear}`;
+					return `${startMonth}`;
 				} else {
-					return `${startMonth} ${startYear} - ${endMonth} ${endYear}`;
+					return `${startMonth}`;
 				}
 			},
 
@@ -1317,6 +1376,65 @@
 
 
 	<style>
+		.mobile-table {
+			flex-direction: column;
+			gap: 0.75rem;
+		}
+		.mobile-table .row {
+			padding: 1rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+		}
+		.mobile-table .head {
+			display: flex;
+    		justify-content: space-between;
+			align-items: start;
+		}
+		.mobile-table .head .info {
+			display: flex;
+    		flex-direction: column;
+		}
+		.mobile-table .head .info .id {
+			font-size: 1rem;
+    		font-weight: 600;
+		}
+		.mobile-table .head .info .date {
+			font-size: 0.75rem;
+    		opacity: 0.75;
+		}
+		.mobile-table .head .status {
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		.mobile-table .head .status.active {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		.mobile-table .head .status.finished {
+			background-color: #d0f4ea;
+    		border: 2px solid #abe9d8;
+		}
+		.mobile-table .body {
+			display: flex;
+    		justify-content: space-between;
+			align-items: center;
+		}
+		.mobile-table .body .label {
+			font-size: 0.75rem;
+			opacity: 0.5;
+			font-weight: 600;
+		}
+		.mobile-table .body .name {
+			font-weight: 500;
+			font-size: 0.8rem;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 75%;
+		}
 		#modal-search .modal {
 			gap: 0.5rem;
 			min-width: initial;
@@ -1451,13 +1569,11 @@
     		font-size: 1rem;
 		}
 		#logistics {
-			padding: 1rem;
 			display: flex;
+			min-height: calc(100vh - 6.5rem);
 			gap: 1rem;
-			margin: 0 auto;
-			max-width: 118rem;
+			overflow: auto;
 			flex-direction: column;
-			min-height: 100dvh;
 		}
 		#logistics .main {
 			padding: 1.5rem;
@@ -1618,7 +1734,7 @@
 			justify-content: center;
 			font-size: 0.9rem;
 			font-weight: 500;
-			border-bottom: 3px solid #ffffff80;
+			/* border-bottom: 3px solid #ffffff80; */
 			padding: 0.75rem 0;
 		}
 		#logistics .schedule .day-container .day-cont {
@@ -1768,13 +1884,10 @@
 			flex-direction: column;
 			gap: 1rem;
 		}
-		#modal-shipping {
+		#modal-process {
 			z-index: 30;
 		}
-		#modal-shipping .modal {
-			max-width: 36rem;
-		}
-		#modal-shipping .title {
+		#modal-process .title {
 			font-family: inherit;
 			border: none;
 			border-radius: 0.75rem;
@@ -1783,7 +1896,7 @@
 			line-height: 2.5rem;
 			outline: none;
 		}
-		#modal-shipping .fields .glass2 {
+		#modal-process .fields .glass2 {
 			border-radius: 0.75rem;
 		}
 		#modal-image {
@@ -1810,7 +1923,6 @@
 		}
 		#modal-finish .top .driver {
 			margin-left: auto;
-			margin-right: 1rem;
 			display: flex;
 			justify-content: center;
 			align-items: center;
@@ -1824,8 +1936,7 @@
 		}
 		#modal-finish .left {
 			display: flex;
-			flex-wrap: wrap;
-			width: 28rem;
+			flex-direction: column;
 			gap: 1rem;
 		}
 		#modal-finish .left .user {
@@ -1913,17 +2024,12 @@
 			opacity: 0.6;
 		}
 		#modal-finish .right {
-			width: 15.75rem;
-			border-radius: 0.75rem;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			overflow: hidden;
 			flex: 1;
 		}
 		#modal-finish .right .thumbnail {
 			object-fit: cover;
 			height: 100%;
+			border-radius: 0.75rem;
 		}
 		#modal-history .top {
     		justify-content: space-between;
@@ -1932,7 +2038,6 @@
 		#modal-history .pagination {
 			display: flex;
 			gap: 0.75rem;
-			margin-right: 1rem;
 		}
 		#modal-history .create-link {
 			display: flex;
@@ -2102,8 +2207,12 @@
 		}
 		
 		@media only screen and (max-width: 48rem) {
+			#logistics .pending-shippings .container {
+				padding: 0 1rem;
+			}
 			#logistics .schedule {
 				flex-direction: column;
+				border-radius: 0;
 			}
 			#logistics .menu {
 				gap: 0.75rem;
