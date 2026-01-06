@@ -1,4 +1,4 @@
-import logging, time
+import logging, time, hmac, hashlib, uuid
 from application.repository.dev_repository import DevRepository
 from application.handlers import handle_exceptions, handle_db_exceptions
 from application.proxy.whatsapp import Whatsapp
@@ -202,3 +202,17 @@ class DevService:
                 results.append({"phone": phone, "status": "exception", "error": str(e)})
 
         return "Recordatorios enviados correctamente", 200
+    
+
+    @handle_exceptions
+    def token(self):
+        secret = b".Ov3rsku112024l4r43l."
+        u = str(uuid.uuid4())
+        exp = int(time.time()) + 30
+
+        base = f"web-{u}@{exp}"
+        sig = hmac.new(secret, base.encode("utf-8"), hashlib.sha256).hexdigest()
+
+        return f"{base}@{sig}", 200
+
+    

@@ -79,3 +79,8 @@ def confirm_flow_reminder():
 @dev_bp.route("/confirm_flow/reminder_2", methods=["POST"])
 def confirm_flow_reminder_2():
     return controller.dev_confirm_flow_reminder_2()
+
+
+@dev_bp.route("/token", methods=["GET"])
+def token():
+    return controller.dev_token()

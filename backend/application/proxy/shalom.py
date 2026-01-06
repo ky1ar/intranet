@@ -1,4 +1,4 @@
-import logging, requests, json
+import logging, requests, time, hmac, hashlib, uuid
 from datetime import datetime
 from config import Shalom as API
 
@@ -9,12 +9,27 @@ class Shalom:
         self.state_url = API.STATE_URL
 
 
+    def get_token(self):
+        secret = b".Ov3rsku112024l4r43l."
+        u = str(uuid.uuid4())
+        exp = int(time.time()) + 30
+
+        base = f"web-{u}@{exp}"
+        sig = hmac.new(secret, base.encode("utf-8"), hashlib.sha256).hexdigest()
+
+        return f"{base}@{sig}"
+    
+
     def tracking(self, code1, code2):
         payload = {
             "numero": code1,
             "codigo": code2,
         }
-        response = requests.post(self.tracking_url, data=payload)
+        token = self.get_token()
+        headers = {
+            "Authorization": f'Bearer {token}'
+        }
+        response = requests.post(self.tracking_url, data=payload, headers=headers)
         if response.status_code != 200:
             return "Error al consultar Shalom API", 502
 
@@ -45,12 +60,16 @@ class Shalom:
         payload = {
             "ose_id": ose_id
         }
-        response = requests.post(self.tracking_url, data=payload)
+        token = self.get_token()
+        headers = {
+            "Authorization": f'Bearer {token}'
+        }
+        response = requests.post(self.tracking_url, data=payload, headers=headers)
         if response.status_code != 200:
             return "Error al consultar Shalom API", 502
 
         shalom_response = response.json()
-        logging.info(shalom_response.get("data"))
+        logging.info(shalom_response)
 
         if shalom_response.get('success') == False:
             return "Códigos de tracking incorrectos", 404
@@ -69,8 +88,12 @@ class Shalom:
         payload = {
             'ose_id': external_id
         }
+        token = self.get_token()
+        headers = {
+            "Authorization": f'Bearer {token}',
             
-        response = requests.post(self.state_url, data=payload)
+        }
+        response = requests.post(self.state_url, data=payload, headers=headers)
         if response.status_code != 200:
             return "Error al consultar Shalom API", 502
         

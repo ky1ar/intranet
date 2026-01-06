@@ -53,3 +53,8 @@ class DevController:
     @handle_logs_and_exceptions
     def dev_confirm_flow_reminder_2(self):
         return self.dev.confirm_flow_reminder_2()
+
+    
+    @handle_logs_and_exceptions
+    def dev_token(self):
+        return self.dev.token()
