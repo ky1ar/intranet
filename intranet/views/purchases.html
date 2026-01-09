@@ -132,7 +132,7 @@
 									<template x-if="!item.url">
 										<span>-</span>
 									</template>
-									<template x-if="process_purchase.status_id == 4 && user_id == 1">
+									<template x-if="process_purchase.status_id == 4 && (user_id == 1 || user_id == 23 || department_id == 8)">
 										<label class="white order">
 											<input
 											type="text"
@@ -142,7 +142,7 @@
 										</label>
 									</template>
 
-									<template x-if="!(process_purchase.status_id == 4 && user_id == 1)">
+									<template x-if="!(process_purchase.status_id == 4 && (user_id == 1 || user_id == 23 || department_id == 8))">
 										<span x-text="item.order_number ? item.order_number : '-'"></span>
 									</template>
 								</div>
@@ -175,7 +175,7 @@
 										<div class="pair">
 											<span class="label">Nº Pedido</span>
 
-											<template x-if="process_purchase.status_id == 4 && user_id == 1">
+											<template x-if="process_purchase.status_id == 4 && (user_id == 1 || user_id == 23 || department_id == 8)">
 												<label class="white order">
 													<input
 														type="text"
@@ -185,7 +185,7 @@
 												</label>
 											</template>
 
-											<template x-if="!(process_purchase.status_id == 4 && user_id == 1)">
+											<template x-if="!(process_purchase.status_id == 4 && (user_id == 1 || user_id == 23 || department_id == 8))">
 												<span class="name" x-text="item.order_number ? item.order_number : '-'"></span>
 											</template>
 										</div>
@@ -346,7 +346,7 @@
 				</div>	
 
 				<div class="buttons" 
-					x-show="process_purchase.modal === 'view' && user_id == 1 && process_purchase.status_id > 2 && process_purchase.status_id < 7">
+					x-show="process_purchase.modal === 'view' && (user_id == 1 || user_id == 23 || department_id == 8) && process_purchase.status_id > 2 && process_purchase.status_id < 7">
 					<button x-show="process_purchase.status_id == 3" class="button icon lime hover-opacity" @click="progressRequest()" :class="buttons.progress.class">
 						<img alt="eliminar" width="16" height="16" src="/static/images/icons/progress.svg">
 						<span x-text="buttons.progress.text"></span>
@@ -401,7 +401,7 @@
 						<span x-text="buttons.remove.text"></span>
 					</button>
 
-					<button x-show="user_id == 1 && (process_purchase.express || process_purchase.status_id == 2)" class="button icon lime hover-opacity" @click="progressRequest()" :class="buttons.progress.class">
+					<button x-show="(user_id == 1 || user_id == 23 || department_id == 8) && (process_purchase.express || process_purchase.status_id == 2)" class="button icon lime hover-opacity" @click="progressRequest()" :class="buttons.progress.class">
 						<img alt="eliminar" width="16" height="16" src="/static/images/icons/progress.svg">
 						<span x-text="buttons.progress.text"></span>
 					</button>
@@ -419,6 +419,7 @@
 		Alpine.data('purchases_data', () => ({
 			api: Alpine.store('cache').api,
 			user_id: Alpine.store('cache').user.id,
+			department_id: Alpine.store('cache').user.department_id,
 			processing: false,
 			buttons: {
 				add:   { text: 'Registrar', class: '' },

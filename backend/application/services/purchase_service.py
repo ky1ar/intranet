@@ -32,36 +32,78 @@ class PurchaseService:
         
         socketio.emit("purchase_update_dashboard", {})
 
-        # event, ec = self.schedule_repository.get_event_by_id(new_event_id)
-        # if ec == 200:
-        #     creator_id = event.user_id
-        #     creator_dept, _ = self.user_repository.get_user_department_id(creator_id)
-        #     audience = self._audience_for_visibility(event.visibility_id or 1, creator_id, creator_dept)
-        #     self._notify_bulk(audience, event, "created")
+        level_id = user.level_id
+        department_id = user.department_id
+        express = data.get("express")
+
+        if department_id == 7:
+            department_user_ids, duic = self.user_repository.get_user_ids_by_department(department_id=8)
+            if duic != 200:
+                return department_user_ids, duic
+            
+            self.push_service.send_to_users(
+                user_ids=department_user_ids,
+                title=f"Solicitud PR-{new_purchase_id} recibida",
+                body="Hay una nueva solicitud de compra pendiente de gestión.",
+            )
+        
+        elif level_id == self.leader_level:
+            if express == 1:
+                if department_id != 8:
+                    department_user_ids, duic = self.user_repository.get_user_ids_by_department(department_id=8)
+                    if duic != 200:
+                        return department_user_ids, duic
+                    
+                    self.push_service.send_to_users(
+                        user_ids=department_user_ids,
+                        title=f"Solicitud PR-{new_purchase_id} recibida",
+                        body="Hay una nueva solicitud de compra pendiente de gestión.",
+                    )
+            else:
+                manager, mc = self.user_repository.get_manager()
+                if mc != 200:
+                    return manager, mc
+                
+                self.push_service.send_to_user(
+                    user_id=manager.id,
+                    title="Aprobación pendiente",
+                    body=f"La solicitud de compra PR-{new_purchase_id} de {format_name(user.name, True)} necesita tu aprobación.",
+                )
+        else:
+            leader, lc = self.user_repository.get_leader(department_id)
+            if lc != 200:
+                return leader, lc
+            
+            self.push_service.send_to_user(
+                user_id=leader.id,
+                title="Aprobación pendiente",
+                body=f"La solicitud de compra PR-{new_purchase_id} de {format_name(user.name, True)} necesita tu aprobación.",
+            )
             
         return "Solicitud registrada correctamente", 200
     
 
     @handle_exceptions
     def get_request(self, purchase_id):
-        purchase, code = self.purchase_repository.get_purchase_by_id(purchase_id)
-        if code != 200:
-            return purchase, code
+        purchase, pc = self.purchase_repository.get_purchase_by_id(purchase_id)
+        if pc != 200:
+            return purchase, pc
 
         user_id = int(get_jwt_identity())
         user, uc = self.user_repository.get_user_by_id(user_id)
         if uc != 200:
             return user, uc
         
-        user_level_id = user.level_id
+        level_id = user.level_id
+        department_id = user.department_id
 
-        if user_level_id == self.worker_level:
-            return self._get_worker_request(user, purchase)
-
-        if user_level_id == self.leader_level:
+        if department_id == 7:
+            return self._get_manager_request(user, purchase)
+        
+        if level_id == self.leader_level:
             return self._get_leader_request(user, purchase)
         
-        return self._get_manager_request(user, purchase)
+        return self._get_worker_request(user, purchase)
     
 
     @handle_exceptions
@@ -86,7 +128,7 @@ class PurchaseService:
         dto = {
             "modal": modal.get(status_id, "view"),
             "id": purchase.id,
-            "pr": f"PR-{purchase.id:04d}",
+            "pr": f"PR-{purchase.id}",
             "type_id": purchase.type_id,
             "urgency_id": purchase.urgency_id,
             "express": bool(purchase.express),
@@ -148,7 +190,7 @@ class PurchaseService:
         dto = {
             "modal": modal.get(status_id, "view"),
             "id": purchase.id,
-            "pr": f"PR-{purchase.id:04d}",
+            "pr": f"PR-{purchase.id}",
             "type_id": purchase.type_id,
             "urgency_id": purchase.urgency_id,
             "express": bool(purchase.express),
@@ -210,7 +252,7 @@ class PurchaseService:
         dto = {
             "modal": modal.get(status_id, "view"),
             "id": purchase.id,
-            "pr": f"PR-{purchase.id:04d}",
+            "pr": f"PR-{purchase.id}",
             "type_id": purchase.type_id,
             "urgency_id": purchase.urgency_id,
             "express": bool(purchase.express),
@@ -263,73 +305,205 @@ class PurchaseService:
             return user, uc
 
         action = data.get("action")
-
+        purchase_id = data.get("purchase_id")
+        
         if data.get("delete") is True:
-            result, code = self.purchase_repository.soft_delete(data["purchase_id"])
+            result, code = self.purchase_repository.soft_delete(purchase_id)
             if code != 200:
                 return result, code
 
         elif action == "progress":
-            result, code = self.purchase_repository.set_status(
-                data["purchase_id"], status_id=4
-            )
+            result, code = self.purchase_repository.set_status(purchase_id, status_id=4)
             if code != 200:
                 return result, code
+            
+            purchase, pc = self.purchase_repository.get_purchase_by_id(purchase_id)
+            if pc != 200:
+                return purchase, pc
+
+            # Avisar creador
+            self.push_service.send_to_user(
+                user_id=purchase.user_id,
+                title=f"Solicitud PR-{purchase.id} en progreso",
+                body=f"Estamos procesando tu solicitud de compra.",
+            )
             
         elif action == "payed":
             items = data.get("items") or []
             if items:
-                result, code = self.purchase_repository.update_order_numbers(
-                    data["purchase_id"], items
-                )
+                result, code = self.purchase_repository.update_order_numbers(purchase_id, items)
                 if code != 200:
                     return result, code
 
-            result, code = self.purchase_repository.set_status(
-                data["purchase_id"], status_id=5
-            )
+            result, code = self.purchase_repository.set_status(purchase_id, status_id=5)
             if code != 200:
                 return result, code
+            
+            # Avisar creador
+            self.push_service.send_to_user(
+                user_id=1,
+                title="Pago realizado",
+                body=f"El pago de la solicitud PR-{purchase.id} ha sido confirmado.",
+            )
         
         elif action == "invoiced":
-            result, code = self.purchase_repository.set_status(
-                data["purchase_id"], status_id=6
-            )
+            result, code = self.purchase_repository.set_status(purchase_id, status_id=6)
             if code != 200:
                 return result, code
         
         elif action == "delivered":
-            result, code = self.purchase_repository.set_status(
-                data["purchase_id"], status_id=7
-            )
+            result, code = self.purchase_repository.set_status(purchase_id, status_id=7)
             if code != 200:
                 return result, code
             
-        elif action == "reject":
-            result, code = self.purchase_repository.set_status(
-                data["purchase_id"], status_id=10
+            purchase, pc = self.purchase_repository.get_purchase_by_id(purchase_id)
+            if pc != 200:
+                return purchase, pc
+
+            # Avisar creador
+            self.push_service.send_to_user(
+                user_id=purchase.user_id,
+                title="Entrega confirmada",
+                body=f"Tu solicitud de compra PR-{purchase.id} ya fue entregada.",
             )
+            
+        elif action == "reject":
+            result, code = self.purchase_repository.set_status(purchase_id, status_id=10)
             if code != 200:
                 return result, code
+
+            level_id = user.level_id
+            user_name = user.name
+            purchase, pc = self.purchase_repository.get_purchase_by_id(purchase_id)
+            if pc != 200:
+                return purchase, pc
+
+            creator_id = purchase.user_id
+            creator_level_id = purchase.user.level_id
+
+            if level_id == self.management_level:
+                # Avisar creador
+                self.push_service.send_to_user(
+                    user_id=creator_id,
+                    title="Solicitud rechazada",
+                    body=f"Tu solicitud de compra PR-{purchase.id} fue rechazada por Gerencia. Revisa el detalle.",
+                )
+
+                if creator_level_id != self.leader_level:
+                    leader, lc = self.user_repository.get_leader(creator_department_id)
+                    if lc != 200:
+                        return leader, lc
+                    
+                    # Avisar leader
+                    self.push_service.send_to_user(
+                        user_id=leader.id,
+                        title="Solicitud rechazada",
+                        body=f"La solicitud de compra PR-{purchase.id} ha sido rechazada. Revisa el detalle.",
+                    )
+            else:
+                # Avisar creador
+                self.push_service.send_to_user(
+                    user_id=creator_id,
+                    title="Solicitud rechazada",
+                    body=f"{format_name(user_name, True)} rechazó tu solicitud de compra PR-{purchase.id}. Revisa el detalle.",
+                )
 
         elif action == "approve":
-            result, code = self.purchase_repository.update_purchase(data)
-            if code != 200:
-                return result, code
+            update_purchase, upc = self.purchase_repository.update_purchase(data)
+            if upc != 200:
+                return update_purchase, upc
 
+            level_id = user.level_id
+            user_name = user.name
+            department_id = user.department_id
             status_id = None
-            if user.level_id == self.leader_level:
+            if level_id == self.leader_level:
                 status_id = 2
-            elif user.level_id == self.management_level:
+            elif level_id == self.management_level:
                 status_id = 3
             else:
                 return "No autorizado para aprobar", 403
 
-            result, code = self.purchase_repository.set_status(
-                data["purchase_id"], status_id
-            )
-            if code != 200:
-                return result, code
+            status, sc = self.purchase_repository.set_status(purchase_id, status_id)
+            if sc != 200:
+                return status, sc
+            
+            purchase, pc = self.purchase_repository.get_purchase_by_id(purchase_id)
+            if pc != 200:
+                return purchase, pc
+
+            purchase_id = purchase.id
+            creator_id = purchase.user_id
+            creator_name = purchase.user.name
+            creator_department_id = purchase.user.department_id
+            creator_level_id = purchase.user.level_id
+            express = purchase.express
+
+            department_user_ids, duic = self.user_repository.get_user_ids_by_department(department_id=8)
+            if duic != 200:
+                return department_user_ids, duic
+            
+            if department_id == 7:
+                # Avisar area de compras
+                self.push_service.send_to_users(
+                    user_ids=department_user_ids,
+                    title=f"Solicitud PR-{purchase_id} recibida",
+                    body="Hay una nueva solicitud de compra pendiente de gestión.",
+                )
+
+                # Avisar creador
+                self.push_service.send_to_user(
+                    user_id=creator_id,
+                    title="Solicitud aprobada",
+                    body=f"Tu solicitud de compra PR-{purchase_id} ha sido aprobada por Gerencia.",
+                )
+
+                if creator_level_id != self.leader_level:
+                    leader, lc = self.user_repository.get_leader(creator_department_id)
+                    if lc != 200:
+                        return leader, lc
+                    
+                    # Avisar leader
+                    self.push_service.send_to_user(
+                        user_id=leader.id,
+                        title="Solicitud aprobada",
+                        body=f"La solicitud de compra PR-{purchase_id} ha sido aprobada por Gerencia.",
+                    )
+            
+            elif level_id == self.leader_level:
+                if express == 1:
+                    if department_id != 8:
+                        # Avisar area de compras
+                        self.push_service.send_to_users(
+                            user_ids=department_user_ids,
+                            title=f"Solicitud PR-{purchase_id} recibida",
+                            body="Hay una nueva solicitud de compra pendiente de gestión.",
+                        )
+
+                    # Avisar creador
+                    self.push_service.send_to_user(
+                        user_id=creator_id,
+                        title="Solicitud aprobada",
+                        body=f"Tu solicitud de compra PR-{purchase_id} ha sido aprobada.",
+                    )
+                else:
+                    # Avisar creador
+                    self.push_service.send_to_user(
+                        user_id=creator_id,
+                        title="Solicitud aprobada",
+                        body=f"{format_name(user_name, True)} aprobó tu solicitud PR-{purchase_id}. En espera de Gerencia.",
+                    )
+
+                    manager, lc = self.user_repository.get_manager()
+                    if lc != 200:
+                        return manager, lc
+                    
+                    # Avisar manager
+                    self.push_service.send_to_user(
+                        user_id=manager.id,
+                        title="Aprobación pendiente",
+                        body=f"La solicitud de compra PR-{purchase_id} de {format_name(creator_name, True)} necesita tu aprobación.",
+                    )
 
         else:
             result, code = self.purchase_repository.update_purchase(data)
@@ -338,6 +512,25 @@ class PurchaseService:
 
         socketio.emit("purchase_update_dashboard", {})
         return "Solicitud actualizada correctamente", 200
+    
+
+    @handle_exceptions
+    def requests(self):
+        user_id = int(get_jwt_identity())
+        user, uc = self.user_repository.get_user_by_id(user_id)
+        if uc != 200:
+            return user, uc
+        
+        level_id = user.level_id
+        department_id = user.department_id
+
+        if department_id in [8, 7] or user_id in [1, 23]:
+            return self._get_manager_request_list(user_id)
+        
+        if level_id == self.leader_level:
+            return self._get_leader_request_list(user_id, department_id)
+        
+        return self._get_worker_request_list(user_id)
 
 
     @handle_exceptions
@@ -350,8 +543,8 @@ class PurchaseService:
 
 
     @handle_exceptions
-    def _get_leader_request_list(self, user_id):
-        department_user_ids, duic = self.user_repository.get_user_ids_by_department(user_id)
+    def _get_leader_request_list(self, user_id, department_id=None):
+        department_user_ids, duic = self.user_repository.get_user_ids_by_department(department_id)
         if duic != 200:
             return department_user_ids, duic
     
@@ -394,24 +587,6 @@ class PurchaseService:
         }, 200
 
 
-    @handle_exceptions
-    def requests(self):
-        user_id = int(get_jwt_identity())
-        user, uc = self.user_repository.get_user_by_id(user_id)
-        if uc != 200:
-            return user, uc
-        
-        user_level_id = user.level_id
-
-        if user_level_id == self.worker_level:
-            return self._get_worker_request_list(user_id)
-
-        if user_level_id == self.leader_level and user_id != 1:
-            return self._get_leader_request_list(user_id)
-        
-        return self._get_manager_request_list(user_id)
-    
-    
     @handle_exceptions
     def type_options(self):
         purchase_type, ptc = self.purchase_repository.get_purchase_type()
@@ -472,20 +647,37 @@ class PurchaseService:
         if not comment:
             return "Comentario vacío", 400
 
-        user_id = int(get_jwt_identity())
-
+        current_user_id = int(get_jwt_identity())
+        user, uc = self.user_repository.get_user_by_id(current_user_id)
+        if uc != 200:
+            return user, uc
+        
+        user_name = user.name
         purchase, pc = self.purchase_repository.get_purchase_by_id(data["purchase_id"])
         if pc != 200:
             return purchase, pc
 
+        purchase_id =purchase.id
+
         chat, cc = self.purchase_repository.add_chat(
-            purchase_id=purchase.id,
-            user_id=user_id,
+            purchase_id=purchase_id,
+            user_id=current_user_id,
             comment=comment
         )
         if cc != 200:
             return chat, cc
 
+        participants, _ = self.purchase_repository.get_chat_participants(
+            purchase_id=purchase_id,
+            exclude_user_id=current_user_id,
+            include_owner=True,
+        )
+        
+        self.push_service.send_to_users(
+            user_ids=participants,
+            title=f"Nuevo mensaje, solicitud PR-{purchase_id}",
+            body=f"{format_name(user_name, True)}: {comment}",
+        )
         socketio.emit("purchase_update_dashboard", {})
 
         return {

@@ -288,6 +288,30 @@ class PurchaseRepository:
 
         return chat, 200
     
+    
+    @handle_db_exceptions
+    def get_chat_participants(self, purchase_id, exclude_user_id = None, include_owner = True):
+        q = (
+            g.db_session.query(PurchaseChats.commenter_id)
+            .filter(PurchaseChats.purchase_id == purchase_id)
+        )
+
+        if exclude_user_id is not None:
+            q = q.filter(PurchaseChats.commenter_id != exclude_user_id)
+
+        user_ids = [row[0] for row in q.distinct().all()]
+
+        if include_owner:
+            owner_id = (
+                g.db_session.query(PurchaseRequest.user_id)
+                .filter(PurchaseRequest.id == purchase_id, PurchaseRequest.deleted_at.is_(None))
+                .scalar()
+            )
+            if owner_id and owner_id != exclude_user_id and owner_id not in user_ids:
+                user_ids.append(owner_id)
+
+        return user_ids, 200
+
 
     @handle_db_exceptions
     def soft_delete(self, purchase_id):
