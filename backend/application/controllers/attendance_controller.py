@@ -20,3 +20,8 @@ class AttendanceController:
             return "Empty file", 400
 
         return self.attendance_service.xls_process(file, file_bytes)
+    
+
+    @handle_logs_and_exceptions
+    def summary_by_offset(self, offset=0):
+        return self.attendance_service.summary_by_offset(int(offset))

@@ -3,6 +3,10 @@ import pandas as pd
 from io import BytesIO
 from datetime import datetime, timedelta, date
 from application.handlers import handle_exceptions
+from application.utils import parse_date_iso, parse_time
+from application.repository.attendance_repository import AttendanceRepository
+from application.repository.user_repository import UserRepository
+from flask_jwt_extended import get_jwt_identity
 
 
 _RE_DATE_RANGE = re.compile(r"(\d{4}-\d{2}-\d{2})\s*~\s*(\d{4}-\d{2}-\d{2})")
@@ -12,7 +16,8 @@ _RE_DNI = re.compile(r"\d{8}")
 
 class AttendanceService:
     def __init__(self):
-        pass
+        self.attendance_repository = AttendanceRepository()
+        self.user_repository = UserRepository()
 
 
     def _first_day_next_month(self, d):
@@ -215,9 +220,73 @@ class AttendanceService:
 
             i += 1
 
+        raw_rows = []
+        for u in users:
+            dni = (u.get("dni") or "").strip()
+            for date_iso, times in (u.get("marks") or {}).items():
+                for hhmm in (times or []):
+                    hhmm = (hhmm or "").strip()
+                    if dni and date_iso and hhmm:
+                        raw_rows.append((dni, date_iso, hhmm))
+
+        if not raw_rows:
+            return {
+                "period": period,
+                "inserted": 0,
+                "skipped_duplicates": 0,
+                "missing_clients": [],
+            }, 200
+
+        dni_to_user_id = {}
+        missing_clients = []
+
+        for dni, _, _ in raw_rows:
+            if dni in dni_to_user_id:
+                continue
+
+            user_id, uc = self.user_repository.get_user_by_document(dni)
+            if uc != 200:
+                missing_clients.append(dni)
+                continue
+
+            dni_to_user_id[dni] = int(user_id.id)
+
+        marks_rows = []
+        for dni, date_iso, hhmm in raw_rows:
+            user_id = dni_to_user_id.get(dni)
+            if not user_id:
+                continue
+
+            d = parse_date_iso(date_iso)
+            t = parse_time(hhmm)
+
+            marks_rows.append({
+                "user_id": user_id,
+                "date": d,
+                "mark_at": t,
+            })
+
+        res, rc = self.attendance_repository.save_marks(marks_rows)
+        if rc != 200:
+            return res, rc
+
         return {
             "period": period,
-            "days": days,
-            "users_count": len(users),
-            "users": users,
+            "inserted": res.get("inserted", 0),
+            "skipped_duplicates": res.get("skipped_duplicates", 0),
+            "missing_clients": sorted(set(missing_clients)),
         }, 200
+    
+
+    @handle_exceptions
+    def summary_by_offset(self, offset):
+        user_id = int(get_jwt_identity())
+        period, pc = self.attendance_repository.get_period_by_offset(offset, today=date.today())
+        if pc != 200:
+            return period, pc
+
+        if not period:
+            return {"period": None, "weeks": []}, 200
+
+        payload, rc = self.attendance_repository.build_period_summary(user_id, period)
+        return payload, rc

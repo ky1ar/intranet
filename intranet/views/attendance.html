@@ -19,7 +19,7 @@
 				</div>
 				<!-- <div class="item date" @click="today()" x-text="formatMonthLabel()"></div> -->
 
-				<div class="item date" @click="today()">Enero</div>
+				<div class="item date" @click="today()" x-text="periodName"></div>
 				<div class="item" @click="next()">
 					<img alt="next" src="/static/images/icons/right.svg" width="20" height="20">
 				</div>
@@ -685,6 +685,7 @@
 		Alpine.data('attendance_data',() => ({
             api: Alpine.store('cache').api,
 			user_id: Alpine.store('cache').user.id,
+            
 			startHour: 8,
 			endHour: 20,
 			hours: Array.from({ length: 13 }, (_, i) => i + 8), // 8am - 8pm
@@ -692,20 +693,23 @@
 			offset: 0,
 			show_salary: false,
 			loading: false,
+            offset: 0,
+            periodName: "Cargando...",
+            attendancePeriod: null,
 
 			async init() {
 				console.log('Inicializando attendance...');
 				const socket = Alpine.store('cache').socket;
 				if (socket) {
 					socket.removeAllListeners();
-					socket.on("attendance_update_dashboard", async () => {
-						await Alpine.store('cache').refresh(['attendance_period']);
-					});
+					// socket.on("attendance_update_dashboard", async () => {
+					// 	await Alpine.store('cache').refresh(['attendance_period']);
+					// });
 				}
 				
 				await Alpine.store('cache').fetchData([
 					//{ key: 'attendance_dashboard', url: `/attendance/dashboard/day?offset=${this.offset}`, force: true },
-					{ key: 'attendance_period', url: `/attendance/period/summary?user_id=${this.user_id}&period_id=2`, force: true },
+					{ key: 'attendance_period', url: `/attendance/period?offset=${this.offset}`, force: true },
 
 				]);
 

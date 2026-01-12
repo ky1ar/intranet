@@ -6,6 +6,14 @@ def peru_time():
     return datetime.now(timezone.utc) - timedelta(hours=5)
 
 
+def parse_time(hhmm):
+    return datetime.strptime(hhmm, "%H:%M").time()
+
+
+def parse_date_iso(iso):
+    return datetime.strptime(iso, "%Y-%m-%d").date()
+
+
 def format_name(full_name, simple=False):
     if not full_name:
         return "Usuario"
