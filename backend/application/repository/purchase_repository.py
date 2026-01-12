@@ -54,13 +54,13 @@ class PurchaseRepository:
     @handle_db_exceptions
     def add_purchase(self, data, user):
         user_level_id = user.level_id
+        user_department_id = user.department_id
         initial_status_id = 1
 
-        if user_level_id == self.leader_level:
-            initial_status_id = 2
-        
-        if user_level_id == self.management_level:
+        if user_department_id == 7:
             initial_status_id = 3
+        elif user_level_id == self.leader_level or user_level_id == self.management_level:
+            initial_status_id = 2
 
         items_data = data.get("items") or []
         if not items_data:

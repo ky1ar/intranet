@@ -13,15 +13,18 @@ class PurchaseService:
         self.purchase_repository = PurchaseRepository()
         self.user_repository = UserRepository()
         self.push_service = PushSender()
-        self.management_department = 7
-        self.worker_level = 2
-        self.leader_level = 3
-        self.management_level = 4
+        self.management_dep = 7
+        self.purchases_dep = 8
+        self.worker_lvl = 2
+        self.leader_lvl = 3
+        self.admin_lvl = 4
 
 
     @handle_exceptions
     def process(self, data):
         user_id = int(get_jwt_identity())
+        logging.info(user_id)
+
         user, uc = self.user_repository.get_user_by_id(user_id)
         if uc != 200:
             return user, uc
@@ -34,32 +37,42 @@ class PurchaseService:
 
         level_id = user.level_id
         department_id = user.department_id
-        express = data.get("express")
+        logging.info(level_id)
+        logging.info(department_id)
 
-        if department_id == 7:
-            department_user_ids, duic = self.user_repository.get_user_ids_by_department(department_id=8)
+        express = data.get("express")
+        if department_id == self.management_dep:
+            logging.info("Manager flow")
+            user_ids, duic = self.user_repository.get_user_ids_by_department(department_id=self.purchases_dep)
             if duic != 200:
-                return department_user_ids, duic
-            
+                return user_ids, duic
+            user_ids.append(1) # Added Leslie
+
             self.push_service.send_to_users(
-                user_ids=department_user_ids,
+                user_ids=user_ids,
                 title=f"Solicitud PR-{new_purchase_id} recibida",
                 body="Hay una nueva solicitud de compra pendiente de gestión.",
             )
         
-        elif level_id == self.leader_level:
+        elif level_id in [self.leader_lvl, self.admin_lvl]:
+            logging.info("Leaders Flow")
             if express == 1:
+                logging.info("Is Express")
+
                 if department_id != 8:
-                    department_user_ids, duic = self.user_repository.get_user_ids_by_department(department_id=8)
+                    department_user_ids, duic = self.user_repository.get_user_ids_by_department(department_id=self.purchases_dep)
                     if duic != 200:
                         return department_user_ids, duic
                     
+                    department_user_ids.append(1)
+                    logging.info(department_user_ids)
                     self.push_service.send_to_users(
                         user_ids=department_user_ids,
                         title=f"Solicitud PR-{new_purchase_id} recibida",
                         body="Hay una nueva solicitud de compra pendiente de gestión.",
                     )
             else:
+                logging.info("Is classic")
                 manager, mc = self.user_repository.get_manager()
                 if mc != 200:
                     return manager, mc
@@ -70,9 +83,12 @@ class PurchaseService:
                     body=f"La solicitud de compra PR-{new_purchase_id} de {format_name(user.name, True)} necesita tu aprobación.",
                 )
         else:
+            logging.info("Worker flow")
+
             leader, lc = self.user_repository.get_leader(department_id)
             if lc != 200:
                 return leader, lc
+            logging.info(leader.id)
             
             self.push_service.send_to_user(
                 user_id=leader.id,
@@ -97,10 +113,10 @@ class PurchaseService:
         level_id = user.level_id
         department_id = user.department_id
 
-        if department_id == 7:
+        if department_id == self.management_dep:
             return self._get_manager_request(user, purchase)
         
-        if level_id == self.leader_level:
+        elif level_id in [self.leader_lvl, self.admin_lvl]:
             return self._get_leader_request(user, purchase)
         
         return self._get_worker_request(user, purchase)
@@ -373,7 +389,9 @@ class PurchaseService:
                 return result, code
 
             level_id = user.level_id
+            department_id = user.department_id
             user_name = user.name
+
             purchase, pc = self.purchase_repository.get_purchase_by_id(purchase_id)
             if pc != 200:
                 return purchase, pc
@@ -381,7 +399,7 @@ class PurchaseService:
             creator_id = purchase.user_id
             creator_level_id = purchase.user.level_id
 
-            if level_id == self.management_level:
+            if department_id == self.management_dep:
                 # Avisar creador
                 self.push_service.send_to_user(
                     user_id=creator_id,
@@ -389,7 +407,7 @@ class PurchaseService:
                     body=f"Tu solicitud de compra PR-{purchase.id} fue rechazada por Gerencia. Revisa el detalle.",
                 )
 
-                if creator_level_id != self.leader_level:
+                if creator_level_id != self.leader_lvl:
                     leader, lc = self.user_repository.get_leader(creator_department_id)
                     if lc != 200:
                         return leader, lc
@@ -400,7 +418,7 @@ class PurchaseService:
                         title="Solicitud rechazada",
                         body=f"La solicitud de compra PR-{purchase.id} ha sido rechazada. Revisa el detalle.",
                     )
-            else:
+            elif level_id in [self.leader_lvl, self.admin_lvl]:
                 # Avisar creador
                 self.push_service.send_to_user(
                     user_id=creator_id,
@@ -414,13 +432,14 @@ class PurchaseService:
                 return update_purchase, upc
 
             level_id = user.level_id
-            user_name = user.name
             department_id = user.department_id
+            user_name = user.name
+
             status_id = None
-            if level_id == self.leader_level:
-                status_id = 2
-            elif level_id == self.management_level:
+            if department_id == self.management_dep:
                 status_id = 3
+            elif level_id in [self.leader_lvl, self.admin_lvl]:
+                status_id = 2
             else:
                 return "No autorizado para aprobar", 403
 
@@ -439,11 +458,12 @@ class PurchaseService:
             creator_level_id = purchase.user.level_id
             express = purchase.express
 
-            department_user_ids, duic = self.user_repository.get_user_ids_by_department(department_id=8)
+            department_user_ids, duic = self.user_repository.get_user_ids_by_department(department_id=self.purchases_dep)
             if duic != 200:
                 return department_user_ids, duic
-            
-            if department_id == 7:
+            department_user_ids.append(1)
+
+            if department_id == self.management_dep:
                 # Avisar area de compras
                 self.push_service.send_to_users(
                     user_ids=department_user_ids,
@@ -458,7 +478,7 @@ class PurchaseService:
                     body=f"Tu solicitud de compra PR-{purchase_id} ha sido aprobada por Gerencia.",
                 )
 
-                if creator_level_id != self.leader_level:
+                if creator_level_id != self.leader_lvl:
                     leader, lc = self.user_repository.get_leader(creator_department_id)
                     if lc != 200:
                         return leader, lc
@@ -470,9 +490,9 @@ class PurchaseService:
                         body=f"La solicitud de compra PR-{purchase_id} ha sido aprobada por Gerencia.",
                     )
             
-            elif level_id == self.leader_level:
+            elif level_id in [self.leader_lvl, self.admin_lvl]:
                 if express == 1:
-                    if department_id != 8:
+                    if department_id != self.purchases_dep:
                         # Avisar area de compras
                         self.push_service.send_to_users(
                             user_ids=department_user_ids,
@@ -527,7 +547,7 @@ class PurchaseService:
         if department_id in [8, 7] or user_id in [1, 23]:
             return self._get_manager_request_list(user_id)
         
-        if level_id == self.leader_level:
+        if level_id == self.leader_lvl:
             return self._get_leader_request_list(user_id, department_id)
         
         return self._get_worker_request_list(user_id)
@@ -539,7 +559,7 @@ class PurchaseService:
         if prc != 200:
             return purchase_requests, prc
         
-        return self._format_requests_reponse(purchase_requests, user_id, self.worker_level)
+        return self._format_requests_reponse(purchase_requests, user_id, self.worker_lvl)
 
 
     @handle_exceptions
@@ -552,7 +572,7 @@ class PurchaseService:
         if prc != 200:
             return purchase_requests, prc
         
-        return self._format_requests_reponse(purchase_requests, user_id, self.leader_level)
+        return self._format_requests_reponse(purchase_requests, user_id, self.leader_lvl)
 
     
     @handle_exceptions
@@ -561,7 +581,7 @@ class PurchaseService:
         if prc != 200:
             return purchase_requests, prc
         
-        return self._format_requests_reponse(purchase_requests, user_id, self.leader_level)
+        return self._format_requests_reponse(purchase_requests, user_id, self.leader_lvl)
     
 
     @handle_exceptions
