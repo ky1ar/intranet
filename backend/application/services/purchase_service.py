@@ -355,6 +355,10 @@ class PurchaseService:
             if code != 200:
                 return result, code
             
+            purchase, pc = self.purchase_repository.get_purchase_by_id(purchase_id)
+            if pc != 200:
+                return purchase, pc
+            
             # Avisar creador
             self.push_service.send_to_user(
                 user_id=1,

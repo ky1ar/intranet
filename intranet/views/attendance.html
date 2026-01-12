@@ -713,9 +713,6 @@
 
 				]);
 
-				this.tick();
-				// refrescar calendario cada 30s
-				//setInterval(() => this.getCalendar(), 30000);
 				await Alpine.store('cache').verify();
 
 			},
