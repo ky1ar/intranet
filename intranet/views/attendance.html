@@ -1,0 +1,1612 @@
+<div x-data="attendance_data">
+	<div id="attendance">
+        <div class="controls">
+			<div class="left frost">
+				<div class="item" @click="viewHistory()">
+					<img alt="" width="22" height="22" src="/static/images/icons/salary.svg">
+					<span>Sueldo</span>
+				</div>
+				<!-- <div class="item" @click="viewStatistics()">
+					<img alt="" width="20" height="20" src="/static/images/icons/report.svg">
+					<span>Estadísticas</span>
+				</div> -->
+			</div>
+
+
+			<div class="left frost">
+				<div class="item" @click="prev()">
+					<img class="flip" alt="prev" src="/static/images/icons/right.svg" width="20" height="20">
+				</div>
+				<!-- <div class="item date" @click="today()" x-text="formatMonthLabel()"></div> -->
+
+				<div class="item date" @click="today()">Enero</div>
+				<div class="item" @click="next()">
+					<img alt="next" src="/static/images/icons/right.svg" width="20" height="20">
+				</div>
+			</div>
+
+			<div class="right frost-dark">
+				<div class="item" @click="xlsProcess()">
+					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
+					<span>Cargar</span>
+					<input
+						type="file"
+						x-ref="file"
+						class="hidden"
+						accept=".xls,.xlsx"
+						@change="onSelected"
+					/>
+				</div>
+			</div>
+		</div>
+
+
+		<div class="main">
+			<div class="middle">
+				<div class="card glass">
+					<div class="center">
+						<span>
+							Lunes
+						</span>
+						<span>
+							Martes
+						</span>
+						<span>
+							Miércoles
+						</span>
+						<span>
+							Jueves
+						</span>
+						<span>
+							Viernes
+						</span>
+						<span>
+							Sábado
+						</span>
+						<span>
+							Resumen
+						</span>
+					</div>
+					
+					<div class="bottom">
+						<div class="month glass">
+							<span class="number">31</span>
+							<div class="body"></div>
+						</div>
+
+						<div class="month white">
+							<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
+
+							<span class="number">01</span>
+							<div class="body">
+								<div class="item">
+									<span class="label">Mañana</span>
+									<span class="date">09:05 - 13:02</span>
+								</div>
+								<div class="item">
+									<span class="label">Tarde</span>
+									<span class="date">14:04 - 18:02</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="month white">
+							<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
+
+							<span class="number">02</span>
+							<div class="body">
+								<div class="item">
+									<span class="label">Mañana</span>
+									<span class="date">09:05 - 13:02</span>
+								</div>
+								<div class="item">
+									<span class="label">Tarde</span>
+									<span class="date">14:04 - 18:02</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="month white">
+							<span class="number">03</span>
+							<div class="body">
+								<div class="item">
+									<span class="label">Mañana</span>
+									<span class="date">09:05 - 13:02</span>
+								</div>
+								<div class="item">
+									<span class="label">Tarde</span>
+									<span class="date">14:04 - 18:02</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="month white">
+							<span class="number">04</span>
+							<div class="body">
+								<div class="item">
+									<span class="label">Mañana</span>
+									<span class="date">09:05 - 13:02</span>
+								</div>
+								<div class="item">
+									<span class="label">Tarde</span>
+									<span class="date">14:04 - 18:02</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="month glass">
+							<span class="number">05</span>
+							<div class="body"></div>
+						</div>
+
+						<div class="month glass2 week-review">
+							<span class="percent">103.2%</span>
+							<div class="bar-wrapper white">
+								<div class="bar" style="width:103.2%"></div>
+							</div>
+						</div>
+
+
+						<div class="month white">
+							<span class="number">07</span>
+							<div class="body">
+								<div class="item">
+									<span class="label">Mañana</span>
+									<span class="date">09:05 - 13:02</span>
+								</div>
+								<div class="item">
+									<span class="label">Tarde</span>
+									<span class="date">14:04 - 18:02</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="month white">
+							<span class="number">08</span>
+							<div class="body">
+								<div class="item">
+									<span class="label">Mañana</span>
+									<span class="date">09:05 - 13:02</span>
+								</div>
+								<div class="item">
+									<span class="label">Tarde</span>
+									<span class="date">14:04 - 18:02</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="month white">
+							<span class="number">09</span>
+							<div class="body">
+								<div class="item">
+									<span class="label">Mañana</span>
+									<span class="date">09:05 - 13:02</span>
+								</div>
+								<div class="item">
+									<span class="label">Tarde</span>
+									<span class="date">14:04 - 18:02</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="month white">
+							<span class="number">10</span>
+							<div class="body">
+								<div class="item">
+									<span class="label">Mañana</span>
+									<span class="date">09:05 - 13:02</span>
+								</div>
+								<div class="item">
+									<span class="label">Tarde</span>
+									<span class="date">14:04 - 18:02</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="month white">
+							<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
+
+							<span class="number">11</span>
+							<div class="body">
+								<div class="item">
+									<span class="label">Mañana</span>
+									<span class="date">09:05 - 13:02</span>
+								</div>
+								<div class="item">
+									<span class="label">Tarde</span>
+									<span class="date">14:04 - 18:02</span>
+								</div>
+							</div>
+						</div>
+						
+						<div class="month glass">
+							<span class="number">12</span>
+							<div class="body"></div>
+						</div>
+
+						<div class="month glass2 week-review">
+							<span class="percent">101.3%</span>
+							<div class="bar-wrapper white">
+								<div class="bar" style="width:101.3%"></div>
+							</div>
+						</div>
+
+						
+						<div class="month white">
+							<span class="number">14</span>
+							<div class="body">
+								<div class="item">
+									<span class="label">Mañana</span>
+									<span class="date">09:05 - 13:02</span>
+								</div>
+								<div class="item">
+									<span class="label">Tarde</span>
+									<span class="date">14:04 - 18:02</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="month white">
+							<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
+
+							<span class="number">15</span>
+							<div class="body">
+								<div class="item">
+									<span class="label">Mañana</span>
+									<span class="date">09:05 - 13:02</span>
+								</div>
+								<div class="item">
+									<span class="label">Tarde</span>
+									<span class="date">14:04 - 18:02</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="month white">
+							<span class="number">16</span>
+							<div class="body">
+								<div class="item">
+									<span class="label">Mañana</span>
+									<span class="date">09:05 - 13:02</span>
+								</div>
+								<div class="item">
+									<span class="label">Tarde</span>
+									<span class="date">14:04 - 18:02</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="month white">
+							<span class="number">17</span>
+							<div class="body">
+								<div class="item">
+									<span class="label">Mañana</span>
+									<span class="date">09:05 - 13:02</span>
+								</div>
+								<div class="item">
+									<span class="label">Tarde</span>
+									<span class="date">14:04 - 18:02</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="month white">
+							<span class="number">18</span>
+							<div class="body">
+								<div class="item">
+									<span class="label">Mañana</span>
+									<span class="date">09:05 - 13:02</span>
+								</div>
+								<div class="item">
+									<span class="label">Tarde</span>
+									<span class="date">14:04 - 18:02</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="month glass">
+							<span class="number">19</span>
+							<div class="body"></div>
+						</div>
+
+						<div class="month glass2 week-review">
+							<span class="percent">85.4%</span>
+							<div class="bar-wrapper white">
+								<div class="bar" style="width:85.4%"></div>
+							</div>
+						</div>
+
+
+						<div class="month white">
+							<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
+
+							<span class="number">21</span>
+							<div class="body">
+								<div class="item">
+									<span class="label">Mañana</span>
+									<span class="date">09:05 - 13:02</span>
+								</div>
+								<div class="item">
+									<span class="label">Tarde</span>
+									<span class="date">14:04 - 18:02</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="month white">
+							<span class="number">22</span>
+							<div class="body">
+								<div class="item">
+									<span class="label">Mañana</span>
+									<span class="date">09:05 - 13:02</span>
+								</div>
+								<div class="item">
+									<span class="label">Tarde</span>
+									<span class="date">14:04 - 18:02</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="month white">
+							<span class="number">23</span>
+							<div class="body">
+								<div class="item">
+									<span class="label">Mañana</span>
+									<span class="date">09:05 - 13:02</span>
+								</div>
+								<div class="item">
+									<span class="label">Tarde</span>
+									<span class="date">14:04 - 18:02</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="month white">
+							<span class="number">24</span>
+							<div class="body">
+								<div class="item">
+									<span class="label">Mañana</span>
+									<span class="date">09:05 - 13:02</span>
+								</div>
+								<div class="item">
+									<span class="label">Tarde</span>
+									<span class="date">14:04 - 18:02</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="month white">
+							<span class="number today">25</span>
+							<div class="body">
+								<div class="item">
+									<span class="label">Mañana</span>
+									<span class="date">09:05</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="month glass">
+							<span class="number">26</span>
+							<div class="body"></div>
+						</div>
+
+						<div class="month glass2 week-review">
+							<span class="percent">76.4%</span>
+							<div class="bar-wrapper white">
+								<div class="bar" style="width:76.4%"></div>
+							</div>
+						</div>
+
+						<div class="month white">
+							<span class="number">28</span>
+							<div class="body"></div>
+						</div>
+
+						<div class="month white">
+							<span class="number">29</span>
+							<div class="body"></div>
+						</div>
+
+						<div class="month white">
+							<span class="number">30</span>
+							<div class="body"></div>
+						</div>
+
+						<div class="month glass">
+							<span class="number">01</span>
+							<div class="body"></div>
+						</div>
+
+						<div class="month glass">
+							<span class="number">02</span>
+							<div class="body"></div>
+						</div>
+
+						<div class="month glass">
+							<span class="number">03</span>
+							<div class="body"></div>
+						</div>
+
+						<div class="month glass2 week-review">
+							<span class="percent">0%</span>
+							<div class="bar-wrapper white">
+								<div class="bar" style="width:0%"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+			</div>
+
+			<div class="right">
+				<div class="card glass salary">
+					<span class="litle">Sueldo del mes</span>
+					<span class="amount" x-show="show_salary">S/ 3144.00</span>
+					<span class="amount" x-show="!show_salary">S/ ********</span>
+					<div class="white eye hover-opacity" @click="show_salary = !show_salary">
+						<img alt="" width="16" height="16" src="/static/images/icons/eye.svg">
+					</div>
+
+					<div class="final">
+						<div>
+							<span>Sueldo base</span>
+							<span>S/ 3000.00</span>
+						</div>
+						<div>
+							<span>Porcentaje de asistencias</span>
+							<span>99.8%</span>
+						</div>
+						<div>
+							<span>Sueldo neto</span>
+							<span>S/ 2994.00</span>
+						</div>
+						<div>
+							<span>Bonos</span>
+							<span>S/ 150.00</span>
+						</div>
+						<div>
+							<span>Total a pagar</span>
+							<span>S/ 3144.00</span>
+						</div>
+					</div>
+
+				</div>
+
+				<div class="card glass stats">
+					<span class="litle">Resumen del mes</span>
+
+					<div class="sub">
+						<div class="target">
+							<img alt="" width="16" height="16" src="/static/images/icons/accept.svg">
+							<span>Periodo</span>
+						</div>
+
+						<div class="item">
+							<div class="label">Horas objetivo</div>
+							<div class="data">150:00</div>
+						</div>
+						<div class="item">
+							<div class="label">Horas laboradas</div>
+							<div class="data">148:50</div>
+						</div>
+					</div>
+					
+
+					<div class="sub">
+						<div class="target">
+							<img alt="" width="16" height="16" src="/static/images/icons/accept.svg">
+							<span>Tolerancia</span>
+						</div>
+
+						<div class="item">
+							<div class="label">Prevista <small>(1% del objetivo)</small></div>
+							<div class="data">01:50</div>
+						</div>
+						<div class="item">
+							<div class="label">Acumulada</div>
+							<div class="data">00:45</div>
+						</div>
+						<div class="item">
+							<div class="label">Total penalización</div>
+							<div class="data">00:00</div>
+						</div>
+					</div>
+
+					
+					<div class="sub">
+						<div class="target">
+							<img alt="" width="16" height="16" src="/static/images/icons/accept.svg">
+							<span>Otros</span>
+						</div>
+						<div class="item">
+							<div class="label">Tardanzas</div>
+							<div class="data">0</div>
+						</div>
+						<div class="item">
+							<div class="label">Vacaciones</div>
+							<div class="data">0</div>
+						</div>
+						<div class="item">
+							<div class="label">Bonos</div>
+							<div class="data">3</div>
+						</div>
+					</div>
+
+					<div class="sub">
+						<div class="target">
+							<img alt="" width="16" height="16" src="/static/images/icons/accept.svg">
+							<span>Cumplimiento</span>
+						</div>
+						<div class="item">
+							<div class="label">Porcentaje</div>
+							<div class="data">99.8 %</div>
+						</div>
+					</div>
+
+				</div>
+
+				<div class="card glass performance">
+					<div class="litle">Desempeño</div>
+					<div class="reviews">
+						<div class="user">
+							<img class="circle" alt="user" src="/static/images/uploads/users/45471238.jpg" width="24" height="24">
+							<div class="text">
+								<span class="name">Antonio Moll</span>
+								<span class="department">Gerencia</span>
+							</div>
+							<img class="like" alt="" width="16" height="16" src="/static/images/icons/like2.svg">
+						</div>
+
+						<div class="user">
+							<img class="circle" alt="user" src="/static/images/uploads/users/75261878.jpg" width="24" height="24">
+							<div class="text">
+								<span class="name">Leslie Gallegos</span>
+								<span class="department">Administración</span>
+							</div>
+							<img class="like" alt="" width="16" height="16" src="/static/images/icons/likeline.svg">
+						</div>
+						
+						<div class="user">
+							<img class="circle" alt="user" src="/static/images/uploads/users/73705094.jpg" width="24" height="24">
+							<div class="text">
+								<span class="name">Silvia Tejeda</span>
+								<span class="department">Marketing</span>
+							</div>
+							<img class="like" alt="" width="16" height="16" src="/static/images/icons/likeline.svg">
+						</div>
+
+						<div class="user">
+							<img class="circle" alt="user" src="/static/images/uploads/users/76520775.jpg" width="24" height="24">
+							<div class="text">
+								<span class="name">Lucy Chapoñan</span>
+								<span class="department">Soporte</span>
+							</div>
+							<img class="like" alt="" width="16" height="16" src="/static/images/icons/dislike.svg">
+						</div>
+
+						<div class="user">
+							<img class="circle" alt="user" src="/static/images/uploads/users/47293035.jpg" width="24" height="24">
+							<div class="text">
+								<span class="name">Kevin Trejo</span>
+								<span class="department">Logistica</span>
+							</div>
+							<img class="like" alt="" width="16" height="16" src="/static/images/icons/like2.svg">
+						</div>
+					</div>
+				</div>
+			</div>
+
+
+			<!--
+			<div class="schedule-day" style="display: none;">
+				<div class="users">
+					<div class="header">
+						Usuarios
+					</div>
+
+					<div class="column">
+						<template x-for="user in $store.cache.getData('attendance_dashboard')?.schedule" :key="user.user_id">
+							<div class="row">
+								<img alt="user" class="image" :src="`/static/images/uploads/users/${user.image}`" width="32" height="32">
+								<div>
+									<div class="name" x-text="user.name"></div>
+									<div class="position" x-text="user.position"></div>
+								</div>
+							</div>
+						</template>
+					</div>
+				</div>
+
+				<div class="timeline">
+					<div class="timeline-header">
+						<template x-for="h in hours" :key="h">
+							<div class="timeline-hour" x-text="formatHour(h)"></div>
+						</template>
+					</div>
+
+					<template x-for="h in hours" :key="`line-${h}`">
+						<div class="timeline-line" :style="`left:${timeToPercent(new Date().setHours(h,0,0,0))}%`"></div>
+					</template>
+					
+					<template x-if="offset == 0">
+						<div class="timeline-now" :style="`left:${timeToPercent(now)}%`"></div>
+					</template>
+					
+					<div class="column">
+						<template x-for="(user, idx) in $store.cache.getData('attendance_dashboard')?.schedule" :key="user.user_id">
+							<div class="timeline-row">
+								<template x-for="interval in user.intervals" :key="interval.start">
+									<div class="timeline-block"
+										:style="intervalStyle(interval, idx, user.hex)">
+										<span x-text="formatLabel(interval)" :title="formatLabel(interval)"></span>
+									</div>
+								</template>
+							</div>
+						</template>
+					</div>
+				</div>
+			</div>
+
+			<div class="schedule-period">
+				<template x-for="week in $store.cache.getData('attendance_period')?.weeks" :key="week.week_index">
+					<div class="week white">
+						<span x-text="`Semana ${week.week_index}`"></span>
+
+						<div class="days">
+							<template x-for="day in week?.days" :key="day.date">
+								<div class="day">
+									<span x-text="day.label"></span>
+									<div class="intervals">
+										<template x-for="(interval, idx) in day.intervals" :key="idx">
+											<div class="pair">
+												<span x-text="interval.start"></span>
+												<span x-text="interval.end"></span>
+											</div>
+										</template>
+									</div>
+								</div>
+							</template>
+						</div>
+						
+					</div>
+				</template>
+			</div>
+			-->
+		</div>
+	</div>
+
+
+
+
+
+
+
+	<script>
+		Alpine.data('attendance_data',() => ({
+            api: Alpine.store('cache').api,
+			user_id: Alpine.store('cache').user.id,
+			startHour: 8,
+			endHour: 20,
+			hours: Array.from({ length: 13 }, (_, i) => i + 8), // 8am - 8pm
+			now: new Date(),
+			offset: 0,
+			show_salary: false,
+			loading: false,
+
+			async init() {
+				console.log('Inicializando attendance...');
+				const socket = Alpine.store('cache').socket;
+				if (socket) {
+					socket.removeAllListeners();
+					socket.on("attendance_update_dashboard", async () => {
+						await Alpine.store('cache').refresh(['attendance_period']);
+					});
+				}
+				
+				await Alpine.store('cache').fetchData([
+					//{ key: 'attendance_dashboard', url: `/attendance/dashboard/day?offset=${this.offset}`, force: true },
+					{ key: 'attendance_period', url: `/attendance/period/summary?user_id=${this.user_id}&period_id=2`, force: true },
+
+				]);
+
+				this.tick();
+				// refrescar calendario cada 30s
+				//setInterval(() => this.getCalendar(), 30000);
+				await Alpine.store('cache').verify();
+
+			},
+
+			xlsProcess() {
+				this.$refs.file.value = "";
+				this.$refs.file.click();
+			},
+
+			async onSelected(e) {
+				const file = e.target.files?.[0];
+				if (!file) return;
+
+				this.loading = true;
+				NProgress.start();
+
+				try {
+					const forma_data = new FormData();
+					forma_data.append("file", file);
+
+					const res = await fetch(`${this.api}/attendance/xls`, {
+						method: "POST",
+						body: forma_data,
+					});
+					console.log("XLS :", forma_data);
+
+					const data = await res.json().catch(() => ({}));
+					if (!res.ok) {
+						// this.error = data?.error || `Error ${res.status}`;
+						return;
+					}
+
+					// Aquí ya subió: si quieres mostrar resultado, emitir evento, etc.
+					console.log("XLS OK:", data);
+					// Ejemplo: disparar un evento global
+					// window.dispatchEvent(new CustomEvent("xls-uploaded", { detail: data }));
+
+				} catch (err) {
+					this.error = err?.message || "Error de red";
+				} finally {
+					this.loading = false;
+					NProgress.done();
+				}
+			},
+				
+			tick() {
+				this.now = new Date();
+				setTimeout(() => this.tick(), 1000 * 5);
+			},
+
+			formatHour(h) {
+				return h < 12 ? `${h}am` : (h == 12 ? "12pm" : `${h - 12}pm`);
+			},
+
+			timeToPercent(date) {
+				const new_date = new Date(date);
+				const hours = new_date.getHours() + new_date.getMinutes() / 60;
+				const percent = ((hours - this.startHour) / (this.endHour +1 - this.startHour)) * 100;
+				return Math.min(Math.max(percent, 0), 100);
+			},
+
+			intervalStyle(interval, idx, hex) {
+				const start = new Date(interval.start);
+				const end = interval.end ? new Date(interval.end) : this.now;
+				const left = this.timeToPercent(start);
+				const right = this.timeToPercent(end);
+				const width = right - left;
+
+				if (!interval.end) {
+					return `
+						left:${left}%;
+						width:${width}%;
+						background: linear-gradient(90deg, ${hex} 0%, ${hex}AA 70%, transparent 100%);
+					`;
+				}
+
+				return `
+					left:${left}%;
+					width:${width}%;
+					background-color:${hex};
+				`;
+			},
+
+			formatLabel(interval) {
+				const start = new Date(interval.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+				const end = interval.end
+					? new Date(interval.end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+					: "ahora";
+				return `${start} - ${end}`;
+			},
+
+			async next() {
+				this.offset++;
+				await Alpine.store('cache').refresh([
+					{ key: 'attendance_dashboard', url: `/attendance/dashboard/day?offset=${this.offset}` }
+				]);
+			},
+
+			async prev() {
+				this.offset--;
+				await Alpine.store('cache').refresh([
+					{ key: 'attendance_dashboard', url: `/attendance/dashboard/day?offset=${this.offset}` }
+				]);
+			},
+
+			async today() {
+				this.offset = 0;
+				await Alpine.store('cache').refresh([
+					{ key: 'attendance_dashboard', url: `/attendance/dashboard/day` }
+				]);
+			},
+		}));
+	</script>
+
+
+
+
+
+
+
+
+
+	<style>
+		#attendance {
+			user-select: none;
+			display: flex;
+			gap: 1rem;
+			margin: 0 auto;
+			max-width: 118rem;
+			flex-direction: column;
+		}
+		#attendance .main {
+			display: flex;
+			min-height: calc(100vh - 2rem);
+			gap: 1rem;
+		}
+		#attendance .main .left {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			max-width: 16rem;
+		}
+		#attendance .main .card {
+			padding: 0.75rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+			border-radius: 1rem;
+		}
+		#attendance .main .title {
+			font-size: 1rem;
+			font-weight: 600;
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+
+		
+
+		#attendance .main .left .thumb {
+			width: 100%;
+			border-radius: 0.5rem;
+		}
+		#attendance .main .left .detail {
+			display: flex;
+			flex-direction: column;
+		}
+		#attendance .main .left .detail .name {
+			display: flex;
+			gap: 0.25rem;
+			align-items: center;
+		}
+		#attendance .main .left .detail b {
+			font-size: 0.9rem;
+    		font-weight: 600;
+		}
+		#attendance .main .left .detail span {
+			font-size: 0.7rem;
+    		font-weight: 400;
+		}
+		#attendance .main .stats {
+			gap: 1rem;
+		}
+		#attendance .main .stats .litle {
+			font-size: 0.75rem;
+			font-weight: 500;
+			line-height: 1rem;
+		}
+		#attendance .main .stats .target {
+			display: flex;
+			gap: 0.5rem;
+			font-weight: 600;
+		}
+		#attendance .main .stats .item {
+			display: flex;
+    		justify-content: space-between;
+			margin-left: 1.5rem;
+			align-items: center;
+		}
+		#attendance .main .item .label {
+			font-weight: 500;
+			font-size: 0.75rem;
+			opacity: 0.75;
+			display: flex;
+			align-items: center;
+			gap: 0.25rem;
+		}
+		#attendance .main .item .data {
+			font-size: 1rem;
+			font-weight: 600;
+		}
+		#attendance .main .salary {
+			position: relative;
+    		gap: 0.5rem;
+		}
+		#attendance .main .salary .litle {
+			font-size: 0.75rem;
+			font-weight: 500;
+			line-height: 1rem;
+		}
+		#attendance .main .salary .amount {
+			font-size: 1.25rem;
+			font-weight: 700;
+			line-height: 1.5rem;
+		}
+		#attendance .main .salary .final {
+			display: flex;
+			flex-direction: column;
+			font-size: 0.75rem;
+		}
+		#attendance .main .salary .final div {
+			display: flex;
+    		justify-content: space-between;
+			opacity: 0.75;
+		}
+		#attendance .main .salary .final div span + span {
+			    font-weight: 600;
+		}
+		#attendance .main .salary .eye {
+			padding: 0.5rem;
+			border-radius: 0.5rem;
+			position: absolute;
+			right: 0.5rem;
+			top: 0.5rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+
+		#attendance .main .performance {
+			gap: 0.75rem;
+		}
+		#attendance .main .performance .litle {
+			font-size: 0.75rem;
+			font-weight: 500;
+			line-height: 1rem;
+		}
+		#attendance .main .performance .reviews {
+			display: flex;
+			gap: 1rem;
+			flex-direction: column;
+		}
+		#attendance .main .performance .reviews .user {
+			display: flex;
+			gap: 0.75rem;
+			align-items: center;
+		}
+		#attendance .main .performance .reviews .user .circle {
+			min-width: 1.75rem;
+    		border-radius: 1rem;
+		}
+		#attendance .main .performance .reviews .user .text {
+			display: flex;
+    		flex-direction: column;
+		}
+		#attendance .main .performance .reviews .user .name {
+			line-height: 1rem;
+    		font-weight: 600;
+		}
+		#attendance .main .performance .reviews .user .department {
+			font-size: 0.75rem;
+			font-weight: 400;
+			opacity: 0.5;
+			line-height: 1rem;
+		}
+		#attendance .main .performance .reviews .user .like {
+			margin-left: auto;
+		}
+
+		#attendance .main .week-review {
+			align-items: center;
+			justify-content: center;
+			gap: 0.75rem;
+		}
+		#attendance .main .week-review .percent {
+			font-size: 1.25rem;
+			line-height: 1.5rem;
+			font-weight: 500;
+		}
+		#attendance .main .week-review .bar-wrapper {
+			position: relative;
+			height: 12px;
+			overflow: hidden;
+			width: 100%;
+		}
+
+		#attendance .main .week-review .bar {
+			height: 100%;
+			background: linear-gradient(90deg, #eab12f, #fa6817);
+		}
+
+
+		#attendance .main .middle {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			flex: 1;
+		}
+		#attendance .main .middle .top {
+			display: flex;
+    		justify-content: space-between;
+		}
+		#attendance .main .middle .more {
+			display: flex;
+			gap: 0.25rem;
+			align-items: center;
+			background-color: var(--black);
+			color: var(--white);
+			padding: 0.5rem 1rem;
+			border-radius: 1rem;
+			font-size: 0.8rem;
+		}
+		#attendance .main .middle .more img {
+			filter: invert(1);
+		}
+		#attendance .main .middle .center {
+			display: grid;
+			grid-template-columns: repeat(7, 1fr);
+			gap: 0.75rem;
+			font-weight: 500;
+    		opacity: 0.5;
+		}
+		#attendance .main .middle .center .year {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		#attendance .main .middle .bottom {
+			display: grid;
+			grid-template-columns: repeat(7, 1fr);
+			gap: 0.75rem;
+		}
+		#attendance .main .middle .bottom .month {
+			padding: 0.5rem;
+			border-radius: 0.75rem;
+			display: flex;
+			flex-direction: column;
+			gap: 1.25rem;
+			position: relative;
+		}
+		#attendance .main .middle .bottom .month .number {
+			font-size: 1rem;
+			line-height: 1rem;
+			font-weight: 500;
+			position: absolute;
+			padding: 0.5rem;
+			top: 0;
+			left: 0;
+		}
+		#attendance .main .middle .bottom .month .number.today {
+			background-color: var(--primary);
+			color: white;
+			font-weight: 400;
+			border-radius: 0.5rem 0 0.5rem 0;
+		}
+		#attendance .main .middle .bottom .month.glass .number {
+			opacity: 0.25;
+		}
+		#attendance .main .middle .bottom .month .late {
+			position: absolute;
+			right: 0.5rem;
+			top: 0.5rem;
+		}
+
+		#attendance .main .right {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			width: 18rem;
+			min-height: 8rem;
+		}
+		#attendance .main .middle .bottom .month .body {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			margin-top: 2rem;
+		}
+		#attendance .main .middle .bottom .month .body .item {
+			display: flex;
+			flex-direction: column;
+			padding: 0.5rem;
+			border-radius: 0.5rem;
+			background-color: var(--gray);
+		}
+		#attendance .main .middle .bottom .month .body .item .label {
+			font-size: 0.65rem;
+			line-height: 0.75rem;
+			opacity: 0.3;
+		}
+		#attendance .main .middle .bottom .month .body .item .date {
+			font-size: 0.8rem;
+			font-weight: 500;
+			line-height: 0.75rem;
+		}
+		#attendance .schedule-period {
+			display: flex;
+			flex-direction: column;
+    		gap: 1rem;
+		}
+		#attendance .schedule-period .week {
+			display: flex;
+    		flex-direction: column;
+			gap: 0.5rem;
+			padding: 0.75rem;
+		}
+		#attendance .schedule-period .days {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+		#attendance .schedule-period .days .day {
+			display: flex;
+			gap: 0.5rem;
+		}
+		#attendance .schedule-period .days .day .intervals {
+			display: flex;
+			gap: 0.5rem;
+		}
+		#attendance .schedule-day {
+			display: flex;
+		}
+		#attendance .users {
+			min-width: 13rem;
+			display: flex;
+    		flex-direction: column;
+			gap: 1rem;
+		}
+		#attendance .users .header {
+			font-size: 1rem;
+    		font-weight: 600;
+		}
+		#attendance .users .column {
+			display: flex;
+    		flex-direction: column;
+		}
+		#attendance .users .row {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.75rem 0;
+			line-height: 1rem;
+		}
+		#attendance .users .row img {
+			border-radius: 1rem;
+		}
+		#attendance .users .row .name {
+			font-weight: 600;
+			font-size: 0.9rem;
+		}
+		#attendance .users .row .position {
+			font-size: 0.8rem;
+			font-weight: 400;
+			color: #6b7280;
+		}
+		#attendance .timeline {
+			position: relative;
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			width: 100%;
+		}
+		#attendance .timeline-header {
+			display: flex;
+		}
+		#attendance .timeline-hour {
+			flex: 1;
+			font-size: 0.8rem;
+			font-weight: 500;
+			line-height: 1.25rem;
+			padding-left: 0.5rem;
+		}
+		#attendance .timeline-row {
+			position: relative;
+			display: flex;
+			height: 3.5rem;
+		}
+		#attendance .timeline-block {
+			position: absolute;
+			top: 0.5rem;
+			height: 2.5rem;
+			border-radius: 4px;
+			font-size: 0.65rem;
+			font-weight: 600;
+			display: flex;
+			align-items: center;
+			overflow: hidden;
+			padding: 0 1px;
+			white-space: nowrap;
+		}
+		#attendance .timeline-block span {
+			padding: 0 0.5rem;
+			color: #fff;
+		}
+		#attendance .timeline-now {
+			position: absolute;
+			top: 0;
+			bottom: 0;
+			width: 2px;
+			background: #000;
+			z-index: 10;
+		}
+		#attendance .timeline-line {
+			position: absolute;
+			top: 0;
+			bottom: 0;
+			width: 2px;
+			background: #ffffff80;
+		}
+		
+		#attendance .header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#attendance .header .title {
+			background-color: var(--black);
+			color: var(--white);
+			padding: 0.75rem 1.5rem;
+			border-radius: 2rem;
+			font-weight: 300;
+		}
+		#attendance .header .title img {
+			padding: 0.5rem;
+			border-radius: 0.5rem;
+			border: 2px solid #eee;
+		}
+		#attendance .header .range {
+			font-size: 1rem;
+			font-weight: 600;
+			text-transform: capitalize;
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			position: relative;
+		}
+		#attendance .board {
+			display: flex;
+			height: 100%;
+			user-select: none;
+			flex-direction: column;
+		}
+		#attendance .group {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			border-right: 2px solid #ffffff80;
+			gap: 0.25rem;
+			transition: var(--transition);
+		}
+		#attendance .calendar {
+			padding: 0;
+			margin: 0;
+			list-style: none;
+			display: flex;
+			flex-wrap: wrap;
+			font-size: 1rem;
+			width: 100%;
+		}
+		#attendance .calendar .day {
+			width: 14.25%;
+			padding: 0.5rem;
+			display: flex;
+			align-items: center;
+			font-weight: 600;
+			position: relative;
+			flex-direction: column;
+			justify-content: start;
+			border-right: 2px solid #ffffff80;
+			border-bottom: 2px solid #ffffff80;
+			gap: 0.5rem;
+
+		}
+		#attendance .calendar .item {
+			display: flex;
+			min-height: 8rem;
+			align-items: center;
+			flex-direction: column;
+			gap: 0.5rem;
+			justify-content: center;
+			width: 100%;
+			height: 100%;
+		}
+		#attendance .calendar .box {
+			border-radius: 0.75rem;
+			cursor: pointer;
+			padding: 0.75rem;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			flex-direction: column;
+			position: relative;
+			transition: var(--transition);
+			background-color: white;
+			box-shadow: 0 0 1rem hsl(0deg 0% 0% / 2.5%);
+			width: 100%;
+		}
+		#attendance .calendar .box .row {
+			display: flex;
+			justify-content: space-between;
+			width: 100%;
+			align-items: center;
+		}
+		#attendance .calendar .box .order-number {
+			font-size: 1rem;
+			font-weight: 600;
+			line-height: 1rem;
+		}
+		#attendance .calendar .box .passed-days {
+			display: flex;
+			gap: 0.5rem;
+		}
+		#attendance .calendar .box .register-day {
+			font-size: 1rem;
+			font-weight: 700;
+		}
+		#attendance .calendar .box .admin-name {
+			font-size: 0.75rem;
+			opacity: 0.75;
+			display: block;
+			line-height: 0.8rem;
+			margin-top: 0.5rem;
+		}
+		#attendance .calendar .box .machine {
+			font-weight: 600;
+			font-size: 0.75rem;
+			line-height: 1rem;
+			display: block;
+		}
+		#attendance .calendar .box img {
+			mix-blend-mode: darken;
+			position: absolute;
+			bottom: 0.5rem;
+			right: 0.5rem;
+			width: 2rem;
+			pointer-events: none;
+		}
+		#attendance .group .name {
+			display: flex;
+			justify-content: center;
+			font-size: 0.9rem;
+			margin-top: 0.75rem;
+			gap: 0.5rem;
+			align-items: center;
+		}
+		#attendance ul {
+			margin: 0;
+			list-style: none;
+			display: flex;
+			gap: 0.75rem;
+			flex-direction: column;
+			padding: 0.75rem;
+			flex: 1;
+		}
+		#attendance ul li .buttons {
+			display: flex;
+			gap: 0.5rem;
+		}
+		#attendance ul li.low .register-day {
+			color: #6fcc85;
+		}
+		#attendance ul li.mid .register-day {
+			color: #ff9600;
+		}
+		#attendance ul li.high .register-day {
+			color: #f96161;
+		}
+		/***********************************************************************************/
+		#modal-status .update {
+			display: flex;
+			justify-content: center;
+			gap: 1rem;
+			background-color: white;
+			box-shadow: 0 0 2rem hsl(0deg 0% 0% / 5%);
+			border-radius: 1rem;
+			position: relative;
+		}
+		#modal-status .update .box {
+			padding: 1rem;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 0.5rem;
+			flex: 1;
+		}
+		#modal-status .update .arrow {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+		}
+		#modal-status .update .box img {
+			margin-top: 0.5rem;
+		}
+		#modal-status .update .box span {
+			font-size: 0.8rem;
+		}
+		#modal-status .send-whatsapp {
+			display: flex;
+			gap: 0.5rem;
+			align-items: center;
+			font-size: 0.75rem;
+		}
+		#modal-status .send-whatsapp .dot {
+			width: 0.5rem;
+			height: 0.5rem;
+			background-color: var(--primary);
+			border-radius: 1rem;
+		}
+		#modal-status .send-whatsapp .box {
+			display: none;
+			position: relative;
+			width: 2.5rem;
+			height: 1.5rem;
+		}
+		#modal-status .send-whatsapp .box input {
+			opacity: 0;
+			width: 0;
+			height: 0;
+		}
+		#modal-status .send-whatsapp .box .slider {
+			border-radius: 2rem;
+			position: absolute;
+			cursor: pointer;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background-color: #ccc;
+			transition: all 0.25s ease-in-out;
+		}
+		#modal-status .send-whatsapp .box .slider:before {
+			position: absolute;
+			content: "";
+			height: 1rem;
+			width: 1rem;
+			left: 0.25rem;
+			bottom: 0.25rem;
+			background-color: white;
+			transition: all 0.25s ease-in-out;
+			border-radius: 50%;
+		}
+		#modal-status .send-whatsapp .box input:checked + .slider {
+			background-color: var(--primary);
+		}
+		#modal-status .send-whatsapp .box input:checked + .slider:before {
+			transform: translateX(1rem);
+		}
+		/***********************************************************************************/
+		#modal-process .modal {
+			min-width: 29rem;
+		}
+		#modal-process .header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#modal-process .header .left {
+			display: flex;
+			gap: 0.75rem;
+			align-items: center;
+		}
+		#modal-process .header .left .item {
+			display: flex;
+			gap: 0.25rem;
+			align-items: center;
+			background-color: var(--black);
+			color: var(--white);
+			padding: 0.35rem 1rem;
+			border-radius: 2rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#modal-process .header .left .item img {
+			filter: invert(1);
+		}
+		#modal-process .header .days {
+			font-size: 1rem;
+			font-weight: 700;
+		}
+		#modal-process .client {
+			background-color: white;
+			display: flex;
+			align-items: center;
+			padding: 1rem;
+			border-radius: 1rem;
+			box-shadow: 0 0 1rem hsl(0deg 0% 0% / 2.5%);
+			width: 100%;
+			gap: 1rem;
+		}
+		#modal-process .client .data {
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+			justify-content: center;
+		}
+		#modal-process .client .data .machine {
+			font-size: 1rem;
+    		font-weight: 500;
+		}
+		#modal-process .client .data .name {
+			font-size: 0.95rem;
+			font-weight: 400;
+			opacity: 0.75;
+		}
+		#modal-process .client .icons {
+			margin-left: auto;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 0.25rem;
+		}
+		#modal-process .client .icons a {
+			padding: 0.25rem;
+    		display: flex;
+		}
+		#modal-process .client .icons button {
+			padding: 0.25rem;
+			display: flex;
+			margin: 0;
+			background-color: transparent;
+			outline: none;
+			border: none;
+			cursor: pointer;
+		}
+		#modal-process .history {
+			display: flex;
+			flex-direction: column;
+			max-width: 28rem;
+			margin-bottom: -0.75rem;
+		}
+		#modal-process .history .row {
+			align-items: center;
+			display: flex;
+			gap: 0.75rem;
+			padding: 0.75rem 0.25rem;
+			border-top: 1px solid hsl(0deg 0% 100% / 50%);
+		}
+		#modal-process .history .row .left {
+			display: flex;
+			flex-direction: column;
+			width: calc(100% - 6.5rem);
+		}
+		#modal-process .history .row .right {
+			margin-left: auto;
+			display: flex;
+			flex-direction: column;
+		}
+		#modal-process .history .row .name {
+			font-weight: 500;
+			line-height: 1.25rem;
+		}
+		#modal-process .history .row .notes {
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			font-size: 0.75rem;
+			opacity: 0.75;
+			cursor: pointer;
+		}
+		#modal-process .history .row .notes.expanded {
+			text-overflow: unset;
+			white-space: normal;
+			overflow: auto;
+		}
+		#modal-process .history .row .date {
+			opacity: 0.75;
+		}
+		#modal-process .history .row .admin {
+			opacity: 0.75;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			font-size: 0.8rem;
+			display: none;
+		}
+		
+	</style>
+</div>

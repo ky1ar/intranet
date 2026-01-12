@@ -31,18 +31,19 @@ document.addEventListener('alpine:init', () => {
                     return false;
                 }
             } else {
-                console.log('Cambiando de routa...');
+                console.log('Cambiando de ruta...');
             }
             
         },
     }));
 
     Alpine.store('cache', {
-        api: 'https://api.krear3d.com', //https://devapi.krear3d.com
+        api: 'https://devapi.krear3d.com', //https://devapi.krear3d.com
         user: {},
         active_page: window.location.pathname,
         common_pages: [
-            { name: 'schedule', label: 'Agenda', image: 'calendar', title: 'Krear 3D - Agenda' },
+            { name: 'attendance', label: 'Horarios', image: 'attendance', title: 'Krear 3D - Horarios' },
+            { name: 'schedule', label: 'Agenda', image: 'calendar2', title: 'Krear 3D - Agenda' },
             { name: 'board', label: 'Actividades', image: 'board', title: 'Krear 3D - Actividades' },
             { name: 'logistics', label: 'Envíos', image: 'logistics', title: 'Krear 3D - Envíos' },
             { name: 'tracking', label: 'Tracking', image: 'tracking', title: 'Krear 3D - Trackings' },

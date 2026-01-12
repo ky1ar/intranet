@@ -71,6 +71,9 @@ body.modal-open {
     min-height: 100dvh;
     width: 100%;
 }
+.hidden {
+    display: none;
+}
 .white-frost {
     background-color: var(--white);
     box-shadow: 0 0 1rem hsl(0deg 0% 0% / 5%);
