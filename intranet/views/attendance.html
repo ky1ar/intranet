@@ -2,25 +2,26 @@
 	<div id="attendance">
         <div class="controls">
 			<div class="left frost">
-				<div class="item" @click="viewHistory()">
+				<!-- <div class="item">
 					<img alt="" width="22" height="22" src="/static/images/icons/salary.svg">
 					<span>Sueldo</span>
-				</div>
-				<!-- <div class="item" @click="viewStatistics()">
-					<img alt="" width="20" height="20" src="/static/images/icons/report.svg">
-					<span>Estadísticas</span>
 				</div> -->
+				<div class="item" @click="viewLeaves()">
+					<img alt="" width="20" height="20" src="/static/images/icons/vacation.svg">
+					<span>Licencias</span>
+				</div>
+
 			</div>
 
 
 			<div class="left frost">
-				<div class="item" @click="prev()">
+				<div class="item" @click="prev()" x-show="offset > -1">
 					<img class="flip" alt="prev" src="/static/images/icons/right.svg" width="20" height="20">
 				</div>
-				<!-- <div class="item date" @click="today()" x-text="formatMonthLabel()"></div> -->
 
-				<div class="item date" @click="today()" x-text="periodName"></div>
-				<div class="item" @click="next()">
+				<div class="item date" @click="today()" x-text="$store.cache.getData('attendance_period')?.period?.name"></div>
+
+				<div class="item" @click="next()" x-show="offset < 3">
 					<img alt="next" src="/static/images/icons/right.svg" width="20" height="20">
 				</div>
 			</div>
@@ -43,7 +44,7 @@
 
 		<div class="main">
 			<div class="middle">
-				<div class="card glass">
+				<div class="card glass summary">
 					<div class="center">
 						<span>
 							Lunes
@@ -69,376 +70,35 @@
 					</div>
 					
 					<div class="bottom">
-						<div class="month glass">
-							<span class="number">31</span>
-							<div class="body"></div>
-						</div>
+						<template x-for="(day, idx) in gridDays" :key="idx">
+							<div class="month" :class="dayClass(day)">
+							<template x-if="showLate(day)">
+								<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
+							</template>
 
-						<div class="month white">
-							<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
+							<span class="number" :class="isToday(day) ? 'today' : ''" x-text="day.label"></span>
 
-							<span class="number">01</span>
 							<div class="body">
+								<template x-for="(item, i) in dayItems(day)" :key="i">
 								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
+									<span class="label" x-text="item.label"></span>
+									<span class="date" x-text="item.value"></span>
 								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
+								</template>
 							</div>
-						</div>
-
-						<div class="month white">
-							<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
-
-							<span class="number">02</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
 							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">03</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">04</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month glass">
-							<span class="number">05</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass2 week-review">
-							<span class="percent">103.2%</span>
-							<div class="bar-wrapper white">
-								<div class="bar" style="width:103.2%"></div>
-							</div>
-						</div>
-
-
-						<div class="month white">
-							<span class="number">07</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">08</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">09</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">10</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
-
-							<span class="number">11</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-						
-						<div class="month glass">
-							<span class="number">12</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass2 week-review">
-							<span class="percent">101.3%</span>
-							<div class="bar-wrapper white">
-								<div class="bar" style="width:101.3%"></div>
-							</div>
-						</div>
-
-						
-						<div class="month white">
-							<span class="number">14</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
-
-							<span class="number">15</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">16</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">17</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">18</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month glass">
-							<span class="number">19</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass2 week-review">
-							<span class="percent">85.4%</span>
-							<div class="bar-wrapper white">
-								<div class="bar" style="width:85.4%"></div>
-							</div>
-						</div>
-
-
-						<div class="month white">
-							<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
-
-							<span class="number">21</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">22</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">23</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">24</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05 - 13:02</span>
-								</div>
-								<div class="item">
-									<span class="label">Tarde</span>
-									<span class="date">14:04 - 18:02</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number today">25</span>
-							<div class="body">
-								<div class="item">
-									<span class="label">Mañana</span>
-									<span class="date">09:05</span>
-								</div>
-							</div>
-						</div>
-
-						<div class="month glass">
-							<span class="number">26</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass2 week-review">
-							<span class="percent">76.4%</span>
-							<div class="bar-wrapper white">
-								<div class="bar" style="width:76.4%"></div>
-							</div>
-						</div>
-
-						<div class="month white">
-							<span class="number">28</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month white">
-							<span class="number">29</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month white">
-							<span class="number">30</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass">
-							<span class="number">01</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass">
-							<span class="number">02</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass">
-							<span class="number">03</span>
-							<div class="body"></div>
-						</div>
-
-						<div class="month glass2 week-review">
-							<span class="percent">0%</span>
-							<div class="bar-wrapper white">
-								<div class="bar" style="width:0%"></div>
-							</div>
-						</div>
+						</template>
 					</div>
 				</div>
 
 			</div>
 
 			<div class="right">
+				<div class="card glass user">
+					<span class="litle">Usuario</span>
+					<span>Leslie Gallegos</span>
+				</div>
+
 				<div class="card glass salary">
 					<span class="litle">Sueldo del mes</span>
 					<span class="amount" x-show="show_salary">S/ 3144.00</span>
@@ -596,82 +256,308 @@
 				</div>
 			</div>
 
-
-			<!--
-			<div class="schedule-day" style="display: none;">
-				<div class="users">
-					<div class="header">
-						Usuarios
+			<div
+				x-show="$store.cache.isVisibleModal('leaves')"
+				@mousedown.self="$store.cache.hideLastModal()"
+				class="modal-wrap common-modal"
+				id="modal-leaves"
+				x-transition:enter="modal-enter"
+				x-transition:enter-start="modal-enter-start"
+				x-transition:enter-end="modal-enter-end"
+				x-transition:leave="modal-leave"
+				x-transition:leave-start="modal-leave-start"
+				x-transition:leave-end="modal-leave-end"
+				x-cloak
+			>
+				<div class="modal small glass2" @click.stop>
+					<div class="modal-grabber">
+						<div class="modal-grabber-bar"></div>
 					</div>
 
-					<div class="column">
-						<template x-for="user in $store.cache.getData('attendance_dashboard')?.schedule" :key="user.user_id">
-							<div class="row">
-								<img alt="user" class="image" :src="`/static/images/uploads/users/${user.image}`" width="32" height="32">
+					<div class="top">
+						<span class="title">Licencias</span>
+
+						<div class="buttons">
+							<button class="button hover-opacity" @click="leaveProcess()">
+							<img alt="" width="16" height="16" src="/static/images/icons/add.svg">
+							Permiso
+						</button>
+						<button class="button black hover-opacity" @click="vacationProcess()">
+							<img alt="" width="16" height="16" src="/static/images/icons/add.svg">
+							Vacaciones
+						</button>
+						</div>
+					</div>
+
+					<div class="modal-content">
+						<!-- <template x-if="link_list.length == 0"> -->
+						<template x-if="false">
+							<span style=" text-align: center; padding: 2rem 0;">El historial de tus licencias aparecerá aquí</span>
+						</template>
+
+						<div class="table-box">
+							<!-- <template x-for="purchase in $store.cache.getData('purchases_dashboard')?.requests" :key="purchase.id">
+								<div class="table-row white" @click="viewPurchase(purchase)">
+									<div class="id" x-text="`PR-00${purchase.id}`"></div>
+									<div>
+										<img alt="user" class="image" :src="'/static/images/uploads/users/' + purchase.requester_image" width="24" height="24">
+										<span class="name" x-text="purchase.requester_name"></span>
+									</div>
+									<div x-text="purchase.requester_department"></div>
+									<div x-text="purchase.express == 1 ? 'Caja chica':'Estándar'"></div>
+									<div x-text="purchase.urgency_name"></div>
+									<div class="statuses">
+										<div :class="purchase.status_slug" x-text="purchase.status_name"></div>
+									</div>
+									<div class="date" x-text="purchase.created_at"></div>
+								</div>
+							</template> -->
+							<div class="table-row white">
+								<div class="id" x-text="`LI-01`"></div>
 								<div>
-									<div class="name" x-text="user.name"></div>
-									<div class="position" x-text="user.position"></div>
+									<img alt="user" class="image" src="/static/images/uploads/users/75066321.jpg" width="24" height="24">
+									<span class="name" x-text="'Allison Casimiro'"></span>
+								</div>
+								<div>Permiso</div>
+								<div class="statuses">
+									<div class="pending" x-text="'Registrado'"></div>
 								</div>
 							</div>
-						</template>
-					</div>
-				</div>
-
-				<div class="timeline">
-					<div class="timeline-header">
-						<template x-for="h in hours" :key="h">
-							<div class="timeline-hour" x-text="formatHour(h)"></div>
-						</template>
-					</div>
-
-					<template x-for="h in hours" :key="`line-${h}`">
-						<div class="timeline-line" :style="`left:${timeToPercent(new Date().setHours(h,0,0,0))}%`"></div>
-					</template>
-					
-					<template x-if="offset == 0">
-						<div class="timeline-now" :style="`left:${timeToPercent(now)}%`"></div>
-					</template>
-					
-					<div class="column">
-						<template x-for="(user, idx) in $store.cache.getData('attendance_dashboard')?.schedule" :key="user.user_id">
-							<div class="timeline-row">
-								<template x-for="interval in user.intervals" :key="interval.start">
-									<div class="timeline-block"
-										:style="intervalStyle(interval, idx, user.hex)">
-										<span x-text="formatLabel(interval)" :title="formatLabel(interval)"></span>
-									</div>
-								</template>
-							</div>
-						</template>
+						</div>
 					</div>
 				</div>
 			</div>
+            
+			<div
+				x-show="$store.cache.isVisibleModal('process')"
+				@mousedown.self="$store.cache.hideLastModal()"
+				class="modal-wrap"
+				id="modal-process"
+				x-cloak
+				x-transition:enter="modal-enter"
+				x-transition:enter-start="modal-enter-start"
+				x-transition:enter-end="modal-enter-end"
+				x-transition:leave="modal-leave"
+				x-transition:leave-start="modal-leave-start"
+				x-transition:leave-end="modal-leave-end"
+			>
 
-			<div class="schedule-period">
-				<template x-for="week in $store.cache.getData('attendance_period')?.weeks" :key="week.week_index">
-					<div class="week white">
-						<span x-text="`Semana ${week.week_index}`"></span>
+				<div class="modal small glass2" @click.stop>
+					<div class="modal-grabber">
+						<div class="modal-grabber-bar"></div>
+					</div>
 
-						<div class="days">
-							<template x-for="day in week?.days" :key="day.date">
-								<div class="day">
-									<span x-text="day.label"></span>
-									<div class="intervals">
-										<template x-for="(interval, idx) in day.intervals" :key="idx">
-											<div class="pair">
-												<span x-text="interval.start"></span>
-												<span x-text="interval.end"></span>
-											</div>
-										</template>
-									</div>
-								</div>
+					<div class="modal-content">
+
+						<div class="fields">
+							<label class="white">
+								<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
+
+								<span
+									style="cursor: pointer; flex: 1; line-height: 2.5rem;"
+									@click="
+										if ($refs.start_date_input.showPicker) {
+											$refs.start_date_input.showPicker();
+										} else {
+											$refs.start_date_input.focus();
+										}
+									"
+									x-text="dateLabel(event_data.start_date_only, 'Fecha del permiso')"
+								></span>
+
+								<input
+									x-ref="start_date_input"
+									type="date"
+									x-model="event_data.start_date_only"
+									:min="minLeaveDate"
+									style="
+										position:absolute;
+										inset:0;
+										opacity:0;
+										pointer-events:none;
+									"
+								>
+							</label>
+
+							<label class="white">
+								<img alt="repeat" src="/static/images/icons/clock.svg" width="14" height="14">
+								<select >
+									<option value="" disabled selected>Duración</option>
+									<option value="">Media jornada (mañana)</option>
+									<option value="">Media jornada (tarde)</option>
+									<option value="">Jornada completa</option>
+								</select>
+							</label>
+						</div>
+							
+						<div class="fields">
+							<label class="white flex2-3">
+								<select x-model="event_data.leave_type">
+									<option value="" disabled selected>Tipo de permiso</option>
+									<option value="medical">Atención médica</option>
+									<option value="errand">Gestión / Trámite</option>
+									<option value="training">Capacitación / Taller</option>
+									<option value="personal">Asunto personal</option>
+									<option value="other">Otro</option>
+								</select>
+							</label>
+
+							<template x-if="event_data.leave_type === 'other'">
+								<label class="white flex2-3">
+									<input
+									type="text"
+									class="input"
+									placeholder="Especifica el tipo"
+									x-model="event_data.leave_type_detail"
+									/>
+								</label>
 							</template>
 						</div>
-						
+
+						<textarea 
+							placeholder="Motivo o detalle"
+							x-model="event_data.description"
+							class="text-area"
+							style="max-width: 100%; border: 2px solid white;"
+						></textarea>
+
+						<textarea
+							placeholder="Plan de recuperación de horas (cómo y cuándo)"
+							x-model="event_data.description2"
+							class="text-area"
+							style="max-width: 100%; border: 2px solid white;"
+						></textarea>
 					</div>
-				</template>
+
+					<div class="buttons" >
+						<button 
+							class="button icon hover-opacity" 
+							@click="handlePrimaryAction()" 
+							:class="buttons.save.class"
+						>
+							<span>Solicitar</span>
+						</button>
+					</div>
+					
+				</div>
 			</div>
-			-->
+
+
+			<div
+				x-show="$store.cache.isVisibleModal('vacation')"
+				@mousedown.self="$store.cache.hideLastModal()"
+				class="modal-wrap"
+				id="modal-vacation"
+				x-cloak
+				x-transition:enter="modal-enter"
+				x-transition:enter-start="modal-enter-start"
+				x-transition:enter-end="modal-enter-end"
+				x-transition:leave="modal-leave"
+				x-transition:leave-start="modal-leave-start"
+				x-transition:leave-end="modal-leave-end"
+			>
+
+				<div class="modal small glass2" @click.stop>
+					<div class="modal-grabber">
+						<div class="modal-grabber-bar"></div>
+					</div>
+
+					<div class="modal-content">
+
+						<div class="fields">
+							<label class="white">
+								<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
+
+								<span
+									style="cursor: pointer; flex: 1; line-height: 2.5rem;"
+									@click="
+										if ($refs.start_date.showPicker) {
+											$refs.start_date.showPicker();
+										} else {
+											$refs.start_date.focus();
+										}
+									"
+									x-text="dateLabel(event_data.start_date, 'Inicio de vacaciones')"
+								></span>
+
+								<input
+									x-ref="start_date"
+									type="date"
+									x-model="event_data.start_date"
+									:min="minVacationDate"
+									@change="
+										event_data.end_date = '';
+										$nextTick(() => {
+											if ($refs.end_date?.showPicker) {
+												$refs.end_date.showPicker();
+											} else {
+												$refs.end_date?.focus();
+											}
+										});
+									"
+									style="position:absolute; inset:0; opacity:0; pointer-events:none;"
+								>
+							</label>
+
+							<label class="white">
+								<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
+
+								<span
+									style="cursor: pointer; flex: 1; line-height: 2.5rem;"
+									@click="
+										if ($refs.end_date.showPicker) {
+											$refs.end_date.showPicker();
+										} else {
+											$refs.end_date.focus();
+										}
+									"
+									x-text="dateLabel(event_data.end_date, 'Fin de vacaciones')"
+								></span>
+
+								<input
+									x-ref="end_date"
+									type="date"
+									x-model="event_data.end_date"
+									:min="endDateMin()"
+  									:max="endDateMax()"
+									style="position:absolute; inset:0; opacity:0; pointer-events:none;"
+								>
+							</label>
+						</div>
+							
+						<div class="fields">
+							<label class="white flex2-3">
+								<select x-model="event_data.leave_type">
+									<option value="" disabled selected>Responsable durante ausencia</option>
+									<option value="medical">Allison Casimiro</option>
+									<option value="errand">Nairuth Bendezú</option>
+								</select>
+							</label>
+						</div>
+
+						<textarea 
+							placeholder="Notas (opcional)"
+							x-model="event_data.description"
+							class="text-area"
+							style="max-width: 100%; border: 2px solid white;"
+						></textarea>
+
+					</div>
+
+					<div class="buttons" >
+						<button 
+							class="button icon hover-opacity" 
+							@click="handlePrimaryAction()" 
+							:class="buttons.save.class"
+						>
+							<span>Solicitar</span>
+						</button>
+					</div>
+					
+				</div>
+			</div>
+
+
 		</div>
 	</div>
 
@@ -683,148 +569,199 @@
 
 	<script>
 		Alpine.data('attendance_data',() => ({
-            api: Alpine.store('cache').api,
-			user_id: Alpine.store('cache').user.id,
-            
-			startHour: 8,
-			endHour: 20,
-			hours: Array.from({ length: 13 }, (_, i) => i + 8), // 8am - 8pm
-			now: new Date(),
-			offset: 0,
-			show_salary: false,
-			loading: false,
-            offset: 0,
-            periodName: "Cargando...",
-            attendancePeriod: null,
+		api: Alpine.store('cache').api,
+		user_id: Alpine.store('cache').user.id,
 
-			async init() {
-				console.log('Inicializando attendance...');
-				const socket = Alpine.store('cache').socket;
-				if (socket) {
-					socket.removeAllListeners();
-					// socket.on("attendance_update_dashboard", async () => {
-					// 	await Alpine.store('cache').refresh(['attendance_period']);
-					// });
-				}
-				
-				await Alpine.store('cache').fetchData([
-					//{ key: 'attendance_dashboard', url: `/attendance/dashboard/day?offset=${this.offset}`, force: true },
-					{ key: 'attendance_period', url: `/attendance/period?offset=${this.offset}`, force: true },
+		offset: 0,
+		show_salary: false,
+		loading: false,
 
-				]);
+		gridDays: [],
+		event_data: {
+			start_date_only: "",
+			start_date: "",
+			end_date: "",
+			leave_type: "",
+			leave_type_detail: "",
+			duration: "",
+			description: "",
+			description2: "",
+			recovery_plan: "",
+		},
+		minLeaveDate: "",
+		minVacationDate: "",
 
-				await Alpine.store('cache').verify();
 
-			},
+		async init() {
+			console.log('Inicializando attendance...');
 
-			xlsProcess() {
-				this.$refs.file.value = "";
-				this.$refs.file.click();
-			},
+			const leave_date = new Date();
+			const vacation_date = new Date();
 
-			async onSelected(e) {
-				const file = e.target.files?.[0];
-				if (!file) return;
+			leave_date.setDate(leave_date.getDate() + 7);
+			vacation_date.setDate(vacation_date.getDate() + 21);
+			this.minLeaveDate = leave_date.toISOString().slice(0, 10);
+			this.minVacationDate = vacation_date.toISOString().slice(0, 10);
 
-				this.loading = true;
-				NProgress.start();
+			
+			await this.load();
+			await Alpine.store('cache').verify();
+		},
 
-				try {
-					const forma_data = new FormData();
-					forma_data.append("file", file);
+		async load() {
+			await Alpine.store('cache').fetchData([
+			{ key: 'attendance_period', url: `/attendance/period?user_id=${this.user_id}&offset=${this.offset}`, force: true },
+			]);
 
-					const res = await fetch(`${this.api}/attendance/xls`, {
-						method: "POST",
-						body: forma_data,
-					});
-					console.log("XLS :", forma_data);
+			this.buildGrid();
+		},
 
-					const data = await res.json().catch(() => ({}));
-					if (!res.ok) {
-						// this.error = data?.error || `Error ${res.status}`;
-						return;
-					}
+		buildGrid() {
+			const data = Alpine.store('cache').getData('attendance_period') || {};
+			const weeks = data.weeks || [];
+			const days = [];
 
-					// Aquí ya subió: si quieres mostrar resultado, emitir evento, etc.
-					console.log("XLS OK:", data);
-					// Ejemplo: disparar un evento global
-					// window.dispatchEvent(new CustomEvent("xls-uploaded", { detail: data }));
+			for (const w of weeks) {
+			for (const d of (w.days || [])) {
+				days.push(d);
+			}
+			}
 
-				} catch (err) {
-					this.error = err?.message || "Error de red";
-				} finally {
-					this.loading = false;
-					NProgress.done();
-				}
-			},
-				
-			tick() {
-				this.now = new Date();
-				setTimeout(() => this.tick(), 1000 * 5);
-			},
+			this.gridDays = days;
+		},
 
-			formatHour(h) {
-				return h < 12 ? `${h}am` : (h == 12 ? "12pm" : `${h - 12}pm`);
-			},
+		dayClass(day) {
+			if (!day?.in_period) return 'glass';
 
-			timeToPercent(date) {
-				const new_date = new Date(date);
-				const hours = new_date.getHours() + new_date.getMinutes() / 60;
-				const percent = ((hours - this.startHour) / (this.endHour +1 - this.startHour)) * 100;
-				return Math.min(Math.max(percent, 0), 100);
-			},
+			return 'white';
+		},
 
-			intervalStyle(interval, idx, hex) {
-				const start = new Date(interval.start);
-				const end = interval.end ? new Date(interval.end) : this.now;
-				const left = this.timeToPercent(start);
-				const right = this.timeToPercent(end);
-				const width = right - left;
+		showLate(day) {
+			if (!day?.in_period) return false;
+			const first = (day?.intervals || [])[0];
+			if (!first?.start) return false;
+			return first.start > "09:00";
+		},
 
-				if (!interval.end) {
-					return `
-						left:${left}%;
-						width:${width}%;
-						background: linear-gradient(90deg, ${hex} 0%, ${hex}AA 70%, transparent 100%);
-					`;
-				}
+		dayItems(day) {
+			if (!day?.in_period) return [];
+			const intervals = (day?.intervals || []).filter(x => x?.start);
+			if (intervals.length === 0) return [];
 
-				return `
-					left:${left}%;
-					width:${width}%;
-					background-color:${hex};
-				`;
-			},
+			const items = [];
 
-			formatLabel(interval) {
-				const start = new Date(interval.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-				const end = interval.end
-					? new Date(interval.end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-					: "ahora";
-				return `${start} - ${end}`;
-			},
+			if (intervals[0]) {
+				items.push({
+					label: "Mañana",
+					value: intervals[0].end ? `${intervals[0].start} - ${intervals[0].end}` : `${intervals[0].start}`
+				});
+			}
 
-			async next() {
-				this.offset++;
-				await Alpine.store('cache').refresh([
-					{ key: 'attendance_dashboard', url: `/attendance/dashboard/day?offset=${this.offset}` }
-				]);
-			},
+			if (intervals[1]) {
+				items.push({
+					label: "Tarde",
+					value: intervals[1].end ? `${intervals[1].start} - ${intervals[1].end}` : `${intervals[1].start}`
+				});
+			}
 
-			async prev() {
-				this.offset--;
-				await Alpine.store('cache').refresh([
-					{ key: 'attendance_dashboard', url: `/attendance/dashboard/day?offset=${this.offset}` }
-				]);
-			},
+			return items;
+		},
 
-			async today() {
-				this.offset = 0;
-				await Alpine.store('cache').refresh([
-					{ key: 'attendance_dashboard', url: `/attendance/dashboard/day` }
-				]);
-			},
-		}));
+		isToday(day) {
+			if (!day?.date) return false;
+			const now = new Date();
+			const iso = now.toISOString().slice(0, 10);
+			return day.date === iso && this.offset === 0;
+		},
+
+		async next() {
+			this.offset++;
+			await this.load();
+		},
+
+		async prev() {
+			this.offset--;
+			await this.load();
+		},
+
+		async today() {
+			this.offset = 0;
+			await this.load();
+		},
+
+		xlsProcess() {
+			this.$refs.file.value = "";
+			this.$refs.file.click();
+		},
+
+		async onSelected(e) {
+			const file = e.target.files?.[0];
+			if (!file) return;
+
+			this.loading = true;
+
+			try {
+			const form_data = new FormData();
+			form_data.append("file", file);
+
+			const res = await fetch(`${this.api}/attendance/xls`, {
+				method: "POST",
+				body: form_data,
+				// Si tu endpoint está protegido, agrega Authorization aquí
+				// headers: { "Authorization": `Bearer ${Alpine.store('cache').token}` }
+			});
+
+			const data = await res.json().catch(() => ({}));
+			if (!res.ok) return;
+
+			await this.load();
+
+			} finally {
+				this.loading = false;
+			}
+		},
+
+		async viewLeaves() {
+			// await this.firstLinkPage();
+			Alpine.store('cache').showModal('leaves');
+		},
+
+		leaveProcess() {
+			Alpine.store('cache').showModal('process');
+		},
+
+		vacationProcess() {
+			Alpine.store('cache').showModal('vacation');
+		},
+
+		formatShortDate(iso) {
+			if (!iso) return "";
+			const [y, m, d] = iso.split("-").map(Number);
+			const date = new Date(y, m - 1, d);
+			const months = ["ene.", "feb.", "mar.", "abr.", "may.", "jun.", "jul.", "ago.", "sep.", "oct.", "nov.", "dic."];
+
+			return `${d} ${months[date.getMonth()]} ${y}`;
+		},
+
+		dateLabel(iso, fallback) {
+			return iso ? this.formatShortDate(iso) : fallback;
+		},
+		addDaysISO(iso, days) {
+			if (!iso) return "";
+			const [y, m, d] = iso.split("-").map(Number);
+			const dt = new Date(y, m - 1, d);
+			dt.setDate(dt.getDate() + days);
+			return dt.toISOString().slice(0, 10);
+		},
+
+		endDateMin() {
+			return this.event_data.start_date || this.minVacationDate;
+		},
+
+		endDateMax() {
+			return this.event_data.start_date ? this.addDaysISO(this.event_data.start_date, 15) : "";
+		},
+	}));
 	</script>
 
 
@@ -836,6 +773,78 @@
 
 
 	<style>
+		.table-box {
+			gap: 0.5rem;
+			display: flex;
+			flex-direction: column;
+		}
+		.table-row {
+			display: grid;
+			grid-template-columns: 0.3fr 0.9fr 0.6fr auto;
+			gap: 1rem;
+			align-items: center;
+			padding: 1rem;
+			cursor: pointer;
+			transition: var(--transition);
+		}
+		.table-row > div:nth-child(2) {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		.table-row .image {
+			border-radius: 2rem;
+			object-fit: cover;
+		}
+		.table-row .statuses div {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			padding: 0.25rem 1rem;
+			border-radius: 2rem;
+			font-size: 0.75rem;
+			font-weight: 600;
+		}
+		.pending {
+			background: var(--newgray);
+    		border: 2px solid #c7c6c6;
+		}
+		.leader_approve {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		.manager_approve {
+			background-color: #d0f4ea;
+    		border: 2px solid #abe9d8;
+		}
+		.rejected {
+			background-color: #fee3e1;
+			border: 2px solid #ffceca;
+		}
+		.common-modal .top {
+			justify-content: space-between;
+			display: flex;
+		}
+		.common-modal .button {
+			display: flex;
+			gap: 0.25rem;
+			justify-content: center;
+			align-items: center;
+			width: initial;
+			padding: 0 1rem;
+			line-height: 2rem;
+			font-size: 0.8rem;
+			font-weight: 400;
+		}
+		.common-modal .button img {
+			filter: invert(1);
+		}
+		#modal-vacation .modal label {
+    		position: relative;
+		}
+		#modal-leaves .modal .modal-content {
+			padding: 0.5rem 0;
+		}
 		#attendance {
 			user-select: none;
 			display: flex;
@@ -846,7 +855,7 @@
 		}
 		#attendance .main {
 			display: flex;
-			min-height: calc(100vh - 2rem);
+			min-height: calc(100vh - 6.5rem);
 			gap: 1rem;
 		}
 		#attendance .main .left {
@@ -924,6 +933,9 @@
 			font-size: 1rem;
 			font-weight: 600;
 		}
+		#attendance .main .summary {
+			flex: 1;
+		}
 		#attendance .main .salary {
 			position: relative;
     		gap: 0.5rem;
@@ -948,6 +960,9 @@
     		justify-content: space-between;
 			opacity: 0.75;
 		}
+		#attendance .main .salary .final .spacer {
+			padding: 0.25rem 0;
+		}
 		#attendance .main .salary .final div span + span {
 			    font-weight: 600;
 		}
@@ -963,6 +978,7 @@
 		}
 
 		#attendance .main .performance {
+			display: none;
 			gap: 0.75rem;
 		}
 		#attendance .main .performance .litle {
@@ -1064,6 +1080,9 @@
 			display: grid;
 			grid-template-columns: repeat(7, 1fr);
 			gap: 0.75rem;
+			flex: 1;
+			grid-auto-rows: minmax(0, 1fr);
+			align-items: stretch;
 		}
 		#attendance .main .middle .bottom .month {
 			padding: 0.5rem;
@@ -1115,12 +1134,20 @@
 			flex-direction: column;
 			padding: 0.5rem;
 			border-radius: 0.5rem;
-			background-color: var(--gray);
+			background-color: #f0f0f0;
+		}
+		#attendance .main .middle .bottom .month .body .item + .item {
+			background-color: #fce9d8;
 		}
 		#attendance .main .middle .bottom .month .body .item .label {
 			font-size: 0.65rem;
 			line-height: 0.75rem;
-			opacity: 0.3;
+			opacity: 0.4;
+			font-weight: 600;
+		}
+		#attendance .main .middle .bottom .month .body .item + .item .label {
+			color: #ea6e00;
+    		opacity: 0.5;
 		}
 		#attendance .main .middle .bottom .month .body .item .date {
 			font-size: 0.8rem;
@@ -1481,9 +1508,6 @@
 			transform: translateX(1rem);
 		}
 		/***********************************************************************************/
-		#modal-process .modal {
-			min-width: 29rem;
-		}
 		#modal-process .header {
 			display: flex;
 			justify-content: space-between;

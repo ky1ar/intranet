@@ -345,7 +345,6 @@
 
                 if (this.isSending) return;
 				this.isSending = true;
-                NProgress.start();
                 
                 const payload = { 
                     reporter_id: Alpine.store('cache').user.id,
@@ -375,14 +374,12 @@
                     this.showError('add', error.message);
                 } finally {
 					this.isSending = false;
-                    NProgress.done();
                 }
             },
 
 			async updateIssue() {
 				if (this.isSending) return;
 				this.isSending = true;
-                NProgress.start();
 
                 const payload = { 
                     reporter_id: Alpine.store('cache').user.id,
@@ -413,12 +410,10 @@
                     this.showError('update', error.message);
                 } finally {
 					this.isSending = false;
-                    NProgress.done();
                 }
             },
 
 			async deleteIssue() {
-                NProgress.start();
 
                 const payload = { 
                     reporter_id: Alpine.store('cache').user.id,
@@ -445,8 +440,6 @@
 
                 } catch (error) {
                     console.log(error.message);
-                } finally {
-                    NProgress.done();
                 }
             },
 
@@ -467,7 +460,6 @@
 			},
 			
 			async viewIssue(issue_id) {
-				NProgress.start();
 				try {
 					const response = await fetch(Alpine.store('cache').api + `/board/issue/id/${issue_id}`);
 					const data = await response.json();
@@ -477,8 +469,6 @@
 					Alpine.store('cache').showModal('view');
 				} catch (error) {
 					console.error('Error en la asignación:', error);
-				} finally {
-					NProgress.done();
 				}
 			},
 
@@ -514,7 +504,6 @@
 					return;
 				}
 
-				NProgress.start();
 				const payload = {
 					issue_id: this.selected_issue.id,
 					status_id: group_id,
@@ -569,9 +558,7 @@
 
 				} catch (error) {
 					console.error('Error en la asignación:', error);
-				} finally {
-					NProgress.done();
-				}
+				} 
 			},
 
 			launchConfetti() {

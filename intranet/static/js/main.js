@@ -1,3 +1,63 @@
+(function () {
+    const ID = "pine-toast";
+    let hideTimer = null;
+
+    function ensureToast() {
+        let el = document.getElementById(ID);
+        if (el) return el;
+
+        el = document.createElement("div");
+        el.id = ID;
+        el.className = "pine-toast frost";
+        el.innerHTML = `
+            <div class="spinner"></div>
+            <div class="title">Cargando…</div>
+            </div>
+        `;
+        document.body.appendChild(el);
+        return el;
+    }
+
+    window.PineToast = {
+        start(title = "Cargando…") {
+            clearTimeout(hideTimer);
+            const el = ensureToast();
+            el.querySelector(".title").textContent = title;
+            el.classList.add("show");
+        },
+        done() {
+            const el = document.getElementById(ID);
+            if (!el) return;
+            hideTimer = setTimeout(() => el.classList.remove("show"), 150);
+        }
+    };
+})();
+
+
+(function () {
+  const _fetch = window.fetch;
+  let active = 0;
+
+  window.fetch = async function (input, init = {}) {
+    const headers = new Headers(init.headers || {});
+    const noToast = headers.get("X-No-Toast") === "1";
+
+    if (!noToast) {
+      active++;
+      if (active === 1) PineToast.start("Cargando…");
+    }
+
+    try {
+      return await _fetch.call(this, input, { ...init, headers });
+    } finally {
+      if (!noToast) {
+        active = Math.max(0, active - 1);
+        if (active === 0) PineToast.done();
+      }
+    }
+  };
+})();
+
 window.addEventListener('beforeunload', () => {
     const socket = Alpine.store('cache')?.socket;
     if (socket && typeof socket.disconnect === 'function') {
@@ -424,7 +484,6 @@ document.addEventListener('alpine:init', () => {
             );
 
             if (!toFetch.length) return;
-            NProgress.start();
             try {
                 const responses = await Promise.all(
                     toFetch.map(ep =>
@@ -441,9 +500,7 @@ document.addEventListener('alpine:init', () => {
                 responses.forEach(({ key, data, url }) => this.setData(key, data, url));
             } catch (error) {
                 console.error('Error fetching endpoints:', error);
-            } finally {
-                NProgress.done();
-            }
+            } 
         },
 
         async fetchData(requests) {
@@ -724,8 +781,6 @@ async function loginVerify(context) {
         console.log('Verificando desde el router');
     }
 
-    NProgress.start();
-
     try {
         const response = await fetch(Alpine.store('cache').api + '/user/verify', {
             method: 'GET',
@@ -774,20 +829,18 @@ async function loginVerify(context) {
         await Alpine.store('cache').logout();
         return false;
 
-    } finally {
-        NProgress.done();
     }
 }
 
-document.addEventListener('pinecone-start', () => {
-    NProgress.start();
-});
+// document.addEventListener('pinecone-start', () => {
+//     NProgress.start();
+// });
 
 document.addEventListener('pinecone-end', () => {
     Alpine.store('cache').setActivePage(window.location.pathname);
-    NProgress.done();
+    // NProgress.done();
 });
 
-document.addEventListener('fetch-error', (err) =>
-    console.error(err)
-);
+// document.addEventListener('fetch-error', (err) =>
+//     console.error(err)
+// );

@@ -267,9 +267,8 @@
 						max-width: 100%;
 						border: 2px solid white;
 					"></textarea>
-
-					
 				</div>
+				
 				<!--  BOTONES DE ACCIÓN -->
 				<div class="buttons" x-show="!edit || can_edit">
 					<button
@@ -586,7 +585,6 @@
 		},
 
 		async openEvent(eventId) {
-			NProgress.start();
 			try {
 				//this.clearErrors();
 				const res = await fetch(`${this.api}/schedule/event/${eventId}`);
@@ -622,9 +620,7 @@
 				Alpine.store('cache').showModal('event');
 			} catch (e) {
 				console.error('No se pudieron cargar los datos del evento', e);
-			} finally {
-				NProgress.done();
-			}
+			} 
 		},
 
 		async next() {
@@ -705,7 +701,6 @@
 			const startISO = this.composeISO(this.event_data.start_date_only, this.event_data.start_time);
 			const endISO   = this.composeISO(this.event_data.end_date_only,   this.event_data.end_time);
 
-			NProgress.start();
 
 			const payload = {
 				event_id:       this.event_data.schedule_id || null,
@@ -739,8 +734,7 @@
 					this.showError('save', error.message);
 				}
 			} finally {
-				NProgress.done();
-				this.processing = false; // 🔹 libera el lock
+				this.processing = false;
 			}
 		},
 
@@ -751,8 +745,6 @@
 			const startISO = this.composeISO(this.event_data.start_date_only, this.event_data.start_time);
 			const endISO   = this.composeISO(this.event_data.end_date_only,   this.event_data.end_time);
 
-			NProgress.start();
-
 			const payload = {
 				event_id:       this.event_data.schedule_id || null,
 				user_id:        this.user_id,
@@ -785,7 +777,6 @@
 					this.showError('save', error.message);
 				}
 			} finally {
-				NProgress.done();
 				this.processing = false;
 			}
 		},
@@ -818,8 +809,6 @@
 			if (this.processing) return;
 			this.processing = true;
 
-			NProgress.start();
-
 			try {
 				const eventId = this.event_data?.schedule_id;
 
@@ -835,7 +824,6 @@
 			} catch (e) {
 				console.error('Error al eliminar el evento', e);
 			} finally {
-				NProgress.done();
 				this.processing = false;
 			}
 		}

@@ -624,7 +624,6 @@
 				const maxHeight = 1024;
                 const resizedImage = await Alpine.store('cache').resizeImage(this.proof_photo, maxWidth, maxHeight);
                 
-                NProgress.start();
 				try {
 					const formData = new FormData();
 					formData.append("image", resizedImage);
@@ -644,7 +643,6 @@
 				} catch (error) {
                     this.showError('finish', error.message);
                 } finally {
-                    NProgress.done();
 					this.processing = false;
                 }
 			},
@@ -703,8 +701,6 @@
                     this.showError('find', 'Ingresa el documento');
                     return;
                 }
-                
-                NProgress.start();
 
                 try {
                     const response = await fetch(`${this.api}/client/data/${document}`, {
@@ -724,9 +720,7 @@
 
                 } catch (error) {
                     this.showError('find', error.message);
-                } finally {
-                    NProgress.done();
-                }
+                } 
             }, 
 
             async newOrder() {
@@ -737,7 +731,6 @@
 
                 const signatureImage = this.signaturePad.toDataURL('image/png');
 
-                NProgress.start();
                 const payload = {
                     user_id: 21,
                     machine_id: this.service_order.machine_id || null,
@@ -767,15 +760,12 @@
 
                 } catch (error) {
                     this.showError('new', error.message);
-                } finally {
-                    NProgress.done();
-                }
+                } 
             }, 
 
             async getMachine() {
                 const machine_search = this.service_order.machine;
                 try {
-                    NProgress.start();
                     if (machine_search.length < 2) {
                         this.machines = [];
                         return;
@@ -793,9 +783,7 @@
                 } catch (error) {
                     this.machines = [];
                     return;
-                } finally {
-                    NProgress.done();
-                }
+                } 
             },
 
             showError(btnKey, errorMsg) {

@@ -169,7 +169,6 @@
             step: 0,
 
             async sendOTP() {
-                NProgress.start();
                 const payload = {
                     user_id: this.temp_auth.id,
                     phone: this.temp_auth.phone
@@ -188,13 +187,10 @@
 
                 } catch (error) {
                     this.showError('add_phone', error.message);
-                } finally {
-                    NProgress.done();
-                }
+                } 
             }, 
 
             async validateOTP() {
-                NProgress.start();
                 const payload = {
                     user_id: this.temp_auth.id,
                     phone: this.temp_auth.phone,
@@ -214,13 +210,10 @@
 
                 } catch (error) {
                     this.showError('validate_otp', error.message);
-                } finally {
-                    NProgress.done();
-                }
+                } 
             }, 
 
             async find() {
-                NProgress.start();
                 const payload = { document: this.temp_auth.document };
 
                 try {
@@ -250,14 +243,11 @@
                     }
                 } catch (error) {
                     this.showError('find', error.message);
-                } finally {
-                    NProgress.done();
-                }
+                } 
             }, 
 
             async login() {
 				console.log('Login...');
-                NProgress.start();
                 const payload = { 
                     document: this.temp_auth.document,
                     password: this.temp_auth.pin,
@@ -294,9 +284,7 @@
                     window.PineconeRouter.context.navigate(Alpine.store('cache').user.default_page);
                 } catch (error) {
                     this.showError('login', error.message);
-                } finally {
-                    NProgress.done();
-                }
+                } 
             },  
 
             showError(btnKey, errorMsg) {

@@ -504,7 +504,6 @@
 				if (this.processing) return;
 
 				this.processing = true;
-				NProgress.start();
 
 				try {
 					const response = await fetch(
@@ -531,7 +530,6 @@
 					this.showError("remove", error.message);
 				} finally {
 					this.processing = false;
-					NProgress.done();
 				}
 			},
 
@@ -539,7 +537,6 @@
 				if (this.processing) return;
 
 				this.processing = true;
-				NProgress.start();
 
 				try {
 					const response = await fetch(
@@ -566,7 +563,6 @@
 					this.showError("payed", error.message);
 				} finally {
 					this.processing = false;
-					NProgress.done();
 				}
 			},
 
@@ -574,7 +570,6 @@
 				if (this.processing) return;
 
 				this.processing = true;
-				NProgress.start();
 
 				try {
 					const response = await fetch(
@@ -601,7 +596,6 @@
 					this.showError("delivered", error.message);
 				} finally {
 					this.processing = false;
-					NProgress.done();
 				}
 				},
 			async payRequest() {
@@ -619,7 +613,6 @@
 				}
 
 				this.processing = true;
-				NProgress.start();
 
 				try {
 					const response = await fetch(
@@ -649,7 +642,6 @@
 					this.showError("payed", error.message);
 				} finally {
 					this.processing = false;
-					NProgress.done();
 				}
 			},
 
@@ -671,7 +663,6 @@
 				if (this.processing) return;
 
 				this.processing = true;
-				NProgress.start();
 
 				try {
 					const response = await fetch(
@@ -698,7 +689,6 @@
 					this.showError("payed", error.message);
 				} finally {
 					this.processing = false;
-					NProgress.done();
 				}
 			},
 
@@ -731,7 +721,6 @@
 				};
 
 				this.processing = true;
-				NProgress.start();
 
 				try {
 					const response = await fetch(
@@ -758,7 +747,6 @@
 					this.showError("update", error.message);
 				} finally {
 					this.processing = false;
-					NProgress.done();
 				}
 			},
 
@@ -795,7 +783,6 @@
 				};
 
 				this.processing = true;
-				NProgress.start();
 
 				try {
 					const response = await fetch(`${this.api}/purchases/process`, {
@@ -817,7 +804,6 @@
 				} catch (error) {
 					this.showError("add", error.message);
 				} finally {
-					NProgress.done();
 					this.processing = false;
 				}
 			},
@@ -891,7 +877,6 @@
 				}
 
 				this.processing = true;
-				NProgress.start();
 
 				try {
 					await fetch(`${this.api}/purchases/${this.process_purchase.id}`, {
@@ -918,7 +903,6 @@
 					this.showError("approve", error.message);
 				} finally {
 					this.processing = false;
-					NProgress.done();
 				}
 			},
 
@@ -926,7 +910,6 @@
 				if (this.processing) return;
 
 				this.processing = true;
-				NProgress.start();
 
 				try {
 					await fetch(`${this.api}/purchases/${this.process_purchase.id}`, {
@@ -945,7 +928,6 @@
 					this.showError("reject", error.message);
 				} finally {
 					this.processing = false;
-					NProgress.done();
 				}
 			},
 
@@ -957,7 +939,6 @@
 
 			async viewPurchase(purchase) {
 				this.editing = true;
-				NProgress.start();
 
 				try {
 					const response = await fetch(`${this.api}/purchases/${purchase.id}`, {
@@ -989,9 +970,7 @@
 					Alpine.store("cache").showModal("process");
 				} catch (error) {
 					console.error(error);
-				} finally {
-					NProgress.done();
-				}
+				} 
 			},
 
 			addItem() {
@@ -1433,10 +1412,6 @@
 			padding: 1rem;
 			cursor: pointer;
 			transition: var(--transition);
-			border-bottom: 2px solid #ffffff80;
-		}
-		.table-row:last-child {
-			border-bottom: none;
 		}
 		.table-row > div:nth-child(2) {
 			display: flex;
@@ -1464,8 +1439,6 @@
 		.table-row .id {
 			font-weight: 600;
 			min-width: 4rem;
-		}
-		.table-row .statuses {
 		}
 		.table-row .date {
 			font-size: 0.75rem;

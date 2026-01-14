@@ -482,19 +482,36 @@ body.modal-open {
 }
 
 /***********************************************************************************/
-#nprogress {
+.pine-toast{
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-radius: 1rem;
+    opacity: 0;
+    transition: opacity .18s ease, transform .18s ease;
     pointer-events: none;
 }
-  
-#nprogress .bar {
-    background: var(--primary);
-    position: fixed;
-    z-index: 1031;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 2px;
+.pine-toast.show{ 
+    opacity:1;
 }
+.pine-toast .title {
+    font-weight: 500;
+    font-size: 0.8rem; 
+}
+.pine-toast .spinner{
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 2rem;
+    animation: pine-spin .7s linear infinite;
+    border: 3px solid #fcb489;
+    border-top-color: #ea7134;
+}
+@keyframes pine-spin{ to{ transform:rotate(360deg); } }
 /***********************************************************************************/
 #sidebar {
     left: 1rem;
@@ -830,6 +847,14 @@ body.modal-open {
     }
     #sidebar ul li a:hover {
         opacity: 1 !important;
+    }
+    .pine-toast {
+        bottom: initial;
+        top: 1rem;
+        left: 1rem;
+        justify-content: center;
+        padding: 1.125rem 0;
+        border-radius: 2rem;
     }
 }
 /****************************************************	36rem	576px	 ***************************************************/ 

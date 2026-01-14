@@ -34,12 +34,12 @@
 				</div>
 			</div>
 
-			<div class="right frost-dark" x-show="editAllowed()">
+			<div class="right frost-dark">
 				<div class="item" @click="viewLinks()">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/link.svg">
 					<span>Enlaces</span>
 				</div>
-				<div class="item" @click="addOrder()">
+				<div class="item" @click="addOrder()" x-show="editAllowed()">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
 					<span>Añadir</span>
 				</div>
@@ -952,7 +952,6 @@
 
 			async getMachine() {
                 const machine_search = this.process_service.machine;
-				NProgress.start();
 
                 try {
                     if (machine_search.length < 2) {
@@ -972,9 +971,7 @@
                 } catch (error) {
                     this.machines = [];
                     return;
-                } finally {
-                    NProgress.done();
-                }
+                } 
             },
 
 			payToggle() {
@@ -986,7 +983,6 @@
 				if (this.processing) return;
 
 				this.processing = true;
-                NProgress.start();
 
                 const payload = { 
                     user_id: Alpine.store('cache').user.id,
@@ -1022,7 +1018,6 @@
                 } catch (error) {
                     this.showError('add', error.message);
                 } finally {
-                    NProgress.done();
 					this.processing = false;
                 }
             }, 
@@ -1050,7 +1045,6 @@
 					user_id: Alpine.store('cache').user.id,
 				};
 
-				NProgress.start();
 				try {
 					const response = await fetch(`${this.api}/support/order/update`, {
 						method: 'POST',
@@ -1062,9 +1056,7 @@
 					console.log(`Campo ${field} actualizado correctamente`);
 				} catch (error) {
 					console.error('Error actualizando:', error);
-				} finally {
-					NProgress.done();
-				}
+				} 
 			},
 			
 			showError(btnKey, errorMsg) {
@@ -1177,7 +1169,6 @@
 			async createPDF(order_number) {
 				if (this.processing) return;
 				this.processing = true;
-				NProgress.start();
 
 				try {
 					const response = await fetch(`${this.api}/support/pdf/${order_number}`);
@@ -1198,12 +1189,10 @@
 					console.error('Error al descargar el PDF:', error);
 				} finally {
 					this.processing = false;
-					NProgress.done();
 				}
 			},
 
 			async viewOrder(order_number) {
-				NProgress.start();
 				try {
 					const response = await fetch(`${this.api}/support/order_number/${order_number}`);
 					const data = await response.json();
@@ -1211,13 +1200,10 @@
 					Alpine.store('cache').showModal('view');
 				} catch (error) {
 					console.error('Error en la asignación:', error);
-				} finally {
-					NProgress.done();
 				}
 			},
 
 			async processPay() {
-				NProgress.start();
 
 				const payload = {
 					order_number: this.service_order.order_number,
@@ -1235,9 +1221,7 @@
 
 				} catch (error) {
 					console.error('Error en la asignación:', error);
-				} finally {
-					NProgress.done();
-				}
+				} 
 			},
 
 			addOrder() {
@@ -1552,7 +1536,6 @@
 			},
 				
 			async getHistory() {
-				NProgress.start();
 				try {
 					const response = await fetch(`${this.api}/support/history?page=${this.current_page}`);
 					const data = await response.json();
@@ -1562,13 +1545,10 @@
 					this.total_pages = jsonData.pagination.pages;
 				} catch (error) {
 					console.error('Error fetching history', error);
-				} finally {
-					NProgress.done();
-				}
+				} 
 			},
 
 			async getLinkHistory() {
-				NProgress.start();
 				try {
 					const response = await fetch(`${this.api}/support/link_history?page=${this.current_page}`);
 					const data = await response.json();
@@ -1578,8 +1558,6 @@
 					this.total_pages = jsonData.pagination.pages;
 				} catch (error) {
 					console.error('Error fetching link', error);
-				} finally {
-					NProgress.done();
 				}
 			},
 
@@ -1587,7 +1565,6 @@
 				if (this.processing) return;
 
 				this.processing = true;
-				NProgress.start();
 
 				const payload = {
 					link_id: link_id,
@@ -1606,7 +1583,6 @@
 				} catch (error) {
 					console.error('Error en la asignación:', error);
 				} finally {
-					NProgress.done();
 					this.processing = false;
 				}
 			},
@@ -1615,7 +1591,6 @@
 				if (this.processing) return;
 
 				this.processing = true;
-				NProgress.start();
 
 				const payload = {
 					user_id: Alpine.store('cache').user.id,
@@ -1633,7 +1608,6 @@
 				} catch (error) {
 					console.error('Error en la asignación:', error);
 				} finally {
-					NProgress.done();
 					this.processing = false;
 				}
 			},
@@ -1705,7 +1679,6 @@
 					return;
 				}
 
-                NProgress.start();
 				try {
 					const response = await fetch(`${this.api}/client/data/${document}`);
 					if (!response.ok) {
@@ -1729,9 +1702,7 @@
 					}
 				} catch (error) {
 					console.error('Error al obtener datos del usuario:', error);
-				} finally {
-                    NProgress.done();
-                }
+				} 
 			},
 
 			async updateStatus() {
@@ -1740,7 +1711,6 @@
 				this.processing = true;
 				
 				if (this.revert_change) {
-					NProgress.start();
 					const payload = {
 						order_number: this.selected_service.order_number,
 						user_id: Alpine.store('cache').user.id,
@@ -1765,7 +1735,6 @@
 					} catch (error) {
 						console.error('Error:', error);
 					} finally {
-						NProgress.done();
 						this.processing = false;
 					}
 				} else {
@@ -1787,7 +1756,6 @@
 					formData.append("notes", this.status_notes);
 					formData.append("status_id", this.selected_service.status_id);
 
-					NProgress.start();
 					try {
 						const response = await fetch(`${this.api}/support/order/next`, {
 							method: 'POST',
@@ -1808,7 +1776,6 @@
 					} catch (error) {
 						console.error('Error en la asignación:', error);
 					} finally {
-						NProgress.done();
 						this.processing = false;
 					}
 				}
@@ -1817,7 +1784,6 @@
 			async findOrders() {
                 const order_number = this.find_order_number;
                 try {
-                    NProgress.start();
                     if (order_number.length < 2) {
                         this.finded_orders = [];
                         return;
@@ -1836,15 +1802,12 @@
 					console.log('Error al buscar órdenes:', error);
                     this.finded_orders = [];
                     return;
-                } finally {
-                    NProgress.done();
-                }
+                } 
             },
 
 			async getLinkPDF(order_number) {
 				if (this.processing) return;
 				this.processing = true;
-				NProgress.start();
 
 				try {
 					const response = await fetch(`${this.api}/support/link/pdf/${order_number}`);
@@ -1865,7 +1828,6 @@
 					console.error('Error al descargar el PDF:', error);
 				} finally {
 					this.processing = false;
-					NProgress.done();
 				}
 			},
 		}));

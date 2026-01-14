@@ -600,7 +600,6 @@
 			async findOrders() {
                 const order_number = this.find_order_number;
                 try {
-                    NProgress.start();
                     if (order_number.length < 2) {
                         this.finded_orders = [];
                         return;
@@ -619,9 +618,7 @@
 					console.log('Error al buscar órdenes:', error);
                     this.finded_orders = [];
                     return;
-                } finally {
-                    NProgress.done();
-                }
+                } 
             },
 
 			async viewStatistics() {
@@ -842,7 +839,6 @@
 			},
 
 			async getHistory() {
-				NProgress.start();
 				try {
 					const response = await fetch(`${this.api}/tracking/history?page=${this.current_page}`);
 					const data = await response.json();
@@ -852,13 +848,10 @@
 					this.total_pages = jsonData.pagination.pages;
 				} catch (error) {
 					console.error('Error fetching history', error);
-				} finally {
-					NProgress.done();
-				}
+				} 
 			},
 
 			async viewOrder(order_id) {
-				NProgress.start();
 				try {
 					const response = await fetch(Alpine.store('cache').api + `/tracking/order_id/${order_id}`);
 					const data = await response.json();
@@ -866,9 +859,7 @@
 					Alpine.store('cache').showModal('view');
 				} catch (error) {
 					console.error('Error en la asignación:', error);
-				} finally {
-					NProgress.done();
-				}
+				} 
 			},
 
 			async startScan() {
@@ -883,7 +874,6 @@
 							const payload = {
 								ose_id: readed.split('/')[0],
 							};
-							NProgress.start();
 
 							try {
 								const response = await fetch(Alpine.store('cache').api + '/tracking/qr_data', {
@@ -908,9 +898,7 @@
 
 							} catch (error) {
 								this.showError('add', error.message);
-							} finally {
-								NProgress.done();
-							}
+							} 
 							
 							this.stopScan();
 
@@ -1067,7 +1055,6 @@
 				if (!this.$refs.form.checkValidity()) {
 					return;
 				}
-                NProgress.start();
 
 				const payload = {
 					order_number: this.order_number,
@@ -1100,9 +1087,7 @@
 					
 				} catch (error) {
 					this.showError('add', error.message);
-                } finally {
-                    NProgress.done();
-                }
+                } 
 			},
 
 			showError(btnKey, errorMsg) {

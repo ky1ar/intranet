@@ -112,7 +112,7 @@ class AttendanceRepository:
         return {"inserted": len(to_insert), "skipped_duplicates": skipped}, 200
     
         
-    def _add_months(d, months):
+    def _add_months(self, d, months):
         y = d.year + (d.month - 1 + months) // 12
         m = (d.month - 1 + months) % 12 + 1
         last_day = monthrange(y, m)[1]

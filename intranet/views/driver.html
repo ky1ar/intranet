@@ -286,7 +286,6 @@
 			},
 			
 			async getShipping(shipping_order_id) {
-				NProgress.start();
 
 				try {
 					const response = await fetch(Alpine.store('cache').api + `/logistic/shipping_order_id/${shipping_order_id}`).then(res => res.json());
@@ -294,8 +293,6 @@
 
 				} catch (error) {
 					console.error('Error fetching order:', error);
-                } finally {
-                    NProgress.done();
                 }
 			},
 
@@ -336,7 +333,6 @@
 			},
 
 			async updateOrderStatus(status) {
-				NProgress.start();
 				const payload = {
 					shipping_order_id: this.process_shipping.shipping_order_id,
 					status_id: status,
@@ -357,9 +353,7 @@
 					}
 				} catch (error) {
 					console.error("Error en el proceso de actualización:", error);
-				} finally {
-					NProgress.done();
-				}
+				} 
 			},
 
 			async completeShipping() {
