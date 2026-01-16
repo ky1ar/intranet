@@ -86,15 +86,25 @@ class AttendanceService:
 
 
     def _find_days_row(self, rows):
+        best_idx = None
+        best_nums = None
+        best_len = 0
+
         for idx, r in enumerate(rows[:120]):
             nums = []
             for c in r:
                 s = str(c).strip()
                 if s.isdigit():
-                    nums.append(int(s))
-            if len(nums) >= 7 and all(1 <= n <= 31 for n in nums):
-                return idx, nums
-        return None, None
+                    n = int(s)
+                    if 1 <= n <= 31:
+                        nums.append(n)
+
+            if len(nums) >= 2 and len(nums) > best_len:
+                best_idx = idx
+                best_nums = nums
+                best_len = len(nums)
+
+        return best_idx, best_nums
 
 
     def _looks_like_user_header(self, row):
@@ -188,6 +198,7 @@ class AttendanceService:
 
         rows = df.values.tolist()
 
+        logging.info(rows)
         period = self._extract_period(rows)
         if not period:
             return "Could not find period 'YYYY-MM-DD ~ YYYY-MM-DD'", 400
@@ -279,8 +290,10 @@ class AttendanceService:
     
 
     @handle_exceptions
-    def summary_by_offset(self, offset):
-        user_id = int(get_jwt_identity())
+    def summary_by_offset(self, data):
+        user_id = data.get("user_id")
+        offset = data.get("offset")
+
         period, pc = self.attendance_repository.get_period_by_offset(offset, today=date.today())
         if pc != 200:
             return period, pc
@@ -288,5 +301,5 @@ class AttendanceService:
         if not period:
             return {"period": None, "weeks": []}, 200
 
-        payload, rc = self.attendance_repository.build_period_summary(user_id, period)
+        payload, rc = self.attendance_repository.build_period_summary(int(user_id), period)
         return payload, rc

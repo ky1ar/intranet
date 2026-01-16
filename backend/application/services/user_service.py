@@ -40,6 +40,7 @@ class UserService:
                 "id": teammate.id,
                 "level_id": teammate.level_id,
                 "name": self.format_name(teammate.name),
+                "department_name": teammate.department.name,
                 "image": teammate.image if teammate.image else 'user_default.jpg',
             } for teammate in team
         ]

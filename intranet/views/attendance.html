@@ -72,20 +72,20 @@
 					<div class="bottom">
 						<template x-for="(day, idx) in gridDays" :key="idx">
 							<div class="month" :class="dayClass(day)">
-							<template x-if="showLate(day)">
-								<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
-							</template>
-
-							<span class="number" :class="isToday(day) ? 'today' : ''" x-text="day.label"></span>
-
-							<div class="body">
-								<template x-for="(item, i) in dayItems(day)" :key="i">
-								<div class="item">
-									<span class="label" x-text="item.label"></span>
-									<span class="date" x-text="item.value"></span>
-								</div>
+								<template x-if="showLate(day)">
+									<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
 								</template>
-							</div>
+
+								<span class="number" :class="isToday(day) ? 'today' : ''" x-text="day.label"></span>
+
+								<div class="body">
+									<template x-for="(item, i) in dayItems(day)" :key="i">
+										<div class="item" :class="item.incomplete ? 'incomplete' : ''">
+											<span class="label" x-text="item.label"></span>
+											<span class="date" x-text="item.value"></span>
+										</div>
+									</template>
+								</div>
 							</div>
 						</template>
 					</div>
@@ -94,13 +94,57 @@
 			</div>
 
 			<div class="right">
-				<div class="card glass user">
-					<span class="litle">Usuario</span>
-					<span>Leslie Gallegos</span>
+				<div class="card glass user" x-show="$store.cache.user.level_id > 2">
+					<span class="litle">
+						<img alt="" width="16" height="16" src="/static/images/icons/user.svg">
+						Usuario
+					</span>
+
+					<div class="custom_select">
+						<div class="selectors" @click.stop="prevUser()" title="Anterior">
+							<img class="flip" alt="prev" src="/static/images/icons/right.svg" width="20" height="20">
+						</div>
+						
+						<div class="data" @click="toogleUserOption()">
+							<img width="28" height="28" :src="`/static/images/uploads/users/${option_user?.image}`" alt="user">
+							<div class="text">
+								<b x-text="option_user?.name"></b>
+								<span x-text="option_user?.department_name"></span>
+							</div>
+						</div>
+
+						<div class="selectors" @click.stop="nextUser()" title="Siguiente">
+							<img alt="prev" src="/static/images/icons/right.svg" width="20" height="20">
+						</div>
+						
+						<div x-show="option_user_active" x-transition.duration.300ms @click.outside="hideUserOption()" class="select_options">
+							<template x-for="user in $store.cache.getData('user_team')" :key="user.id">
+                                <div 
+                                    class="option" 
+                                    :class="{ 'pick': option_user?.id === user.id }" 
+									@click="
+										option_user = user;
+										hideUserOption();
+										load();
+									"
+								>
+									<img width="28" height="28" :src="`/static/images/uploads/users/${user.image}`" alt="user">
+									<div class="text">
+										<b x-text="user.name"></b>
+										<!-- <span x-text="user.department_name"></span> -->
+									</div>
+								</div>
+							</template>
+						</div>
+					</div>
+			
 				</div>
 
 				<div class="card glass salary">
-					<span class="litle">Sueldo del mes</span>
+					<span class="litle">
+						<img alt="" width="16" height="16" src="/static/images/icons/wallet.svg">
+						Sueldo del mes
+					</span>
 					<span class="amount" x-show="show_salary">S/ 3144.00</span>
 					<span class="amount" x-show="!show_salary">S/ ********</span>
 					<div class="white eye hover-opacity" @click="show_salary = !show_salary">
@@ -570,7 +614,7 @@
 	<script>
 		Alpine.data('attendance_data',() => ({
 		api: Alpine.store('cache').api,
-		user_id: Alpine.store('cache').user.id,
+		user: Alpine.store('cache').user,
 
 		offset: 0,
 		show_salary: false,
@@ -590,7 +634,8 @@
 		},
 		minLeaveDate: "",
 		minVacationDate: "",
-
+		option_user: null,
+		option_user_active: false,
 
 		async init() {
 			console.log('Inicializando attendance...');
@@ -603,17 +648,75 @@
 			this.minLeaveDate = leave_date.toISOString().slice(0, 10);
 			this.minVacationDate = vacation_date.toISOString().slice(0, 10);
 
+			this.option_user = {
+				name: this.user.name,
+				image: this.user.image,
+				id: this.user.id,
+				department_name: this.user.department_name
+			}
+			await Alpine.store('cache').fetchData([
+				{ key: 'user_team', url: `/user/team/${this.user.id}`, force: true },
+			]);
 			
 			await this.load();
 			await Alpine.store('cache').verify();
 		},
-
+		
 		async load() {
+			const user_id = this.option_user?.id ?? this.user.id;
+
 			await Alpine.store('cache').fetchData([
-			{ key: 'attendance_period', url: `/attendance/period?user_id=${this.user_id}&offset=${this.offset}`, force: true },
+				{ key: 'attendance_period', url: `/attendance/period?user_id=${user_id}&offset=${this.offset}`, force: true },
 			]);
 
 			this.buildGrid();
+		},
+
+		toogleUserOption() { 
+			this.option_user_active = !this.option_user_active;
+		},
+
+		hideUserOption() { 
+			this.option_user_active = false;
+		},
+
+		getTeam() {
+			return Alpine.store('cache').getData('user_team') || [];
+		},
+
+		currentUserIndex() {
+			const team = this.getTeam();
+			const id = this.option_user?.id;
+			const idx = team.findIndex(u => u.id === id);
+			return idx;
+		},
+
+		async prevUser() {
+			const team = this.getTeam();
+			const n = team.length;
+			if (n === 0) return;
+
+			const idx = this.currentUserIndex();
+			const prevIdx = (idx <= 0 ? n - 1 : idx - 1); 
+
+			this.option_user = team[prevIdx];
+			this.option_user_active = false;
+			this.offset = 0;
+			await this.load();
+		},
+
+		async nextUser() {
+			const team = this.getTeam();
+			const n = team.length;
+			if (n === 0) return;
+
+			const idx = this.currentUserIndex();
+			const nextIdx = (idx < 0 ? 0 : (idx + 1) % n); 
+
+			this.option_user = team[nextIdx];
+			this.option_user_active = false;
+			this.offset = 0;
+			await this.load();
 		},
 
 		buildGrid() {
@@ -622,9 +725,9 @@
 			const days = [];
 
 			for (const w of weeks) {
-			for (const d of (w.days || [])) {
-				days.push(d);
-			}
+				for (const d of (w.days || [])) {
+					days.push(d);
+				}
 			}
 
 			this.gridDays = days;
@@ -645,27 +748,26 @@
 
 		dayItems(day) {
 			if (!day?.in_period) return [];
+
 			const intervals = (day?.intervals || []).filter(x => x?.start);
 			if (intervals.length === 0) return [];
 
+			const makeItem = (label, it) => {
+				const hasEnd = !!it?.end;
+				return {
+				label,
+				value: hasEnd ? `${it.start} - ${it.end}` : `${it.start}`,
+				incomplete: !hasEnd,
+				};
+			};
+
 			const items = [];
-
-			if (intervals[0]) {
-				items.push({
-					label: "Mañana",
-					value: intervals[0].end ? `${intervals[0].start} - ${intervals[0].end}` : `${intervals[0].start}`
-				});
-			}
-
-			if (intervals[1]) {
-				items.push({
-					label: "Tarde",
-					value: intervals[1].end ? `${intervals[1].start} - ${intervals[1].end}` : `${intervals[1].start}`
-				});
-			}
+			if (intervals[0]) items.push(makeItem("Mañana", intervals[0]));
+			if (intervals[1]) items.push(makeItem("Tarde", intervals[1]));
 
 			return items;
 		},
+
 
 		isToday(day) {
 			if (!day?.date) return false;
@@ -773,6 +875,53 @@
 
 
 	<style>
+		.custom_select {
+			position: relative;
+			cursor: pointer;
+			display: flex;
+			gap: 0.25rem;
+			margin: 0 -0.5rem 0 -0.5rem;
+		}
+		.custom_select .selectors {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			width: 2rem;
+			cursor: pointer;
+			height: 2rem;
+		}
+		.custom_select .select_options {
+			border-radius: 0.25rem 0.25rem 0.75rem 0.75rem;
+			flex-direction: column;
+			position: absolute;
+			overflow: hidden auto;
+			z-index: 10;
+			max-height: 25rem;
+			top: 2.25rem;
+			left: 1.5rem;
+			right: 1.5rem;
+			display: flex;
+			border: 2px solid #eeeeee;
+			box-shadow: 0 0.5rem 1rem hsl(0deg 0% 0% / 20%);
+			background-color: var(--white);
+		}
+		.custom_select .select_options .option {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			transition: var(--transition);
+			padding: 0.5rem 0.75rem;
+			font-size: 0.8rem;
+		}
+		.custom_select .select_options .option img {
+			border-radius: 2rem;
+		}
+		.custom_select .select_options .option:hover {
+			background-color: var(--gray);
+		}
+        .custom_select .select_options .option.pick {
+			background-color: var(--graydark);
+		}
 		.table-box {
 			gap: 0.5rem;
 			display: flex;
@@ -936,14 +1085,32 @@
 		#attendance .main .summary {
 			flex: 1;
 		}
+		#attendance .main .right .litle {
+			font-size: 0.75rem;
+			font-weight: 600;
+			line-height: 1rem;
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			color: rgb(16 33 40 / 50%);
+		}
+		#attendance .main .right .user .data {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			flex: 1;
+		}
+		#attendance .main .right .user .data img {
+    		border-radius: 2rem;
+		}
+		#attendance .main .right .user .data .text {
+			display: flex;
+    		flex-direction: column;
+			font-size: 0.8rem;
+		}
 		#attendance .main .salary {
 			position: relative;
     		gap: 0.5rem;
-		}
-		#attendance .main .salary .litle {
-			font-size: 0.75rem;
-			font-weight: 500;
-			line-height: 1rem;
 		}
 		#attendance .main .salary .amount {
 			font-size: 1.25rem;
@@ -1134,7 +1301,7 @@
 			flex-direction: column;
 			padding: 0.5rem;
 			border-radius: 0.5rem;
-			background-color: #f0f0f0;
+			background-color: #e6e6e6;
 		}
 		#attendance .main .middle .bottom .month .body .item + .item {
 			background-color: #fce9d8;
@@ -1153,6 +1320,10 @@
 			font-size: 0.8rem;
 			font-weight: 500;
 			line-height: 0.75rem;
+		}
+		#attendance .main .middle .bottom .month .body .item.incomplete {
+			background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='1' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E");
+    		background-size: 0.6rem;
 		}
 		#attendance .schedule-period {
 			display: flex;

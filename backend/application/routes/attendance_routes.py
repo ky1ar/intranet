@@ -14,6 +14,12 @@ def xls():
 
 @attendance_bp.route("/period", methods=["GET"])
 @jwt_required()
-def logistic_dashboard_day():
-    offset = request.args.get("offset", "0")
-    return controller.summary_by_offset(int(offset))
+def period():
+    offset = int(request.args.get("offset", 0))
+    user_id = int(request.args.get("user_id"))
+    data = {
+        "offset": offset,
+        "user_id": user_id
+    }
+
+    return controller.summary_by_offset(data)

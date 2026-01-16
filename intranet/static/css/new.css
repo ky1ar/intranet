@@ -39,6 +39,9 @@ svg {
     max-width: 100%;
     height: auto;
 }
+img.flip {
+    transform: rotate(180deg);
+}
 /***********************************************************************************/
 html {
     height: 100%;
@@ -184,9 +187,7 @@ body.modal-open {
     font-size: 0.75rem;
     font-weight: 600;
 }
-.controls img.flip {
-    transform: rotate(180deg);
-}
+
 .controls img.invert {
     filter: invert(1);
 }

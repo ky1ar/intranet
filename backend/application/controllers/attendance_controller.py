@@ -23,5 +23,5 @@ class AttendanceController:
     
 
     @handle_logs_and_exceptions
-    def summary_by_offset(self, offset=0):
-        return self.attendance_service.summary_by_offset(int(offset))
+    def summary_by_offset(self, data):
+        return self.attendance_service.summary_by_offset(data)
