@@ -251,7 +251,7 @@ class AttendanceRepository:
     
 
     @handle_db_exceptions
-    def get_holidays_by_range(self, start_date: date, end_date: date):
+    def get_holidays_by_range(self, start_date, end_date):
         rows = (
             g.db_session.query(Holidays)
             .filter(Holidays.date >= start_date)
@@ -270,3 +270,55 @@ class AttendanceRepository:
             }
 
         return mp, 200
+    
+
+    @handle_db_exceptions
+    def get_marks_by_user_and_date(self, user_id, d):
+        rows = (
+            g.db_session.query(AttendanceMark)
+            .filter(AttendanceMark.user_id == int(user_id))
+            .filter(AttendanceMark.date == d)
+            .order_by(AttendanceMark.mark_at.asc())
+            .all()
+        )
+        return rows or [], 200
+    
+
+    @handle_db_exceptions
+    def get_holiday_on_date(self, d):
+        row = (
+            g.db_session.query(Holidays)
+            .filter(Holidays.date == d)
+            .filter(Holidays.deleted_at.is_(None))
+            .first()
+        )
+        if not row:
+            return None, 200
+        return {
+            "id": row.id,
+            "name": row.name,
+            "date": row.date.isoformat(),
+            "hex_color": getattr(row, "hex_color", None),
+        }, 200
+    
+
+    @handle_db_exceptions
+    def insert_marks_with_meta(self, marks_rows):
+        if not marks_rows:
+            return {"inserted": 0}, 200
+
+        to_insert = []
+        for r in marks_rows:
+            to_insert.append(
+                AttendanceMark(
+                    user_id=int(r["user_id"]),
+                    date=r["date"],
+                    mark_at=r["mark_at"],
+                    created_at=peru_time(),
+                    created_by=int(r["created_by"]),
+                )
+            )
+
+        g.db_session.bulk_save_objects(to_insert)
+        g.db_session.commit()
+        return {"inserted": len(to_insert)}, 200

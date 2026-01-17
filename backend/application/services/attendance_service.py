@@ -373,6 +373,10 @@ class AttendanceService:
                 dt = parse_date_iso(day["date"])  # date
                 wd = dt.weekday()
 
+                # ✅ expected marks = 2 * cantidad de turnos (shifts) de ese weekday
+                shifts_for_day = (profile_map.get(wd) or [])
+                day["expected_marks"] = len(shifts_for_day) * 2
+
                 # keep your sunday-summary logic
                 if wd == 6:
                     day["is_summary"] = True
@@ -433,4 +437,137 @@ class AttendanceService:
         return payload, 200
 
 
-    
+    def _expected_marks_for_user_on_date(self, user_id, d):
+        profile, prc = self.attendance_repository.get_profile_for_user_on_date(user_id, d)
+        if prc != 200:
+            raise Exception(profile)
+
+        if not profile:
+            return 0
+
+        shifts, src = self.attendance_repository.get_shifts_for_profile(profile.id)
+        if src != 200:
+            raise Exception(shifts)
+
+        profile_map = self._build_profile_map(shifts)
+        wd = d.weekday()
+        return len(profile_map.get(wd) or []) * 2
+
+
+    @handle_exceptions
+    def complete_marks(self, data):
+        editor_user_id = int(get_jwt_identity())  # ✅ quien edita
+
+        user_id = int(data.get("user_id"))
+        d = parse_date_iso(data.get("date"))
+
+        # (opcional) bloquear feriados: si es feriado, no se completa por marcas
+        holiday, hc = self.attendance_repository.get_holiday_on_date(d)
+        if hc != 200:
+            return holiday, hc
+        if holiday:
+            return "No se puede completar marcaciones en un feriado.", 422
+
+        expected = self._expected_marks_for_user_on_date(user_id, d)
+
+        # Si ese día no tiene turnos, no debería completarse
+        if expected <= 0:
+            return "Este día no requiere marcaciones.", 422
+
+        # Traer existentes del día (ordenadas por hora)
+        existing, ec = self.attendance_repository.get_marks_by_user_and_date(user_id, d)
+        if ec != 200:
+            return existing, ec
+
+        existing_times = [m.mark_at.strftime("%H:%M") for m in (existing or [])]
+
+        # Si ya está completo, no hay nada que hacer
+        if len(existing_times) >= expected:
+            return "El día ya está completo.", 409
+
+        additions = data.get("additions") or []
+        if not isinstance(additions, list):
+            return "additions debe ser una lista.", 422
+
+        # Validar additions
+        add_positions = set()
+        add_times = []
+        for a in additions:
+            if not isinstance(a, dict):
+                return "Formato inválido en additions.", 422
+
+            t = (a.get("time") or "").strip()
+            pos = a.get("position")
+
+            if not t or not isinstance(pos, int):
+                return "Cada addition requiere time y position.", 422
+
+            if pos < 0 or pos >= expected:
+                return f"position fuera de rango: {pos}.", 422
+
+            # valida HH:MM
+            try:
+                parse_time(t)
+            except Exception:
+                return f"Hora inválida: {t}.", 422
+
+            if pos in add_positions:
+                return f"position repetido: {pos}.", 422
+            add_positions.add(pos)
+
+            add_times.append((pos, t))
+
+        # Reconstruir lista final esperada (con posiciones)
+        final = [None] * expected
+
+        # colocar additions
+        for pos, t in add_times:
+            final[pos] = t
+
+        # rellenar huecos con existing manteniendo orden
+        it = iter(existing_times)
+        for i in range(expected):
+            if final[i] is None:
+                try:
+                    final[i] = next(it)
+                except StopIteration:
+                    break
+
+        # validar que quedó completo
+        if any(x is None for x in final):
+            return "No alcanza para completar el día con esos datos.", 422
+
+        # validar no duplicados en el final
+        if len(set(final)) != len(final):
+            return "No se permiten horas duplicadas.", 422
+
+        # validar orden cronológico (recomendado)
+        mins = []
+        for hhmm in final:
+            mins.append(self._hhmm_to_minutes(hhmm))
+        if mins != sorted(mins):
+            return "Las marcaciones deben quedar en orden cronológico.", 422
+
+        # Determinar qué insertar: SOLO las additions (y que no existan ya)
+        existing_set = set(existing_times)
+        to_insert = []
+        for pos, hhmm in add_times:
+            if hhmm in existing_set:
+                return f"La hora {hhmm} ya existe en el día.", 422
+            to_insert.append({
+                "user_id": user_id,
+                "date": d,
+                "mark_at": parse_time(hhmm),
+                "created_by": editor_user_id,  # ✅
+            })
+
+        res, rc = self.attendance_repository.insert_marks_with_meta(to_insert)
+        if rc != 200:
+            return res, rc
+
+        return {
+            "message": "Marcaciones completadas.",
+            "expected_marks": expected,
+            "inserted": res.get("inserted", 0),
+            "final": final,
+        }, 200

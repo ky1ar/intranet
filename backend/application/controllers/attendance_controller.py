@@ -25,3 +25,10 @@ class AttendanceController:
     @handle_logs_and_exceptions
     def summary_by_offset(self, data):
         return self.attendance_service.summary_by_offset(data)
+    
+
+    @handle_logs_and_exceptions
+    def complete_marks(self, data):
+        if validation_error := validate_request(data, {"user_id", "date", "additions"}):
+            return validation_error, 422
+        return self.attendance_service.complete_marks(data)

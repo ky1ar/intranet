@@ -23,3 +23,9 @@ def period():
     }
 
     return controller.summary_by_offset(data)
+
+
+@attendance_bp.route("/marks/complete", methods=["POST"])
+@jwt_required()
+def complete_marks():
+    return controller.complete_marks(request.get_json())

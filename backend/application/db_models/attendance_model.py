@@ -9,7 +9,8 @@ class AttendanceMark(BaseModel):
     date = db.Column(db.Date, nullable=False)
     mark_at = db.Column(db.Time, nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
-
+    created_by = db.Column(db.Integer, db.ForeignKey("user.id"))
+    
     user = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
 
 

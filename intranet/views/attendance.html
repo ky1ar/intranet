@@ -108,7 +108,7 @@
 										<div class="week_summary_box">
 										<div class="row">
 											<span class="k">
-												<img alt="" width="16" height="16" src="/static/images/icons/filled/target.svg">
+												<!-- <img alt="" width="16" height="16" src="/static/images/icons/filled/target.svg"> -->
 												Objetivo
 											</span>
 											<b class="v" x-text="minutesToText(day.summary?.target_min ?? 0)"></b>
@@ -116,7 +116,7 @@
 
 										<div class="row">
 											<span class="k">
-												<img alt="" width="16" height="16" src="/static/images/icons/filled/total.svg">
+												<!-- <img alt="" width="16" height="16" src="/static/images/icons/filled/total.svg"> -->
 												Acumulado
 											</span>
 											<b class="v" x-text="minutesToText(day.summary?.worked_min ?? 0)"></b>
@@ -124,7 +124,7 @@
 
 										<div class="row">
 											<span class="k">
-												<img alt="" width="14" height="14" src="/static/images/icons/filled/delta.svg">
+												<!-- <img alt="" width="14" height="14" src="/static/images/icons/filled/delta.svg"> -->
 												Diferencial
 											</span>
 											<b class="v"
@@ -653,7 +653,7 @@
 			<div
 				x-show="$store.cache.isVisibleModal('edit')"
 				@mousedown.self="$store.cache.hideLastModal()"
-				class="modal-wrap common-modal"
+				class="modal-wrap"
 				id="modal-edit"
 				x-transition:enter="modal-enter"
 				x-transition:enter-start="modal-enter-start"
@@ -663,50 +663,71 @@
 				x-transition:leave-end="modal-leave-end"
 				x-cloak
 			>
-				<div class="modal small glass2" @click.stop>
+				<div class="modal little glass2" @click.stop>
 					<div class="modal-grabber">
 						<div class="modal-grabber-bar"></div>
 					</div>
 
 					<div class="top">
-						<span class="title">15 de enero</span>
+						<span class="title" x-text="formatLongDate(selected_day?.date)"></span>
+						<span x-text="`Marcaciones: ${draft_marks.length}/${expected_marks}`"></span>
 					</div>
 
-					<div class="modal-content">
-						<!-- <template x-if="link_list.length == 0"> -->
-						<template x-if="false">
-							<span style=" text-align: center; padding: 2rem 0;">El historial de tus licencias aparecerá aquí</span>
-						</template>
+					<div class="modal-content edit-timeline">
+						<template x-for="(node, i) in nodesForDraft()" :key="`${node.type}-${node.index}-${i}`">
+							<div>
+								<!-- SLOT ADD -->
+								<template x-if="node.type === 'add'">
+									<div
+										class="glass add-slot hover-opacity"
+										:disabled="!canAddMore()"
+										@click="openInlineAdd(node.index)"
+									>
+										+ Añadir
+									</div>
+								</template>
 
-						<div class="table-box">
-							<!-- <template x-for="purchase in $store.cache.getData('purchases_dashboard')?.requests" :key="purchase.id">
-								<div class="table-row white" @click="viewPurchase(purchase)">
-									<div class="id" x-text="`PR-00${purchase.id}`"></div>
-									<div>
-										<img alt="user" class="image" :src="'/static/images/uploads/users/' + purchase.requester_image" width="24" height="24">
-										<span class="name" x-text="purchase.requester_name"></span>
+								<!-- ITEM -->
+								<template x-if="node.type === 'item'">
+									<div class="white mark-pill" :class="draft_marks[node.index]?.type === 'locked' ? 'locked' : 'new'">
+										<template x-if="draft_marks[node.index]?.type === 'locked'">
+											<div class="box">
+												<img alt="" width="14" height="14" src="/static/images/icons/filled/lock.svg">
+												<b x-text="draft_marks[node.index]?.time"></b>
+											</div>
+										</template>
+
+										<template x-if="draft_marks[node.index]?.type === 'new'">
+											<div class="box">
+												<input
+													type="time"
+													class="time-inline"
+													x-model="draft_marks[node.index].time"
+												>
+
+												<button
+													class="remove-new hover-opacity"
+													title="Quitar"
+													@click="removeNewAt(node.index)"
+													>
+													<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
+												</button>
+											</div>
+										</template>
 									</div>
-									<div x-text="purchase.requester_department"></div>
-									<div x-text="purchase.express == 1 ? 'Caja chica':'Estándar'"></div>
-									<div x-text="purchase.urgency_name"></div>
-									<div class="statuses">
-										<div :class="purchase.status_slug" x-text="purchase.status_name"></div>
-									</div>
-									<div class="date" x-text="purchase.created_at"></div>
-								</div>
-							</template> -->
-							<div class="table-row white">
-								<div class="id" x-text="`LI-01`"></div>
-								<div>
-									<img alt="user" class="image" src="/static/images/uploads/users/75066321.jpg" width="24" height="24">
-									<span class="name" x-text="'Allison Casimiro'"></span>
-								</div>
-								<div>Permiso</div>
-								<div class="statuses">
-									<div class="pending" x-text="'Registrado'"></div>
-								</div>
+								</template>
 							</div>
-						</div>
+						</template>
+					</div>
+
+					<div class="buttons">
+						<button
+							class="button icon hover-opacity"
+							@click="updateMarks()"
+							:class="buttons.update.class"
+							x-text="buttons.update.text"
+						>
+						</button>
 					</div>
 				</div>
 			</div>
@@ -724,6 +745,10 @@
 		Alpine.data('attendance_data',() => ({
 		api: Alpine.store('cache').api,
 		user: Alpine.store('cache').user,
+
+		buttons: {
+			update: { class: '', text: 'Actualizar' },
+		},
 
 		offset: 0,
 		show_salary: false,
@@ -746,6 +771,9 @@
 		option_user: null,
 		option_user_active: false,
 		hover_day: null,
+		selected_day: null,
+		expected_marks: 4,
+		draft_marks: [],       // [{type:'locked'|'new', time:'HH:MM'}]
 
 		async init() {
 			console.log('Inicializando attendance...');
@@ -914,7 +942,7 @@
 		},
 
 		hasIncomplete(day) {
-			return this.dayItems(day).some(it => !!it.incomplete);
+			return this.isDayIncomplete(day);
 		},
 
 		dayItems(day) {
@@ -944,7 +972,7 @@
 				return {
 					label,
 					value: hasEnd ? `${it.start} - ${it.end}` : `${it.start}`,
-					incomplete: dayIncomplete || !hasEnd,
+					incomplete: dayIncomplete,  // ✅ solo depende del expected_marks
 					extra: false,
 				};
 			};
@@ -1034,10 +1062,139 @@
 			Alpine.store('cache').showModal('leaves');
 		},
 
+		removeNewAt(index) {
+			const it = this.draft_marks[index];
+			if (!it || it.type !== "new") return;
+			this.draft_marks.splice(index, 1);
+		},
+
+		formatLongDate(iso) {
+			if (!iso) return "";
+			const [y,m,d] = iso.split("-").map(Number);
+			const dt = new Date(y, m - 1, d);
+			const months = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+			return `${d} de ${months[dt.getMonth()]} de ${y}`;
+		},
+
+		extractMarks(day) {
+			const marks = [];
+			const intervals = (day?.intervals || []);
+
+			for (const it of intervals) {
+				const s = (it?.start || "").trim();
+				const e = (it?.end || "").trim();
+				if (s) marks.push(s);
+				if (e) marks.push(e);
+			}
+
+			return marks; // en orden: [m1, m2, m3, m4] pero puede faltar cualquiera
+		},
+
+		getExpectedMarks(day) {
+			if (typeof day?.expected_marks === "number") return day.expected_marks;
+			return 4;
+		},
+
 		showEdit(day) {
-			if (!this.hasIncomplete(day)) return;
+			if (!this.isDayIncomplete(day)) return;
+
+			this.selected_day = day;
+			const marks = this.extractMarks(day);
+			this.expected_marks = this.getExpectedMarks(day);
+
+			this.draft_marks = marks.map(t => ({ type: "locked", time: t }));
+
 			Alpine.store('cache').showModal('edit');
 		},
+
+		canAddMore() {
+			return (this.draft_marks?.length || 0) < this.expected_marks;
+		},
+
+		isCompleteDraft() {
+			if ((this.draft_marks?.length || 0) !== this.expected_marks) return false;
+			return this.draft_marks.every(x => (x.time || "").trim().length === 5);
+		},
+
+		nodesForDraft() {
+			// Devuelve una lista como: add(0), item(0), add(1), item(1), add(2)...
+			const nodes = [];
+			const n = this.draft_marks.length;
+			const canAdd = this.canAddMore();
+
+			if (canAdd) nodes.push({ type: "add", index: 0 });
+
+			for (let i = 0; i < n; i++) {
+				nodes.push({ type: "item", index: i });
+				if (canAdd) nodes.push({ type: "add", index: i + 1 });
+			}
+			return nodes;
+		},
+
+		openInlineAdd(slotIndex) {
+			if (!this.canAddMore()) return;
+			this.draft_marks.splice(slotIndex, 0, { type: "new", time: "" });
+		},
+
+		async updateMarks() {
+			if (!this.isCompleteDraft()) {
+				this.showError('update', 'Marcaciones incompletas');
+				return;
+			} 
+
+			const day = this.selected_day;
+			const user_id = this.option_user?.id ?? this.user.id;
+
+			// solo las nuevas (type === 'new')
+			const additions = [];
+			for (let i = 0; i < this.draft_marks.length; i++) {
+				const it = this.draft_marks[i];
+				if (it.type === "new") {
+					additions.push({ time: it.time, position: i });
+				}
+			}
+
+			try {
+				const response = await fetch(`${this.api}/attendance/marks/complete`, {
+					method: "POST",
+					headers: { 
+						"Content-Type": "application/json",
+						"Authorization": `Bearer ${this.user.token}`,
+					},
+					body: JSON.stringify({
+						user_id,
+						date: day.date,
+						expected_marks: this.expected_marks,
+						additions
+					})
+				});
+
+				const jsonData = await response.json();
+				if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+				await this.load();
+				Alpine.store('cache').hideLastModal();
+			} catch (error) {
+				this.showError('update', error.message);
+			}
+		},
+
+		showError(btnKey, errorMsg) {
+			const originalText = this.buttons[btnKey].text;
+			const originalClass = this.buttons[btnKey].class;
+
+			if (originalClass == 'error') {
+				return;
+			}
+			this.buttons[btnKey].text = errorMsg;
+			this.buttons[btnKey].class = 'error';
+
+			setTimeout(() => {
+				this.buttons[btnKey].text = originalText;
+				this.buttons[btnKey].class = originalClass;
+			}, 2000);
+		},
+		
 
 		leaveProcess() {
 			Alpine.store('cache').showModal('process');
@@ -1081,30 +1238,26 @@
 			const mm = String(abs % 60).padStart(2, "0");
 
 			return `${hh}:${mm}`;
-			// si no quieres signo, siempre HH:MM
-			if (!withSign) return `${hh}:${mm}`;
-
-			// con signo (solo cuando lo necesites)
-			const sign = mins < 0 ? "-" : "+";
-			if (mins === 0) return "00:00"; // 0 sin signo
-			return `${sign}${hh}:${mm}`;
 		},
 
 		isDayIncomplete(day) {
 			if (!day?.in_period) return false;
+			if (day?.is_summary) return false;
+			if (day?.is_holiday) return false; // si feriado lo tratas aparte
 
-			// intervalos con start (marcas reales)
-			const intervals = (day?.intervals || []).filter(it => (it?.start || "").trim());
+			const marks = this.extractMarks(day);               // [HH:MM, ...]
+			const expected = this.getExpectedMarks(day);        // 0,2,4...
 
-			if (intervals.length === 0) return false;
+			// Si no se espera nada, no hay incompleto
+			if (!expected || expected <= 0) return false;
 
-			// si existe algún intervalo con start pero sin end => marcas impares => incompleto
-			return intervals.some(it => (it?.start || "").trim() && !(it?.end || "").trim());
+			// Incompleto si faltan marcas vs lo esperado
+			return marks.length < expected;
 		},
 
 
 	}));
-	</script>
+</script>
 
 
 
@@ -1115,12 +1268,58 @@
 
 
 	<style>
+		#modal-edit .top {
+			display: flex;
+    		justify-content: space-between;
+		}
+		#modal-edit .edit-timeline {
+			gap:0.5rem;
+			align-items:center;
+		}
+		#modal-edit .mark-pill {
+			padding: 0.5rem 1rem;
+		}
+		#modal-edit .mark-pill .box {
+			display: flex;
+			align-items: center;
+			gap: 0.25rem;
+		}
+		#modal-edit .mark-pill.new {
+			padding: 0.5rem;
+		}
+		#modal-edit .add-slot {
+			padding:0.5rem 1rem;
+			cursor:pointer;
+			border-radius: 0.75rem;
+		}
+		#modal-edit .add-slot:disabled {
+			opacity:0.4;
+			cursor:not-allowed;
+		}
+		#modal-edit .time-inline {
+			background: transparent;
+			border: 0;
+			outline: none;
+			font-weight: 700;
+		}
+		#modal-edit .remove-new {
+			margin-left: .5rem;
+			border: 0;
+			background: rgba(255, 255, 255, .12);
+			padding: 0 0.5rem;
+			cursor: pointer;
+		}
+		#modal-edit .disabled { 
+			opacity: .45 !important;
+			pointer-events: none;
+			font-size: 0.85rem;
+		}
+
 		.week_summary_box {
 			padding: 0.5rem;
 			border-radius: 0.5rem;
 			display: flex;
 			flex-direction: column;
-			gap: 0.25rem;
 		}
 		.week_summary_box .row {
 			display: flex;
