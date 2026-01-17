@@ -21,6 +21,16 @@ class AttendanceController:
 
         return self.attendance_service.xls_process(file, file_bytes)
     
+    
+    @handle_logs_and_exceptions
+    def attendance_duration(self):
+        return self.attendance_service.duration()
+    
+
+    @handle_logs_and_exceptions
+    def attendance_leave(self):
+        return self.attendance_service.leave()
+
 
     @handle_logs_and_exceptions
     def summary_by_offset(self, data):

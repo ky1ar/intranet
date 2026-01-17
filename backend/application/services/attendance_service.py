@@ -327,6 +327,38 @@ class AttendanceService:
     
 
     @handle_exceptions
+    def duration(self):
+        durations, dc = self.attendance_repository.get_durations() 
+        if dc != 200:
+            return durations, dc
+        
+        result = [
+            {
+                "id": duration.id,
+                "name": duration.name,
+            }
+            for duration in durations
+        ]
+        return result, 200
+
+
+    @handle_exceptions
+    def leave(self):
+        leaves, dc = self.attendance_repository.get_leaves() 
+        if dc != 200:
+            return leaves, dc
+        
+        result = [
+            {
+                "id": leave.id,
+                "name": leave.name,
+            }
+            for leave in leaves
+        ]
+        return result, 200
+
+
+    @handle_exceptions
     def summary_by_offset(self, data):
         user_id = int(data.get("user_id"))
         offset = int(data.get("offset") or 0)

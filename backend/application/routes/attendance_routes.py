@@ -12,6 +12,16 @@ def xls():
     return controller.attendance_xls(request)
 
 
+@attendance_bp.route("/duration", methods=["GET"])
+def duration():
+    return controller.attendance_duration()
+
+
+@attendance_bp.route("/leave", methods=["GET"])
+def leave():
+    return controller.attendance_leave()
+
+
 @attendance_bp.route("/period", methods=["GET"])
 @jwt_required()
 def period():

@@ -5,11 +5,31 @@ from calendar import monthrange
 from application.handlers import handle_db_exceptions
 from application.utils import peru_time
 from application.db_models.attendance_model import AttendanceMark, AttendancePeriod, UserWorkProfile, WorkProfileShift, WorkProfile
+from application.db_models.leave_model import LeaveDuration, LeaveType, LeaveStatus
 from application.models import Holidays
 from flask import g
 
 
 class AttendanceRepository:
+
+    @handle_db_exceptions
+    def get_durations(self):
+        durations = g.db_session.query(LeaveDuration).order_by(LeaveDuration.name).all()
+        if not durations:
+            return [], 400
+        
+        return durations, 200
+    
+
+    @handle_db_exceptions
+    def get_leaves(self):
+        leaves = g.db_session.query(LeaveType).order_by(LeaveType.name).all()
+        if not leaves:
+            return [], 400
+        
+        return leaves, 200
+
+
     @handle_db_exceptions
     def get_existing_keys(self, user_ids, dates):
         if not user_ids or not dates:

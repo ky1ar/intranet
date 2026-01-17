@@ -454,13 +454,13 @@
 											$refs.start_date_input.focus();
 										}
 									"
-									x-text="dateLabel(event_data.start_date_only, 'Fecha del permiso')"
+									x-text="dateLabel(attendance_form.start_date_only, 'Fecha del permiso')"
 								></span>
 
 								<input
 									x-ref="start_date_input"
 									type="date"
-									x-model="event_data.start_date_only"
+									x-model="attendance_form.start_date_only"
 									:min="minLeaveDate"
 									style="
 										position:absolute;
@@ -473,34 +473,34 @@
 
 							<label class="white">
 								<img alt="repeat" src="/static/images/icons/clock.svg" width="14" height="14">
-								<select >
+								<select x-model="attendance_form.duration">
 									<option value="" disabled selected>Duración</option>
-									<option value="">Media jornada (mañana)</option>
-									<option value="">Media jornada (tarde)</option>
-									<option value="">Jornada completa</option>
+									
+									<template x-for="duration in $store.cache.getData('attendance_duration')" :key="duration.id">
+										<option :value="duration.id" x-text="duration.name"></option>
+									</template>
 								</select>
 							</label>
 						</div>
 							
 						<div class="fields">
 							<label class="white flex2-3">
-								<select x-model="event_data.leave_type">
+								<select x-model="attendance_form.leave_type">
 									<option value="" disabled selected>Tipo de permiso</option>
-									<option value="medical">Atención médica</option>
-									<option value="errand">Gestión / Trámite</option>
-									<option value="training">Capacitación / Taller</option>
-									<option value="personal">Asunto personal</option>
-									<option value="other">Otro</option>
+
+									<template x-for="leave in $store.cache.getData('attendance_leave')" :key="leave.id">
+										<option :value="leave.id" x-text="leave.name"></option>
+									</template>
 								</select>
 							</label>
 
-							<template x-if="event_data.leave_type === 'other'">
+							<template x-if="attendance_form.leave_type == '5'">
 								<label class="white flex2-3">
 									<input
-									type="text"
-									class="input"
-									placeholder="Especifica el tipo"
-									x-model="event_data.leave_type_detail"
+										type="text"
+										class="input"
+										placeholder="Especifica el tipo"
+										x-model="attendance_form.leave_type_detail"
 									/>
 								</label>
 							</template>
@@ -508,14 +508,14 @@
 
 						<textarea 
 							placeholder="Motivo o detalle"
-							x-model="event_data.description"
+							x-model="attendance_form.description"
 							class="text-area"
 							style="max-width: 100%; border: 2px solid white;"
 						></textarea>
 
 						<textarea
 							placeholder="Plan de recuperación de horas (cómo y cuándo)"
-							x-model="event_data.description2"
+							x-model="attendance_form.description2"
 							class="text-area"
 							style="max-width: 100%; border: 2px solid white;"
 						></textarea>
@@ -569,16 +569,16 @@
 											$refs.start_date.focus();
 										}
 									"
-									x-text="dateLabel(event_data.start_date, 'Inicio de vacaciones')"
+									x-text="dateLabel(attendance_form.start_date, 'Inicio de vacaciones')"
 								></span>
 
 								<input
 									x-ref="start_date"
 									type="date"
-									x-model="event_data.start_date"
+									x-model="attendance_form.start_date"
 									:min="minVacationDate"
 									@change="
-										event_data.end_date = '';
+										attendance_form.end_date = '';
 										$nextTick(() => {
 											if ($refs.end_date?.showPicker) {
 												$refs.end_date.showPicker();
@@ -603,13 +603,13 @@
 											$refs.end_date.focus();
 										}
 									"
-									x-text="dateLabel(event_data.end_date, 'Fin de vacaciones')"
+									x-text="dateLabel(attendance_form.end_date, 'Fin de vacaciones')"
 								></span>
 
 								<input
 									x-ref="end_date"
 									type="date"
-									x-model="event_data.end_date"
+									x-model="attendance_form.end_date"
 									:min="endDateMin()"
   									:max="endDateMax()"
 									style="position:absolute; inset:0; opacity:0; pointer-events:none;"
@@ -619,17 +619,21 @@
 							
 						<div class="fields">
 							<label class="white flex2-3">
-								<select x-model="event_data.leave_type">
+								<select x-model="attendance_form.assigned">
 									<option value="" disabled selected>Responsable durante ausencia</option>
-									<option value="medical">Allison Casimiro</option>
-									<option value="errand">Nairuth Bendezú</option>
+									
+									<template x-for="team in $store.cache.getData('user_team')" :key="team.id">
+										<template x-if="team.id != user.id">
+											<option :value="team.id" x-text="team.name"></option>
+										</template>
+									</template>
 								</select>
 							</label>
 						</div>
 
 						<textarea 
 							placeholder="Notas (opcional)"
-							x-model="event_data.description"
+							x-model="attendance_form.description"
 							class="text-area"
 							style="max-width: 100%; border: 2px solid white;"
 						></textarea>
@@ -755,7 +759,7 @@
 		loading: false,
 
 		gridDays: [],
-		event_data: {
+		attendance_form: {
 			start_date_only: "",
 			start_date: "",
 			end_date: "",
@@ -794,6 +798,8 @@
 			}
 			await Alpine.store('cache').fetchData([
 				{ key: 'user_team', url: `/user/team/${this.user.id}`, force: true },
+				{ key: 'attendance_duration', url: `/attendance/duration`, force: true },
+				{ key: 'attendance_leave', url: `/attendance/leave`, force: true },
 			]);
 			
 			await this.load();
@@ -1225,11 +1231,11 @@
 		},
 
 		endDateMin() {
-			return this.event_data.start_date || this.minVacationDate;
+			return this.attendance_form.start_date || this.minVacationDate;
 		},
 
 		endDateMax() {
-			return this.event_data.start_date ? this.addDaysISO(this.event_data.start_date, 15) : "";
+			return this.attendance_form.start_date ? this.addDaysISO(this.attendance_form.start_date, 15) : "";
 		},
 
 		minutesToText(mins, withSign = false) {
