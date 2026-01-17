@@ -71,21 +71,64 @@
 					
 					<div class="bottom">
 						<template x-for="(day, idx) in gridDays" :key="idx">
-							<div class="month" :class="dayClass(day)">
-								<template x-if="showLate(day)">
-									<img class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg">
-								</template>
+							<div class="month" :class="dayClass(day)" @mouseenter="setHover(day, true)" @mouseleave="setHover(day, false)">
+								<img x-show="showLate(day)" class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg" x-transition.opacity.duration.150ms>
 
-								<span class="number" :class="isToday(day) ? 'today' : ''" x-text="day.label"></span>
+								<span class="number"
+									:class="isToday(day) ? 'today' : ''"
+									x-text="day.is_summary ? 'Σ' : day.label"></span>
 
-								<div class="body">
-									<template x-for="(item, i) in dayItems(day)" :key="i">
-										<div class="item" :class="item.incomplete ? 'incomplete' : ''">
+								<template x-if="!day.is_summary">
+									<div class="body">
+										<template x-for="(item, i) in dayItems(day)" :key="i">
+										<div
+											class="item"
+											:class="{
+												'incomplete': item.incomplete,
+												'extra': item.extra
+											}"
+											x-show="!item.extra || isHover(day)"
+											x-transition.opacity.duration.150ms
+										>
 											<span class="label" x-text="item.label"></span>
 											<span class="date" x-text="item.value"></span>
 										</div>
-									</template>
-								</div>
+										</template>
+									</div>
+								</template>
+
+								<!-- BODY RESUMEN (Σ) -->
+								<template x-if="day.is_summary">
+									<div class="body week_summary">
+										<div class="week_summary_box">
+										<div class="row">
+											<span class="k">
+												<img alt="" width="16" height="16" src="/static/images/icons/filled/target.svg">
+												Objetivo
+											</span>
+											<b class="v" x-text="minutesToText(day.summary?.target_min ?? 0)"></b>
+										</div>
+
+										<div class="row">
+											<span class="k">
+												<img alt="" width="16" height="16" src="/static/images/icons/filled/total.svg">
+												Acumulado
+											</span>
+											<b class="v" x-text="minutesToText(day.summary?.worked_min ?? 0)"></b>
+										</div>
+
+										<div class="row">
+											<span class="k">
+												<img alt="" width="14" height="14" src="/static/images/icons/filled/delta.svg">
+												Diferencial
+											</span>
+											<b class="v"
+											:class="(day.summary?.delta_min ?? 0) < 0 ? 'neg' : 'pos'"
+											x-text="minutesToText(day.summary?.delta_min ?? 0, true)"></b>
+										</div>
+										</div>
+									</div>
+								</template>
 							</div>
 						</template>
 					</div>
@@ -636,6 +679,7 @@
 		minVacationDate: "",
 		option_user: null,
 		option_user_active: false,
+		hover_day: null,
 
 		async init() {
 			console.log('Inicializando attendance...');
@@ -668,8 +712,21 @@
 			await Alpine.store('cache').fetchData([
 				{ key: 'attendance_period', url: `/attendance/period?user_id=${user_id}&offset=${this.offset}`, force: true },
 			]);
-
+			this.hover_day = null;
 			this.buildGrid();
+		},
+
+		isHover(day) {
+			return this.hover_day === (day?.date || null);
+		},
+
+		setHover(day, on) {
+			this.hover_day = on ? (day?.date || null) : null;
+		},
+
+		toggleHover(day) { // para móvil
+			const k = day?.date || null;
+			this.hover_day = (this.hover_day === k) ? null : k;
 		},
 
 		toogleUserOption() { 
@@ -724,8 +781,43 @@
 			const weeks = data.weeks || [];
 			const days = [];
 
+			const todayISO = new Date().toISOString().slice(0, 10);
+
+			const hasValidIntervals = (d) => {
+				if (!d?.in_period) return false;
+				if (!d?.date || d.date > todayISO) return false;
+
+				const intervals = d?.intervals || [];
+				const hasAnyStart = intervals.some(it => (it?.start || "").trim());
+				if (!hasAnyStart) return false;
+
+				// ✅ si es incompleto => no cuenta para el resumen
+				if (this.isDayIncomplete(d)) return false;
+
+				return true;
+			};
+
 			for (const w of weeks) {
-				for (const d of (w.days || [])) {
+				const wdays = (w.days || []);
+
+				// Semana NO futura: si tiene al menos un día del periodo <= hoy
+				const week_has_past_or_today = wdays.some(d => d?.in_period && d?.date && d.date <= todayISO);
+
+				// Semana con data real (solo contando días <= hoy)
+				const week_has_data = wdays.some(d => hasValidIntervals(d));
+
+				for (let i = 0; i < wdays.length; i++) {
+					const d = wdays[i];
+
+					// Domingo (7ma casilla) => Σ
+					if (i === 6) {
+						d.is_summary = week_has_past_or_today && week_has_data;
+						// si tu backend ya manda w.summary, lo usas aquí
+						d.summary = w.summary || d.summary || null;
+					} else {
+						d.is_summary = false;
+					}
+
 					days.push(d);
 				}
 			}
@@ -741,23 +833,34 @@
 
 		showLate(day) {
 			if (!day?.in_period) return false;
+			if (day?.is_summary) return false;
+
 			const first = (day?.intervals || [])[0];
-			if (!first?.start) return false;
-			return first.start > "09:00";
+			const start = (first?.start || "").trim();
+			if (!start) return false;
+
+			const expected = (day?.expected_start || "").trim();
+			if (!expected) return false;
+
+			return start > expected;
 		},
 
 		dayItems(day) {
 			if (!day?.in_period) return [];
 
-			const intervals = (day?.intervals || []).filter(x => x?.start);
+			const intervals = (day?.intervals || []).filter(x => (x?.start || "").trim());
 			if (intervals.length === 0) return [];
 
+			const dayIncomplete = this.isDayIncomplete(day);
+
 			const makeItem = (label, it) => {
-				const hasEnd = !!it?.end;
+				const hasEnd = !!(it?.end || "").trim();
 				return {
 				label,
 				value: hasEnd ? `${it.start} - ${it.end}` : `${it.start}`,
-				incomplete: !hasEnd,
+				// ✅ si el día es incompleto => TODOS incompletos
+				incomplete: dayIncomplete || !hasEnd,
+				extra: false,
 				};
 			};
 
@@ -765,9 +868,29 @@
 			if (intervals[0]) items.push(makeItem("Mañana", intervals[0]));
 			if (intervals[1]) items.push(makeItem("Tarde", intervals[1]));
 
+			// ❗ si el día es incompleto, NO mostrar Δ
+			if (dayIncomplete) return items;
+
+			// ✅ completo => puede mostrar Δ (hover)
+			if (typeof day?.delta_min === "number") {
+				items.push({
+				label: "Δ",
+				value: this.minutesToDeltaText(day.delta_min),
+				incomplete: false,
+				extra: true,
+				});
+			}
+
 			return items;
 		},
 
+		minutesToDeltaText(min) {
+			const sign = min < 0 ? "-" : "+";
+			const abs = Math.abs(min);
+			const hh = Math.floor(abs / 60);
+			const mm = abs % 60;
+			return `${sign}${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`;
+		},
 
 		isToday(day) {
 			if (!day?.date) return false;
@@ -863,6 +986,35 @@
 		endDateMax() {
 			return this.event_data.start_date ? this.addDaysISO(this.event_data.start_date, 15) : "";
 		},
+
+		minutesToText(mins, withSign = false) {
+			const abs = Math.abs(mins);
+			const hh = String(Math.floor(abs / 60)).padStart(2, "0");
+			const mm = String(abs % 60).padStart(2, "0");
+
+			return `${hh}:${mm}`;
+			// si no quieres signo, siempre HH:MM
+			if (!withSign) return `${hh}:${mm}`;
+
+			// con signo (solo cuando lo necesites)
+			const sign = mins < 0 ? "-" : "+";
+			if (mins === 0) return "00:00"; // 0 sin signo
+			return `${sign}${hh}:${mm}`;
+		},
+
+		isDayIncomplete(day) {
+			if (!day?.in_period) return false;
+
+			// intervalos con start (marcas reales)
+			const intervals = (day?.intervals || []).filter(it => (it?.start || "").trim());
+
+			if (intervals.length === 0) return false;
+
+			// si existe algún intervalo con start pero sin end => marcas impares => incompleto
+			return intervals.some(it => (it?.start || "").trim() && !(it?.end || "").trim());
+		},
+
+
 	}));
 	</script>
 
@@ -875,6 +1027,42 @@
 
 
 	<style>
+		.week_summary_box {
+			padding: 0.5rem;
+			border-radius: 0.5rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+		}
+		.week_summary_box .row {
+			display: flex;
+			justify-content: space-between;
+			font-size: 0.8rem;
+		}
+		.week_summary_box .row:last-child {
+			border-top: 2px solid #eee;
+			padding-top: 0.5rem;
+			margin-top: 0.5rem;
+		}
+		.week_summary_box .k {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			font-size: 0.65rem;
+			font-weight: 600;
+			color: #767676;
+		}
+		.week_summary_box .v {
+    		font-weight: 500;
+		}
+		.week_summary_box .v.pos {
+			color: #76b85d;
+    		font-weight: 600;
+		}
+		.week_summary_box .v.neg {
+			color: #f05c46;
+    		font-weight: 600;
+		}
 		.custom_select {
 			position: relative;
 			cursor: pointer;
@@ -1262,7 +1450,7 @@
 		#attendance .main .middle .bottom .month .number {
 			font-size: 1rem;
 			line-height: 1rem;
-			font-weight: 500;
+			font-weight: 600;
 			position: absolute;
 			padding: 0.5rem;
 			top: 0;

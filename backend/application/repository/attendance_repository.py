@@ -4,7 +4,7 @@ from datetime import datetime, time, date, timedelta
 from calendar import monthrange
 from application.handlers import handle_db_exceptions
 from application.utils import peru_time
-from application.db_models.attendance_model import AttendanceMark, AttendancePeriod
+from application.db_models.attendance_model import AttendanceMark, AttendancePeriod, UserWorkProfile, WorkProfileShift, WorkProfile
 from flask import g
 
 
@@ -209,3 +209,29 @@ class AttendanceRepository:
             },
             "weeks": weeks,
         }, 200
+    
+
+    @handle_db_exceptions
+    def get_profile_for_user_on_date(self, user_id, on_date):
+        row = (
+            g.db_session.query(UserWorkProfile)
+            .filter(UserWorkProfile.user_id == int(user_id))
+            .filter(UserWorkProfile.start_date <= on_date)
+            .filter((UserWorkProfile.end_date.is_(None)) | (UserWorkProfile.end_date >= on_date))
+            .order_by(UserWorkProfile.start_date.desc())
+            .first()
+        )
+        if not row:
+            return None, 200
+        return row.profile, 200
+    
+    
+    @handle_db_exceptions
+    def get_shifts_for_profile(self, profile_id):
+        rows = (
+            g.db_session.query(WorkProfileShift)
+            .filter(WorkProfileShift.profile_id == int(profile_id))
+            .order_by(WorkProfileShift.weekday.asc(), WorkProfileShift.start_time.asc())
+            .all()
+        )
+        return rows or [], 200

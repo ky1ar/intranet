@@ -20,6 +20,48 @@ class AttendanceService:
         self.user_repository = UserRepository()
 
 
+    def _hhmm_to_minutes(self, hhmm):
+        hh, mm = hhmm.split(":")
+        return int(hh) * 60 + int(mm)
+
+
+    def _expected_start_minutes_for_date(self, profile_map, d: date):
+        wd = d.weekday()
+        starts = [a for (a, b) in (profile_map.get(wd) or [])]
+        return min(starts) if starts else None
+
+
+    def _minutes_to_hhmm(self, mins: int):
+        hh = mins // 60
+        mm = mins % 60
+        return f"{hh:02d}:{mm:02d}"
+
+
+    def _time_to_minutes(self, t):
+        return int(t.hour) * 60 + int(t.minute)
+
+
+    def _interval_minutes(self, it: dict):
+        if not it or not it.get("start") or not it.get("end"):
+            return 0
+        return max(0, self._hhmm_to_minutes(it["end"]) - self._hhmm_to_minutes(it["start"]))
+
+
+    def _build_profile_map(self, shifts_rows):
+        mp = {i: [] for i in range(7)}
+        for s in shifts_rows:
+            mp[int(s.weekday)].append((self._time_to_minutes(s.start_time), self._time_to_minutes(s.end_time)))
+        return mp
+
+
+    def _target_minutes_for_date(self, profile_map, d: date):
+        wd = d.weekday()
+        total = 0
+        for a, b in (profile_map.get(wd) or []):
+            total += max(0, b - a)
+        return total
+
+        
     def _first_day_next_month(self, d):
         y, m = d.year, d.month
         if m == 12:
@@ -38,11 +80,6 @@ class AttendanceService:
         return d
 
 
-    def _time_to_minutes(self, t):
-        hh, mm = t.split(":")
-        return int(hh) * 60 + int(mm)
-
-
     def _normalize_times(self, times, window_minutes=5):
         out = []
         last_min = None
@@ -53,7 +90,7 @@ class AttendanceService:
                 continue
 
             try:
-                cur = self._time_to_minutes(t)
+                cur = self._hhmm_to_minutes(t)
             except Exception:
                 continue
 
@@ -291,8 +328,8 @@ class AttendanceService:
 
     @handle_exceptions
     def summary_by_offset(self, data):
-        user_id = data.get("user_id")
-        offset = data.get("offset")
+        user_id = int(data.get("user_id"))
+        offset = int(data.get("offset") or 0)
 
         period, pc = self.attendance_repository.get_period_by_offset(offset, today=date.today())
         if pc != 200:
@@ -301,5 +338,88 @@ class AttendanceService:
         if not period:
             return {"period": None, "weeks": []}, 200
 
-        payload, rc = self.attendance_repository.build_period_summary(int(user_id), period)
-        return payload, rc
+        # 1) payload base (marcas agrupadas)
+        payload, rc = self.attendance_repository.build_period_summary(user_id, period)
+        if rc != 200:
+            return payload, rc
+
+        # 2) perfil vigente para el rango (simplificación: asumimos que no cambia dentro del periodo)
+        #    Si puede cambiar dentro del periodo, luego lo mejoramos con "por fecha".
+        profile, prc = self.attendance_repository.get_profile_for_user_on_date(user_id, period.start_date)
+        if prc != 200:
+            return profile, prc
+
+        # fallback si no tiene perfil asignado
+        if not profile:
+            return {
+                **payload,
+                "profile": None,
+                "profile_error": "Usuario sin perfil asignado (user_work_profile)",
+            }, 200
+
+        shifts, src = self.attendance_repository.get_shifts_for_profile(profile.id)
+        if src != 200:
+            return shifts, src
+
+        profile_map = self._build_profile_map(shifts)
+
+        # 3) Enriquecer días + resumen semanal en domingo
+        for w in payload.get("weeks", []):
+            week_worked = 0
+            week_target = 0
+            week_incomplete = 0
+
+            for day in w.get("days", []):
+                dt = parse_date_iso(day["date"])  # date
+                wd = dt.weekday()
+
+                if wd == 6:  # domingo => resumen
+                    day["is_summary"] = True
+                    day["label"] = "Σ"
+                    day["intervals"] = []
+                    day["summary"] = {
+                        "worked_min": week_worked,
+                        "target_min": week_target,
+                        "delta_min": week_worked - week_target,
+                        "incomplete": week_incomplete,  # opcional
+                    }
+                    continue
+
+                day["is_summary"] = False
+
+                target = self._target_minutes_for_date(profile_map, dt)
+                expected_start_min = self._expected_start_minutes_for_date(profile_map, dt)
+                day["expected_start"] = self._minutes_to_hhmm(expected_start_min) if expected_start_min is not None else None
+
+                worked = 0
+                has_open_interval = False
+
+                for it in (day.get("intervals") or []):
+                    if it.get("start") and not it.get("end"):
+                        has_open_interval = True
+                    worked += self._interval_minutes(it)
+
+                # ✅ campos por día
+                day["target_min"] = target
+                day["worked_min"] = worked
+                day["incomplete"] = bool(has_open_interval)
+                day["incomplete_count"] = 1 if has_open_interval else 0
+
+                # ✅ el objetivo SIEMPRE cuenta para el resumen (lunes-sábado)
+                week_target += target
+
+                # ❗ día incompleto: NO delta, NO sumar worked a la semana
+                if has_open_interval:
+                    day["delta_min"] = None
+                    week_incomplete += 1
+                    continue
+
+                # ✅ día completo: delta + sumar worked
+                day["delta_min"] = worked - target
+                week_worked += worked
+
+        payload["profile"] = {"id": profile.id, "slug": profile.slug, "name": profile.name}
+        return payload, 200
+
+
+    
