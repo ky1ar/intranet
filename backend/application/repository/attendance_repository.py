@@ -5,7 +5,7 @@ from calendar import monthrange
 from application.handlers import handle_db_exceptions
 from application.utils import peru_time
 from application.db_models.attendance_model import AttendanceMark, AttendancePeriod, UserWorkProfile, WorkProfileShift, WorkProfile
-from application.db_models.leave_model import LeaveDuration, LeaveType, LeaveStatus
+from application.db_models.leave_model import LeaveDuration, LeaveType, LeaveStatus, LeaveRequest
 from application.models import Holidays
 from flask import g
 
@@ -342,3 +342,61 @@ class AttendanceRepository:
         g.db_session.bulk_save_objects(to_insert)
         g.db_session.commit()
         return {"inserted": len(to_insert)}, 200
+
+
+    @handle_db_exceptions
+    def insert_leave_request(self, p, level_id):
+        obj = LeaveRequest(
+            user_id=int(p["user_id"]),
+            request_type='Permiso',
+            status_id=1 if level_id == 2 else 2,
+            start_date=p["date"],
+            end_date=p["date"],
+            duration_id=int(p["duration_id"]),
+            leave_type_id=int(p["leave_type_id"]),
+            leave_type_detail=p["leave_type_detail"],
+            motive=p["motive"],
+            recovery_plan=p["recovery_plan"],
+            created_at=peru_time(),
+        )
+        g.db_session.add(obj)
+        g.db_session.commit()
+        return {"id": obj.id}, 200
+
+
+    @handle_db_exceptions
+    def insert_vacation_request(self, p, level_id):
+        obj = LeaveRequest(
+            user_id=int(p["user_id"]),
+            request_type='Vacaciones',
+            status_id=1 if level_id == 2 else 2,
+            start_date=p["start_date"],
+            end_date=p["end_date"],
+            assigned_user_id=int(p["assigned_user_id"]),
+            description=p["description"],
+            created_at=peru_time(),
+        )
+        g.db_session.add(obj)
+        g.db_session.commit()
+        return {"id": obj.id}, 200
+
+
+    @handle_db_exceptions
+    def get_leave_requests(self, visibility):
+        query  = (
+            g.db_session.query(LeaveRequest)
+            .filter(LeaveRequest.deleted_at.is_(None))
+        )
+        if visibility:
+            query = query.filter(LeaveRequest.user_id.in_(visibility))
+
+        leave_requests = (
+            query
+            .order_by(LeaveRequest.id.desc())
+            .all()
+        )
+
+        if not leave_requests:
+            return [], 200
+
+        return leave_requests, 200

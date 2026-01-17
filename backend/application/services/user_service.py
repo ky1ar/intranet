@@ -59,11 +59,9 @@ class UserService:
         if user.level_id == 1:
             return "Usuario sin acceso al sistema", 400
 
-        team, tc = self.user_repository.get_department_team(user.department_id)
+        team, tc = self.user_repository.get_custom_team(user.department_id, user.id)
         if tc != 200:
             return team, tc
-
-        team = [t for t in team if t.level_id != 5 and t.id not in [23,21] and t.department_id != 7]
 
         team_dict = [
             {

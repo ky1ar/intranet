@@ -3,9 +3,10 @@ import pandas as pd
 from io import BytesIO
 from datetime import datetime, timedelta, date
 from application.handlers import handle_exceptions
-from application.utils import parse_date_iso, parse_time
+from application.utils import parse_date_iso, parse_time, format_name, format_datetime
 from application.repository.attendance_repository import AttendanceRepository
 from application.repository.user_repository import UserRepository
+from application import socketio
 from flask_jwt_extended import get_jwt_identity
 
 
@@ -18,6 +19,11 @@ class AttendanceService:
     def __init__(self):
         self.attendance_repository = AttendanceRepository()
         self.user_repository = UserRepository()
+        self.management_dep = 7
+        self.purchases_dep = 8
+        self.worker_lvl = 2
+        self.leader_lvl = 3
+        self.admin_lvl = 4
 
 
     def _hhmm_to_minutes(self, hhmm):
@@ -359,6 +365,73 @@ class AttendanceService:
 
 
     @handle_exceptions
+    def leave_requests(self):
+        user_id = int(get_jwt_identity())
+        user, uc = self.user_repository.get_user_by_id(user_id)
+        if uc != 200:
+            return user, uc
+        
+        level_id = user.level_id
+        department_id = user.department_id
+
+        if department_id == self.management_dep or user_id == 23:
+            return self._get_manager_request_list(user_id)
+        
+        if level_id == self.leader_lvl:
+            return self._get_leader_request_list(user_id, department_id)
+        
+        return self._get_worker_request_list(user_id)
+    
+
+    @handle_exceptions
+    def _get_worker_request_list(self, user_id):
+        leave_requests, lrc = self.attendance_repository.get_leave_requests([user_id])
+        if lrc != 200:
+            return leave_requests, lrc
+        
+        return self._format_requests_reponse(leave_requests, user_id, self.worker_lvl)
+
+
+    @handle_exceptions
+    def _get_leader_request_list(self, user_id, department_id):
+        department_user_ids, duic = self.user_repository.get_user_ids_by_department(department_id)
+        if duic != 200:
+            return department_user_ids, duic
+    
+        leave_requests, lrc = self.attendance_repository.get_leave_requests(department_user_ids)
+        if lrc != 200:
+            return leave_requests, lrc
+        
+        return self._format_requests_reponse(leave_requests, user_id, self.leader_lvl)
+    
+
+    @handle_exceptions
+    def _get_manager_request_list(self, user_id):
+        leave_requests, lrc = self.attendance_repository.get_leave_requests([])
+        if lrc != 200:
+            return leave_requests, lrc
+        
+        return self._format_requests_reponse(leave_requests, user_id, self.leader_lvl)
+    
+
+    @handle_exceptions
+    def _format_requests_reponse(self, leave_requests, user_id, level):
+        return {
+            "requests": [
+                {
+                    "id": leave.id,
+                    "requester_name": format_name(leave.user.name) if user_id != leave.user_id else 'Tú',
+                    "requester_image": leave.user.image,
+                    "request_type": leave.request_type,
+                    "status_name": leave.status.name,
+                    "status_slug": leave.status.slug,
+                } for leave in leave_requests
+            ],
+            "viewer_level_id": level,
+        }, 200
+
+
+    @handle_exceptions
     def summary_by_offset(self, data):
         user_id = int(data.get("user_id"))
         offset = int(data.get("offset") or 0)
@@ -370,18 +443,14 @@ class AttendanceService:
         if not period:
             return {"period": None, "weeks": []}, 200
 
-        # 1) payload base (marcas agrupadas)
         payload, rc = self.attendance_repository.build_period_summary(user_id, period)
         if rc != 200:
             return payload, rc
 
-        # 2) perfil vigente para el rango (simplificación: asumimos que no cambia dentro del periodo)
-        #    Si puede cambiar dentro del periodo, luego lo mejoramos con "por fecha".
         profile, prc = self.attendance_repository.get_profile_for_user_on_date(user_id, period.start_date)
         if prc != 200:
             return profile, prc
 
-        # fallback si no tiene perfil asignado
         if not profile:
             return {
                 **payload,
@@ -395,21 +464,18 @@ class AttendanceService:
 
         profile_map = self._build_profile_map(shifts)
 
-        # 3) Enriquecer días + resumen semanal en domingo
         for w in payload.get("weeks", []):
             week_worked = 0
             week_target = 0
             week_incomplete = 0
 
             for day in w.get("days", []):
-                dt = parse_date_iso(day["date"])  # date
+                dt = parse_date_iso(day["date"])
                 wd = dt.weekday()
 
-                # ✅ expected marks = 2 * cantidad de turnos (shifts) de ese weekday
                 shifts_for_day = (profile_map.get(wd) or [])
                 day["expected_marks"] = len(shifts_for_day) * 2
 
-                # keep your sunday-summary logic
                 if wd == 6:
                     day["is_summary"] = True
                     day["label"] = "Σ"
@@ -428,11 +494,8 @@ class AttendanceService:
                 expected_start_min = self._expected_start_minutes_for_date(profile_map, dt)
                 day["expected_start"] = self._minutes_to_hhmm(expected_start_min) if expected_start_min is not None else None
 
-                # ✅ always count target in week target (Mon-Sat)
                 week_target += target
 
-                # ✅ HOLIDAY: count as worked == target (depending on profile)
-                # Only if the date is inside the payroll period (optional but recommended)
                 if day.get("is_holiday") and day.get("in_period"):
                     day["worked_min"] = target
                     day["target_min"] = target
@@ -443,7 +506,6 @@ class AttendanceService:
                     week_worked += target
                     continue
 
-                # ---- existing logic for normal days ----
                 worked = 0
                 has_open_interval = False
 
@@ -488,12 +550,11 @@ class AttendanceService:
 
     @handle_exceptions
     def complete_marks(self, data):
-        editor_user_id = int(get_jwt_identity())  # ✅ quien edita
+        editor_user_id = int(get_jwt_identity())
 
         user_id = int(data.get("user_id"))
         d = parse_date_iso(data.get("date"))
 
-        # (opcional) bloquear feriados: si es feriado, no se completa por marcas
         holiday, hc = self.attendance_repository.get_holiday_on_date(d)
         if hc != 200:
             return holiday, hc
@@ -502,18 +563,15 @@ class AttendanceService:
 
         expected = self._expected_marks_for_user_on_date(user_id, d)
 
-        # Si ese día no tiene turnos, no debería completarse
         if expected <= 0:
             return "Este día no requiere marcaciones.", 422
 
-        # Traer existentes del día (ordenadas por hora)
         existing, ec = self.attendance_repository.get_marks_by_user_and_date(user_id, d)
         if ec != 200:
             return existing, ec
 
         existing_times = [m.mark_at.strftime("%H:%M") for m in (existing or [])]
 
-        # Si ya está completo, no hay nada que hacer
         if len(existing_times) >= expected:
             return "El día ya está completo.", 409
 
@@ -521,7 +579,6 @@ class AttendanceService:
         if not isinstance(additions, list):
             return "additions debe ser una lista.", 422
 
-        # Validar additions
         add_positions = set()
         add_times = []
         for a in additions:
@@ -537,7 +594,6 @@ class AttendanceService:
             if pos < 0 or pos >= expected:
                 return f"position fuera de rango: {pos}.", 422
 
-            # valida HH:MM
             try:
                 parse_time(t)
             except Exception:
@@ -549,14 +605,11 @@ class AttendanceService:
 
             add_times.append((pos, t))
 
-        # Reconstruir lista final esperada (con posiciones)
         final = [None] * expected
 
-        # colocar additions
         for pos, t in add_times:
             final[pos] = t
 
-        # rellenar huecos con existing manteniendo orden
         it = iter(existing_times)
         for i in range(expected):
             if final[i] is None:
@@ -565,22 +618,18 @@ class AttendanceService:
                 except StopIteration:
                     break
 
-        # validar que quedó completo
         if any(x is None for x in final):
             return "No alcanza para completar el día con esos datos.", 422
 
-        # validar no duplicados en el final
         if len(set(final)) != len(final):
             return "No se permiten horas duplicadas.", 422
 
-        # validar orden cronológico (recomendado)
         mins = []
         for hhmm in final:
             mins.append(self._hhmm_to_minutes(hhmm))
         if mins != sorted(mins):
             return "Las marcaciones deben quedar en orden cronológico.", 422
 
-        # Determinar qué insertar: SOLO las additions (y que no existan ya)
         existing_set = set(existing_times)
         to_insert = []
         for pos, hhmm in add_times:
@@ -603,3 +652,58 @@ class AttendanceService:
             "inserted": res.get("inserted", 0),
             "final": final,
         }, 200
+    
+
+    @handle_exceptions
+    def leave_request(self, data):
+        user_id = int(data["user_id"])
+        user, uc = self.user_repository.get_user_by_id(user_id)
+        if uc != 200:
+            return user, uc
+        
+        level_id = user.level_id
+        d = parse_date_iso(data["date"])
+
+        payload = {
+            "user_id": user_id,
+            "date": d,
+            "duration_id": int(data["duration_id"]),
+            "leave_type_id": int(data["leave_type_id"]),
+            "leave_type_detail": (data.get("leave_type_detail") or "").strip(),
+            "motive": (data.get("motive") or "").strip(),
+            "recovery_plan": (data.get("recovery_plan") or "").strip(),
+        }
+
+        res, rc = self.attendance_repository.insert_leave_request(payload, level_id)
+        if rc != 200:
+            return res, rc
+        socketio.emit("attendance_update_leaves", {})
+        return "Permiso solicitado.", 200
+
+
+    @handle_exceptions
+    def vacation_request(self, data):
+        user_id = int(data["user_id"])
+        user, uc = self.user_repository.get_user_by_id(user_id)
+        if uc != 200:
+            return user, uc
+        
+        level_id = user.level_id
+        start = parse_date_iso(data["start_date"])
+        end = parse_date_iso(data["end_date"])
+        if end < start:
+            return "Rango inválido de fechas.", 422
+
+        payload = {
+            "user_id": user_id,
+            "start_date": start,
+            "end_date": end,
+            "assigned_user_id": int(data["assigned_user_id"]),
+            "description": (data.get("description") or "").strip(),
+        }
+
+        res, rc = self.attendance_repository.insert_vacation_request(payload, level_id)
+        if rc != 200:
+            return res, rc
+        socketio.emit("attendance_update_leaves", {})
+        return "Vacaciones solicitadas.", 200

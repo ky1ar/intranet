@@ -33,6 +33,11 @@ class AttendanceController:
 
 
     @handle_logs_and_exceptions
+    def attendance_leave_requests(self):
+        return self.attendance_service.leave_requests()
+    
+    
+    @handle_logs_and_exceptions
     def summary_by_offset(self, data):
         return self.attendance_service.summary_by_offset(data)
     
@@ -42,3 +47,20 @@ class AttendanceController:
         if validation_error := validate_request(data, {"user_id", "date", "additions"}):
             return validation_error, 422
         return self.attendance_service.complete_marks(data)
+
+
+    @handle_logs_and_exceptions
+    def leave_request(self, data):
+        if validation_error := validate_request(data, {
+            "user_id", "date", "duration_id", "leave_type_id"
+        }):
+            return validation_error, 422
+        return self.attendance_service.leave_request(data)
+
+    @handle_logs_and_exceptions
+    def vacation_request(self, data):
+        if validation_error := validate_request(data, {
+            "user_id", "start_date", "end_date", "assigned_user_id"
+        }):
+            return validation_error, 422
+        return self.attendance_service.vacation_request(data)

@@ -12,14 +12,20 @@ def xls():
     return controller.attendance_xls(request)
 
 
-@attendance_bp.route("/duration", methods=["GET"])
+@attendance_bp.route("/options/duration", methods=["GET"])
 def duration():
     return controller.attendance_duration()
 
 
-@attendance_bp.route("/leave", methods=["GET"])
+@attendance_bp.route("/options/leave", methods=["GET"])
 def leave():
     return controller.attendance_leave()
+
+
+@attendance_bp.route("/leave/requests", methods=["GET"])
+@jwt_required()
+def leave_requests():
+    return controller.attendance_leave_requests()
 
 
 @attendance_bp.route("/period", methods=["GET"])
@@ -39,3 +45,15 @@ def period():
 @jwt_required()
 def complete_marks():
     return controller.complete_marks(request.get_json())
+
+
+@attendance_bp.route("/leave/request", methods=["POST"])
+@jwt_required()
+def leave_request():
+    return controller.leave_request(request.get_json())
+
+
+@attendance_bp.route("/vacation/request", methods=["POST"])
+@jwt_required()
+def vacation_request():
+    return controller.vacation_request(request.get_json())

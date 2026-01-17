@@ -2,10 +2,6 @@
 	<div id="attendance">
         <div class="controls">
 			<div class="left frost">
-				<!-- <div class="item">
-					<img alt="" width="22" height="22" src="/static/images/icons/salary.svg">
-					<span>Sueldo</span>
-				</div> -->
 				<div class="item" @click="viewLeaves()">
 					<img alt="" width="20" height="20" src="/static/images/icons/vacation.svg">
 					<span>Licencias</span>
@@ -370,11 +366,11 @@
 						<span class="title">Licencias</span>
 
 						<div class="buttons">
-							<button class="button hover-opacity" @click="leaveProcess()">
+							<button class="button hover-opacity" @click="permitModal()">
 							<img alt="" width="16" height="16" src="/static/images/icons/add.svg">
 							Permiso
 						</button>
-						<button class="button black hover-opacity" @click="vacationProcess()">
+						<button class="button black hover-opacity" @click="vacatinoModal()">
 							<img alt="" width="16" height="16" src="/static/images/icons/add.svg">
 							Vacaciones
 						</button>
@@ -382,39 +378,24 @@
 					</div>
 
 					<div class="modal-content">
-						<!-- <template x-if="link_list.length == 0"> -->
-						<template x-if="false">
-							<span style=" text-align: center; padding: 2rem 0;">El historial de tus licencias aparecerá aquí</span>
+						<template x-if="$store.cache.getData('attendance_leave_requests')?.requests?.length == 0">
+							<span style=" text-align: center; padding: 2rem 0 1rem 0;">El historial de licencias aparecerá aquí</span>
 						</template>
 
 						<div class="table-box">
-							<!-- <template x-for="purchase in $store.cache.getData('purchases_dashboard')?.requests" :key="purchase.id">
-								<div class="table-row white" @click="viewPurchase(purchase)">
-									<div class="id" x-text="`PR-00${purchase.id}`"></div>
+							<template x-for="leave in $store.cache.getData('attendance_leave_requests')?.requests" :key="leave.id">
+								<div class="table-row white" @click="viewPurchase(leave)">
+									<div class="id" x-text="`LI-${leave.id}`"></div>
 									<div>
-										<img alt="user" class="image" :src="'/static/images/uploads/users/' + purchase.requester_image" width="24" height="24">
-										<span class="name" x-text="purchase.requester_name"></span>
+										<img alt="user" class="image" :src="'/static/images/uploads/users/' + leave.requester_image" width="24" height="24">
+										<span class="name" x-text="leave.requester_name"></span>
 									</div>
-									<div x-text="purchase.requester_department"></div>
-									<div x-text="purchase.express == 1 ? 'Caja chica':'Estándar'"></div>
-									<div x-text="purchase.urgency_name"></div>
+									<div x-text="leave.request_type"></div>
 									<div class="statuses">
-										<div :class="purchase.status_slug" x-text="purchase.status_name"></div>
+										<div :class="leave.status_slug" x-text="leave.status_name"></div>
 									</div>
-									<div class="date" x-text="purchase.created_at"></div>
 								</div>
-							</template> -->
-							<div class="table-row white">
-								<div class="id" x-text="`LI-01`"></div>
-								<div>
-									<img alt="user" class="image" src="/static/images/uploads/users/75066321.jpg" width="24" height="24">
-									<span class="name" x-text="'Allison Casimiro'"></span>
-								</div>
-								<div>Permiso</div>
-								<div class="statuses">
-									<div class="pending" x-text="'Registrado'"></div>
-								</div>
-							</div>
+							</template>
 						</div>
 					</div>
 				</div>
@@ -508,14 +489,14 @@
 
 						<textarea 
 							placeholder="Motivo o detalle"
-							x-model="attendance_form.description"
+							x-model="attendance_form.motive"
 							class="text-area"
 							style="max-width: 100%; border: 2px solid white;"
 						></textarea>
 
 						<textarea
 							placeholder="Plan de recuperación de horas (cómo y cuándo)"
-							x-model="attendance_form.description2"
+							x-model="attendance_form.recovery_plan"
 							class="text-area"
 							style="max-width: 100%; border: 2px solid white;"
 						></textarea>
@@ -524,8 +505,9 @@
 					<div class="buttons" >
 						<button 
 							class="button icon hover-opacity" 
-							@click="handlePrimaryAction()" 
+							@click="permitProcess()" 
 							:class="buttons.save.class"
+							x-text="buttons.save.text"
 						>
 							<span>Solicitar</span>
 						</button>
@@ -643,8 +625,9 @@
 					<div class="buttons" >
 						<button 
 							class="button icon hover-opacity" 
-							@click="handlePrimaryAction()" 
+							@click="vacationProcess()" 
 							:class="buttons.save.class"
+							x-text="buttons.save.text"
 						>
 							<span>Solicitar</span>
 						</button>
@@ -752,6 +735,7 @@
 
 		buttons: {
 			update: { class: '', text: 'Actualizar' },
+			save: { class: '', text: 'Solicitar' },
 		},
 
 		offset: 0,
@@ -767,7 +751,7 @@
 			leave_type_detail: "",
 			duration: "",
 			description: "",
-			description2: "",
+			motive: "",
 			recovery_plan: "",
 		},
 		minLeaveDate: "",
@@ -777,11 +761,19 @@
 		hover_day: null,
 		selected_day: null,
 		expected_marks: 4,
-		draft_marks: [],       // [{type:'locked'|'new', time:'HH:MM'}]
+		draft_marks: [],
 
 		async init() {
 			console.log('Inicializando attendance...');
 
+			const socket = Alpine.store('cache').socket;
+			if (socket) {
+				socket.removeAllListeners();
+				socket.on("attendance_update_leaves", async () => {
+					await Alpine.store('cache').refresh('attendance_leave_requests');
+				});
+			}
+			
 			const leave_date = new Date();
 			const vacation_date = new Date();
 
@@ -791,9 +783,10 @@
 			this.minVacationDate = vacation_date.toISOString().slice(0, 10);
 
 			await Alpine.store('cache').fetchData([
+				{ key: 'attendance_leave_requests', url: `/attendance/leave/requests`, force: true },
 				{ key: 'attendance_team', url: `/user/attendance_team/${this.user.id}`, force: true },
-				{ key: 'attendance_duration', url: `/attendance/duration`, force: true },
-				{ key: 'attendance_leave', url: `/attendance/leave`, force: true },
+				{ key: 'attendance_duration', url: `/attendance/options/duration` },
+				{ key: 'attendance_leave', url: `/attendance/options/leave` },
 			]);
 			
 			const team = Alpine.store('cache').getData('attendance_team') || [];
@@ -902,7 +895,6 @@
 				const hasAnyStart = intervals.some(it => (it?.start || "").trim());
 				if (!hasAnyStart) return false;
 
-				// ✅ si es incompleto => no cuenta para el resumen
 				if (this.isDayIncomplete(d)) return false;
 
 				return true;
@@ -910,20 +902,14 @@
 
 			for (const w of weeks) {
 				const wdays = (w.days || []);
-
-				// Semana NO futura: si tiene al menos un día del periodo <= hoy
 				const week_has_past_or_today = wdays.some(d => d?.in_period && d?.date && d.date <= todayISO);
-
-				// Semana con data real (solo contando días <= hoy)
 				const week_has_data = wdays.some(d => hasValidIntervals(d));
 
 				for (let i = 0; i < wdays.length; i++) {
 					const d = wdays[i];
 
-					// Domingo (7ma casilla) => Σ
 					if (i === 6) {
 						d.is_summary = week_has_past_or_today && week_has_data;
-						// si tu backend ya manda w.summary, lo usas aquí
 						d.summary = w.summary || d.summary || null;
 					} else {
 						d.is_summary = false;
@@ -965,20 +951,14 @@
 		dayItems(day) {
 			if (!day?.in_period) return [];
 
-			// ✅ HOLIDAY: mostrar el nombre del feriado en "date" (value)
 			if (day?.is_holiday) {
 				const name = (day?.holiday?.name || "Feriado").trim();
 
-				// 2 items, como pediste (aunque repita el nombre)
 				return [
 					{ label: "Feriado", value: name, incomplete: false, extra: false, holiday: true },
 				];
-
-				// Si quisieras 1 solo item, sería:
-				// return [{ label: "Feriado", value: name, incomplete: false, extra: false }];
 			}
 
-			// ---- tu lógica normal ----
 			const intervals = (day?.intervals || []).filter(x => (x?.start || "").trim());
 			if (intervals.length === 0) return [];
 
@@ -989,7 +969,7 @@
 				return {
 					label,
 					value: hasEnd ? `${it.start} - ${it.end}` : `${it.start}`,
-					incomplete: dayIncomplete,  // ✅ solo depende del expected_marks
+					incomplete: dayIncomplete,
 					extra: false,
 				};
 			};
@@ -1060,8 +1040,6 @@
 			const res = await fetch(`${this.api}/attendance/xls`, {
 				method: "POST",
 				body: form_data,
-				// Si tu endpoint está protegido, agrega Authorization aquí
-				// headers: { "Authorization": `Bearer ${Alpine.store('cache').token}` }
 			});
 
 			const data = await res.json().catch(() => ({}));
@@ -1075,7 +1053,6 @@
 		},
 
 		async viewLeaves() {
-			// await this.firstLinkPage();
 			Alpine.store('cache').showModal('leaves');
 		},
 
@@ -1104,7 +1081,7 @@
 				if (e) marks.push(e);
 			}
 
-			return marks; // en orden: [m1, m2, m3, m4] pero puede faltar cualquiera
+			return marks;
 		},
 
 		getExpectedMarks(day) {
@@ -1211,13 +1188,12 @@
 				this.buttons[btnKey].class = originalClass;
 			}, 2000);
 		},
-		
 
-		leaveProcess() {
+		permitModal() {
 			Alpine.store('cache').showModal('process');
 		},
 
-		vacationProcess() {
+		vacatinoModal() {
 			Alpine.store('cache').showModal('vacation');
 		},
 
@@ -1260,18 +1236,104 @@
 		isDayIncomplete(day) {
 			if (!day?.in_period) return false;
 			if (day?.is_summary) return false;
-			if (day?.is_holiday) return false; // si feriado lo tratas aparte
+			if (day?.is_holiday) return false;
 
-			const marks = this.extractMarks(day);               // [HH:MM, ...]
-			const expected = this.getExpectedMarks(day);        // 0,2,4...
+			const marks = this.extractMarks(day);
+			const expected = this.getExpectedMarks(day);
 
-			// Si no se espera nada, no hay incompleto
 			if (!expected || expected <= 0) return false;
 
-			// Incompleto si faltan marcas vs lo esperado
 			return marks.length < expected;
 		},
 
+		resetForms() {
+			this.attendance_form = {
+				start_date_only: "",
+				start_date: "",
+				end_date: "",
+				leave_type: "",
+				leave_type_detail: "",
+				duration: "",
+				description: "",
+				motive: "",
+				recovery_plan: "",
+				assigned: "",
+			};
+		},
+
+		async permitProcess() {
+			const user_id = this.user.id;
+
+			if (!this.attendance_form.start_date_only) return this.showError('save', 'Fecha requerida');
+			if (!this.attendance_form.duration) return this.showError('save', 'Duración requerida');
+			if (!this.attendance_form.leave_type) return this.showError('save', 'Tipo requerido');
+
+			if (String(this.attendance_form.leave_type) === "5" && !(this.attendance_form.leave_type_detail || "").trim()) {
+				return this.showError('save', 'Especifica el tipo');
+			}
+
+			try {
+				const res = await fetch(`${this.api}/attendance/leave/request`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						"Authorization": `Bearer ${this.user.token}`,
+					},
+					body: JSON.stringify({
+						user_id,
+						date: this.attendance_form.start_date_only,
+						duration_id: this.attendance_form.duration,
+						leave_type_id: this.attendance_form.leave_type,
+						leave_type_detail: (this.attendance_form.leave_type_detail || "").trim(),
+						motive: (this.attendance_form.motive || "").trim(),
+						recovery_plan: (this.attendance_form.recovery_plan || "").trim(),
+					})
+				});
+
+				const data = await res.json().catch(() => ({}));
+				if (!res.ok) throw new Error(data?.message || data?.data?.message || 'Error al solicitar');
+
+				await this.load();
+				this.resetForms();
+				Alpine.store('cache').hideLastModal();
+			} catch (e) {
+				this.showError('save', e.message);
+			}
+		},
+
+		async vacationProcess() {
+			const user_id = this.user.id;
+
+			if (!this.attendance_form.start_date) return this.showError('save', 'Inicio requerido');
+			if (!this.attendance_form.end_date) return this.showError('save', 'Fin requerido');
+			if (!this.attendance_form.assigned) return this.showError('save', 'Responsable requerido');
+
+			try {
+				const res = await fetch(`${this.api}/attendance/vacation/request`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						"Authorization": `Bearer ${this.user.token}`,
+					},
+					body: JSON.stringify({
+						user_id,
+						start_date: this.attendance_form.start_date,
+						end_date: this.attendance_form.end_date,
+						assigned_user_id: this.attendance_form.assigned,
+						description: (this.attendance_form.description || "").trim(),
+					})
+				});
+
+				const data = await res.json().catch(() => ({}));
+				if (!res.ok) throw new Error(data?.message || data?.data?.message || 'Error al solicitar');
+
+				await this.load();
+				this.resetForms();
+				Alpine.store('cache').hideLastModal();
+			} catch (e) {
+				this.showError('save', e.message);
+			}
+		},
 
 	}));
 </script>
@@ -1347,6 +1409,7 @@
 			border-top: 2px solid #eee;
 			padding-top: 0.5rem;
 			margin-top: 0.5rem;
+			gap: 0.5rem;
 		}
 		.week_summary_box .k {
 			display: flex;
@@ -1445,6 +1508,7 @@
 			border-radius: 2rem;
 			font-size: 0.75rem;
 			font-weight: 600;
+			min-width: 6.5rem;
 		}
 		.pending {
 			background: var(--newgray);
