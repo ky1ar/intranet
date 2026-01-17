@@ -373,7 +373,8 @@ class AttendanceService:
                 dt = parse_date_iso(day["date"])  # date
                 wd = dt.weekday()
 
-                if wd == 6:  # domingo => resumen
+                # keep your sunday-summary logic
+                if wd == 6:
                     day["is_summary"] = True
                     day["label"] = "Σ"
                     day["intervals"] = []
@@ -381,7 +382,7 @@ class AttendanceService:
                         "worked_min": week_worked,
                         "target_min": week_target,
                         "delta_min": week_worked - week_target,
-                        "incomplete": week_incomplete,  # opcional
+                        "incomplete": week_incomplete,
                     }
                     continue
 
@@ -391,6 +392,22 @@ class AttendanceService:
                 expected_start_min = self._expected_start_minutes_for_date(profile_map, dt)
                 day["expected_start"] = self._minutes_to_hhmm(expected_start_min) if expected_start_min is not None else None
 
+                # ✅ always count target in week target (Mon-Sat)
+                week_target += target
+
+                # ✅ HOLIDAY: count as worked == target (depending on profile)
+                # Only if the date is inside the payroll period (optional but recommended)
+                if day.get("is_holiday") and day.get("in_period"):
+                    day["worked_min"] = target
+                    day["target_min"] = target
+                    day["delta_min"] = 0
+                    day["incomplete"] = False
+                    day["incomplete_count"] = 0
+
+                    week_worked += target
+                    continue
+
+                # ---- existing logic for normal days ----
                 worked = 0
                 has_open_interval = False
 
@@ -399,22 +416,16 @@ class AttendanceService:
                         has_open_interval = True
                     worked += self._interval_minutes(it)
 
-                # ✅ campos por día
                 day["target_min"] = target
                 day["worked_min"] = worked
                 day["incomplete"] = bool(has_open_interval)
                 day["incomplete_count"] = 1 if has_open_interval else 0
 
-                # ✅ el objetivo SIEMPRE cuenta para el resumen (lunes-sábado)
-                week_target += target
-
-                # ❗ día incompleto: NO delta, NO sumar worked a la semana
                 if has_open_interval:
                     day["delta_min"] = None
                     week_incomplete += 1
                     continue
 
-                # ✅ día completo: delta + sumar worked
                 day["delta_min"] = worked - target
                 week_worked += worked
 

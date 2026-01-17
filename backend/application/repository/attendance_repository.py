@@ -5,6 +5,7 @@ from calendar import monthrange
 from application.handlers import handle_db_exceptions
 from application.utils import peru_time
 from application.db_models.attendance_model import AttendanceMark, AttendancePeriod, UserWorkProfile, WorkProfileShift, WorkProfile
+from application.models import Holidays
 from flask import g
 
 
@@ -176,6 +177,10 @@ class AttendanceRepository:
         if mc != 200:
             return marks, mc
 
+        holidays_map, hc = self.get_holidays_by_range(period.start_date, period.end_date)
+        if hc != 200:
+            return holidays_map, hc
+
         by_date = defaultdict(list)
         for m in marks:
             by_date[m.date].append(m.mark_at.strftime("%H:%M"))
@@ -188,12 +193,20 @@ class AttendanceRepository:
         while d <= end:
             days = []
             for _ in range(7):
+                date_iso = d.isoformat()
                 times = by_date.get(d, [])
+
+                holiday = holidays_map.get(date_iso)
+
                 days.append({
-                    "date": d.isoformat(),
-                    "label": d.strftime("%d"),
+                    "date": date_iso,
+                    "label": d.strftime("%d"),               # keep numeric label for your current UI
                     "intervals": self._pair_times(times),
                     "in_period": (period.start_date <= d <= period.end_date),
+
+                    # ✅ NEW
+                    "holiday": holiday,                      # None or {id,name,date,hex_color}
+                    "is_holiday": bool(holiday),             # easy for front -> add class
                 })
                 d += timedelta(days=1)
 
@@ -235,3 +248,25 @@ class AttendanceRepository:
             .all()
         )
         return rows or [], 200
+    
+
+    @handle_db_exceptions
+    def get_holidays_by_range(self, start_date: date, end_date: date):
+        rows = (
+            g.db_session.query(Holidays)
+            .filter(Holidays.date >= start_date)
+            .filter(Holidays.date <= end_date)
+            .filter(Holidays.deleted_at.is_(None))
+            .all()
+        )
+
+        mp = {}
+        for h in (rows or []):
+            mp[h.date.isoformat()] = {
+                "id": h.id,
+                "name": h.name,
+                "date": h.date.isoformat(),
+                "hex_color": getattr(h, "hex_color", None),
+            }
+
+        return mp, 200

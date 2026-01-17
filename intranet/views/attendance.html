@@ -79,13 +79,18 @@
 									x-text="day.is_summary ? 'Σ' : day.label"></span>
 
 								<template x-if="!day.is_summary">
-									<div class="body">
+									<div 
+										class="body"
+										@click="hasIncomplete(day) && showEdit(day)"
+										:style="hasIncomplete(day) ? 'cursor:pointer' : ''"
+									>
 										<template x-for="(item, i) in dayItems(day)" :key="i">
 										<div
 											class="item"
 											:class="{
 												'incomplete': item.incomplete,
-												'extra': item.extra
+												'extra': item.extra,
+												'holiday': item.holiday
 											}"
 											x-show="!item.extra || isHover(day)"
 											x-transition.opacity.duration.150ms
@@ -645,6 +650,67 @@
 			</div>
 
 
+			<div
+				x-show="$store.cache.isVisibleModal('edit')"
+				@mousedown.self="$store.cache.hideLastModal()"
+				class="modal-wrap common-modal"
+				id="modal-edit"
+				x-transition:enter="modal-enter"
+				x-transition:enter-start="modal-enter-start"
+				x-transition:enter-end="modal-enter-end"
+				x-transition:leave="modal-leave"
+				x-transition:leave-start="modal-leave-start"
+				x-transition:leave-end="modal-leave-end"
+				x-cloak
+			>
+				<div class="modal small glass2" @click.stop>
+					<div class="modal-grabber">
+						<div class="modal-grabber-bar"></div>
+					</div>
+
+					<div class="top">
+						<span class="title">15 de enero</span>
+					</div>
+
+					<div class="modal-content">
+						<!-- <template x-if="link_list.length == 0"> -->
+						<template x-if="false">
+							<span style=" text-align: center; padding: 2rem 0;">El historial de tus licencias aparecerá aquí</span>
+						</template>
+
+						<div class="table-box">
+							<!-- <template x-for="purchase in $store.cache.getData('purchases_dashboard')?.requests" :key="purchase.id">
+								<div class="table-row white" @click="viewPurchase(purchase)">
+									<div class="id" x-text="`PR-00${purchase.id}`"></div>
+									<div>
+										<img alt="user" class="image" :src="'/static/images/uploads/users/' + purchase.requester_image" width="24" height="24">
+										<span class="name" x-text="purchase.requester_name"></span>
+									</div>
+									<div x-text="purchase.requester_department"></div>
+									<div x-text="purchase.express == 1 ? 'Caja chica':'Estándar'"></div>
+									<div x-text="purchase.urgency_name"></div>
+									<div class="statuses">
+										<div :class="purchase.status_slug" x-text="purchase.status_name"></div>
+									</div>
+									<div class="date" x-text="purchase.created_at"></div>
+								</div>
+							</template> -->
+							<div class="table-row white">
+								<div class="id" x-text="`LI-01`"></div>
+								<div>
+									<img alt="user" class="image" src="/static/images/uploads/users/75066321.jpg" width="24" height="24">
+									<span class="name" x-text="'Allison Casimiro'"></span>
+								</div>
+								<div>Permiso</div>
+								<div class="statuses">
+									<div class="pending" x-text="'Registrado'"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
 		</div>
 	</div>
 
@@ -828,7 +894,9 @@
 		dayClass(day) {
 			if (!day?.in_period) return 'glass';
 
-			return 'white';
+			let cls = 'white';
+			if (day?.is_holiday) cls += ' holidays';
+			return cls;
 		},
 
 		showLate(day) {
@@ -845,9 +913,27 @@
 			return start > expected;
 		},
 
+		hasIncomplete(day) {
+			return this.dayItems(day).some(it => !!it.incomplete);
+		},
+
 		dayItems(day) {
 			if (!day?.in_period) return [];
 
+			// ✅ HOLIDAY: mostrar el nombre del feriado en "date" (value)
+			if (day?.is_holiday) {
+				const name = (day?.holiday?.name || "Feriado").trim();
+
+				// 2 items, como pediste (aunque repita el nombre)
+				return [
+					{ label: "Feriado", value: name, incomplete: false, extra: false, holiday: true },
+				];
+
+				// Si quisieras 1 solo item, sería:
+				// return [{ label: "Feriado", value: name, incomplete: false, extra: false }];
+			}
+
+			// ---- tu lógica normal ----
 			const intervals = (day?.intervals || []).filter(x => (x?.start || "").trim());
 			if (intervals.length === 0) return [];
 
@@ -856,11 +942,10 @@
 			const makeItem = (label, it) => {
 				const hasEnd = !!(it?.end || "").trim();
 				return {
-				label,
-				value: hasEnd ? `${it.start} - ${it.end}` : `${it.start}`,
-				// ✅ si el día es incompleto => TODOS incompletos
-				incomplete: dayIncomplete || !hasEnd,
-				extra: false,
+					label,
+					value: hasEnd ? `${it.start} - ${it.end}` : `${it.start}`,
+					incomplete: dayIncomplete || !hasEnd,
+					extra: false,
 				};
 			};
 
@@ -868,16 +953,14 @@
 			if (intervals[0]) items.push(makeItem("Mañana", intervals[0]));
 			if (intervals[1]) items.push(makeItem("Tarde", intervals[1]));
 
-			// ❗ si el día es incompleto, NO mostrar Δ
 			if (dayIncomplete) return items;
 
-			// ✅ completo => puede mostrar Δ (hover)
 			if (typeof day?.delta_min === "number") {
 				items.push({
-				label: "Δ",
-				value: this.minutesToDeltaText(day.delta_min),
-				incomplete: false,
-				extra: true,
+					label: "Δ",
+					value: this.minutesToDeltaText(day.delta_min),
+					incomplete: false,
+					extra: true,
 				});
 			}
 
@@ -949,6 +1032,11 @@
 		async viewLeaves() {
 			// await this.firstLinkPage();
 			Alpine.store('cache').showModal('leaves');
+		},
+
+		showEdit(day) {
+			if (!this.hasIncomplete(day)) return;
+			Alpine.store('cache').showModal('edit');
 		},
 
 		leaveProcess() {
@@ -1494,6 +1582,10 @@
 		#attendance .main .middle .bottom .month .body .item + .item {
 			background-color: #fce9d8;
 		}
+		#attendance .main .middle .bottom .month .body .item.holiday {
+			box-shadow: inset 0 0 0 2px #e6e6e6;
+    		background-color: transparent;
+		}
 		#attendance .main .middle .bottom .month .body .item .label {
 			font-size: 0.65rem;
 			line-height: 0.75rem;
@@ -1509,9 +1601,23 @@
 			font-weight: 500;
 			line-height: 0.75rem;
 		}
+		#attendance .main .middle .bottom .month .body .item.holiday .date {
+			font-size: 0.75rem;
+		}
 		#attendance .main .middle .bottom .month .body .item.incomplete {
 			background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='1' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E");
     		background-size: 0.6rem;
+		}
+		#attendance .main .middle .bottom .month .body .item.extra {
+			position: absolute;
+			bottom: -2rem;
+			z-index: 10;
+			background-color: white;
+			border-radius: 0 0 0.75rem 0.75rem;
+			left: 0px;
+			right: 0px;
+			box-shadow: 0 0.75rem 1rem hsl(0deg 0% 0% / 20%);
+			display: none !important;
 		}
 		#attendance .schedule-period {
 			display: flex;
