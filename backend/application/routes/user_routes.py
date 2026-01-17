@@ -17,6 +17,11 @@ def user_team(user_id):
     return controller.user_team(user_id)
 
 
+@user_bp.route("/attendance_team/<user_id>", methods=["GET"])
+def user_attendance_team(user_id):
+    return controller.user_attendance_team(user_id)
+
+
 @user_bp.route("/create_pin", methods=["POST"])
 def user_create_pin():
     return controller.user_create_pin(request.get_json())

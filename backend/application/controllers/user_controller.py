@@ -14,6 +14,11 @@ class UserController:
     
 
     @handle_logs_and_exceptions
+    def user_attendance_team(self, user_id):
+        return self.user.get_attendance_team(user_id)
+    
+
+    @handle_logs_and_exceptions
     def user_find(self, data):
         if validation := validate_request(data, {"document"}):
             return validation, 400

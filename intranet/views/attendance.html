@@ -79,10 +79,10 @@
 									x-text="day.is_summary ? 'Σ' : day.label"></span>
 
 								<template x-if="!day.is_summary">
-									<div 
+									<div
 										class="body"
-										@click="hasIncomplete(day) && showEdit(day)"
-										:style="hasIncomplete(day) ? 'cursor:pointer' : ''"
+										@click="isEditorUser() && hasIncomplete(day) && showEdit(day)"
+										:style="(isEditorUser() && hasIncomplete(day)) ? 'cursor:pointer' : ''"
 									>
 										<template x-for="(item, i) in dayItems(day)" :key="i">
 										<div
@@ -166,7 +166,7 @@
 						</div>
 						
 						<div x-show="option_user_active" x-transition.duration.300ms @click.outside="hideUserOption()" class="select_options">
-							<template x-for="user in $store.cache.getData('user_team')" :key="user.id">
+							<template x-for="user in $store.cache.getData('attendance_team')" :key="user.id">
                                 <div 
                                     class="option" 
                                     :class="{ 'pick': option_user?.id === user.id }" 
@@ -622,7 +622,7 @@
 								<select x-model="attendance_form.assigned">
 									<option value="" disabled selected>Responsable durante ausencia</option>
 									
-									<template x-for="team in $store.cache.getData('user_team')" :key="team.id">
+									<template x-for="team in $store.cache.getData('attendance_team')" :key="team.id">
 										<template x-if="team.id != user.id">
 											<option :value="team.id" x-text="team.name"></option>
 										</template>
@@ -790,18 +790,25 @@
 			this.minLeaveDate = leave_date.toISOString().slice(0, 10);
 			this.minVacationDate = vacation_date.toISOString().slice(0, 10);
 
-			this.option_user = {
-				name: this.user.name,
-				image: this.user.image,
-				id: this.user.id,
-				department_name: this.user.department_name
-			}
 			await Alpine.store('cache').fetchData([
-				{ key: 'user_team', url: `/user/team/${this.user.id}`, force: true },
+				{ key: 'attendance_team', url: `/user/attendance_team/${this.user.id}`, force: true },
 				{ key: 'attendance_duration', url: `/attendance/duration`, force: true },
 				{ key: 'attendance_leave', url: `/attendance/leave`, force: true },
 			]);
 			
+			const team = Alpine.store('cache').getData('attendance_team') || [];
+
+			if (this.isEditorUser() && team.length > 0) {
+				this.option_user = team[0];
+			} else {
+				this.option_user = {
+					name: this.user.name,
+					image: this.user.image,
+					id: this.user.id,
+					department_name: this.user.department_name
+				};
+			}
+
 			await this.load();
 			await Alpine.store('cache').verify();
 		},
@@ -814,6 +821,10 @@
 			]);
 			this.hover_day = null;
 			this.buildGrid();
+		},
+
+		isEditorUser() {
+			return this.user?.id === 23 || this.user?.id === 24;
 		},
 
 		isHover(day) {
@@ -838,7 +849,7 @@
 		},
 
 		getTeam() {
-			return Alpine.store('cache').getData('user_team') || [];
+			return Alpine.store('cache').getData('attendance_team') || [];
 		},
 
 		currentUserIndex() {

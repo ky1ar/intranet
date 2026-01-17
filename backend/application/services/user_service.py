@@ -51,6 +51,34 @@ class UserService:
 
 
     @handle_exceptions
+    def get_attendance_team(self, user_id):
+        user, uc = self.user_repository.get_user_by_id(user_id)
+        if uc != 200:
+            return user, uc
+
+        if user.level_id == 1:
+            return "Usuario sin acceso al sistema", 400
+
+        team, tc = self.user_repository.get_department_team(user.department_id)
+        if tc != 200:
+            return team, tc
+
+        team = [t for t in team if t.level_id != 5 and t.id not in [23,21] and t.department_id != 7]
+
+        team_dict = [
+            {
+                "id": teammate.id,
+                "level_id": teammate.level_id,
+                "name": self.format_name(teammate.name),
+                "department_name": teammate.department.name,
+                "image": teammate.image if teammate.image else 'user_default.jpg',
+            } for teammate in team
+        ]
+
+        return team_dict, 200
+    
+
+    @handle_exceptions
     def get_user_by_document(self, document):
         user, user_status = self.user_repository.get_user_by_document(document)
         if user_status != 200:
