@@ -26,6 +26,18 @@ class AttendanceService:
         self.admin_lvl = 4
 
 
+    def _adj_priority(self, scope):
+        return {"all": 0, "department": 1, "profile": 2, "user": 3}.get(scope or "all", 0)
+
+
+    def _build_adjustments_map(self, adjustments_rows):
+        mp = {}
+        for a in (adjustments_rows or []):
+            key = a.date.isoformat()
+            mp.setdefault(key, []).append(a)
+        return mp
+    
+
     def _hhmm_to_minutes(self, hhmm):
         hh, mm = hhmm.split(":")
         return int(hh) * 60 + int(mm)
@@ -431,6 +443,58 @@ class AttendanceService:
         }, 200
 
 
+    def _adjustment_best_items_for_date(self, profile_map, d, user, profile, adjustments_map):
+        default_target = self._target_minutes_for_date(profile_map, d)
+        if default_target <= 0:
+            return []
+
+        candidates = (adjustments_map.get(d.isoformat()) or [])
+        if not candidates:
+            return []
+
+        applicable = []
+        for a in candidates:
+            scope = (a.scope or "all").lower().strip()
+
+            if scope == "all":
+                applicable.append(a)
+                continue
+
+            if scope == "department":
+                if a.department_id is not None and int(a.department_id) == int(user.department_id):
+                    applicable.append(a)
+                continue
+
+            if scope == "profile":
+                if a.profile_id is not None and int(a.profile_id) == int(profile.id):
+                    applicable.append(a)
+                continue
+
+            if scope == "user":
+                if a.user_id is not None and int(a.user_id) == int(user.id):
+                    applicable.append(a)
+                continue
+
+        if not applicable:
+            return []
+
+        best_p = max(self._adj_priority(a.scope) for a in applicable)
+        best = [a for a in applicable if self._adj_priority(a.scope) == best_p]
+        best.sort(key=lambda x: (x.start_time.hour, x.start_time.minute))
+
+        items = []
+        for a in best:
+            s = self._minutes_to_hhmm(self._time_to_minutes(a.start_time))
+            e = self._minutes_to_hhmm(self._time_to_minutes(a.end_time))
+            label = (a.description or "").strip() or "Ajuste"
+            items.append({
+                "label": label,
+                "value": f"{s} - {e}",
+            })
+
+        return items
+
+
     @handle_exceptions
     def summary_by_offset(self, data):
         user_id = int(data.get("user_id"))
@@ -464,6 +528,15 @@ class AttendanceService:
 
         profile_map = self._build_profile_map(shifts)
 
+        user, uc = self.user_repository.get_user_by_id(user_id)
+        if uc != 200:
+            return user, uc
+
+        adjs, ac = self.attendance_repository.get_adjustments_by_range(period.start_date, period.end_date)
+        if ac != 200:
+            return adjs, ac
+        adjustments_map = self._build_adjustments_map(adjs)
+
         for w in payload.get("weeks", []):
             week_worked = 0
             week_target = 0
@@ -496,14 +569,37 @@ class AttendanceService:
 
                 week_target += target
 
+                bonus_min = self._adjustment_bonus_minutes_for_date(
+                    profile_map=profile_map,
+                    d=dt,
+                    user=user,
+                    profile=profile,
+                    adjustments_map=adjustments_map,
+                )
+                day["adjustment_bonus_min"] = bonus_min
+                day["has_adjustment"] = bonus_min > 0
+                
+                adj_marks = bonus_min // 120
+                day["adjustment_marks"] = int(max(0, min(adj_marks, day["expected_marks"])))
+
+                adj_items = self._adjustment_best_items_for_date(
+                    profile_map=profile_map,
+                    d=dt,
+                    user=user,
+                    profile=profile,
+                    adjustments_map=adjustments_map,
+                )
+
+                day["adjustment_items"] = adj_items
+                day["has_adjustment"] = len(adj_items) > 0
+
                 if day.get("is_holiday") and day.get("in_period"):
-                    day["worked_min"] = target
+                    day["worked_min"] = target + bonus_min
                     day["target_min"] = target
-                    day["delta_min"] = 0
+                    day["delta_min"] = day["worked_min"] - target
                     day["incomplete"] = False
                     day["incomplete_count"] = 0
-
-                    week_worked += target
+                    week_worked += day["worked_min"]
                     continue
 
                 worked = 0
@@ -513,6 +609,8 @@ class AttendanceService:
                     if it.get("start") and not it.get("end"):
                         has_open_interval = True
                     worked += self._interval_minutes(it)
+
+                worked += bonus_min
 
                 day["target_min"] = target
                 day["worked_min"] = worked
@@ -529,6 +627,51 @@ class AttendanceService:
 
         payload["profile"] = {"id": profile.id, "slug": profile.slug, "name": profile.name}
         return payload, 200
+
+
+    def _adjustment_bonus_minutes_for_date(self, profile_map, d, user, profile, adjustments_map):
+        default_target = self._target_minutes_for_date(profile_map, d)
+        if default_target <= 0:
+            return 0
+
+        candidates = (adjustments_map.get(d.isoformat()) or [])
+        if not candidates:
+            return 0
+
+        applicable = []
+        for a in candidates:
+            scope = (a.scope or "all").lower().strip()
+
+            if scope == "all":
+                applicable.append(a)
+                continue
+
+            if scope == "department":
+                if a.department_id is not None and int(a.department_id) == int(user.department_id):
+                    applicable.append(a)
+                continue
+
+            if scope == "profile":
+                if a.profile_id is not None and int(a.profile_id) == int(profile.id):
+                    applicable.append(a)
+                continue
+
+            if scope == "user":
+                if a.user_id is not None and int(a.user_id) == int(user.id):
+                    applicable.append(a)
+                continue
+
+        if not applicable:
+            return 0
+
+        best_p = max(self._adj_priority(a.scope) for a in applicable)
+        best = [a for a in applicable if self._adj_priority(a.scope) == best_p]
+
+        bonus = 0
+        for a in best:
+            bonus += max(0, self._time_to_minutes(a.end_time) - self._time_to_minutes(a.start_time))
+
+        return bonus
 
 
     def _expected_marks_for_user_on_date(self, user_id, d):
@@ -629,9 +772,7 @@ class AttendanceService:
         if len(set(final)) != len(final):
             return "No se permiten horas duplicadas.", 422
 
-        mins = []
-        for hhmm in final:
-            mins.append(self._hhmm_to_minutes(hhmm))
+        mins = [self._hhmm_to_minutes(hhmm) for hhmm in final]
         if mins != sorted(mins):
             return "Las marcaciones deben quedar en orden cronológico.", 422
 

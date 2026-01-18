@@ -51,3 +51,24 @@ class UserWorkProfile(BaseModel):
     end_date = db.Column(db.Date)
 
     profile = db.relationship("WorkProfile", lazy="joined")
+
+
+class AttendanceDayAdjustment(BaseModel):
+    __tablename__ = "attendance_day_adjustment"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    date = db.Column(db.Date, nullable=False)
+    start_time = db.Column(db.Time, nullable=False)
+    end_time = db.Column(db.Time, nullable=False)
+    scope = db.Column(db.String(16), nullable=False, default="all")  # valores: "all", "department", "profile", "user"
+    
+    department_id = db.Column(db.Integer)
+    profile_id = db.Column(db.Integer, db.ForeignKey("attendance_profile.id"))
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+
+    description = db.Column(db.String(255))
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    profile = db.relationship("WorkProfile", lazy="joined", foreign_keys=[profile_id])
+    user = db.relationship("Users", lazy="joined", foreign_keys=[user_id])

@@ -4,13 +4,26 @@ from datetime import datetime, time, date, timedelta
 from calendar import monthrange
 from application.handlers import handle_db_exceptions
 from application.utils import peru_time
-from application.db_models.attendance_model import AttendanceMark, AttendancePeriod, UserWorkProfile, WorkProfileShift, WorkProfile
-from application.db_models.leave_model import LeaveDuration, LeaveType, LeaveStatus, LeaveRequest
+from application.db_models.attendance_model import AttendanceMark, AttendancePeriod, UserWorkProfile, WorkProfileShift, AttendanceDayAdjustment
+from application.db_models.leave_model import LeaveDuration, LeaveType, LeaveRequest
 from application.models import Holidays
 from flask import g
 
 
 class AttendanceRepository:
+
+    @handle_db_exceptions
+    def get_adjustments_by_range(self, start_date, end_date):
+        rows = (
+            g.db_session.query(AttendanceDayAdjustment)
+            .filter(AttendanceDayAdjustment.is_active.is_(True))
+            .filter(AttendanceDayAdjustment.date >= start_date)
+            .filter(AttendanceDayAdjustment.date <= end_date)
+            .order_by(AttendanceDayAdjustment.date.asc(), AttendanceDayAdjustment.id.asc())
+            .all()
+        )
+        return rows or [], 200
+
 
     @handle_db_exceptions
     def get_durations(self):

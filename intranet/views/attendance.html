@@ -89,7 +89,8 @@
 											:class="{
 												'incomplete': item.incomplete,
 												'extra': item.extra,
-												'holiday': item.holiday
+												'holiday': item.holiday,
+  												'adjustment': item.adjustment
 											}"
 											x-show="!item.extra || isHover(day)"
 											x-transition.opacity.duration.150ms
@@ -961,27 +962,28 @@
 
 			const intervals = (day?.intervals || []).filter(x => (x?.start || "").trim());
 			const dayIncomplete = this.isDayIncomplete(day) || this.isRecoveryIncomplete(day);
-			const expected = this.getExpectedMarksForEdit(day); // 👈 para mostrar ratio correcto
+			const expected = this.getExpectedMarksForEditConsideringAdjustment(day);
 			const marksCount = this.extractMarks(day).length;
+			const eff = this.getEffectiveMarks(day);
+			const expectedTotal = this.getExpectedMarks(day);
 
-			// ✅ Caso: 0 marcaciones pero el día está incompleto => mostrar algo
 			if (intervals.length === 0) {
 				if (!dayIncomplete) return [];
 				return [{
-				label: "Incompleto",
-				value: `Pendiente (${marksCount}/${expected})`,
-				incomplete: true,
-				extra: false,
+					label: "Incompleto",
+					value: `Pendiente (${eff}/${expectedTotal})`,
+					incomplete: true,
+					extra: false,
 				}];
 			}
 
 			const makeItem = (label, it) => {
 				const hasEnd = !!(it?.end || "").trim();
-				return {
-				label,
-				value: hasEnd ? `${it.start} - ${it.end}` : `${it.start}`,
-				incomplete: dayIncomplete,
-				extra: false,
+					return {
+					label,
+					value: hasEnd ? `${it.start} - ${it.end}` : `${it.start}`,
+					incomplete: dayIncomplete,
+					extra: false,
 				};
 			};
 
@@ -989,19 +991,35 @@
 			if (intervals[0]) items.push(makeItem("Mañana", intervals[0]));
 			if (intervals[1]) items.push(makeItem("Tarde", intervals[1]));
 
+			const adjItems = (day?.adjustment_items || []);
+			for (const a of adjItems) {
+				const label = (a?.label || "").trim() || "Ajuste";
+				const value = (a?.value || "").trim();
+				if (!value) continue;
+
+				items.push({
+					label,
+					value,
+					incomplete: false,
+					extra: false,
+					holiday: false,
+					adjustment: true,
+				});
+			}
+			
 			if (dayIncomplete) return items;
 
 			if (typeof day?.delta_min === "number") {
 				items.push({
-				label: "Δ",
-				value: this.minutesToDeltaText(day.delta_min),
-				incomplete: false,
-				extra: true,
+					label: "Δ",
+					value: this.minutesToDeltaText(day.delta_min),
+					incomplete: false,
+					extra: true,
 				});
 			}
 
 			return items;
-			},
+		},
 
 		minutesToDeltaText(min) {
 			const sign = min < 0 ? "-" : "+";
@@ -1096,10 +1114,8 @@
 		},
 
 		getExpectedMarks(day) {
-			// ✅ Usa lo que viene del backend (0, 2 o 4)
 			if (typeof day?.expected_marks === "number") return day.expected_marks;
 
-			// ✅ Si no viene definido, NO asumas 4 (evita marcar sábados no laborables)
 			return 0;
 		},
 
@@ -1109,7 +1125,9 @@
 			this.selected_day = day;
 
 			const marks = this.extractMarks(day);
-			this.expected_marks = this.getExpectedMarksForEdit(day); // 👈 clave
+			const expectedForEdit = this.getExpectedMarksForEditConsideringAdjustment(day);
+			if (expectedForEdit <= 0) return;
+			this.expected_marks = expectedForEdit;
 
 			this.draft_marks = marks.map(t => ({ type: "locked", time: t }));
 
@@ -1261,8 +1279,8 @@
 			const expected = this.getExpectedMarks(day);
 			if (!expected || expected <= 0) return false; // ✅ clave para sábados no laborables
 
-			const marks = this.extractMarks(day);
-			return marks.length < expected;
+			const eff = this.getEffectiveMarks(day);
+			return eff < expected;
 		},
 
 		isRecoveryIncomplete(day) {
@@ -1409,6 +1427,33 @@
 			} catch (error) {
 				console.error(error);
 			} 
+		},
+
+		getAdjustmentMarks(day) {
+			const m = Number(day?.adjustment_marks ?? 0);
+			return Number.isFinite(m) ? Math.max(0, m) : 0;
+		},
+
+		getEffectiveMarks(day) {
+			const expected = this.getExpectedMarks(day);
+			if (!expected || expected <= 0) return 0;
+
+			const real = this.extractMarks(day).length;
+			const adj = this.getAdjustmentMarks(day);
+
+			return Math.min(expected, real + adj);
+		},
+
+		getExpectedMarksForEditConsideringAdjustment(day) {
+			const expected = this.getExpectedMarks(day);
+			if (!expected || expected <= 0) return 0;
+
+			const adj = this.getAdjustmentMarks(day);
+			const real = this.extractMarks(day).length;
+
+			const needed = Math.max(0, expected - adj);
+
+			return Math.max(needed, real);
 		},
 
 	}));
