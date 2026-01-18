@@ -832,11 +832,6 @@
 			this.hover_day = on ? (day?.date || null) : null;
 		},
 
-		toggleHover(day) { // para móvil
-			const k = day?.date || null;
-			this.hover_day = (this.hover_day === k) ? null : k;
-		},
-
 		toogleUserOption() { 
 			this.option_user_active = !this.option_user_active;
 		},
@@ -1144,7 +1139,6 @@
 		},
 
 		nodesForDraft() {
-			// Devuelve una lista como: add(0), item(0), add(1), item(1), add(2)...
 			const nodes = [];
 			const n = this.draft_marks.length;
 			const canAdd = this.canAddMore();
@@ -1172,7 +1166,6 @@
 			const day = this.selected_day;
 			const user_id = this.option_user?.id ?? this.user.id;
 
-			// solo las nuevas (type === 'new')
 			const additions = [];
 			for (let i = 0; i < this.draft_marks.length; i++) {
 				const it = this.draft_marks[i];
@@ -1244,6 +1237,7 @@
 		dateLabel(iso, fallback) {
 			return iso ? this.formatShortDate(iso) : fallback;
 		},
+
 		addDaysISO(iso, days) {
 			if (!iso) return "";
 			const [y, m, d] = iso.split("-").map(Number);
@@ -1455,7 +1449,6 @@
 
 			return Math.max(needed, real);
 		},
-
 	}));
 </script>
 
@@ -1987,6 +1980,9 @@
 			box-shadow: inset 0 0 0 2px #e6e6e6;
     		background-color: transparent;
 		}
+		#attendance .main .middle .bottom .month .body .item.adjustment {
+    		background-color: #e4e7cf;
+		}
 		#attendance .main .middle .bottom .month .body .item .label {
 			font-size: 0.65rem;
 			line-height: 0.75rem;
@@ -1996,6 +1992,9 @@
 		#attendance .main .middle .bottom .month .body .item + .item .label {
 			color: #ea6e00;
     		opacity: 0.5;
+		}
+		#attendance .main .middle .bottom .month .body .item.adjustment .label {
+			color: #496416;
 		}
 		#attendance .main .middle .bottom .month .body .item .date {
 			font-size: 0.8rem;
