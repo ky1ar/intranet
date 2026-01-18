@@ -400,3 +400,19 @@ class AttendanceRepository:
             return [], 200
 
         return leave_requests, 200
+
+
+    @handle_db_exceptions
+    def get_leave_by_id(self, leave_id):
+        leave = (
+            g.db_session.query(LeaveRequest)
+            .filter(
+                LeaveRequest.id == leave_id,
+                LeaveRequest.deleted_at.is_(None),
+            )
+            .first()
+        )
+        if not leave:
+            return "Solicitud no encontrada", 404
+
+        return leave, 200

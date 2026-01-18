@@ -48,3 +48,4 @@ class LeaveRequest(BaseModel):
     status = db.relationship("LeaveStatus", lazy="joined", foreign_keys=[status_id])
     duration = db.relationship("LeaveDuration", lazy="joined", foreign_keys=[duration_id])
     type = db.relationship("LeaveType", lazy="joined", foreign_keys=[leave_type_id])
+    assigned = db.relationship("Users", lazy="joined", foreign_keys=[assigned_user_id])

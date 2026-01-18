@@ -22,12 +22,6 @@ def leave():
     return controller.attendance_leave()
 
 
-@attendance_bp.route("/leave/requests", methods=["GET"])
-@jwt_required()
-def leave_requests():
-    return controller.attendance_leave_requests()
-
-
 @attendance_bp.route("/period", methods=["GET"])
 @jwt_required()
 def period():
@@ -45,6 +39,18 @@ def period():
 @jwt_required()
 def complete_marks():
     return controller.complete_marks(request.get_json())
+
+
+@attendance_bp.route("/leave/<int:leave_id>", methods=["GET"])
+@jwt_required()
+def get_attendance_leave(leave_id):
+    return controller.attendance_get_leave(leave_id)
+
+
+@attendance_bp.route("/leave/requests", methods=["GET"])
+@jwt_required()
+def leave_requests():
+    return controller.attendance_leave_requests()
 
 
 @attendance_bp.route("/leave/request", methods=["POST"])

@@ -215,7 +215,7 @@ class AttendanceService:
             if not compact or compact[-1] != t:
                 compact.append(t)
 
-        return self._normalize_times(compact, window_minutes=5)
+        return self._normalize_times(compact, window_minutes=10)
 
 
     @handle_exceptions
@@ -707,3 +707,65 @@ class AttendanceService:
             return res, rc
         socketio.emit("attendance_update_leaves", {})
         return "Vacaciones solicitadas.", 200
+
+
+    @handle_exceptions
+    def get_leave(self, leave_id):
+        leave, pc = self.attendance_repository.get_leave_by_id(leave_id)
+        if pc != 200:
+            return leave, pc
+
+        user_id = int(get_jwt_identity())
+        user, uc = self.user_repository.get_user_by_id(user_id)
+        if uc != 200:
+            return user, uc
+        
+        level_id = user.level_id
+        department_id = user.department_id
+
+        if department_id == self.management_dep:
+            modal = {
+                1: "approve",
+                2: "approve",
+            }
+            return self._format_get_request(modal, user, leave)
+        
+        elif level_id in [self.leader_lvl, self.admin_lvl]:
+            modal = {
+                1: "approve",
+                2: "edit",
+            }
+            return self._format_get_request(modal, user, leave)
+        modal = {
+            1: "edit",
+        }
+        return self._format_get_request(modal, user, leave)
+
+
+    @handle_exceptions
+    def _format_get_request(self, modal, user, leave):
+        status_id = leave.status_id
+        dto = {
+            "id": leave.id,
+            "modal": modal.get(status_id, "view"),
+            "user_name": format_name(leave.user.name),
+            "request_type": leave.request_type,
+            "status_id": status_id,
+            "status_slug": leave.status.slug,
+            "status_name": leave.status.name,
+            "start_date": format_datetime(leave.start_date),
+            "end_date": format_datetime(leave.end_date),
+            "duration_id": leave.duration_id,
+            "duration_name": leave.duration.name if leave.duration_id else None,
+            "leave_type": leave.type.name if leave.leave_type_id else None,
+            "leave_type_detail": leave.leave_type_detail,
+            "description": leave.description,
+            "motive": leave.motive,
+            "recovery_plan": leave.recovery_plan,
+            "assigned_name": format_name(leave.assigned.name) if leave.assigned_user_id else None,
+            "self_created": True if user.id == leave.user_id else False,
+            "created_at": format_datetime(leave.created_at),
+        }
+
+        return dto, 200
+    

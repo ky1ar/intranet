@@ -67,7 +67,14 @@
 					
 					<div class="bottom">
 						<template x-for="(day, idx) in gridDays" :key="idx">
-							<div class="month" :class="dayClass(day)" @mouseenter="setHover(day, true)" @mouseleave="setHover(day, false)">
+							<div
+								class="month"
+								:class="dayClass(day)"
+								@mouseenter="setHover(day, true)"
+								@mouseleave="setHover(day, false)"
+								@click="isEditorUser() && hasIncomplete(day) && showEdit(day)"
+								:style="(isEditorUser() && hasIncomplete(day)) ? 'cursor:pointer' : ''"
+							>
 								<img x-show="showLate(day)" class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg" x-transition.opacity.duration.150ms>
 
 								<span class="number"
@@ -75,11 +82,7 @@
 									x-text="day.is_summary ? 'Σ' : day.label"></span>
 
 								<template x-if="!day.is_summary">
-									<div
-										class="body"
-										@click="isEditorUser() && hasIncomplete(day) && showEdit(day)"
-										:style="(isEditorUser() && hasIncomplete(day)) ? 'cursor:pointer' : ''"
-									>
+									<div class="body">
 										<template x-for="(item, i) in dayItems(day)" :key="i">
 										<div
 											class="item"
@@ -953,24 +956,32 @@
 
 			if (day?.is_holiday) {
 				const name = (day?.holiday?.name || "Feriado").trim();
-
-				return [
-					{ label: "Feriado", value: name, incomplete: false, extra: false, holiday: true },
-				];
+				return [{ label: "Feriado", value: name, incomplete: false, extra: false, holiday: true }];
 			}
 
 			const intervals = (day?.intervals || []).filter(x => (x?.start || "").trim());
-			if (intervals.length === 0) return [];
-
 			const dayIncomplete = this.isDayIncomplete(day);
+			const expected = this.getExpectedMarks(day);
+			const marksCount = this.extractMarks(day).length;
+
+			// ✅ Caso: 0 marcaciones pero el día está incompleto => mostrar algo
+			if (intervals.length === 0) {
+				if (!dayIncomplete) return [];
+				return [{
+				label: "Incompleto",
+				value: `Pendiente (${marksCount}/${expected})`,
+				incomplete: true,
+				extra: false,
+				}];
+			}
 
 			const makeItem = (label, it) => {
 				const hasEnd = !!(it?.end || "").trim();
 				return {
-					label,
-					value: hasEnd ? `${it.start} - ${it.end}` : `${it.start}`,
-					incomplete: dayIncomplete,
-					extra: false,
+				label,
+				value: hasEnd ? `${it.start} - ${it.end}` : `${it.start}`,
+				incomplete: dayIncomplete,
+				extra: false,
 				};
 			};
 
@@ -982,15 +993,15 @@
 
 			if (typeof day?.delta_min === "number") {
 				items.push({
-					label: "Δ",
-					value: this.minutesToDeltaText(day.delta_min),
-					incomplete: false,
-					extra: true,
+				label: "Δ",
+				value: this.minutesToDeltaText(day.delta_min),
+				incomplete: false,
+				extra: true,
 				});
 			}
 
 			return items;
-		},
+			},
 
 		minutesToDeltaText(min) {
 			const sign = min < 0 ? "-" : "+";
@@ -1085,8 +1096,11 @@
 		},
 
 		getExpectedMarks(day) {
+			// ✅ Usa lo que viene del backend (0, 2 o 4)
 			if (typeof day?.expected_marks === "number") return day.expected_marks;
-			return 4;
+
+			// ✅ Si no viene definido, NO asumas 4 (evita marcar sábados no laborables)
+			return 0;
 		},
 
 		showEdit(day) {
@@ -1190,10 +1204,12 @@
 		},
 
 		permitModal() {
+			this.resetForms();
 			Alpine.store('cache').showModal('process');
 		},
 
 		vacatinoModal() {
+			this.resetForms();
 			Alpine.store('cache').showModal('vacation');
 		},
 
@@ -1235,16 +1251,19 @@
 
 		isDayIncomplete(day) {
 			if (!day?.in_period) return false;
-			if (day?.is_summary) return false;
+			if (day?.is_summary) return false;   // domingo/resumen
 			if (day?.is_holiday) return false;
 
-			const marks = this.extractMarks(day);
+			const todayISO = new Date().toISOString().slice(0, 10);
+			if (!day?.date || day.date > todayISO) return false;
+
 			const expected = this.getExpectedMarks(day);
+			if (!expected || expected <= 0) return false; // ✅ clave para sábados no laborables
 
-			if (!expected || expected <= 0) return false;
-
+			const marks = this.extractMarks(day);
 			return marks.length < expected;
 		},
+
 
 		resetForms() {
 			this.attendance_form = {
@@ -1333,6 +1352,31 @@
 			} catch (e) {
 				this.showError('save', e.message);
 			}
+		},
+
+		async viewPurchase(purchase) {
+			this.editing = true;
+
+			try {
+				const response = await fetch(`${this.api}/attendance/leave/${purchase.id}`, {
+					headers: {
+						"Content-Type": "application/json",
+						"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+					},
+				});
+				const dataJson = await response.json();
+				const data = dataJson.data;
+
+				if (!response.ok) {
+					throw new Error(data?.message || "Error al obtener la solicitud");
+				}
+
+				this.attendance_form = data;
+			
+				Alpine.store("cache").showModal("process");
+			} catch (error) {
+				console.error(error);
+			} 
 		},
 
 	}));
