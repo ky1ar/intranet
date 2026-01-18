@@ -59,7 +59,9 @@ def leave_request():
     return controller.leave_request(request.get_json())
 
 
-@attendance_bp.route("/vacation/request", methods=["POST"])
+@attendance_bp.route("/leave/<int:leave_id>", methods=["PUT"])
 @jwt_required()
-def vacation_request():
-    return controller.vacation_request(request.get_json())
+def update_leave(leave_id):
+    data = request.get_json()
+    data["leave_id"] = leave_id
+    return controller.leave_update(data)

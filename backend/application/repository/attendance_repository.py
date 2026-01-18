@@ -388,35 +388,20 @@ class AttendanceRepository:
 
 
     @handle_db_exceptions
-    def insert_leave_request(self, p, level_id):
+    def insert_leave_request(self, data):
         obj = LeaveRequest(
-            user_id=int(p["user_id"]),
-            request_type='Permiso',
-            status_id=1 if level_id == 2 else 2,
-            start_date=p["date"],
-            end_date=p["date"],
-            duration_id=int(p["duration_id"]),
-            leave_type_id=int(p["leave_type_id"]),
-            leave_type_detail=p["leave_type_detail"],
-            motive=p["motive"],
-            recovery_plan=p["recovery_plan"],
-            created_at=peru_time(),
-        )
-        g.db_session.add(obj)
-        g.db_session.commit()
-        return {"id": obj.id}, 200
-
-
-    @handle_db_exceptions
-    def insert_vacation_request(self, p, level_id):
-        obj = LeaveRequest(
-            user_id=int(p["user_id"]),
-            request_type='Vacaciones',
-            status_id=1 if level_id == 2 else 2,
-            start_date=p["start_date"],
-            end_date=p["end_date"],
-            assigned_user_id=int(p["assigned_user_id"]),
-            description=p["description"],
+            user_id=data.get("user_id"),
+            request_type='Permiso' if data.get("type") == 'permit' else "Vacaciones",
+            status_id=1 if data.get("level_id") == 2 else 2,
+            start_date=data.get("start_date"),
+            end_date=data.get("end_date"),
+            duration_id=data.get("duration_id"),
+            leave_type_id=data.get("leave_type_id"),
+            leave_type_detail=data.get("leave_type_detail"),
+            motive=data.get("motive"),
+            recovery_plan=data.get("recovery_plan"),
+            assigned_user_id=data.get("assigned_user_id"),
+            description=data.get("description"),
             created_at=peru_time(),
         )
         g.db_session.add(obj)
@@ -459,3 +444,67 @@ class AttendanceRepository:
             return "Solicitud no encontrada", 404
 
         return leave, 200
+    
+
+    @handle_db_exceptions
+    def soft_delete(self, leave_id):
+        leave = (
+            g.db_session.query(LeaveRequest)
+            .filter(
+                LeaveRequest.id == leave_id,
+                LeaveRequest.deleted_at.is_(None),
+            )
+            .first()
+        )
+        if not leave:
+            return "Solicitud no encontrada", 404
+
+        leave.deleted_at = peru_time()
+        g.db_session.commit()
+        return "Solicitud eliminada", 200
+
+
+    @handle_db_exceptions
+    def set_status(self, leave_id, status_id):
+        leave = (
+            g.db_session.query(LeaveRequest)
+            .filter(
+                LeaveRequest.id == leave_id,
+                LeaveRequest.deleted_at.is_(None),
+            )
+            .first()
+        )
+        if not leave:
+            return "Solicitud no encontrada", 404
+
+        leave.status_id = status_id
+        g.db_session.commit()
+        return leave.id, 200
+
+
+    @handle_db_exceptions
+    def update_leave(self, data):
+        leave_id = data.get("leave_id")
+        leave = (
+            g.db_session.query(LeaveRequest)
+            .filter(
+                LeaveRequest.id == leave_id,
+                LeaveRequest.deleted_at.is_(None),
+            )
+            .first()
+        )
+        if not leave:
+            return "Solicitud no encontrada", 404
+
+        leave.start_date = data.get("start_date")
+        leave.end_date = data.get("end_date")
+        leave.duration_id = data.get("duration_id")
+        leave.leave_type_id = data.get("leave_type_id")
+        leave.leave_type_detail = data.get("leave_type_detail")
+        leave.motive = data.get("motive")
+        leave.recovery_plan = data.get("recovery_plan")
+        leave.assigned_user_id = data.get("assigned_user_id")
+        leave.description = data.get("description")
+        
+        g.db_session.commit()
+        return leave.id, 200

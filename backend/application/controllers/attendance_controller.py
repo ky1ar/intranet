@@ -57,15 +57,12 @@ class AttendanceController:
     @handle_logs_and_exceptions
     def leave_request(self, data):
         if validation_error := validate_request(data, {
-            "user_id", "date", "duration_id", "leave_type_id"
+            "user_id", "start_date", "type"
         }):
             return validation_error, 422
         return self.attendance_service.leave_request(data)
+    
 
     @handle_logs_and_exceptions
-    def vacation_request(self, data):
-        if validation_error := validate_request(data, {
-            "user_id", "start_date", "end_date", "assigned_user_id"
-        }):
-            return validation_error, 422
-        return self.attendance_service.vacation_request(data)
+    def leave_update(self, data):
+        return self.attendance_service.leave_update(data)
