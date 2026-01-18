@@ -948,7 +948,7 @@
 		},
 
 		hasIncomplete(day) {
-			return this.isDayIncomplete(day);
+			return this.isDayIncomplete(day) || this.isRecoveryIncomplete(day);
 		},
 
 		dayItems(day) {
@@ -960,8 +960,8 @@
 			}
 
 			const intervals = (day?.intervals || []).filter(x => (x?.start || "").trim());
-			const dayIncomplete = this.isDayIncomplete(day);
-			const expected = this.getExpectedMarks(day);
+			const dayIncomplete = this.isDayIncomplete(day) || this.isRecoveryIncomplete(day);
+			const expected = this.getExpectedMarksForEdit(day); // 👈 para mostrar ratio correcto
 			const marksCount = this.extractMarks(day).length;
 
 			// ✅ Caso: 0 marcaciones pero el día está incompleto => mostrar algo
@@ -1104,11 +1104,12 @@
 		},
 
 		showEdit(day) {
-			if (!this.isDayIncomplete(day)) return;
+			if (!(this.isDayIncomplete(day) || this.isRecoveryIncomplete(day))) return;
 
 			this.selected_day = day;
+
 			const marks = this.extractMarks(day);
-			this.expected_marks = this.getExpectedMarks(day);
+			this.expected_marks = this.getExpectedMarksForEdit(day); // 👈 clave
 
 			this.draft_marks = marks.map(t => ({ type: "locked", time: t }));
 
@@ -1264,6 +1265,37 @@
 			return marks.length < expected;
 		},
 
+		isRecoveryIncomplete(day) {
+			if (!day?.in_period) return false;
+			if (day?.is_summary) return false;
+			if (day?.is_holiday) return false;
+
+			const todayISO = new Date().toISOString().slice(0, 10);
+			if (!day?.date || day.date > todayISO) return false;
+
+			const expected = this.getExpectedMarks(day); // backend
+			if (expected && expected > 0) return false; // si es laborable normal, no aplica recovery
+
+			const marksCount = this.extractMarks(day).length;
+			return marksCount > 0 && (marksCount % 2 === 1); // ✅ impares
+		},
+
+		getExpectedMarksForEdit(day) {
+			const expected = this.getExpectedMarks(day);
+			if (expected && expected > 0) return expected;
+
+			// expected=0 (no laborable). Si hay impares, permitir completar al siguiente par.
+			const marksCount = this.extractMarks(day).length;
+			if (marksCount > 0 && (marksCount % 2 === 1)) {
+				// siguiente par
+				const nextEven = marksCount + 1;
+
+				// opcional: cap para no permitir locuras
+				return Math.min(nextEven, 4); // ajusta a 6 si tu negocio permite más
+			}
+
+			return 0;
+		},
 
 		resetForms() {
 			this.attendance_form = {

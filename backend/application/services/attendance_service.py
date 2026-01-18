@@ -563,14 +563,19 @@ class AttendanceService:
 
         expected = self._expected_marks_for_user_on_date(user_id, d)
 
-        if expected <= 0:
-            return "Este día no requiere marcaciones.", 422
-
         existing, ec = self.attendance_repository.get_marks_by_user_and_date(user_id, d)
         if ec != 200:
             return existing, ec
 
         existing_times = [m.mark_at.strftime("%H:%M") for m in (existing or [])]
+
+        if expected <= 0:
+            n = len(existing_times)
+            if n > 0 and (n % 2 == 1):
+                expected = n + 1
+                expected = min(expected, 4)
+            else:
+                return "Este día no requiere marcaciones.", 422
 
         if len(existing_times) >= expected:
             return "El día ya está completo.", 409
@@ -639,7 +644,7 @@ class AttendanceService:
                 "user_id": user_id,
                 "date": d,
                 "mark_at": parse_time(hhmm),
-                "created_by": editor_user_id,  # ✅
+                "created_by": editor_user_id,
             })
 
         res, rc = self.attendance_repository.insert_marks_with_meta(to_insert)
