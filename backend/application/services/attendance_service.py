@@ -443,6 +443,53 @@ class AttendanceService:
         }, 200
 
 
+    def _adjustment_best_for_date(self, profile_map, d: date, user, profile, adjustments_map):
+        default_target = self._target_minutes_for_date(profile_map, d)
+        if default_target <= 0:
+            return []
+
+        candidates = (adjustments_map.get(d.isoformat()) or [])
+        if not candidates:
+            return []
+
+        applicable = []
+        for a in candidates:
+            scope = (a.scope or "all").lower().strip()
+
+            if scope == "all":
+                applicable.append(a)
+                continue
+
+            if scope == "department":
+                if a.department_id is not None and int(a.department_id) == int(user.department_id):
+                    applicable.append(a)
+                continue
+
+            if scope == "profile":
+                if a.profile_id is not None and int(a.profile_id) == int(profile.id):
+                    applicable.append(a)
+                continue
+
+            if scope == "user":
+                if a.user_id is not None and int(a.user_id) == int(user.id):
+                    applicable.append(a)
+                continue
+
+        if not applicable:
+            return []
+
+        best_p = max(self._adj_priority(a.scope) for a in applicable)
+        best = [a for a in applicable if self._adj_priority(a.scope) == best_p]
+
+        best.sort(key=lambda x: self._time_to_minutes(x.start_time))
+        return best
+
+
+    def _adjustment_marks_for_date(self, profile_map, d: date, user, profile, adjustments_map) -> int:
+        best = self._adjustment_best_for_date(profile_map, d, user, profile, adjustments_map)
+        return len(best) * 2
+
+
     def _adjustment_best_items_for_date(self, profile_map, d, user, profile, adjustments_map):
         default_target = self._target_minutes_for_date(profile_map, d)
         if default_target <= 0:
@@ -578,7 +625,7 @@ class AttendanceService:
                 )
                 day["adjustment_bonus_min"] = bonus_min
                 day["has_adjustment"] = bonus_min > 0
-                
+
                 adj_marks = bonus_min // 120
                 day["adjustment_marks"] = int(max(0, min(adj_marks, day["expected_marks"])))
 
@@ -704,23 +751,65 @@ class AttendanceService:
         if holiday:
             return "No se puede completar marcaciones en un feriado.", 422
 
-        expected = self._expected_marks_for_user_on_date(user_id, d)
-
         existing, ec = self.attendance_repository.get_marks_by_user_and_date(user_id, d)
         if ec != 200:
             return existing, ec
 
         existing_times = [m.mark_at.strftime("%H:%M") for m in (existing or [])]
 
-        if expected <= 0:
+        expected_total = self._expected_marks_for_user_on_date(user_id, d)
+
+        if expected_total <= 0:
             n = len(existing_times)
             if n > 0 and (n % 2 == 1):
-                expected = n + 1
-                expected = min(expected, 4)
+                expected_manual = min(n + 1, 4)
             else:
                 return "Este día no requiere marcaciones.", 422
+        else:
+            profile, prc = self.attendance_repository.get_profile_for_user_on_date(user_id, d)
+            if prc != 200:
+                return profile, prc
+            if not profile:
+                return "Usuario sin perfil asignado (user_work_profile)", 422
 
-        if len(existing_times) >= expected:
+            shifts, src = self.attendance_repository.get_shifts_for_profile(profile.id)
+            if src != 200:
+                return shifts, src
+            profile_map = self._build_profile_map(shifts)
+
+            user, uc = self.user_repository.get_user_by_id(user_id)
+            if uc != 200:
+                return user, uc
+
+            adjs, ac = self.attendance_repository.get_adjustments_by_range(d, d)
+            if ac != 200:
+                return adjs, ac
+            adjustments_map = self._build_adjustments_map(adjs)
+
+            adj_marks = self._adjustment_marks_for_date(
+                profile_map=profile_map,
+                d=d,
+                user=user,
+                profile=profile,
+                adjustments_map=adjustments_map,
+            )
+
+            expected_manual = max(0, expected_total - adj_marks)
+
+            client_expected = data.get("expected_marks")
+            if client_expected is not None:
+                try:
+                    client_expected = int(client_expected)
+                except Exception:
+                    return "expected_marks inválido.", 422
+
+                if client_expected != expected_manual:
+                    return f"expected_marks no coincide. Esperado: {expected_manual}.", 422
+
+            if expected_manual <= 0:
+                return "El día ya está completo.", 409
+
+        if len(existing_times) >= expected_manual:
             return "El día ya está completo.", 409
 
         additions = data.get("additions") or []
@@ -739,7 +828,7 @@ class AttendanceService:
             if not t or not isinstance(pos, int):
                 return "Cada addition requiere time y position.", 422
 
-            if pos < 0 or pos >= expected:
+            if pos < 0 or pos >= expected_manual:
                 return f"position fuera de rango: {pos}.", 422
 
             try:
@@ -753,13 +842,13 @@ class AttendanceService:
 
             add_times.append((pos, t))
 
-        final = [None] * expected
+        final = [None] * expected_manual
 
         for pos, t in add_times:
             final[pos] = t
 
         it = iter(existing_times)
-        for i in range(expected):
+        for i in range(expected_manual):
             if final[i] is None:
                 try:
                     final[i] = next(it)
@@ -794,7 +883,7 @@ class AttendanceService:
 
         return {
             "message": "Marcaciones completadas.",
-            "expected_marks": expected,
+            "expected_marks": expected_manual,
             "inserted": res.get("inserted", 0),
             "final": final,
         }, 200
