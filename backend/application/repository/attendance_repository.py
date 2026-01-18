@@ -26,6 +26,36 @@ class AttendanceRepository:
 
 
     @handle_db_exceptions
+    def get_user_profile_start_in_period(self, user_id: int, period_start: date, period_end: date):
+        row = (
+            g.db_session.query(UserWorkProfile)
+            .filter(UserWorkProfile.user_id == int(user_id))
+            # el perfil se cruza con el periodo
+            .filter(UserWorkProfile.start_date <= period_end)
+            .filter((UserWorkProfile.end_date.is_(None)) | (UserWorkProfile.end_date >= period_start))
+            .order_by(UserWorkProfile.start_date.asc())
+            .first()
+        )
+        if not row:
+            return None, 200
+        return row.start_date, 200
+
+    
+    @handle_db_exceptions
+    def get_user_work_profile_row_in_range(self, user_id: int, start_date: date, end_date: date):
+        row = (
+            g.db_session.query(UserWorkProfile)
+            .filter(UserWorkProfile.user_id == int(user_id))
+            # cruza con el periodo
+            .filter(UserWorkProfile.start_date <= end_date)
+            .filter((UserWorkProfile.end_date.is_(None)) | (UserWorkProfile.end_date >= start_date))
+            .order_by(UserWorkProfile.start_date.asc())
+            .first()
+        )
+        return row, 200
+
+
+    @handle_db_exceptions
     def get_durations(self):
         durations = g.db_session.query(LeaveDuration).order_by(LeaveDuration.name).all()
         if not durations:

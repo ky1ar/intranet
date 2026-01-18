@@ -558,7 +558,26 @@ class AttendanceService:
         if rc != 200:
             return payload, rc
 
-        profile, prc = self.attendance_repository.get_profile_for_user_on_date(user_id, period.start_date)
+        # ✅ buscar desde cuándo el usuario tiene perfil dentro de ESTE período
+        start_in_period, sic = self.attendance_repository.get_user_profile_start_in_period(
+            user_id, period.start_date, period.end_date
+        )
+        if sic != 200:
+            return start_in_period, sic
+
+        # si no hay start_in_period => no hay perfil que cruce el periodo
+        if not start_in_period:
+            return {
+                **payload,
+                "profile": None,
+                "profile_error": "Usuario sin perfil asignado en este período (user_work_profile)",
+            }, 200
+
+        effective_start = max(period.start_date, start_in_period)
+        payload["effective_start_date"] = effective_start.isoformat()
+
+        # ✅ IMPORTANTÍSIMO: el profile se pide en effective_start, NO en period.start_date
+        profile, prc = self.attendance_repository.get_profile_for_user_on_date(user_id, effective_start)
         if prc != 200:
             return profile, prc
 
@@ -593,9 +612,24 @@ class AttendanceService:
                 dt = parse_date_iso(day["date"])
                 wd = dt.weekday()
 
-                shifts_for_day = (profile_map.get(wd) or [])
-                day["expected_marks"] = len(shifts_for_day) * 2
+                # ✅ días antes de que el usuario inicie: no cuentan
+                if day.get("in_period") and dt < effective_start:
+                    day["expected_marks"] = 0
+                    day["expected_start"] = None
+                    day["target_min"] = 0
+                    day["worked_min"] = 0
+                    day["delta_min"] = 0
+                    day["incomplete"] = False
+                    day["incomplete_count"] = 0
+                    day["has_adjustment"] = False
+                    day["adjustment_bonus_min"] = 0
+                    day["adjustment_marks"] = 0
+                    day["adjustment_items"] = []
+                    day["not_started_yet"] = True
+                    day["is_summary"] = False
+                    continue
 
+                # domingo resumen
                 if wd == 6:
                     day["is_summary"] = True
                     day["label"] = "Σ"
@@ -610,11 +644,19 @@ class AttendanceService:
 
                 day["is_summary"] = False
 
+                # expected marks por perfil (sin descontar ajustes; el descuento lo haces con adjustment_marks en front)
+                shifts_for_day = (profile_map.get(wd) or [])
+                day["expected_marks"] = len(shifts_for_day) * 2
+
                 target = self._target_minutes_for_date(profile_map, dt)
                 expected_start_min = self._expected_start_minutes_for_date(profile_map, dt)
-                day["expected_start"] = self._minutes_to_hhmm(expected_start_min) if expected_start_min is not None else None
+                day["expected_start"] = (
+                    self._minutes_to_hhmm(expected_start_min) if expected_start_min is not None else None
+                )
 
-                week_target += target
+                # ✅ solo suma target si es día dentro del periodo
+                if day.get("in_period"):
+                    week_target += target
 
                 bonus_min = self._adjustment_bonus_minutes_for_date(
                     profile_map=profile_map,
@@ -624,8 +666,8 @@ class AttendanceService:
                     adjustments_map=adjustments_map,
                 )
                 day["adjustment_bonus_min"] = bonus_min
-                day["has_adjustment"] = bonus_min > 0
 
+                # tus ajustes: cada 2h de bonus = 2 marks menos (según tu lógica)
                 adj_marks = bonus_min // 120
                 day["adjustment_marks"] = int(max(0, min(adj_marks, day["expected_marks"])))
 
@@ -636,16 +678,17 @@ class AttendanceService:
                     profile=profile,
                     adjustments_map=adjustments_map,
                 )
-
                 day["adjustment_items"] = adj_items
                 day["has_adjustment"] = len(adj_items) > 0
 
+                # feriado dentro del periodo: worked = target + bonus
                 if day.get("is_holiday") and day.get("in_period"):
                     day["worked_min"] = target + bonus_min
                     day["target_min"] = target
                     day["delta_min"] = day["worked_min"] - target
                     day["incomplete"] = False
                     day["incomplete_count"] = 0
+
                     week_worked += day["worked_min"]
                     continue
 
@@ -674,6 +717,7 @@ class AttendanceService:
 
         payload["profile"] = {"id": profile.id, "slug": profile.slug, "name": profile.name}
         return payload, 200
+
 
 
     def _adjustment_bonus_minutes_for_date(self, profile_map, d, user, profile, adjustments_map):
