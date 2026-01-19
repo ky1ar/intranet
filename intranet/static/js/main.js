@@ -102,7 +102,7 @@ document.addEventListener('alpine:init', () => {
         user: {},
         active_page: window.location.pathname,
         common_pages: [
-            { name: 'attendance', label: 'Horarios', image: 'attendance', title: 'Krear 3D - Horarios' },
+            { name: 'attendance', label: 'Asistencia', image: 'attendance', title: 'Krear 3D - Asistencia' },
             { name: 'schedule', label: 'Agenda', image: 'calendar2', title: 'Krear 3D - Agenda' },
             { name: 'board', label: 'Actividades', image: 'board', title: 'Krear 3D - Actividades' },
             { name: 'logistics', label: 'Envíos', image: 'logistics', title: 'Krear 3D - Envíos' },

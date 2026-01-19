@@ -232,11 +232,11 @@
 						</div>
 
 						<div class="item">
-							<div class="label">Horas objetivo</div>
+							<div class="label">Horas base</div>
 							<div class="data" x-text="minutesToText(stats.target_min)"></div>
 						</div>
 						<div class="item">
-							<div class="label">Horas laboradas</div>
+							<div class="label">Horas trabajadas</div>
 							<div class="data" x-text="minutesToText(stats.worked_min)"></div>
 						</div>
 					</div>
@@ -245,24 +245,27 @@
 					<div class="sub white">
 						<div class="target">
 							<img alt="" width="16" height="16" src="/static/images/icons/accept.svg">
-							<span>Tolerancia</span>
+							<span>Tardanzas y tolerancia</span>
 						</div>
-
 						<div class="item">
-							<div class="label">Prevista <small>(1% del objetivo)</small></div>
+							<div class="label">Tardanzas</div>
+							<div class="data" x-text="stats.tardiness_count"></div>
+						</div>
+						<div class="item">
+							<div class="label">Tolerancia <small>(1% de la base)</small></div>
 							<div class="data" x-text="minutesToText(stats.tolerance_planned_min)"></div>
 						</div>
 						<div class="item">
-							<div class="label">Acumulada</div>
+							<div class="label">Tardanza acumulada</div>
 							<div class="data" x-text="minutesToText(stats.tolerance_accum_min)"></div>
 						</div>
 						<div class="item" style="margin-top: 0.5rem;">
-							<div class="label">Excedente base</div>
+							<div class="label">Exceso sobre tolerancia</div>
 							<div class="data" x-text="minutesToText(stats.base_excess_min)"></div>
 						</div>
 
 						<div class="item">
-							<div class="label">Penalización <small>(base x 1.5)</small></div>
+							<div class="label">Penalización <small>(exceso x 1.5)</small></div>
 							<div class="data" x-text="minutesToText(stats.calc_excess_min)"></div>
 						</div>
 <!-- 
@@ -272,20 +275,29 @@
 						</div> -->
 					</div>
 
-					
 					<div class="sub white">
 						<div class="target">
 							<img alt="" width="16" height="16" src="/static/images/icons/accept.svg">
-							<span>Otros</span>
+							<span>Objetivo</span>
 						</div>
+						
 						<div class="item">
-							<div class="label">Tardanzas</div>
-							<div class="data" x-text="stats.tardiness_count"></div>
+							<div class="label">Base + Penalización</div>
+							<div class="data" x-text="stats.calc_final_obj"></div>
 						</div>
+					</div>
+
+					<div class="sub white">
+						<div class="target">
+							<img alt="" width="16" height="16" src="/static/images/icons/accept.svg">
+							<span>Licencias</span>
+						</div>
+						
 						<div class="item">
 							<div class="label">Vacaciones</div>
 							<div class="data" x-text="stats.vacation_days"></div>
 						</div>
+						
 						<!-- <div class="item">
 							<div class="label">Bonos</div>
 							<div class="data" x-text="stats.bonus_count"></div>
@@ -295,10 +307,10 @@
 					<div class="sub white">
 						<div class="target">
 							<img alt="" width="16" height="16" src="/static/images/icons/accept.svg">
-							<span>Cumplimiento</span>
+							<span>Cumplimiento final</span>
 						</div>
 						<div class="item">
-							<div class="label">Porcentaje</div>
+							<div class="label">Trabajado / Objetivo</div>
 							<div class="data" x-text="`${stats.compliance_pct.toFixed(1)} %`"></div>
 						</div>
 					</div>
@@ -1145,6 +1157,7 @@
 			const compliance = target > 0 ? (worked * 100) / target : 0;
 			const baseExcess = Math.max(0, toleranceAccum - tolerancePlanned);
 			const calcExcess = Math.round(baseExcess * 1.5);
+			const calcObjMin = target + calcExcess;
 
 			this.stats = {
 				...this.stats,
@@ -1156,6 +1169,7 @@
 				vacation_days: vacations,
 				base_excess_min: baseExcess,
 				calc_excess_min: calcExcess,
+				calc_final_obj: this.minutesToText(calcObjMin),
 				compliance_pct: compliance,
 			};
 		},
