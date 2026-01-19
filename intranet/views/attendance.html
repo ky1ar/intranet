@@ -9,17 +9,17 @@
 			</div>
 
 			<div class="left frost">
-				<div class="item" @click="prev()" x-show="offset > -1">
+				<div class="item" @click="prev()" x-show="false">
 					<img class="flip" alt="prev" src="/static/images/icons/right.svg" width="20" height="20">
 				</div>
 
 				<div class="item date" @click="today()" x-text="$store.cache.getData('attendance_period')?.period?.name"></div>
-				<div class="item" @click="next()" x-show="offset < 3">
+				<div class="item" @click="next()" x-show="false">
 					<img alt="next" src="/static/images/icons/right.svg" width="20" height="20">
 				</div>
 			</div>
 
-			<div class="right frost-dark" x-show="[3,1118,23].includes(user.id)">
+			<div class="right frost-dark" x-show="[3,1127,23].includes(user.id)">
 				<div class="item" @click="xlsProcess()">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
 					<span>Cargar</span>
@@ -2651,87 +2651,7 @@
 		#attendance ul li.high .register-day {
 			color: #f96161;
 		}
-		/***********************************************************************************/
-		#modal-status .update {
-			display: flex;
-			justify-content: center;
-			gap: 1rem;
-			background-color: white;
-			box-shadow: 0 0 2rem hsl(0deg 0% 0% / 5%);
-			border-radius: 1rem;
-			position: relative;
-		}
-		#modal-status .update .box {
-			padding: 1rem;
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			gap: 0.5rem;
-			flex: 1;
-		}
-		#modal-status .update .arrow {
-			position: absolute;
-			top: 50%;
-			left: 50%;
-			transform: translate(-50%, -50%);
-		}
-		#modal-status .update .box img {
-			margin-top: 0.5rem;
-		}
-		#modal-status .update .box span {
-			font-size: 0.8rem;
-		}
-		#modal-status .send-whatsapp {
-			display: flex;
-			gap: 0.5rem;
-			align-items: center;
-			font-size: 0.75rem;
-		}
-		#modal-status .send-whatsapp .dot {
-			width: 0.5rem;
-			height: 0.5rem;
-			background-color: var(--primary);
-			border-radius: 1rem;
-		}
-		#modal-status .send-whatsapp .box {
-			display: none;
-			position: relative;
-			width: 2.5rem;
-			height: 1.5rem;
-		}
-		#modal-status .send-whatsapp .box input {
-			opacity: 0;
-			width: 0;
-			height: 0;
-		}
-		#modal-status .send-whatsapp .box .slider {
-			border-radius: 2rem;
-			position: absolute;
-			cursor: pointer;
-			top: 0;
-			left: 0;
-			right: 0;
-			bottom: 0;
-			background-color: #ccc;
-			transition: all 0.25s ease-in-out;
-		}
-		#modal-status .send-whatsapp .box .slider:before {
-			position: absolute;
-			content: "";
-			height: 1rem;
-			width: 1rem;
-			left: 0.25rem;
-			bottom: 0.25rem;
-			background-color: white;
-			transition: all 0.25s ease-in-out;
-			border-radius: 50%;
-		}
-		#modal-status .send-whatsapp .box input:checked + .slider {
-			background-color: var(--primary);
-		}
-		#modal-status .send-whatsapp .box input:checked + .slider:before {
-			transform: translateX(1rem);
-		}
+		
 		/***********************************************************************************/
 		#modal-process .header {
 			display: flex;
