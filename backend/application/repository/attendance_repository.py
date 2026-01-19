@@ -244,6 +244,10 @@ class AttendanceRepository:
         if hc != 200:
             return holidays_map, hc
 
+        vacations_map, vc = self.get_vacations_by_range(user_id, period.start_date, period.end_date)
+        if vc != 200:
+            return vacations_map, vc
+
         by_date = defaultdict(list)
         for m in marks:
             by_date[m.date].append(m.mark_at.strftime("%H:%M"))
@@ -260,16 +264,20 @@ class AttendanceRepository:
                 times = by_date.get(d, [])
 
                 holiday = holidays_map.get(date_iso)
+                vacation = vacations_map.get(date_iso)
 
                 days.append({
                     "date": date_iso,
-                    "label": d.strftime("%d"),               # keep numeric label for your current UI
+                    "label": d.strftime("%d"),
                     "intervals": self._pair_times(times),
                     "in_period": (period.start_date <= d <= period.end_date),
 
+                    "holiday": holiday,
+                    "is_holiday": bool(holiday),
+
                     # ✅ NEW
-                    "holiday": holiday,                      # None or {id,name,date,hex_color}
-                    "is_holiday": bool(holiday),             # easy for front -> add class
+                    "vacation": vacation,
+                    "is_vacation": bool(vacation),
                 })
                 d += timedelta(days=1)
 
@@ -508,3 +516,36 @@ class AttendanceRepository:
         
         g.db_session.commit()
         return leave.id, 200
+
+
+    @handle_db_exceptions
+    def get_vacations_by_range(self, user_id: int, start_date: date, end_date: date):
+        rows = (
+            g.db_session.query(LeaveRequest)
+            .filter(LeaveRequest.deleted_at.is_(None))
+            .filter(LeaveRequest.user_id == int(user_id))
+            .filter(LeaveRequest.request_type == "Vacaciones")
+            .filter(LeaveRequest.status_id == 3)
+            .filter(LeaveRequest.start_date <= end_date)
+            .filter((LeaveRequest.end_date.is_(None)) | (LeaveRequest.end_date >= start_date))
+            .order_by(LeaveRequest.start_date.asc(), LeaveRequest.id.asc())
+            .all()
+        )
+
+        mp = {}
+
+        for r in (rows or []):
+            s = max(r.start_date, start_date)
+            e = min(r.end_date or r.start_date, end_date)
+
+            d = s
+            while d <= e:
+                mp[d.isoformat()] = {
+                    "id": r.id,
+                    "request_type": r.request_type,
+                    "start_date": r.start_date.isoformat(),
+                    "end_date": (r.end_date or r.start_date).isoformat(),
+                }
+                d += timedelta(days=1)
+
+        return mp, 200

@@ -87,7 +87,8 @@
 												'incomplete': item.incomplete,
 												'extra': item.extra,
 												'holiday': item.holiday,
-  												'adjustment': item.adjustment
+  												'adjustment': item.adjustment,
+												'vacations': item.vacation 
 											}"
 											x-show="!item.extra || isHover(day)"
 											x-transition.opacity.duration.150ms
@@ -993,6 +994,11 @@
 				if (!d?.in_period) return false;
 				if (!d?.date || d.date > todayISO) return false;
 
+				if (d?.is_holiday || d?.is_vacation) {
+					if (this.isDayIncomplete(d)) return false;
+					return true;
+				}
+				
 				const intervals = d?.intervals || [];
 				const hasAnyStart = intervals.some(it => (it?.start || "").trim());
 				if (!hasAnyStart) return false;
@@ -1048,12 +1054,15 @@
 
 			let cls = 'white';
 			if (day?.is_holiday) cls += ' holidays';
+			if (day?.is_vacation) cls += ' vacation';
 			return cls;
 		},
 
 		showLate(day) {
 			if (!day?.in_period) return false;
 			if (day?.is_summary) return false;
+			if (day?.is_holiday) return false;
+			if (day?.is_vacation) return false;
 
 			const first = (day?.intervals || [])[0];
 			const start = (first?.start || "").trim();
@@ -1072,6 +1081,17 @@
 		dayItems(day) {
 			if (!day?.in_period) return [];
 
+			if (day?.is_vacation) {
+				return [{
+					label: "Licencia",
+					value: "Vacaciones",
+					incomplete: false,
+					extra: false,
+					vacation: true,
+					class: "vacations",
+				}];
+			}
+			
 			if (day?.is_holiday) {
 				const name = (day?.holiday?.name || "Feriado").trim();
 				return [{ label: "Feriado", value: name, incomplete: false, extra: false, holiday: true }];
@@ -1087,8 +1107,8 @@
 			if (intervals.length === 0) {
 				if (!dayIncomplete) return [];
 				return [{
-					label: "Incompleto",
-					value: `Pendiente (${eff}/${expectedTotal})`,
+					label: "Pendiente",
+					value: `Registros (${eff}/${expectedTotal})`,
 					incomplete: true,
 					extra: false,
 				}];
@@ -1391,6 +1411,7 @@
 			if (!day?.in_period) return false;
 			if (day?.is_summary) return false;
 			if (day?.is_holiday) return false;
+			if (day?.is_vacation) return false;
 
 			const todayISO = new Date().toISOString().slice(0, 10);
 			if (!day?.date || day.date > todayISO) return false;
@@ -1406,6 +1427,7 @@
 			if (!day?.in_period) return false;
 			if (day?.is_summary) return false;
 			if (day?.is_holiday) return false;
+			if (day?.is_vacation) return false;
 
 			const todayISO = new Date().toISOString().slice(0, 10);
 			if (!day?.date || day.date > todayISO) return false;
@@ -2212,9 +2234,6 @@
 			box-shadow: inset 0 0 0 2px #e6e6e6;
     		background-color: transparent;
 		}
-		#attendance .main .middle .bottom .month .body .item.adjustment {
-    		background-color: #e4e7cf;
-		}
 		#attendance .main .middle .bottom .month .body .item .label {
 			font-size: 0.65rem;
 			line-height: 0.75rem;
@@ -2225,7 +2244,16 @@
 			color: #ea6e00;
     		opacity: 0.5;
 		}
+		#attendance .main .middle .bottom .month .body .item.adjustment {
+    		background-color: #e4e7cf;
+		}
 		#attendance .main .middle .bottom .month .body .item.adjustment .label {
+			color: #496416;
+		}
+		#attendance .main .middle .bottom .month .body .item.vacations {
+    		background-color: #e4e7cf;
+		}
+		#attendance .main .middle .bottom .month .body .item.vacations .label {
 			color: #496416;
 		}
 		#attendance .main .middle .bottom .month .body .item .date {
