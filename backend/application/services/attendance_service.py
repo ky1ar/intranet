@@ -643,6 +643,10 @@ class AttendanceService:
                 shifts_for_day = (profile_map.get(wd) or [])
                 day["expected_marks"] = len(shifts_for_day) * 2
 
+                # ✅ aplica permiso si existe (antes de lateness / incomplete)
+                if day.get("in_period") and day.get("is_permit"):
+                    self._apply_permit_rules(day, shifts_for_day)
+                    
                 target = self._target_minutes_for_date(profile_map, dt)
                 expected_start_min = self._expected_start_minutes_for_date(profile_map, dt)
                 day["expected_start"] = (
@@ -825,6 +829,25 @@ class AttendanceService:
             if src != 200:
                 return shifts, src
             profile_map = self._build_profile_map(shifts)
+
+            permits, pc = self.attendance_repository.get_permits_by_range(user_id, d, d)
+            if pc != 200:
+                return permits, pc
+
+            permit = permits.get(d.isoformat())
+            permit_reduce = 0
+            if permit:
+                duration_id = permit.get("duration_id")
+                try:
+                    duration_id = int(duration_id) if duration_id is not None else None
+                except Exception:
+                    duration_id = None
+
+                shifts_for_day = sorted(profile_map.get(d.weekday()) or [], key=lambda x: x[0])
+                covered = self._permit_covered_shift_indexes(shifts_for_day, duration_id) if duration_id else []
+                permit_reduce = len(covered) * 2
+
+            expected_total = max(0, expected_total - permit_reduce)
 
             user, uc = self.user_repository.get_user_by_id(user_id)
             if uc != 200:
@@ -1165,3 +1188,50 @@ class AttendanceService:
 
         socketio.emit("attendance_update_leaves", {})
         return "Solicitud actualizada correctamente", 200
+    
+
+    def _permit_covered_shift_indexes(self, shifts_for_day, duration_id):
+        if not shifts_for_day:
+            return []
+
+        n = len(shifts_for_day)
+        if duration_id == 3:
+            return list(range(n))          # todo el día
+        if duration_id == 1:
+            return [0]                     # mañana = primer shift
+        if duration_id == 2:
+            return [n - 1]                 # tarde = último shift
+            
+        return []
+    
+
+    def _apply_permit_rules(self, day, shifts_for_day):
+        permit = day.get("permit") or {}
+        if not permit:
+            return
+
+        duration_id = permit.get("duration_id")
+        try:
+            duration_id = int(duration_id) if duration_id is not None else None
+        except Exception:
+            duration_id = None
+
+        if not duration_id:
+            return
+
+        shifts_sorted = sorted(shifts_for_day, key=lambda x: x[0])
+
+        covered = set(self._permit_covered_shift_indexes(shifts_sorted, duration_id))
+
+        original_expected = len(shifts_sorted) * 2
+
+        covered_marks = len(covered) * 2
+        new_expected = max(0, original_expected - covered_marks)
+
+        day["permit_duration_id"] = duration_id
+        day["permit_expected_reduction"] = covered_marks
+
+        day["expected_marks"] = new_expected
+
+        remaining_starts = [s for idx, (s, _) in enumerate(shifts_sorted) if idx not in covered]
+        day["expected_start"] = self._minutes_to_hhmm(min(remaining_starts)) if remaining_starts else None

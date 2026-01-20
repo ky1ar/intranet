@@ -83,13 +83,7 @@
 										<template x-for="(item, i) in dayItems(day)" :key="i">
 										<div
 											class="item"
-											:class="{
-												'incomplete': item.incomplete,
-												'extra': item.extra,
-												'holiday': item.holiday,
-  												'adjustment': item.adjustment,
-												'vacations': item.vacation 
-											}"
+											:class="`${item.class || ''} ${item.incomplete ? 'incomplete' : ''} ${item.extra ? 'extra' : ''} ${item.holiday ? 'holiday' : ''} ${item.adjustment ? 'adjustment' : ''} ${item.vacation ? 'vacations' : ''}`"
 											x-show="!item.extra || isHover(day)"
 											x-transition.opacity.duration.150ms
 										>
@@ -968,6 +962,7 @@
 			if (day?.is_summary) return false;
 			if (day?.is_holiday) return false;
 			if (day?.is_vacation) return false;
+			if (day?.is_permit && !day?.expected_start) return false;
 
 			const first = (day?.intervals || [])[0];
 			const start = (first?.start || "").trim();
@@ -1035,7 +1030,7 @@
 
 			this.option_user = team[prevIdx];
 			this.option_user_active = false;
-			this.offset = 0;
+			//this.offset = 0;
 			await this.load();
 		},
 
@@ -1049,7 +1044,7 @@
 
 			this.option_user = team[nextIdx];
 			this.option_user_active = false;
-			this.offset = 0;
+			//this.offset = 0;
 			await this.load();
 		},
 
@@ -1058,7 +1053,7 @@
 			const weeks = data.weeks || [];
 			const days = [];
 
-			const todayISO = new Date().toISOString().slice(0, 10);
+			const todayISO = this.todayLocalISO();
 
 			const hasValidIntervals = (d) => {
 				if (!d?.in_period) return false;
@@ -1119,10 +1114,16 @@
 			this.gridDays = days;
 			this.buildMonthStats(data);
 		},
+		
+		todayLocalISO() {
+			const d = new Date();
+			d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+			return d.toISOString().slice(0, 10);
+		},
 
 		buildMonthStats(data) {
 			const weeks = data?.weeks || [];
-			const todayISO = new Date().toISOString().slice(0, 10);
+			const todayISO = this.todayLocalISO();
 
 			let target = 0;          // ✅ todo el periodo (incluye futuro)
 			let worked = 0;          // ✅ solo hasta hoy
@@ -1180,6 +1181,7 @@
 			let cls = 'white';
 			if (day?.is_holiday) cls += ' holidays';
 			if (day?.is_vacation) cls += ' vacation';
+			if (day?.is_permit) cls += ' permit';
 			return cls;
 		},
 
@@ -1191,56 +1193,130 @@
 			return this.isDayIncomplete(day) || this.isRecoveryIncomplete(day);
 		},
 
+		getPermitDurationId(day) {
+			const id =
+				day?.permit?.duration_id ??
+				day?.permit_duration_id ??
+				day?.duration_id;
+
+			const n = Number(id);
+			return Number.isFinite(n) ? n : null;
+		},
+
+		permitSlots(day) {
+			const did = this.getPermitDurationId(day);
+
+			const part =
+				did === 1 ? "Mañana" :
+				did === 2 ? "Tarde"  :
+				did === 3 ? "Día"    : "";
+
+			return {
+				duration_id: did,
+				partial: did === 1 || did === 2,
+				morning: did === 1 || did === 3,
+				afternoon: did === 2 || did === 3,
+				part, // "Mañana" | "Tarde" | "Día" | ""
+			};
+		},
+
+		hasTwoIntervalsProfile(day) {
+			// ✅ Lo ideal: backend envía permit_expected_reduction (covered_marks)
+			// originalExpected = expected_marks + permit_expected_reduction
+			const expected = Number(day?.expected_marks ?? 0);
+			const red = Number(day?.permit_expected_reduction ?? 0);
+			const originalExpected = expected + (Number.isFinite(red) ? red : 0);
+
+			if (originalExpected > 0) return originalExpected >= 4;
+
+			// fallback (si no llega permit_expected_reduction):
+			// si hay permiso parcial y expected quedó en 2, asumimos perfil de 4 reducido.
+			const did = this.getPermitDurationId(day);
+			if ((did === 1 || did === 2) && expected === 2) return true;
+
+			return expected >= 4;
+		},
+
 		dayItems(day) {
 			if (!day?.in_period) return [];
 
 			if (day?.is_vacation) {
 				return [{
-					label: "Licencia",
-					value: "Vacaciones",
-					incomplete: false,
-					extra: false,
-					vacation: true,
-					class: "vacations",
+				label: "Licencia",
+				value: "Vacaciones",
+				incomplete: false,
+				extra: false,
+				vacation: true,
+				class: "vacations",
 				}];
 			}
-			
+
 			if (day?.is_holiday) {
 				const name = (day?.holiday?.name || "Feriado").trim();
 				return [{ label: "Feriado", value: name, incomplete: false, extra: false, holiday: true }];
 			}
 
-			const intervals = (day?.intervals || []).filter(x => (x?.start || "").trim());
+			const intervalsRaw = (day?.intervals || []);
+			const intervals = intervalsRaw.filter(x => (x?.start || "").trim());
 			const dayIncomplete = this.isDayIncomplete(day) || this.isRecoveryIncomplete(day);
-			const expected = this.getExpectedMarksForEditConsideringAdjustment(day);
-			const marksCount = this.extractMarks(day).length;
-			const eff = this.getEffectiveMarks(day);
+
 			const expectedTotal = this.getExpectedMarks(day);
+			const eff = this.getEffectiveMarks(day);
 
-			if (intervals.length === 0) {
-				if (!dayIncomplete) return [];
-				return [{
-					label: "Pendiente",
-					value: `Registros (${eff}/${expectedTotal})`,
-					incomplete: true,
-					extra: false,
-				}];
-			}
+			const permitInfo = day?.is_permit ? this.permitSlots(day) : null;
 
-			const makeItem = (label, it) => {
+			const makeTimeItem = (label, it) => {
+				if (!it || !(it?.start || "").trim()) return null;
 				const hasEnd = !!(it?.end || "").trim();
-					return {
-					label,
-					value: hasEnd ? `${it.start} - ${it.end}` : `${it.start}`,
-					incomplete: dayIncomplete,
-					extra: false,
+				return {
+				label,
+				value: hasEnd ? `${it.start} - ${it.end}` : `${it.start}`,
+				incomplete: dayIncomplete,
+				extra: false,
 				};
 			};
 
-			const items = [];
-			if (intervals[0]) items.push(makeItem("Mañana", intervals[0]));
-			if (intervals[1]) items.push(makeItem("Tarde", intervals[1]));
+			const makePermitItem = (part) => ({
+				label: "Licencia",
+				value: `Permiso${part ? ` (${part})` : ""}`,
+				incomplete: false,
+				extra: false,
+				permit: true,
+				class: `permit-item permit-${(part || "na").toLowerCase()}`, // 👈 clase lista para CSS
+			});
 
+			const items = [];
+
+			const did = permitInfo?.duration_id || null;
+
+			// ===== SLOT MAÑANA =====
+			const morningInterval = makeTimeItem("Mañana", intervalsRaw[0] || null);
+
+			if (did === 1) {                // permiso en la mañana: permiso primero
+				if (permitInfo?.morning) items.push(makePermitItem("Mañana"));
+				if (morningInterval) items.push(morningInterval);
+			} else {
+				if (morningInterval) items.push(morningInterval);
+				// did=3 (día completo) lo renderizamos después en bloque único
+			}
+
+			// ===== SLOT TARDE =====
+			const afternoonInterval = makeTimeItem("Tarde", intervalsRaw[1] || null);
+
+			if (did === 2) {                // permiso en la tarde: intervalo primero
+				if (afternoonInterval) items.push(afternoonInterval);
+				if (permitInfo?.afternoon) items.push(makePermitItem("Tarde"));
+			} else {
+				if (afternoonInterval) items.push(afternoonInterval);
+				// did=3 lo renderizamos después en bloque único
+			}
+
+			// ===== PERMISO DÍA COMPLETO (una sola vez) =====
+			if (did === 3) {
+				items.push(makePermitItem("Día"));
+			}
+
+			// Ajustes (igual)
 			const adjItems = (day?.adjustment_items || []);
 			for (const a of adjItems) {
 				const label = (a?.label || "").trim() || "Ajuste";
@@ -1248,23 +1324,45 @@
 				if (!value) continue;
 
 				items.push({
-					label,
-					value,
-					incomplete: false,
-					extra: false,
-					holiday: false,
-					adjustment: true,
+				label,
+				value,
+				incomplete: false,
+				extra: false,
+				adjustment: true,
 				});
 			}
-			
-			if (dayIncomplete) return items;
 
-			if (typeof day?.delta_min === "number") {
+			// Pendiente:
+			// - Con permiso: si incompleto, mostrar (según tu regla de perfil 2 intervalos si parcial)
+			// - Sin permiso: solo si NO hay marcas/intervalos (0/x)
+			const shouldShowPending =
+				dayIncomplete &&
+				expectedTotal > 0 &&
+				(
+				(day?.is_permit && (!permitInfo?.partial || this.hasTwoIntervalsProfile(day)))
+				||
+				(!day?.is_permit && intervals.length === 0)
+				);
+
+			if (shouldShowPending) {
 				items.push({
-					label: "Δ",
-					value: this.minutesToDeltaText(day.delta_min),
-					incomplete: false,
-					extra: true,
+				label: "Pendiente",
+				value: `Registros (${eff}/${expectedTotal})`,
+				incomplete: true,
+				extra: false,
+				class: "pending-item",
+				});
+				return items;
+			}
+
+			if (items.length === 0 && !dayIncomplete) return [];
+
+			if (!dayIncomplete && typeof day?.delta_min === "number") {
+				items.push({
+				label: "Δ",
+				value: this.minutesToDeltaText(day.delta_min),
+				incomplete: false,
+				extra: true,
 				});
 			}
 
@@ -1530,7 +1628,7 @@
 			if (day?.is_holiday) return false;
 			if (day?.is_vacation) return false;
 
-			const todayISO = new Date().toISOString().slice(0, 10);
+			const todayISO = this.todayLocalISO();
 			if (!day?.date || day.date > todayISO) return false;
 
 			const expected = this.getExpectedMarks(day);
@@ -1546,7 +1644,7 @@
 			if (day?.is_holiday) return false;
 			if (day?.is_vacation) return false;
 
-			const todayISO = new Date().toISOString().slice(0, 10);
+			const todayISO = this.todayLocalISO();
 			if (!day?.date || day.date > todayISO) return false;
 
 			const expected = this.getExpectedMarks(day);
@@ -2383,9 +2481,15 @@
 			color: #496416;
 		}
 		#attendance .main .middle .bottom .month .body .item.vacations {
-    		background-color: #e9eef5;
+    		background-color: #e0e8f3;
 		}
 		#attendance .main .middle .bottom .month .body .item.vacations .label {
+			color: #123171;
+		}
+		#attendance .main .middle .bottom .month .body .item.permit-item {
+    		background-color: #e0e8f3;
+		}
+		#attendance .main .middle .bottom .month .body .item.permit-item .label {
 			color: #123171;
 		}
 		#attendance .main .middle .bottom .month .body .item .date {
