@@ -57,4 +57,4 @@ class DevController:
     
     @handle_logs_and_exceptions
     def dev_token(self):
-        return self.dev.token()
+        return self.dev.token()    

@@ -3,6 +3,7 @@ from datetime import datetime
 from application.handlers import handle_exceptions
 from config import WABA as API
 from config import Config
+from config import Odoo
 
 
 class Whatsapp:
@@ -11,6 +12,8 @@ class Whatsapp:
         self.whatsapp_url = API.URL
         
         self.image_base_url = Config.BASE_URL
+        self.pdf_base_url = Odoo.PDF_URL
+
         self.review_url = Config.REVIEW_URL
         self.mantra_phone = Config.CONTACT_PHONE
 
@@ -45,6 +48,11 @@ class Whatsapp:
         11: 'noviembre',
         12: 'diciembre'
     }
+
+
+    def to_waba_phone(pe_9_digits: str) -> str:
+        return f"51{pe_9_digits}"
+
 
     def post(self, payload):
         logging.info(payload)
@@ -462,4 +470,54 @@ class Whatsapp:
                 "components": [{"type": "body", "parameters": parameters}]
             }
         }
+        return self.post(payload)
+    
+
+    @handle_exceptions
+    def send_odoo_invoice(self, client_phone, client_name, invoice_number, invoice_date, pdf_filename):
+        payload = {
+            "messaging_product": "whatsapp",
+            # "to": "51946887982", # 996201441 "51946887982"
+            "to": client_phone,
+            "type": "template",
+            "template": {
+                "name": "odoo_invoice_prod",
+                "language": {"code": "es_PE"},
+                "components": [
+                    {
+                        "type": "header",
+                        "parameters": [
+                            {
+                                "type": "document",
+                                "document": {
+                                    "link": f"{Odoo.PDF_URL}{pdf_filename}",
+                                    "filename": pdf_filename
+                                }
+                            }
+                        ],
+                    },
+                    {
+                        "type": "body", 
+                        "parameters": [
+                            {
+                                "type": "text",
+                                "parameter_name": "name",
+                                "text": client_name.title()
+                            },
+                            {
+                                "type": "text",
+                                "parameter_name": "number",
+                                "text": invoice_number
+                            },
+                            {
+                                "type": "text",
+                                "parameter_name": "date",
+                                "text": invoice_date
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+
         return self.post(payload)

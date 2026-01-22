@@ -52,7 +52,6 @@ def logistic_delete():
     return controller.logistic_delete(request.get_json())
 
 
-
 @logistic_bp.route("/upload_proof", methods=["POST"])
 def logistic_upload_proof():
     image = request.files["image"]

@@ -21,6 +21,7 @@ class Config:
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
     JWT_ACCESS_TOKEN_EXPIRES = False #int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES"))
     UPLOAD_FOLDER = os.path.abspath("/shared_uploads/")
+    UPLOAD_PDF_FOLDER = os.path.abspath("/shared_uploads/pdf/")
     UPLOAD_MACHINES_FOLDER = os.path.abspath("uploads/machines/")
 
     BASE_URL = os.getenv("BASE_URL")
@@ -43,6 +44,14 @@ class WABA:
     URL = os.getenv("WABA_URL")
     TOKEN = os.getenv("WABA_TOKEN")
     WEBHOOK_TOKEN = os.getenv("WABA_WEBHOOK_TOKEN")
+
+
+class Odoo:
+    URL = os.getenv("ODOO_URL")
+    USER = os.getenv("ODOO_USER")
+    API_KEY = os.getenv("ODOO_API_KEY")
+    DB = os.getenv("ODOO_DB")
+    PDF_URL = os.getenv("PDF_URL")
 
 
 class ApisNet:

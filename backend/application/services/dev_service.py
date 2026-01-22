@@ -1,6 +1,6 @@
 import logging, time, hmac, hashlib, uuid
 from application.repository.dev_repository import DevRepository
-from application.handlers import handle_exceptions, handle_db_exceptions
+from application.handlers import handle_exceptions
 from application.proxy.whatsapp import Whatsapp
 from flask import g
 
@@ -214,5 +214,4 @@ class DevService:
         sig = hmac.new(secret, base.encode("utf-8"), hashlib.sha256).hexdigest()
 
         return f"{base}@{sig}", 200
-
     

@@ -44,6 +44,7 @@ services:
     volumes:
       - ./intranet:/usr/share/nginx/html
       - ./shared_uploads:/usr/share/nginx/html/static/images/uploads
+      - ./shared_uploads/pdf:/usr/share/nginx/html/static/pdf/invoices
     ports:
       - 7010:80
       - 3010:443
