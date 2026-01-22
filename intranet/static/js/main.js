@@ -98,7 +98,7 @@ document.addEventListener('alpine:init', () => {
     }));
 
     Alpine.store('cache', {
-        api: 'https://api.krear3d.com', //https://devapi.krear3d.com
+        api: 'https://devapi.krear3d.com', //https://devapi.krear3d.com
         user: {},
         active_page: window.location.pathname,
         common_pages: [
@@ -128,6 +128,44 @@ document.addEventListener('alpine:init', () => {
         push_intro_seen: localStorage.getItem('push_intro_seen') === '1',
         platform: 'desktop',
         cached_keys: new Set(),
+        pdf_url: null,
+        pdf_title: 'Reglamento',
+
+        async openPdfModal(url, title = 'Reglamento') {
+            this.detectPlatform();
+
+            if (this.platform === 'desktop') {
+                this.pdf_url = url;
+                this.pdf_title = title;
+                this.showModal('pdf-viewer');
+                return;
+            }
+
+            await this.downloadPdf(url, title);
+        },
+
+        async downloadPdf(url, filename = 'reglamento.pdf') {
+            const res = await fetch(url, { cache: 'no-store' });
+            if (!res.ok) throw new Error('No se pudo descargar');
+
+            const blob = await res.blob();
+            const blobUrl = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = filename;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+        },
+
+        closePdfModal() {
+            this.hideModal('pdf-viewer');
+            this.pdf_url = null;
+        },
 
         detectPlatform() {
             const ua = navigator.userAgent || navigator.vendor || window.opera;

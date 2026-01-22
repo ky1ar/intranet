@@ -30,12 +30,12 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
 
     <!--<link rel="stylesheet" href="static/css/style.css?v=0.1.0.7215">-->
-    <link rel="stylesheet" href="/static/css/new.css?v=1.2.4">
+    <link rel="stylesheet" href="/static/css/new.css?v=1.2.5">
 </head>
 
 <body class="container" x-data="data" :class="{'modal-open': $store.cache.hasActiveModals()}">
-    <script src="/static/js/firebase-config.js?v=1.2.4"></script>
-    <script src="/static/js/main.js?v=1.2.4"></script>
+    <script src="/static/js/firebase-config.js?v=1.2.5"></script>
+    <script src="/static/js/main.js?v=1.2.5"></script>
 
     <template x-route="/" x-handler="loginVerify" x-template.preload.target.content="/views/login.html"></template>
     <template x-route="/home" x-template.preload.target.content="/views/home.html"></template>
@@ -74,6 +74,12 @@
                 </ul>
 
                 <div class="config white-frost">
+                    <div class="reglamento mobile-hide"
+                        @click="$store.cache.openPdfModal('/static/pdf/reglamento.pdf', 'Reglamento')"
+                    >
+                        <img width="22" height="22" src="/static/images/icons/book.svg" alt="">
+                        <span>Reglamento</span>
+                    </div>
                     <img alt="user" @click="$store.cache.toogleSidebarMenu()" class="user hover-opacity" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="40" height="40">
                 </div>
 
@@ -91,13 +97,18 @@
                             <img alt="controls" src="/static/images/settings.svg" width="16" height="16">
                         </div>-->
 
-                        <div class="image hover-opacity primary"
+                        <div class="white hover-opacity"
                             x-show="!$store.cache.notifications_enabled"
                             @click="$store.cache.requestPushPermission();">
                             Activar
                             <img alt="controls" src="/static/images/notifications.svg" width="16" height="16">
                         </div>
                         
+                        <div class="white mobile-show" @click="$store.cache.openPdfModal('/static/pdf/reglamento.pdf', 'Reglamento')">
+                            Reglamento
+                            <img alt="controls" src="/static/images/icons/book.svg" width="16" height="16">
+                        </div>
+
                         <div class="button hover-opacity" @click="$store.cache.logout()">
                             Cerrar sesión
                         </div>
@@ -134,6 +145,30 @@
                                 @click="$store.cache.requestPushPermission(); $store.cache.hideModal('push-info')">
                             Activar notificaciones
                         </button>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                x-show="$store.cache.isVisibleModal('pdf-viewer')"
+                @mousedown.self="$store.cache.closePdfModal()"
+                class="modal-wrap"
+                id="modal-pdf-viewer"
+                x-transition:enter="modal-enter"
+                x-transition:enter-start="modal-enter-start"
+                x-transition:enter-end="modal-enter-end"
+                x-transition:leave="modal-leave"
+                x-transition:leave-start="modal-leave-start"
+                x-transition:leave-end="modal-leave-end"
+                x-cloak
+            >
+                <div class="modal glass2" @click.stop>
+                    <div class="modal-grabber">
+                        <div class="modal-grabber-bar"></div>
+                    </div>
+
+                    <div style="height: 100dvh;">
+                        <iframe :src="$store.cache.pdf_url ? ($store.cache.pdf_url + `#view=FitH`) : ``" style="width:100%; height:100%; border:0;" loading="lazy"></iframe>
                     </div>
                 </div>
             </div>

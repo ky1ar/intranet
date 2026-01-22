@@ -597,7 +597,40 @@ body.modal-open {
     display: flex;
     flex-direction: column;
     margin-top: auto;
-    gap: 1rem;
+    gap: 0.5rem;
+}
+#sidebar .reglamento {
+    padding: 0.5rem;
+    position: relative;
+    cursor: pointer;
+}
+#sidebar .reglamento span {
+    left: 4rem;
+    position: absolute;
+    background-color: var(--secondary);
+    color: var(--white);
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    opacity: 0;
+    transition: var(--transition);
+    visibility: hidden;
+    font-size: 0.75rem;
+}
+#sidebar .reglamento span:before {
+    content: "";
+    display: block;
+    border: 0.75rem solid var(--secondary);
+    border-right-color: transparent;
+    border-left-color: transparent;
+    border-bottom-color: transparent;
+    position: absolute;
+    bottom: 0.25rem;
+    left: -1.25rem;
+    transform: rotate(90deg);
+}
+#sidebar .reglamento:hover span {
+    opacity: 1;
+    visibility: visible;
 }
 #sidebar .notification {
     background-color: var(--white);
@@ -649,6 +682,14 @@ body.modal-open {
     display: flex;
     flex-direction: column;
     align-items: center;
+}
+#sidebar .menu .controlss .white {
+    justify-content: center;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 2rem;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
 }
 #sidebar .menu .text span {
     opacity: 0.75;

@@ -143,17 +143,19 @@ class ScheduleService:
 
     @handle_exceptions
     def get_month(self, offset):
-        raw_viewer_id = get_jwt_identity()
-        try:
-            viewer_id = int(raw_viewer_id) if raw_viewer_id is not None else None
-        except (TypeError, ValueError):
-            viewer_id = None
-
-        viewer_dept_id = None
-        if viewer_id:
-            viewer, vc_user = self.user_repository.get_user_by_id(viewer_id)
-            if vc_user == 200:
-                viewer_dept_id = viewer.department_id
+        viewer_id = get_jwt_identity()
+        if not viewer_id:
+            return "Unauthorized", 422
+        
+        viewer_id = int(viewer_id)
+        viewer, vc = self.user_repository.get_user_by_id(viewer_id)
+        if vc != 200:
+            return "User department not found", 422
+        
+        viewer_dept_id = viewer.department_id
+        viewer_level_id = viewer.level_id
+        logging.info(viewer_dept_id)
+        logging.info(viewer_level_id)
 
         utc_now = datetime.now(timezone.utc)
         now = utc_now - timedelta(hours=5)
@@ -177,9 +179,9 @@ class ScheduleService:
         start_grid_date = first_day - timedelta(days=first_day.weekday())
         end_grid_date = last_day + timedelta(days=(6 - last_day.weekday()))
 
-        events, vc = self.schedule_repository.get_events_in_range(start_grid_date, end_grid_date)
-        if vc != 200:
-            return events, vc
+        events, ec = self.schedule_repository.get_events_in_range(start_grid_date, end_grid_date)
+        if ec != 200:
+            return events, ec
 
         filtered_events = []
         for ev in events:
@@ -195,8 +197,11 @@ class ScheduleService:
                 continue
 
             if vis == 2:
-                creator_dept_id = getattr(getattr(ev, "user", None), "department_id", None)
-                if creator_dept_id and viewer_dept_id and creator_dept_id == viewer_dept_id:
+                if viewer_dept_id == 4 and viewer_level_id == 3 and ev.user.department_id in [3,4]:
+                    filtered_events.append(ev)
+                    continue
+
+                if ev.user.department_id == viewer_dept_id:
                     filtered_events.append(ev)
                 continue
 
