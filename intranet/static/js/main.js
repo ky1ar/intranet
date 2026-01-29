@@ -98,7 +98,7 @@ document.addEventListener('alpine:init', () => {
     }));
 
     Alpine.store('cache', {
-        api: 'https://api.krear3d.com', //https://devapi.krear3d.com
+        api: 'https://devapi.krear3d.com', //https://devapi.krear3d.com
         user: {},
         active_page: window.location.pathname,
         common_pages: [
@@ -109,8 +109,7 @@ document.addEventListener('alpine:init', () => {
             { name: 'tracking', label: 'Tracking', image: 'tracking', title: 'Krear 3D - Trackings' },
             { name: 'support', label: 'Soporte', image: 'support', title: 'Krear 3D - Soporte' },
             { name: 'purchases', label: 'Compras', image: 'purchases', title: 'Krear 3D - Compras' },
-            //{ name: 'training', label: 'Capacitaciones', image: 'training', title: 'Krear 3D - Capacitaciones' },
-            //{ name: 'clients', label: 'Clientes', image: 'clients', title: 'Krear 3D - Clientes' },
+            { name: 'complaint', label: 'Reclamos', image: 'complaint', title: 'Krear 3D - Reclamos' },
         ],
         restricted_pages: [
             { name: 'driver', label: 'Conductor', image: 'driver', title: 'Krear 3D - Conductor' },

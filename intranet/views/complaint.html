@@ -1,0 +1,1668 @@
+<div x-data="purchases_data">
+	<div id="purchases" class="dashboard">
+        <div class="controls">
+			<div class="right frost-dark">
+				<div class="item" @click="addPurchase()">
+					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
+					<span>Añadir</span>
+				</div>
+			</div>
+		</div>
+
+		<div class="main glass mobile-hide">
+			<div class="table-header">
+				<div>Orden</div>
+				<div>Usuario</div>
+				<div>Área</div>
+				<div>Solicitud</div>
+				<div>Prioridad</div>
+				<div>Estado</div>
+				<div>Fecha de solicitud</div>
+			</div>
+
+			<div class="table-box">
+				<template x-for="purchase in $store.cache.getData('purchases_dashboard')?.requests" :key="purchase.id">
+					<div class="table-row white" @click="viewPurchase(purchase)">
+						<div class="id" x-text="`PR-00${purchase.id}`"></div>
+						<div>
+							<img alt="user" class="image" :src="'/static/images/uploads/users/' + purchase.requester_image" width="24" height="24">
+							<span class="name" x-text="purchase.requester_name"></span>
+						</div>
+						<div x-text="purchase.requester_department"></div>
+						<div x-text="purchase.express == 1 ? 'Caja chica':'Estándar'"></div>
+						<div x-text="purchase.urgency_name"></div>
+						<div class="statuses">
+							<div :class="purchase.status_slug" x-text="purchase.status_name"></div>
+						</div>
+						<div class="date" x-text="purchase.created_at"></div>
+					</div>
+				</template>
+			</div>
+		</div>
+
+		<div class="mobile-dashboard glass mobile-show">
+			<template x-for="purchase in $store.cache.getData('purchases_dashboard')?.requests" :key="purchase.id">
+				<div class="row white" @click="viewPurchase(purchase)">
+					<div class="head">
+						<div class="info">
+							<span class="id" x-text="`PR-00${purchase.id}`"></span>
+							<span class="date" x-text="purchase.created_at"></span>
+						</div>
+						<div class="status" :class="purchase.status_slug" x-text="purchase.status_name"></div>
+					</div>
+					
+					<!-- <div class="body">
+						<span class="label">Área</span>
+						<span class="name" x-text="purchase.requester_department"></span>
+					</div> -->
+					<div class="body">
+						<span class="label">Tipo</span>
+						<span class="name" x-text="purchase.express == 1 ? 'Caja chica':'Estándar'"></span>
+					</div>
+					<div class="body">
+						<span class="label">Creado por</span>
+						<span class="name left" x-text="purchase.requester_name"></span>
+						<img alt="user" class="image" :src="'/static/images/uploads/users/' + purchase.requester_image" width="24" height="24">
+					</div>
+					<!-- <div class="body">
+						<span class="label">Prioridad</span>
+						<span class="name" x-text="purchase.urgency_name"></span>
+					</div> -->
+				</div>
+			</template>
+		</div>
+
+		<div
+			x-show="$store.cache.isVisibleModal('process')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-process"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="title" x-show="process_purchase.modal !== 'add'">
+					<span x-text="`Solicitud ${process_purchase.pr}`"></span>
+
+					<p class="created"
+						x-text="`Creada por ${(process_purchase.self_created ? 'ti' : process_purchase.user_name)} el ${process_purchase.created_at}`">
+					</p>
+				</div>
+<!-- 
+				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
+					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">
+				</div> -->
+
+				<div class="modal-content">
+					<div class="view-box" x-show="['view','delete'].includes(process_purchase.modal)">
+						<div class="view-header mobile-hide">
+							<span>Nº</span>
+							<div class="sub">
+								<span>Ítem</span>
+								<span>Cant.</span>
+								<span>Precio</span>
+								<span>URL</span>
+								<span># Pedido</span>
+							</div>
+						</div>
+
+						<template x-for="(item, index) in process_purchase.items" :key="index">
+							<div class="view-row white">
+								<span x-text="(index + 1) + '.'"></span>
+								<div class="sub mobile-hide">
+									<span x-text="item.title"></span>
+									<span x-text="item.quantity"></span>
+									<span x-text="item.price ? item.price:'-'"></span>
+									<template x-if="item.url">
+										<a :href="item.url" target="_blank" rel="noopener">
+											<img alt="link" width="16" height="16"
+												src="/static/images/icons/link.svg">
+										</a>
+									</template>
+									<template x-if="!item.url">
+										<span>-</span>
+									</template>
+									<template x-if="process_purchase.status_id == 4 && (user_id == 1 || user_id == 23 || department_id == 8)">
+										<label class="white order">
+											<input
+											type="text"
+											placeholder="Número..."
+											x-model="item.order_number"
+											>
+										</label>
+									</template>
+
+									<template x-if="!(process_purchase.status_id == 4 && (user_id == 1 || user_id == 23 || department_id == 8))">
+										<span x-text="item.order_number ? item.order_number : '-'"></span>
+									</template>
+								</div>
+
+								<div class="list mobile-show">
+									<div class="pair">
+										<span class="name" x-text="item.title"></span>
+									</div>
+									<div class="specs">
+										<div class="pair">
+											<span class="label">Cant.</span>
+											<span class="name" x-text="item.quantity"></span>
+										</div>
+										<div class="pair">
+											<span class="label">Precio</span>
+											<span class="name" x-text="item.price ? item.price:'-'"></span>
+										</div>
+										<div class="pair">
+											<span class="label">URL</span>
+											<template x-if="item.url">
+												<a :href="item.url" target="_blank" rel="noopener">
+													<img alt="link" width="16" height="16"
+														src="/static/images/icons/link.svg">
+												</a>
+											</template>
+											<template x-if="!item.url">
+												<span class="name" >-</span>
+											</template>
+										</div>
+										<div class="pair">
+											<span class="label">Nº Pedido</span>
+
+											<template x-if="process_purchase.status_id == 4 && (user_id == 1 || user_id == 23 || department_id == 8)">
+												<label class="white order">
+													<input
+														type="text"
+														placeholder="Número..."
+														x-model="item.order_number"
+													/>
+												</label>
+											</template>
+
+											<template x-if="!(process_purchase.status_id == 4 && (user_id == 1 || user_id == 23 || department_id == 8))">
+												<span class="name" x-text="item.order_number ? item.order_number : '-'"></span>
+											</template>
+										</div>
+									</div>
+								</div>
+							</div>
+						</template>
+
+						<div class="view-row glass2 total" x-show="process_purchase.items?.length">
+							<span></span>
+							<div class="sub">
+								<span class="mobile-hide">Total</span>
+								<span x-text="sumQty(process_purchase.items)"></span>
+								<span x-text="sumPrice(process_purchase.items)"></span>
+								<span></span>
+								<span></span>
+							</div>
+						</div>
+					</div>
+
+					<!-- INPUTS -->
+					<div class="grid" x-show="['edit','approve','add'].includes(process_purchase.modal)">
+						<label class="white">
+							<select x-model="process_purchase.type_id">
+								<template x-for="type in $store.cache.getData('purchases_type')" :key="type.id">
+									<option :value="type.id" x-text="type.name"></option>
+								</template>
+							</select>
+						</label>
+
+						<label class="white">
+							<select x-model="process_purchase.urgency_id">
+								<template x-for="urgency in $store.cache.getData('purchases_urgency')" :key="urgency.id">
+									<option :value="urgency.id" x-text="urgency.name"></option>
+								</template>
+							</select>
+						</label>
+						<!-- <label class="white">
+							<input type="date" x-model="process_purchase.register_date">
+						</label> -->
+
+						<label class="white express">
+							Caja chica
+							<label class="box">
+								<input id="express" type="checkbox" x-model="process_purchase.express">
+								<span class="slider"></span>
+							</label>
+						</label>
+
+						<label class="white express">
+							Validación TI
+							<label class="box">
+								<input id="it-validation" type="checkbox" x-model="process_purchase.it_validation">
+								<span class="slider"></span>
+							</label>
+						</label>
+					</div>
+					
+
+					<div class="items-box" x-show="['edit','approve','add'].includes(process_purchase.modal)">
+						<div class="items-header">
+							<span>Nº</span>
+							<div class="sub">
+								<span>Ítem</span>
+								<span class="mobile-hide">Cant.</span>
+								<span class="mobile-hide">Precio</span>
+								<span class="mobile-hide">URL</span>
+							</div>
+							<button type="button" class="new hover-opacity" @click="addItem()" title="Agregar">
+								<img alt="Agregar" width="16" height="16" src="/static/images/icons/add.svg">
+							</button>
+						</div>
+
+						<template x-for="(item, index) in process_purchase.items" :key="index">
+							<div class="items-row">
+								<span x-text="(index + 1) + '.'"></span>
+								<div class="sub">
+									<label class="white">
+										<input type="text" placeholder="Agregar título" x-model="item.title">
+									</label>
+									
+									<label class="white">
+										<input type="number" min="1" step="1" placeholder="1" x-model.number="item.quantity">
+									</label>
+
+									<label class="white">
+										<input type="number" min="0" step="0.01" placeholder="0.00" x-model.number="item.price">
+									</label>
+
+									<label class="white">
+										<input type="url" placeholder="Añadir URL" x-model="item.url">
+									</label>
+								</div>
+								
+								<button type="button" class="remove hover-opacity" @click="removeItem(index)" title="Eliminar">
+									<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
+								</button>
+							</div>
+						</template>
+
+						<div class="items-row total" x-show="process_purchase.items?.length">
+							<span></span>
+							<div class="sub glass2">
+								<span>Total</span>
+								<span x-text="sumQty(process_purchase.items)"></span>
+								<span x-text="sumPrice(process_purchase.items)"></span>
+								<span class="mobile-hide"></span>
+							</div>
+							<span></span>
+						</div>
+					</div>
+
+					<!-- COMMENTS -->
+
+					<label class="white" x-show="process_purchase.modal === 'add'">
+						<input type="text" x-model="process_purchase.comment" placeholder="Ingresa un comentario...">
+					</label>
+
+					<div class="comments-container" x-show="process_purchase.modal !== 'add'">
+						<div class="comments-box gradient" :class="{'over': process_purchase.status_id > 5}">
+							<template x-if="!process_purchase.chats || process_purchase.chats.length === 0">
+								<div class="no-comments">Aún no hay mensajes</div>
+							</template>
+							
+							<template x-for="chat in process_purchase.chats" :key="chat.id">
+								<div class="user-comment" :class="{'self': chat.commenter_id == user_id}">
+									<img alt="user" :src="'/static/images/uploads/users/' + chat.commenter_image" width="24" height="24">
+									<div class="white bubble">
+										<div class="top">
+											<span x-text="chat.commenter_id == user_id ? 'Tú' :chat.commenter_name"></span>
+											<p x-text="chat.created_at"></p>
+										</div>
+										<p x-text="chat.comment"></p>
+									</div>
+								</div>
+							</template>
+						</div>
+
+						<div class="comments-input white" x-show="process_purchase.status_id <= 5">
+							<label>
+								<input type="text" x-model="process_purchase.message" placeholder="Ingresa un mensaje...">
+							</label>
+							<div class="send hover-opacity" @click="sendChat()" :class="{'disabled': process_purchase.message == '' || process_purchase.message === undefined}">
+								<img alt="enviar" width="16" height="16" src="/static/images/icons/send.svg">
+							</div>
+						</div>
+					</div>
+					
+				</div>
+
+				<!-- BUTTONS -->
+
+				<div class="buttons" x-show="process_purchase.modal === 'add'">
+					<button class="button icon hover-opacity" @click="newRequest()" :class="buttons.add.class">
+						<img alt="update" width="16" height="16" src="/static/images/icons/add.svg">
+						<span x-text="buttons.add.text"></span>
+					</button>
+				</div>	
+
+				<div class="buttons" 
+					x-show="process_purchase.modal === 'view' && (user_id == 1 || user_id == 23 || department_id == 8) && process_purchase.status_id > 2 && process_purchase.status_id < 7">
+					<button x-show="process_purchase.status_id == 3" class="button icon lime hover-opacity" @click="progressRequest()" :class="buttons.progress.class">
+						<img alt="eliminar" width="16" height="16" src="/static/images/icons/progress.svg">
+						<span x-text="buttons.progress.text"></span>
+					</button>
+
+					<button x-show="process_purchase.status_id == 4" class="button icon blue hover-opacity" @click="payRequest()" :class="buttons.payed.class">
+						<img alt="eliminar" width="16" height="16" src="/static/images/icons/payed.svg">
+						<span x-text="buttons.payed.text"></span>
+					</button>
+
+					<button x-show="process_purchase.status_id == 5" class="button icon violet hover-opacity" @click="invoiceRequest()" :class="buttons.invoiced.class">
+						<img alt="update" width="16" height="16" src="/static/images/icons/invoiced.svg">
+						<span x-text="buttons.invoiced.text"></span>
+					</button>
+
+					<button x-show="process_purchase.status_id == 6"
+						class="button icon teal hover-opacity"
+						@click="deliverRequest()"
+						:class="buttons.delivered.class">
+						<img alt="entregado" width="16" height="16" src="/static/images/icons/deliver.svg">
+						<span x-text="buttons.delivered.text"></span>
+					</button>
+				</div>
+
+				<div class="buttons" x-show="process_purchase.modal === 'edit'">
+					<button class="button icon black hover-opacity" @click="deleteRequest()" :class="buttons.remove.class">
+						<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
+						<span x-text="buttons.remove.text"></span>
+					</button>
+
+					<button class="button icon hover-opacity" @click="updateRequest()" :class="buttons.update.class">
+						<img alt="update" width="16" height="16" src="/static/images/icons/update.svg">
+						<span x-text="buttons.update.text"></span>
+					</button>
+				</div>
+
+				<div class="buttons" x-show="process_purchase.modal === 'approve'">
+					<button class="button icon red hover-opacity" @click="rejectRequest()" :class="buttons.reject.class">
+						<img alt="eliminar" width="18" height="18" src="/static/images/icons/dislike.svg">
+						<span x-text="buttons.reject.text"></span>
+					</button>
+
+					<button class="button icon green hover-opacity" @click="approveRequest()" :class="buttons.approve.class">
+						<img alt="update" width="18" height="18" src="/static/images/icons/like.svg">
+						<span x-text="buttons.approve.text"></span>
+					</button>
+				</div>
+
+				<div class="buttons" x-show="process_purchase.modal === 'delete'">
+					<button class="button icon red hover-opacity" @click="deleteRequest()" :class="buttons.remove.class">
+						<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
+						<span x-text="buttons.remove.text"></span>
+					</button>
+
+					<button x-show="(user_id == 1 || user_id == 23 || department_id == 8) && (process_purchase.express || process_purchase.status_id == 2)" class="button icon lime hover-opacity" @click="progressRequest()" :class="buttons.progress.class">
+						<img alt="eliminar" width="16" height="16" src="/static/images/icons/progress.svg">
+						<span x-text="buttons.progress.text"></span>
+					</button>
+				</div>
+			</div>
+		</div>
+
+	</div>
+	
+
+
+
+
+	<script>
+		Alpine.data('purchases_data', () => ({
+			api: Alpine.store('cache').api,
+			user_id: Alpine.store('cache').user.id,
+			department_id: Alpine.store('cache').user.department_id,
+			processing: false,
+			buttons: {
+				add:   { text: 'Registrar', class: '' },
+				update:   { text: 'Actualizar', class: '' },
+				remove:   { text: 'Eliminar', class: '' },
+				approve:   { text: 'Aprobar', class: '' },
+				reject:   { text: 'Rechazar', class: '' },
+				progress:   { text: 'En progreso', class: '' },
+				payed:   { text: 'Pagado', class: '' },
+				invoiced:   { text: 'Facturado', class: '' },
+				delivered: { text: 'Entregado', class: '' }, 
+			},
+			process_purchase: {
+				id: null,
+				type_id: 1,
+				urgency_id: 2,
+				express: false,
+				it_validation: false,
+				needed_date: "",
+				user_image: "00000000.jpg",
+				modal: "add",
+				can_approve: false,
+				items: [
+					{
+						title: "",
+						description: "",
+						quantity: 1,
+						price: "",
+						url: "",
+						ruc: "",
+					}
+				],
+			},
+			editing: false,
+
+			async init() {
+				console.log('Inicializando Purchases...');
+
+				const socket = Alpine.store('cache').socket;
+				if (socket) {
+					socket.removeAllListeners();
+					socket.on("purchase_update_dashboard", async () => {
+						await Alpine.store('cache').refresh('purchases_dashboard');
+					});
+				}
+
+				await Alpine.store('cache').fetchData([
+					{ key: 'purchases_dashboard', url: `/purchases/requests`, force: true },
+					{ key: 'purchases_type', url: '/purchases/options/type' },
+					{ key: 'purchases_urgency', url: '/purchases/options/urgency' },
+				]);
+				await Alpine.store('cache').verify();
+			},
+
+			resetOrder() {
+				this.editing = false;
+				this.process_purchase = {
+					id: null,
+					type_id: 1,
+					urgency_id: 2,
+					express: false,
+					it_validation: false,
+					needed_date: "",
+					can_approve: false,
+					modal: "add",
+					user_image: "00000000.jpg",
+					items: [
+						{
+							title: "",
+							description: "",
+							quantity: 1,
+							price: "",
+							url: "",
+							ruc: "",
+						},
+					],
+				};
+				this.buttons.add.text = "Registrar solicitud";
+			},
+
+			async deleteRequest() {
+				if (this.processing) return;
+
+				this.processing = true;
+
+				try {
+					const response = await fetch(
+						`${this.api}/purchases/${this.process_purchase.id}`,
+						{
+							method: "PUT",
+							headers: {
+								"Content-Type": "application/json",
+								"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+							},
+							body: JSON.stringify({ delete: true }),
+						}
+					);
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || "Error al eliminar");
+					}
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process");
+
+				} catch (error) {
+					this.showError("remove", error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async progressRequest() {
+				if (this.processing) return;
+
+				this.processing = true;
+
+				try {
+					const response = await fetch(
+						`${this.api}/purchases/${this.process_purchase.id}`,
+						{
+							method: "PUT",
+							headers: {
+								"Content-Type": "application/json",
+								"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+							},
+							body: JSON.stringify({ action: "progress" }),
+						}
+					);
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || "Error al eliminar");
+					}
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process");
+
+				} catch (error) {
+					this.showError("payed", error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async deliverRequest() {
+				if (this.processing) return;
+
+				this.processing = true;
+
+				try {
+					const response = await fetch(
+					`${this.api}/purchases/${this.process_purchase.id}`,
+					{
+						method: "PUT",
+						headers: {
+						"Content-Type": "application/json",
+						"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+						},
+						body: JSON.stringify({ action: "delivered" }),
+					}
+					);
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+					throw new Error(jsonData?.data?.message || jsonData?.message || "Error al marcar como entregado");
+					}
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process");
+
+				} catch (error) {
+					this.showError("delivered", error.message);
+				} finally {
+					this.processing = false;
+				}
+				},
+			async payRequest() {
+				if (this.processing) return;
+
+				const items = (this.process_purchase.items || []).map(i => ({
+					id: i.id,
+					order_number: (i.order_number || '').trim() || null,
+				}));
+
+				const missing = items.some(i => !i.order_number);
+				if (missing) {
+					this.showError("payed", "Ingresa el Nº de pedido en todos los ítems");
+					return;
+				}
+
+				this.processing = true;
+
+				try {
+					const response = await fetch(
+						`${this.api}/purchases/${this.process_purchase.id}`,
+						{
+							method: "PUT",
+							headers: {
+								"Content-Type": "application/json",
+								"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+							},
+							body: JSON.stringify({
+								action: "payed",
+								items, // 👈 send order numbers
+							}),
+						}
+					);
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || jsonData?.message || "Error al marcar como pagado");
+					}
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process");
+
+				} catch (error) {
+					this.showError("payed", error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			sumQty(items) {
+				return (items || []).reduce((acc, i) => acc + (Number(i.quantity) || 0), 0);
+			},
+
+			sumPrice(items) {
+				const total = (items || []).reduce((acc, i) => {
+					const qty = Number(i.quantity) || 0;
+					const price = (i.price === "" || i.price === null || i.price === undefined) ? 0 : Number(i.price) || 0;
+					return acc + (qty * price);
+				}, 0);
+
+				return total.toFixed(2);
+			},
+
+			async invoiceRequest() {
+				if (this.processing) return;
+
+				this.processing = true;
+
+				try {
+					const response = await fetch(
+						`${this.api}/purchases/${this.process_purchase.id}`,
+						{
+							method: "PUT",
+							headers: {
+								"Content-Type": "application/json",
+								"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+							},
+							body: JSON.stringify({ action: "invoiced" }),
+						}
+					);
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || "Error al eliminar");
+					}
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process");
+
+				} catch (error) {
+					this.showError("payed", error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async updateRequest() {
+				if (this.processing) return;
+
+				const items = this.process_purchase.items
+					.map(i => ({
+						title: (i.title || "").trim(),
+						description: (i.description || "").trim(),
+						quantity: Number(i.quantity) || 0,
+						price: i.price === "" ? null : Number(i.price),
+						url: (i.url || "").trim(),
+						ruc: (i.ruc || "").trim(),
+					}))
+					.filter(i => i.title && i.quantity > 0);
+
+				if (!items.length) {
+					this.showError("update", "Debe agregar al menos 1 ítem");
+					return;
+				}
+
+				const payload = {
+					type_id: this.process_purchase.type_id,
+					urgency_id: this.process_purchase.urgency_id,
+					express: this.process_purchase.express ? 1 : 0,
+					it_validation: this.process_purchase.it_validation ? 1 : 0,
+					needed_date: this.process_purchase.needed_date || null,
+					items,
+				};
+
+				this.processing = true;
+
+				try {
+					const response = await fetch(
+						`${this.api}/purchases/${this.process_purchase.id}`,
+						{
+							method: "PUT",
+							headers: {
+								"Content-Type": "application/json",
+								"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+							},
+							body: JSON.stringify(payload),
+						}
+					);
+
+					const json = await response.json();
+					if (!response.ok) {
+						throw new Error(json?.message || "Error al actualizar");
+					}
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process");
+
+				} catch (error) {
+					this.showError("update", error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async newRequest() {
+				if (this.processing) return;
+
+				const items = this.process_purchase.items
+					.map((i) => ({
+						title: (i.title || "").trim(),
+						description: (i.description || "").trim(),
+						quantity: Number(i.quantity) || 0,
+						price:
+							i.price === "" || i.price === null || i.price === undefined
+								? null
+								: Number(i.price),
+						url: (i.url || "").trim(),
+						ruc: (i.ruc || "").trim(),
+					}))
+					.filter((i) => i.title && i.quantity > 0);
+
+				if (!items.length) {
+					this.showError("add", "Debe agregar al menos 1 ítem");
+					return;
+				}
+
+				const payload = {
+					type_id: this.process_purchase.type_id,
+					urgency_id: this.process_purchase.urgency_id,
+					express: this.process_purchase.express ? 1 : 0,
+					it_validation: this.process_purchase.it_validation ? 1 : 0,
+					needed_date: this.process_purchase.needed_date || null,
+					comment: this.process_purchase.comment || null,
+					items: items,
+				};
+
+				this.processing = true;
+
+				try {
+					const response = await fetch(`${this.api}/purchases/process`, {
+						method: "POST",
+						headers: { 
+							"Content-Type": "application/json",
+							'Authorization': `Bearer ${Alpine.store('cache').user.token}`,
+						},
+						body: JSON.stringify(payload),
+					});
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || jsonData?.message || "Error al registrar la solicitud");
+					}
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process");
+				} catch (error) {
+					this.showError("add", error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async sendChat() {
+				if (!this.process_purchase.message || this.processing) return;
+
+				this.processing = true;
+
+				try {
+					const response = await fetch(`${this.api}/purchases/${this.process_purchase.id}/chat`, {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+							"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+						},
+						body: JSON.stringify({
+							comment: this.process_purchase.message,
+						}),
+					});
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || "Error enviando comentario");
+					}
+					const data = jsonData.data
+					this.process_purchase.chats.push({
+						id: data.id,
+						comment: data.comment,
+						commenter_id: data.commenter_id,
+						commenter_name: data.commenter_name,
+						commenter_image: data.commenter_image,
+						created_at: data.created_at,
+					});
+
+					this.process_purchase.message = "";
+
+					// opcional: scroll al final
+					// this.$nextTick(() => {
+					// 	const box = document.querySelector("#modal-process .comments-box");
+					// 	if (box) box.scrollTop = box.scrollHeight;
+					// });
+
+				} catch (error) {
+					console.error(error);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async approveRequest() {
+				if (this.processing) return;
+
+				const items = this.process_purchase.items
+					.map(i => ({
+						title: (i.title || "").trim(),
+						description: (i.description || "").trim(),
+						quantity: Number(i.quantity) || 0,
+						price:
+							i.price === "" || i.price === null || i.price === undefined
+								? null
+								: Number(i.price),
+						url: (i.url || "").trim(),
+						ruc: (i.ruc || "").trim(),
+					}))
+					.filter(i => i.title && i.quantity > 0);
+
+				if (!items.length) {
+					this.showError("approve", "Debe agregar al menos 1 ítem");
+					return;
+				}
+
+				this.processing = true;
+
+				try {
+					await fetch(`${this.api}/purchases/${this.process_purchase.id}`, {
+						method: "PUT",
+						headers: {
+							"Content-Type": "application/json",
+							"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+						},
+						body: JSON.stringify({
+							action: "approve",
+							type_id: this.process_purchase.type_id,
+							urgency_id: this.process_purchase.urgency_id,
+							express: this.process_purchase.express ? 1 : 0,
+							it_validation: this.process_purchase.it_validation ? 1 : 0,
+							needed_date: this.process_purchase.needed_date || null,
+							items,
+						}),
+					});
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process");
+
+				} catch (error) {
+					this.showError("approve", error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async rejectRequest() {
+				if (this.processing) return;
+
+				this.processing = true;
+
+				try {
+					await fetch(`${this.api}/purchases/${this.process_purchase.id}`, {
+						method: "PUT",
+						headers: {
+							"Content-Type": "application/json",
+							"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+						},
+						body: JSON.stringify({ action: "reject" }),
+					});
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process");
+
+				} catch (error) {
+					this.showError("reject", error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			addPurchase() {
+				this.resetOrder();
+				this.process_purchase.modal = 'add';
+				Alpine.store('cache').showModal('process');
+			},
+
+			async viewPurchase(purchase) {
+				this.editing = true;
+
+				try {
+					const response = await fetch(`${this.api}/purchases/${purchase.id}`, {
+						headers: {
+							"Content-Type": "application/json",
+							"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+						},
+					});
+					const dataJson = await response.json();
+					const data = dataJson.data;
+
+					if (!response.ok) {
+						throw new Error(data?.message || "Error al obtener la solicitud");
+					}
+
+					this.process_purchase = data;
+					if (!this.process_purchase.items.length) {
+						this.process_purchase.items = [
+							{
+								title: "",
+								description: "",
+								quantity: 1,
+								price: "",
+								url: "",
+								ruc: "",
+							},
+						];
+					}
+					Alpine.store("cache").showModal("process");
+				} catch (error) {
+					console.error(error);
+				} 
+			},
+
+			addItem() {
+				this.process_purchase.items.push({
+					title: '',
+					description: '',
+					quantity: 1,
+					price: '',
+					url: '',
+					ruc: '',
+				});
+			},
+
+			removeItem(index) {
+				if (this.process_purchase.items.length === 1) {
+					this.process_purchase.items = [
+						{
+							title: '',
+							description: '',
+							quantity: 1,
+							price: '',
+							url: '',
+							ruc: '',
+						}
+					];
+					return;
+				}
+				this.process_purchase.items.splice(index, 1);
+			},
+			
+			showError(btnKey, errorMsg) {
+                const originalText = this.buttons[btnKey].text;
+                const originalClass = this.buttons[btnKey].class;
+
+                if (originalClass == 'error') {
+                    return;
+                }
+                this.buttons[btnKey].text = errorMsg;
+                this.buttons[btnKey].class = 'error';
+
+                setTimeout(() => {
+                    this.buttons[btnKey].text = originalText;
+                    this.buttons[btnKey].class = originalClass;
+                }, 1000);
+            },
+
+		}));
+	</script>
+	
+
+
+
+
+
+
+	<style>
+		.modal .grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr auto auto;
+			gap: 1rem;
+			align-items: center;
+		}
+		.mobile-dashboard {
+			flex-direction: column;
+			gap: 0.75rem;
+			padding: 0.75rem;
+		}
+		.mobile-dashboard .row {
+			padding: 1rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+		}
+		.mobile-dashboard .head {
+			display: flex;
+    		justify-content: space-between;
+			align-items: start;
+			margin-bottom: 0.5rem;
+		}
+		.mobile-dashboard .head .info {
+			display: flex;
+    		flex-direction: column;
+		}
+		.mobile-dashboard .head .info .id {
+			font-size: 1rem;
+    		font-weight: 600;
+		}
+		.mobile-dashboard .head .info .id.pending {
+			font-size: 0.85rem;
+    		opacity: 0.5;
+		}
+		.mobile-dashboard .head .info .date {
+			font-size: 0.75rem;
+    		opacity: 0.75;
+		}
+		.mobile-dashboard .head .status {
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		.mobile-dashboard .head .status.active {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		.mobile-dashboard .head .status.finished {
+			background-color: #d0f4ea;
+    		border: 2px solid #abe9d8;
+		}
+		.mobile-dashboard .body {
+			display: flex;
+    		justify-content: space-between;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		.mobile-dashboard .body .label {
+			font-size: 0.75rem;
+			opacity: 0.5;
+		}
+		.mobile-dashboard .body .name {
+			font-weight: 500;
+			font-size: 0.8rem;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 75%;
+		}
+		.mobile-dashboard .body .name.left {
+			margin-left: auto;
+		}
+		.mobile-dashboard .body img {
+			border-radius: 1rem;
+			border: 2px solid #e7e7e7;
+		}
+		.controls {
+			justify-content: end;
+		}
+		#modal-process .express .dot {
+			width: 0.5rem;
+			height: 0.5rem;
+			background-color: var(--primary);
+			border-radius: 1rem;
+		}
+		#modal-process .express .box {
+			position: relative;
+			width: 2.5rem;
+			height: 1.5rem;
+			flex: initial;
+			margin: 0.5rem 0;
+		}
+		#modal-process .express .box input {
+			opacity: 0;
+			width: 0;
+			height: 0;
+		}
+		#modal-process .express .box .slider {
+			border-radius: 2rem;
+			position: absolute;
+			cursor: pointer;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background-color: #ccc;
+			transition: all 0.25s ease-in-out;
+		}
+		#modal-process .express .box .slider:before {
+			position: absolute;
+			content: "";
+			height: 1rem;
+			width: 1rem;
+			left: 0.25rem;
+			bottom: 0.25rem;
+			background-color: white;
+			transition: all 0.25s ease-in-out;
+			border-radius: 50%;
+		}
+		#modal-process .express .box input:checked + .slider {
+			background-color: var(--primary);
+		}
+		#modal-process .express .box input:checked + .slider:before {
+			transform: translateX(1rem);
+		}
+		/* #modal-process .modal {
+			gap: 1.5rem;
+		} */
+		#modal-process .modal .title {
+			display: flex;
+    		flex-direction: column;
+			gap: 0.25rem;
+		}
+		#modal-process .modal .title span {
+			line-height: 1rem;
+		}
+		#modal-process .items-box {
+			flex-direction: column;
+			position: relative;
+			display: flex;
+			gap: 0.5rem;
+			margin: 0.25rem 0;
+		}
+		#modal-process .items-header {
+			display: grid;
+			grid-template-columns: 0.15fr 4fr 0.2fr;
+			gap: 0.75rem;
+			align-items: center;
+			font-weight: 500;
+		}
+		#modal-process .items-header .sub {
+			display: grid;
+			gap: 0.75rem;
+			grid-template-columns: 2.25fr 0.4fr 0.5fr 1fr;
+			align-items: center;
+		}
+		#modal-process .items-header .new {
+			padding: 0;
+			margin: 0;
+			border: 0;
+			background-color: transparent;
+			width: 2rem;
+			height: 1.5rem;
+		}
+		#modal-process .items-row {
+			grid-template-columns: 0.15fr 4fr 0.2fr;
+			display: grid;
+			gap: 0.75rem;
+			align-items: center;
+		}
+		#modal-process .items-row .sub {
+			display: grid;
+			gap: 0.75rem;
+			grid-template-columns: 2.25fr 0.4fr 0.5fr 1fr;
+			align-items: center;
+		}
+		#modal-process .items-row.total .sub {
+    		border-radius: 0.75rem;
+			font-weight: 600;
+		}
+		#modal-process .items-row.total .sub span {
+			padding: 0.5rem;
+		}
+		#modal-process .items-row label {
+			border-radius: 0.75rem;
+		}
+		#modal-process .items-row label input {
+			height: 2.25rem;
+		}
+		#modal-process .items-box .remove {
+			padding: 0;
+			margin: 0;
+			border: 0;
+			border-radius: 1rem;
+			background-color: transparent;
+			box-shadow: none;
+			width: 2rem;
+			height: 2.5rem;
+		}
+		#modal-process .text-area {
+			max-width: 48rem;
+    		border: none;
+			min-height: 2rem;
+    		padding: 0.75rem 1rem;
+		}
+		#modal-process .buttons {
+			display: flex;
+    		gap: 0.75rem;
+		}
+		#modal-process .comments-container {
+			display: flex;
+			flex-direction: column;
+			max-width: 48rem;
+		}
+		#modal-process .comments-box {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			padding: 1.5rem 1rem;
+			border-radius: 0.75rem 0.75rem 0 0;
+		}
+		#modal-process .comments-box.over {
+			border-radius: 0.75rem;
+		}
+		#modal-process .comments-box + .text-area {
+			margin-top: -1rem;
+			margin-bottom: 1rem;
+			border-radius: 0 0 .75rem .75rem;
+		}
+		#modal-process .comments-box .no-comments{
+			text-align: center;
+			opacity: 0.5;
+		}
+		#modal-process .comments-input {
+			display: flex;
+    		border-radius: 0 0 0.75rem 0.75rem;
+		}
+		#modal-process .comments-input .send {
+			height: 2.5rem;
+			width: 3rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		#modal-process .user-comment {
+			display: flex;
+			gap: 0.5rem;
+			align-items: start;
+		}
+		#modal-process .user-comment img {
+    		border-radius: 1rem;
+		}
+		#modal-process .user-comment .bubble {
+			margin: 0;
+			font-size: 0.8rem;
+			max-width: 55%;
+			padding: 0.25rem 0.6rem 0.5rem 0.7rem;
+			border-radius: 0.75rem;
+			border-top-left-radius: 0.25rem;
+			display: flex;
+			flex-direction: column;
+		}
+		#modal-process .user-comment .bubble span {
+			font-weight: 600;
+		}
+		#modal-process .user-comment .bubble p {
+			margin: 0;
+			opacity: 0.75;
+			padding-top: 0.125rem;
+		}
+		#modal-process .user-comment .bubble .top {
+			display: flex;
+			gap: 1rem;
+			align-items: center;
+			justify-content: space-between;
+		}
+		#modal-process .user-comment .bubble .top p {
+			font-size: 0.6rem;
+			opacity: 0.4;
+			padding: 0;
+		}
+		#modal-process .user-comment.self {
+			flex-direction: row-reverse;
+		}
+		#modal-process .user-comment.self .bubble {
+			border-radius: 0.75rem;
+    		border-top-right-radius: 0.25rem;
+			padding: 0.25rem 0.7rem 0.5rem 0.6rem;
+		}
+
+		#modal-process .view-box {
+			flex-direction: column;
+			display: flex;
+			gap: 0.5rem;
+		}
+		#modal-process .view-header {
+			display: grid;
+			grid-template-columns: 0.15fr 6fr;
+			gap: 0.75rem;
+			align-items: center;
+			font-weight: 500;
+			padding: 0.5rem 0.75rem;
+		}
+		#modal-process .view-header .sub {
+			display: grid;
+			grid-template-columns: 3fr 0.5fr 0.5fr 0.5fr 1.25fr;
+			gap: 0.75rem;
+			align-items: center;
+		}
+		#modal-process .view-row {
+			grid-template-columns: 0.15fr 6fr;
+			display: grid;
+			gap: 0.75rem;
+			align-items: center;
+    		padding: 0.5rem 0.75rem;
+		}
+		#modal-process .view-row .sub {
+			display: grid;
+			grid-template-columns: 3fr 0.5fr 0.5fr 0.5fr 1.25fr;
+			gap: 0.75rem;
+			align-items: center;
+		}
+		#modal-process .view-row .list {
+			flex-direction: column;
+			gap: 0.5rem;
+    		padding: 0.25rem 0;
+		}
+		#modal-process .view-row .list .pair {
+			display: flex;
+			justify-content: space-between;
+			flex-direction: column;
+		}
+		#modal-process .view-row .list .pair .order {
+			box-shadow: none;
+    		border: 2px solid #dddddd;
+		}
+		#modal-process .view-row .list .pair .order input {
+			height: 2rem;
+		}
+		#modal-process .view-row .list .specs {
+			display: grid;
+			grid-template-columns: 0.5fr 0.75fr 0.5fr 1fr;
+			gap: 0.25rem;
+		}
+		#modal-process .view-row .list .label {
+			font-size: 0.75rem;
+    		opacity: 0.5;
+		}
+		#modal-process .view-row .list .name {
+			font-weight: 500;
+			font-size: 0.8rem;
+			line-height: 0.85rem;
+		}
+		#modal-process .view-row.total {
+			font-weight: 600;
+			border-radius: 0.75rem;
+			padding: 0.375rem 0.75rem;
+		}
+		.main {
+			overflow: hidden;
+		}
+		
+		.table-header {
+			display: grid;
+			grid-template-columns: 0.5fr 1.25fr 1fr 0.6fr 0.8fr 0.7fr 1fr;
+			gap: 1rem;
+			padding: 1rem 2rem 0 2rem;
+			font-weight: 600;
+		}
+		.table-box {
+			padding: 1rem;
+			gap: 0.5rem;
+			display: flex;
+			flex-direction: column;
+		}
+		.table-row {
+			display: grid;
+			grid-template-columns: 0.5fr 1.25fr 1fr 0.6fr 0.8fr 0.7fr 1fr;
+			gap: 1rem;
+			align-items: center;
+			padding: 1rem;
+			cursor: pointer;
+			transition: var(--transition);
+		}
+		.table-row > div:nth-child(2) {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		.table-row .image {
+			border-radius: 2rem;
+			object-fit: cover;
+		}
+		.table-row .statuses div {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			padding: 0.25rem 1rem;
+			border-radius: 2rem;
+			font-size: 0.75rem;
+			font-weight: 600;
+		}
+		.table-row .express {
+			color: var(--primary);
+    		font-weight: 500;
+			font-style: italic;
+		}
+		.table-row .id {
+			font-weight: 600;
+			min-width: 4rem;
+		}
+		.table-row .date {
+			font-size: 0.75rem;
+    		opacity: 0.75;
+		}
+		.table-row .name {
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		.pending {
+			background: var(--newgray);
+    		border: 2px solid #c7c6c6;
+		}
+		.leader_approve {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		.manager_approve {
+			background-color: #d0f4ea;
+    		border: 2px solid #abe9d8;
+		}
+		.deleted {
+			background-color: #fee3e1;
+    		border: 2px solid #ffceca;
+		}
+		.rejected {
+			background-color: #fee3e1;
+			border: 2px solid #ffceca;
+		}
+		.delivered {
+			background-color: #fbc8af;
+			border: 2px solid #efa783;
+		}
+		.progress {
+			background-color: #f0ffde;
+    		border: 2px solid #c0dba0;
+		}
+		.payed {
+			background-color: #dff5ff;
+    		border: 2px solid #b4e1f2;
+		}
+		.billed {
+			background-color: #e4d4fb;
+    		border: 2px solid #d0beeb;
+		}
+
+		
+
+		#purchases table {
+			border-collapse: collapse;
+			width: 100%;
+		}
+		#purchases table th {
+			padding: 1rem;
+			text-align: left;
+			font-weight: 600;
+		}
+		#purchases table tbody tr {
+			transition: var(--transition);
+			border-top: 2px solid #ffffff80;
+		}
+		#purchases table tbody tr:hover {
+			background-color: var(--white);
+			border-top: 2px solid transparent;
+		}
+		#purchases table td {
+			padding: 1rem;
+			cursor: pointer;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		#purchases table td.user {
+			display: flex;
+			gap: 0.75rem;
+			align-items: center;
+		}
+		#purchases table td.user img {
+			border-radius: 2rem;
+		}
+		#purchases table.static tbody tr {
+			transition: none;
+		}
+		#purchases table.static tbody tr:hover {
+			background-color: transparent;
+		}
+		#purchases table.static td {
+			cursor: default;
+			line-height: 2rem;
+		}
+		#purchases table td.order {
+			width: 8rem;
+		}
+		#purchases table td.machine_box {
+			width: 12rem;
+			max-width: 12rem;
+		}
+		#purchases table td.client {
+			width: 20rem;
+			max-width: 20rem;
+		}
+		#purchases table td .controlls {
+			display: flex;
+    		gap: 0.5rem;
+		}
+		#purchases table td .controlls .action {
+			width: 1.5rem;
+			height: 1.5rem;
+			display: flex;
+			justify-content: center;
+		}
+		#purchases table .machine {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		#purchases table .link-id {
+			background-color: var(--white);
+			width: 1.75rem;
+			height: 1.75rem;
+			border-radius: 1rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-weight: 500;
+			font-size: 0.8rem;
+			border: 1px solid var(--graydark);
+		}
+		#purchases table .link-status {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#purchases table .link-status.status-1 {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		#purchases table .link-status.status-2 {
+			background-color: #dff5ff;
+    		border: 2px solid #b4e1f2;
+		}
+		#purchases table .link-status.status-3 {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+		}
+		#purchases table .link-status.status-4 {
+			background-color: #e4d4fb;
+    		border: 2px solid #d0beeb;
+		}
+		#purchases table .link-status.status-5 {
+			background-color: #fee3e1;
+    		border: 2px solid #ffceca;
+		}
+		#purchases table .finished {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#purchases table .finished.active {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		#purchases table .machine img {
+			mix-blend-mode: darken;
+		}
+		#purchases table .machine .model {
+			display: flex;
+    		flex-direction: column;
+		}
+		#purchases table .machine .model span {
+			font-weight: 500;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 8rem;
+		}
+		#purchases table .machine .model span + span {
+			font-weight: 400;
+			font-size: 0.75rem;
+			opacity: 0.6;
+		}
+		@media only screen and (max-width: 48rem) {
+			.main.glass {
+				border-radius: 0;
+			}
+			.modal .grid {
+				grid-template-columns: 1fr 1fr;
+			}
+			.mobile-dashboard {
+				border-radius: 0;
+			}
+
+			#modal-process .express {
+				justify-content: space-between;
+			}
+			#modal-process .items-box {
+				gap: 1rem;
+			}
+			#modal-process .items-row .sub {
+				grid-template-columns: 0.5fr 0.5fr 1fr;
+    			gap: 0.35rem;
+			}
+			#modal-process .items-row label:first-child {
+				grid-column: 1 / -1;
+			}
+			#modal-process .view-row .sub {
+				grid-template-columns: 0.5fr 0.5fr 0.75fr 0.75fr;
+    			gap: 0.35rem;
+			}
+			#modal-process .view-row .sub span:first-child {
+				grid-column: 1 / -1;
+			}
+			#modal-process .user-comment .bubble {
+				max-width: 75%;
+			}
+			
+		}
+		
+	</style>
+</div>
