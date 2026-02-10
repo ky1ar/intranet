@@ -22,6 +22,7 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = False #int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES"))
     UPLOAD_FOLDER = os.path.abspath("/shared_uploads/")
     UPLOAD_PDF_FOLDER = os.path.abspath("/shared_uploads/pdf/")
+    UPLOAD_PICKING_FOLDER = os.path.abspath("/shared_uploads/picking/")
     UPLOAD_MACHINES_FOLDER = os.path.abspath("uploads/machines/")
     UPLOAD_PROPF_FOLDER = os.path.abspath("/shared_uploads/complaint_proof/")
 

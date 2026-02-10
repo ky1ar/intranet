@@ -1,4 +1,4 @@
-import os, logging
+import os, logging, uuid
 from flask import Blueprint, request, send_from_directory
 from werkzeug.utils import secure_filename
 from application.controllers.logistic_controller import LogisticController
@@ -96,7 +96,23 @@ def logistic_find_order(order_number):
     return controller.logistic_find_order(order_number)
 
 
+@logistic_bp.post("/pdf")
+def extract_picking():
+    file = request.files["file"]
+    if not file.filename.lower().endswith(".pdf"):
+        return {"error": "Archivo no válido"}, 400
 
+    original_name = file.filename
+    token = uuid.uuid4().hex
+    source_filename = f"{token}_{original_name}"
+
+    source_path = os.path.join(Config.UPLOAD_PICKING_FOLDER, source_filename)
+    file.save(source_path)
+    data = {
+        "source_path": source_path,
+        "original_name": original_name,
+    }
+    return controller.logistic_extract_picking(data)
 
 
 

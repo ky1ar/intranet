@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Rótulo Picking</title>
+
+  <style>
+    /* MENOS MARGEN EN HOJA */
+    @page { size: A5; margin: 6mm; }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #111;
+    }
+
+    .label {
+      border: 2px solid #111;
+      border-radius: 10px;
+      /* MENOS PADDING INTERNO */
+      padding: 7mm;
+      height: 100%;
+    }
+
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8mm;
+      margin-bottom: 5mm;
+    }
+
+    .logo {
+      width: 46mm;
+      height: auto;
+    }
+
+    .title {
+      text-align: right;
+      line-height: 1.05;
+    }
+    .title .h {
+      font-weight: 900;
+      font-size: 14pt;
+      letter-spacing: .4px;
+    }
+    .title .sub {
+      margin-top: 2mm;
+      font-size: 10pt;
+      font-weight: 700;
+      display: inline-block;
+      padding: 2mm 4mm;
+      border: 1px solid #111;
+      border-radius: 999px;
+    }
+
+    /* === NUEVO: FILA PEDIDO + FECHA === */
+    .row2 {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 6mm;
+      margin-bottom: 5mm;
+    }
+
+    .card {
+      border: 1.5px solid #111;
+      border-radius: 10px;
+      padding: 5mm;
+    }
+
+    .k {
+      font-size: 9pt;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      margin-bottom: 2mm;
+    }
+
+    .pedido {
+      font-size: 26pt;
+      font-weight: 900;
+      line-height: 1;
+      margin: 0;
+    }
+
+    .fecha {
+      font-size: 15pt;
+      font-weight: 900;
+      line-height: 1.1;
+      margin: 0;
+    }
+
+    /* === DEBAJO: NOMBRE / RUC EN FULL WIDTH === */
+    .full {
+      margin-bottom: 5mm;
+    }
+
+    .deliver {
+      font-size: 13pt;
+      font-weight: 900;
+      margin: 0;
+      line-height: 1.15;
+    }
+
+    /* Tabla */
+    .items {
+      border: 1.5px solid #111;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .items-head {
+      background: #f1f1f1;
+      border-bottom: 1px solid #111;
+      padding: 4mm 5mm;
+      display: grid;
+      grid-template-columns: 1fr 24mm;
+      font-weight: 900;
+      font-size: 10pt;
+    }
+
+    .r {
+      padding: 4mm 5mm;
+      display: grid;
+      grid-template-columns: 1fr 24mm;
+      gap: 3mm;
+      border-bottom: 1px solid #ddd;
+      font-size: 10pt;
+      align-items: start;
+    }
+    .r:last-child { border-bottom: none; }
+
+    .product {
+      font-weight: 800;
+      line-height: 1.25;
+    }
+
+    .qty {
+      text-align: right;
+      font-weight: 900;
+      font-size: 12pt;
+    }
+
+    .footer {
+      margin-top: 5mm;
+      display: flex;
+      justify-content: space-between;
+      font-size: 9pt;
+      color: #333;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="label">
+
+    <div class="top">
+      <img class="logo"
+           src="https://www.tiendakrear3d.com/wp-content/uploads/2024/10/logo-new1-1.svg"
+           alt="Krear3D Logo" />
+      <div class="title">
+        <div class="h">RÓTULO DE</div>
+        <div class="h">ENTREGA</div>
+      </div>
+    </div>
+
+    <!-- Pedido + Fecha en una fila -->
+    <div class="row2">
+      <div class="card">
+        <div class="k">Pedido</div>
+        <h1 class="pedido">{{ data.pedido or '-' }}</h1>
+      </div>
+
+      <div class="card">
+        <div class="k">Fecha</div>
+        <p class="fecha">{{ data.fecha_planificada or '-' }}</p>
+      </div>
+    </div>
+
+    <!-- Debajo: Nombre/RUC -->
+    <div class="card full">
+      <div class="k">Nombre / RUC</div>
+      <p class="deliver">{{ data.delivery_name_or_ruc or '-' }}</p>
+    </div>
+
+    <!-- Productos -->
+    <div class="items">
+      <div class="items-head">
+        <div>PRODUCTO</div>
+        <div style="text-align:right;">CANT.</div>
+      </div>
+
+      {% for it in (data.products or []) %}
+        <div class="r">
+          <div class="product">{{ it.product }}</div>
+          <div class="qty">{{ it.qty }}</div>
+        </div>
+      {% endfor %}
+
+      {% if not (data.products or []) %}
+        <div class="r">
+          <div class="product">No se detectaron productos</div>
+          <div class="qty">—</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>

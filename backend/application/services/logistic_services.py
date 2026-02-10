@@ -1,6 +1,7 @@
-import logging
-import threading
-
+import logging, re, threading, pdfplumber, os
+from io import BytesIO
+from weasyprint import HTML
+from flask import send_file, render_template, current_app
 from datetime import date, timedelta
 from application.models import  ShippingHistory, ShippingStatusList, HistoryType
 from application.handlers import handle_exceptions, handle_db_exceptions
@@ -25,6 +26,18 @@ class LogisticService:
             5: "mayo", 6: "junio", 7: "julio", 8: "agosto",
             9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre"
         }
+        self.DATE_RE = re.compile(r"\b(\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2})\b")
+
+        self.HEADER_VALUES_RE = re.compile(
+            r"^(?P<pedido>[A-Z]\d{3,})\s+(?P<estado>\S+)\s+"
+            r"(?P<fecha>\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2})\s+"
+            r"(?P<peso>\d+(?:\.\d+)?\s*kg)\s*$"
+        )
+
+        self.PRODUCT_ROW_RE = re.compile(
+            r"^(?P<product>.+?)\s+(?P<qty>\d+,\d{2}|\d+\.\d{2}|\d+)\s+ST_",
+            re.IGNORECASE
+        )
 
 
     def date_format(self, fecha):
@@ -594,6 +607,141 @@ class LogisticService:
             } for order in orders
         ]
         return orders_list, 200
+
+
+    def _build_a5_filename(self, filepath):
+        base = os.path.basename(filepath)  # ej: "a3f..._Operaciones de picking ... (6).pdf"
+
+        m = re.match(r"^[0-9a-f]{32}_(.+)$", base, re.IGNORECASE)
+        original = m.group(1) if m else base
+
+        stem, _ext = os.path.splitext(original)
+        return f"{stem}_A5.pdf"
+
+
+    def _extract_text(self, pdf_path):
+        chunks = []
+        with pdfplumber.open(pdf_path) as pdf:
+            for page in pdf.pages:
+                chunks.append(page.extract_text() or "")
+        return "\n".join(chunks)
+    
+
+    def _clean_lines(self, text):
+        lines = [l.strip() for l in (text or "").splitlines()]
+        return [l for l in lines if l]
+
+
+    def parse_odoo_picking_text(self, full_text):
+        lines = self._clean_lines(full_text)
+
+        def find_value_below(label):
+            for i, l in enumerate(lines):
+                if label.lower() in l.lower():
+                    return lines[i + 1].strip() if i + 1 < len(lines) else None
+            return None
+
+        # 1) Dirección de entrega (esto sí está bien así)
+        delivery = find_value_below("Dirección de entrega")
+
+        # 2) Pedido + Fecha planificada (parseando la fila de valores)
+        pedido = None
+        fecha_planificada = None
+
+        header_idx = None
+        for i, l in enumerate(lines):
+            if l.lower().startswith("pedido") and "fecha planificada" in l.lower():
+                header_idx = i
+                break
+
+        if header_idx is not None and header_idx + 1 < len(lines):
+            values_line = lines[header_idx + 1]  # "S18609 Listo 02/02/2026 11:40:54 4.5 kg"
+            m = self.HEADER_VALUES_RE.match(values_line)
+            if m:
+                pedido = m.group("pedido")
+                fecha_planificada = m.group("fecha")
+
+        # Fallbacks por si cambia el layout
+        if not pedido:
+            # por ejemplo "S18609"
+            m = re.search(r"\bS\d{3,}\b", full_text)
+            pedido = m.group(0) if m else None
+
+        if not fecha_planificada:
+            m = self.DATE_RE.search(full_text)
+            fecha_planificada = m.group(1) if m else None
+
+        if fecha_planificada:
+            fecha_planificada = fecha_planificada.split(" ")[0]
+            
+        # 3) Tabla productos
+        items = []
+        start_idx = None
+        for i, l in enumerate(lines):
+            if l.upper().startswith("PRODUCTO") and "CANTIDAD" in l.upper():
+                start_idx = i + 1
+                break
+
+        if start_idx is not None:
+            for row in lines[start_idx:]:
+                # fin de tabla
+                if row.startswith(("Contáctanos", "Contactanos", "Página", "Pagina")):
+                    break
+
+                m = self.PRODUCT_ROW_RE.match(row)
+                if not m:
+                    continue
+
+                product = " ".join(m.group("product").split())  # compacta espacios
+                qty_str = m.group("qty")  # "1,00"
+
+                items.append({
+                    "product": product,
+                    "qty": qty_str,   # <- lo dejas exactamente como quieres (coma)
+                })
+
+        data = {
+            "delivery_name_or_ruc": delivery,
+            "pedido": pedido,
+            "fecha_planificada": fecha_planificada,
+            "products": items,
+        }
+
+        missing = [k for k in ["delivery_name_or_ruc", "pedido", "fecha_planificada"] if not data.get(k)]
+        if missing:
+            return data, missing
+
+        return data, []
+
+
+    @handle_exceptions
+    def extract_picking(self, data):
+        filepath = data.get("source_path")
+        original_name = data.get("original_name")
+
+        full_text = self._extract_text(filepath)
+        data, missing = self.parse_odoo_picking_text(full_text)
+        if missing:
+            return {
+                "missing": missing,
+                "data_preview": data,
+            }, 422
+        
+        html_out = render_template("rotulo_picking_a5.html", data=data)
+
+        pdf_bytes = HTML(
+            string=html_out,
+            base_url=current_app.root_path  # útil si luego usas assets locales
+        ).write_pdf()
+
+        filename = f'{original_name[:-4]}_A5.pdf'
+        logging.info(filename)
+        return send_file(
+            BytesIO(pdf_bytes),
+            mimetype="application/pdf",
+            as_attachment=True,
+            download_name=filename
+        )
 
 
 

@@ -1411,18 +1411,18 @@
 			this.loading = true;
 
 			try {
-			const form_data = new FormData();
-			form_data.append("file", file);
+				const form_data = new FormData();
+				form_data.append("file", file);
 
-			const res = await fetch(`${this.api}/attendance/xls`, {
-				method: "POST",
-				body: form_data,
-			});
+				const res = await fetch(`${this.api}/attendance/xls`, {
+					method: "POST",
+					body: form_data,
+				});
 
-			const data = await res.json().catch(() => ({}));
-			if (!res.ok) return;
+				const data = await res.json().catch(() => ({}));
+				if (!res.ok) return;
 
-			await this.load();
+				await this.load();
 
 			} finally {
 				this.loading = false;

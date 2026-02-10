@@ -106,6 +106,12 @@ class LogisticController:
         return self.logistic_service.find_orders(order_number)
 
 
+    @handle_logs_and_exceptions
+    def logistic_extract_picking(self, data):
+        return self.logistic_service.extract_picking(data)
+        
+
+
 
 
 

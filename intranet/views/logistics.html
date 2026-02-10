@@ -50,10 +50,23 @@
 			</div>
 
 			<div class="right frost-dark" x-show="editAllowed()">
+				<div class="mobile-hide item" @click="pdfProcess()">
+					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/pdf.svg">
+					<span x-text="pdf_loading ? 'Generando...' : 'Rótulo'"></span>
+					<input
+						type="file"
+						x-ref="file"
+						class="hidden"
+						accept="application/pdf"
+						@change="onSelected"
+					/>
+				</div>
+
 				<div class="mobile-hide item" @click="pendings_open = !pendings_open">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/pending.svg">
 					<span x-text="`Pendientes ${$store.cache.getData('logistics_pendings')?.length || 0}`"></span>
 				</div>
+
 				<div class="item" @click="processShippingModal()">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
 					<span>Añadir</span>
@@ -649,6 +662,8 @@
 			chartStatus: null,
 			chartMonth: null,
 			chartTech: null,
+			pdf_loading: false,
+			pdf_error: '',
 
 			async init() {
 				console.log('Inicializando Logistics...');
@@ -1335,7 +1350,71 @@
 					console.error('Error fetching history', error);
 				} 
 			},
+
+			pdfProcess() {
+				this.$refs.file.value = "";
+				this.$refs.file.click();
+			},
 			
+			withA5Suffix(originalName) {
+				const name = (originalName || "rotulo.pdf").trim();
+
+				// si no es pdf, igual le ponemos .pdf al final
+				const isPdf = /\.pdf$/i.test(name);
+
+				if (isPdf) {
+					// evita duplicar si ya viene con _A5
+					if (/_a5\.pdf$/i.test(name)) return name;
+
+					return name.replace(/\.pdf$/i, "_A5.pdf");
+				}
+
+				// si viene sin .pdf
+				if (/_a5$/i.test(name)) return name + ".pdf";
+				return name + "_A5.pdf";
+			},
+
+			async onSelected(e) {
+				const file = e.target.files?.[0];
+				if (!file) return;
+
+				this.pdf_loading = true;
+				this.pdf_error = "";
+
+				// ✅ nombre deseado basado en el archivo subido
+				const desiredName = this.withA5Suffix(file.name);
+
+				try {
+					const form_data = new FormData();
+					form_data.append("file", file);
+
+					const res = await fetch(`${this.api}/logistic/pdf`, {
+					method: "POST",
+					body: form_data,
+					});
+
+					if (!res.ok) {
+					const err = await res.json().catch(() => ({}));
+					this.pdf_error = err?.error || "No se pudo generar el rótulo";
+					return;
+					}
+
+					const blob = await res.blob();
+
+					const url = window.URL.createObjectURL(blob);
+					const a = document.createElement("a");
+					a.href = url;
+					a.download = desiredName; // ✅ aquí ya no dependes de headers
+					document.body.appendChild(a);
+					a.click();
+					a.remove();
+					window.URL.revokeObjectURL(url);
+
+				} finally {
+					this.pdf_loading = false;
+					this.$refs.file.value = "";
+				}
+			}
 		}));
 	</script>
 	
