@@ -45,6 +45,8 @@ from application.routes.schedule_routes import schedule_bp
 from application.routes.purchase_routes import purchase_bp
 from application.routes.attendance_routes import attendance_bp
 from application.routes.odoo_routes import odoo_bp
+from application.routes.complaint_routes import complaint_bp
+from application.routes.common_routes import common_bp
 
 
 app.register_blueprint(dev_bp)
@@ -61,6 +63,8 @@ app.register_blueprint(schedule_bp)
 app.register_blueprint(purchase_bp)
 app.register_blueprint(attendance_bp)
 app.register_blueprint(odoo_bp)
+app.register_blueprint(complaint_bp)
+app.register_blueprint(common_bp)
 
 
 def api_key_required():

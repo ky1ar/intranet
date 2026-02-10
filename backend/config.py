@@ -23,6 +23,8 @@ class Config:
     UPLOAD_FOLDER = os.path.abspath("/shared_uploads/")
     UPLOAD_PDF_FOLDER = os.path.abspath("/shared_uploads/pdf/")
     UPLOAD_MACHINES_FOLDER = os.path.abspath("uploads/machines/")
+    UPLOAD_PROPF_FOLDER = os.path.abspath("/shared_uploads/complaint_proof/")
+
 
     BASE_URL = os.getenv("BASE_URL")
     CONTACT_PHONE = os.getenv("CONTACT_PHONE")
@@ -34,6 +36,9 @@ class Config:
     T2_END = os.getenv("T2_END")
     SUPPORT_TERMS = os.getenv("SUPPORT_TERMS")
     EXTERNAL_REGISTER_URL = os.getenv("EXTERNAL_REGISTER_URL")
+
+    COMPLAINT_ATTACHMENTS_MAX_BYTES = 25 * 1024 * 1024
+    MAX_CONTENT_LENGTH = 30 * 1024 * 1024
 
 
 class Redis:

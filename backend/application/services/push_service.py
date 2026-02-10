@@ -63,6 +63,7 @@ class PushSender:
     @handle_exceptions
     def send_to_users(self, user_ids, title, body, data=None):
         if not user_ids:
+            logging.info("No user_ids to send PN")
             return {
                 "success": False,
                 "message": "Lista de usuarios vacía"

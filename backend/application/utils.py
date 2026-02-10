@@ -37,7 +37,7 @@ def format_name(full_name, simple=False):
 
 
 def format_datetime(dt, simple=False):
-    meses_cortos = ["ene.", "feb.", "mar.", "abr.", "may.", "jun.","jul.", "ago.", "sep.", "oct.", "nov.", "dic."]
+    meses_cortos = ["ene", "feb", "mar", "abr", "may", "jun","jul", "ago", "sep", "oct", "nov", "dic"]
     if not dt:
         return ""
 
@@ -54,11 +54,11 @@ def format_datetime(dt, simple=False):
     hora = dt.strftime("%I:%M %p").lower().lstrip("0")
     if simple:
         return hora
-    return f"{dt.day} de {meses_cortos[dt.month-1]} a las {hora}"
+    return f"{dt.day} {meses_cortos[dt.month-1].title()}, {hora}"
 
 
 def format_date(d):
-    meses_largos = ["enero", "febrero", "marzo", "abril", "mayo", "junio","julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+    meses_largos = ["ene", "feb", "mar", "abr", "may", "jun","jul", "ago", "sep", "oct", "nov", "dic"]
     if not d:
         return ""
 
@@ -78,4 +78,26 @@ def format_date(d):
     if not isinstance(d, date):
         return ""
 
-    return f"{d.day} de {meses_largos[d.month - 1]}"
+    return f"{d.day} {meses_largos[d.month - 1].title()} {d.year}"
+
+
+def calculate_passed_days(start_date):
+    holidays = [
+        "2026-01-01", "2026-04-02", "2026-04-03", "2026-04-05",
+        "2026-05-01", "2026-06-29", "2026-07-28", "2026-07-29",
+        "2026-08-30", "2026-10-08", "2026-11-01", "2026-12-08",
+        "2026-12-25"
+    ]
+    
+    tday = (datetime.today() - timedelta(hours=5)).date()
+    current = start_date.date() if isinstance(start_date, datetime) else start_date
+    passed_days = 0
+
+    while current < tday:
+        if current.weekday() < 5 and current.strftime('%Y-%m-%d') not in holidays:
+            passed_days += 1
+        current += timedelta(days=1)
+    
+    return passed_days
+
+    

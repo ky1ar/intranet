@@ -1,5 +1,6 @@
 import logging
 from functools import wraps
+from flask import Response as respon
 from application.response import Response
 from sqlalchemy.exc import SQLAlchemyError
 from flask import g
@@ -57,9 +58,13 @@ def handle_logs_and_exceptions(method):
             logging.debug(f'------------------------- {method_name.capitalize()} --------------------------')
             if request:
                 logging.info(f"{format.YELLOW}{request}{format.RESET}")
-            
-            response, response_code = method(self, request) if request else method(self)
 
+            result = method(self, request) if request is not None else method(self)
+
+            if isinstance(result, respon):
+                return result
+
+            response, response_code = result  # asumes siempre tuple
             if response_code != 200:
                 return format.error(response, response_code)
             return format.success(response)

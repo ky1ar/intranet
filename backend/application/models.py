@@ -115,6 +115,33 @@ class FireCloudTokens(BaseModel):
 
 
 
+class Department(BaseModel):
+    __tablename__ = "location_department"
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+
+
+class Province(BaseModel):
+    __tablename__ = "location_province"
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    department_id = db.Column(db.Integer, db.ForeignKey("location_department.id"), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+
+    department = db.relationship("Department", lazy="joined", foreign_keys=[department_id])
+
+
+class District(BaseModel):
+    __tablename__ = "location_district"
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    province_id = db.Column(db.Integer, db.ForeignKey("location_province.id"), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+
+    province = db.relationship("Province", lazy="joined", foreign_keys=[province_id])
+    
+
 # CLIENTS
 class Clients(BaseModel):
     __tablename__ = 'clients'
@@ -125,6 +152,14 @@ class Clients(BaseModel):
     phone = db.Column(db.String(20))
     email = db.Column(db.String(255))
     stamp = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    department_id = db.Column(db.Integer, db.ForeignKey('location_department.id'), nullable=False)
+    province_id = db.Column(db.Integer, db.ForeignKey('location_province.id'), nullable=False)
+    district_id = db.Column(db.Integer, db.ForeignKey('location_district.id'), nullable=False)
+    address = db.Column(db.String(255), nullable=False)
+
+    department = db.relationship("Department", lazy="joined", foreign_keys=[department_id])
+    province = db.relationship("Province", lazy="joined", foreign_keys=[province_id])
+    district = db.relationship("District", lazy="joined", foreign_keys=[district_id])
 
 
 class ClientOrders(BaseModel):

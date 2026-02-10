@@ -89,6 +89,10 @@ class ClientRepository:
             name=client.get("name"),
             email=client.get("email"),
             phone=f'51{client.get("phone")}',
+            department_id=client.get("department_id"),
+            province_id=client.get("province_id"),
+            district_id=client.get("district_id"),
+            address=client.get("address"),
             stamp=peru_time,
         )
         g.db_session.add(new_client)
@@ -116,9 +120,12 @@ class ClientRepository:
 
     @handle_db_exceptions
     def update_client(self, client, data):
-        #logging.info(data)
         client.phone = f'51{data.get("phone")}'
         client.email = data.get("email")
+        client.department_id = data.get("department_id")
+        client.province_id = data.get("province_id")
+        client.district_id = data.get("district_id")
+        client.address = data.get("address")
         
         g.db_session.add(client)
         g.db_session.flush()

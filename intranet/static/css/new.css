@@ -359,6 +359,7 @@ body.modal-open {
     overflow: hidden;
     border-radius: 0.75rem;
     border: 2px solid var(--newgray);
+    background-color: var(--white);
 }
 .modal .button {
     background-color: var(--primary);
@@ -513,6 +514,87 @@ body.modal-open {
     border-top-color: #ea7134;
 }
 @keyframes pine-spin{ to{ transform:rotate(360deg); } }
+/***********************************************************************************/
+.comments-container {
+    display: flex;
+    flex-direction: column;
+    max-width: 48rem;
+}
+.comments-container .comments-box {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.5rem 1rem;
+    border-radius: 0.75rem 0.75rem 0 0;
+}
+.comments-container .comments-box.over {
+    border-radius: 0.75rem;
+}
+.comments-container .comments-box + .text-area {
+    margin-top: -1rem;
+    margin-bottom: 1rem;
+    border-radius: 0 0 .75rem .75rem;
+}
+.comments-container .comments-box .no-comments{
+    text-align: center;
+    opacity: 0.5;
+}
+.comments-container .comments-input {
+    display: flex;
+    border-radius: 0 0 0.75rem 0.75rem;
+}
+.comments-container .comments-input .send {
+    height: 2.5rem;
+    width: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.comments-container .user-comment {
+    display: flex;
+    gap: 0.5rem;
+    align-items: start;
+}
+.comments-container .user-comment img {
+    border-radius: 1rem;
+}
+.comments-container .user-comment .bubble {
+    margin: 0;
+    font-size: 0.8rem;
+    max-width: 55%;
+    padding: 0.25rem 0.6rem 0.5rem 0.7rem;
+    border-radius: 0.75rem;
+    border-top-left-radius: 0.25rem;
+    display: flex;
+    flex-direction: column;
+}
+.comments-container .user-comment .bubble span {
+    font-weight: 600;
+}
+.comments-container .user-comment .bubble p {
+    margin: 0;
+    opacity: 0.75;
+    padding-top: 0.125rem;
+}
+.comments-container .user-comment .bubble .top {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+}
+.comments-container .user-comment .bubble .top p {
+    font-size: 0.6rem;
+    opacity: 0.4;
+    padding: 0;
+}
+.comments-container .user-comment.self {
+    flex-direction: row-reverse;
+}
+.comments-container .user-comment.self .bubble {
+    border-radius: 0.75rem;
+    border-top-right-radius: 0.25rem;
+    padding: 0.25rem 0.7rem 0.5rem 0.6rem;
+}
 /***********************************************************************************/
 #sidebar {
     left: 1rem;
