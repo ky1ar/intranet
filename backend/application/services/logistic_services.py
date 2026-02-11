@@ -27,16 +27,15 @@ class LogisticService:
             9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre"
         }
         self.DATE_RE = re.compile(r"\b(\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2})\b")
-
+        self.QTY_RE = re.compile(r"\b\d{1,3}(?:\.\d{3})*,\d{2}\b")
+        self.STOP_RE = re.compile(
+            r"^(Contáctanos|Contactanos|Página|Pagina|KREAR3D|FABRICACIONES|RUC\b|http|www\.)",
+            re.IGNORECASE
+        )
         self.HEADER_VALUES_RE = re.compile(
             r"^(?P<pedido>[A-Z]\d{3,})\s+(?P<estado>\S+)\s+"
             r"(?P<fecha>\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2})\s+"
             r"(?P<peso>\d+(?:\.\d+)?\s*kg)\s*$"
-        )
-
-        self.PRODUCT_ROW_RE = re.compile(
-            r"^(?P<product>.+?)\s+(?P<qty>\d+,\d{2}|\d+\.\d{2}|\d+)\s+ST_",
-            re.IGNORECASE
         )
 
 
@@ -609,16 +608,6 @@ class LogisticService:
         return orders_list, 200
 
 
-    def _build_a5_filename(self, filepath):
-        base = os.path.basename(filepath)  # ej: "a3f..._Operaciones de picking ... (6).pdf"
-
-        m = re.match(r"^[0-9a-f]{32}_(.+)$", base, re.IGNORECASE)
-        original = m.group(1) if m else base
-
-        stem, _ext = os.path.splitext(original)
-        return f"{stem}_A5.pdf"
-
-
     def _extract_text(self, pdf_path):
         chunks = []
         with pdfplumber.open(pdf_path) as pdf:
@@ -629,7 +618,48 @@ class LogisticService:
 
     def _clean_lines(self, text):
         lines = [l.strip() for l in (text or "").splitlines()]
+        lines = [l.replace("\uf0e5", "").strip() for l in lines]
         return [l for l in lines if l]
+
+
+    def _parse_products_table(self, lines):
+        # 1) encuentra cabecera
+        start_idx = None
+        for i, l in enumerate(lines):
+            u = l.upper()
+            if u.startswith("PRODUCTO") and ("CANTIDAD" in u or "CANT." in u):
+                start_idx = i + 1
+                break
+        if start_idx is None:
+            return []
+
+        items = []
+        buffer = ""
+
+        for row in lines[start_idx:]:
+            if self.STOP_RE.search(row):
+                break
+
+            buffer = f"{buffer} {row}".strip() if buffer else row
+
+            matches = list(self.QTY_RE.finditer(buffer))
+            if not matches:
+                continue
+
+            last = matches[-1]
+            product = buffer[:last.start()].strip()
+            qty = last.group(0)
+            # after = buffer[last.end():].strip()  # <- aquí estaría el DESDE, lo ignoramos
+
+            if product:
+                items.append({
+                    "product": " ".join(product.split()),
+                    "qty": qty,
+                })
+
+            buffer = ""
+
+        return items
 
 
     def parse_odoo_picking_text(self, full_text):
@@ -674,31 +704,7 @@ class LogisticService:
         if fecha_planificada:
             fecha_planificada = fecha_planificada.split(" ")[0]
             
-        # 3) Tabla productos
-        items = []
-        start_idx = None
-        for i, l in enumerate(lines):
-            if l.upper().startswith("PRODUCTO") and "CANTIDAD" in l.upper():
-                start_idx = i + 1
-                break
-
-        if start_idx is not None:
-            for row in lines[start_idx:]:
-                # fin de tabla
-                if row.startswith(("Contáctanos", "Contactanos", "Página", "Pagina")):
-                    break
-
-                m = self.PRODUCT_ROW_RE.match(row)
-                if not m:
-                    continue
-
-                product = " ".join(m.group("product").split())  # compacta espacios
-                qty_str = m.group("qty")  # "1,00"
-
-                items.append({
-                    "product": product,
-                    "qty": qty_str,   # <- lo dejas exactamente como quieres (coma)
-                })
+        items = self._parse_products_table(lines)
 
         data = {
             "delivery_name_or_ruc": delivery,
