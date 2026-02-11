@@ -738,7 +738,7 @@ class LogisticService:
 
         pdf_bytes = HTML(
             string=html_out,
-            base_url=current_app.root_path  # útil si luego usas assets locales
+            base_url=current_app.root_path
         ).write_pdf()
 
         try:
@@ -749,7 +749,7 @@ class LogisticService:
             logging.exception("Failed deleting source PDF %s", filepath)
         
         filename = f'{original_name[:-4]}_A5.pdf'
-        
+
         logging.info(filename)
         return send_file(
             BytesIO(pdf_bytes),

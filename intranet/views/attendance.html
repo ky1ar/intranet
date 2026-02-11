@@ -9,12 +9,12 @@
 			</div>
 
 			<div class="left frost">
-				<div class="item" @click="prev()" x-show="false">
+				<div class="item" @click="prev()" x-show="offset >= -1">
 					<img class="flip" alt="prev" src="/static/images/icons/right.svg" width="20" height="20">
 				</div>
 
 				<div class="item date" @click="today()" x-text="$store.cache.getData('attendance_period')?.period?.name"></div>
-				<div class="item" @click="next()" x-show="false">
+				<div class="item" @click="next()" x-show="offset < 0">
 					<img alt="next" src="/static/images/icons/right.svg" width="20" height="20">
 				</div>
 			</div>
@@ -58,7 +58,7 @@
 							Sábado
 						</span>
 						<span>
-							Horas de la semana
+							Horas acumuladas
 						</span>
 					</div>
 					
@@ -229,10 +229,7 @@
 							<div class="label">Horas base</div>
 							<div class="data" x-text="minutesToText(stats.target_min)"></div>
 						</div>
-						<div class="item">
-							<div class="label">Horas trabajadas</div>
-							<div class="data" x-text="minutesToText(stats.worked_min)"></div>
-						</div>
+						
 					</div>
 					
 
@@ -278,6 +275,10 @@
 						<div class="item">
 							<div class="label">Base + Penalización</div>
 							<div class="data" x-text="stats.calc_final_obj"></div>
+						</div>
+						<div class="item">
+							<div class="label">Horas trabajadas</div>
+							<div class="data" x-text="minutesToText(stats.worked_min)"></div>
 						</div>
 					</div>
 
@@ -1136,13 +1137,10 @@
 					if (!day?.in_period) continue;
 					if (day?.is_summary) continue;
 
-					// ✅ OBJETIVO: todo el mes (incluso futuro)
 					target += Number(day?.target_min || 0);
 
-					// ✅ VACACIONES: todo el mes (incluso futuro)
 					if (day?.is_vacation) vacations += 1;
 
-					// lo demás: solo pasado/hoy
 					if (!day?.date || day.date > todayISO) continue;
 
 					worked += Number(day?.worked_min || 0);
@@ -1154,12 +1152,17 @@
 				}
 			}
 
+			if (this.option_user.id === 1130) {
+				target = Number(10560);
+			}
+
 			const tolerancePlanned = Math.round(target * 0.01);
-			const compliance = target > 0 ? (worked * 100) / target : 0;
 			const baseExcess = Math.max(0, toleranceAccum - tolerancePlanned);
 			const calcExcess = Math.round(baseExcess * 1.5);
 			const calcObjMin = target + calcExcess;
 
+			const compliance = calcObjMin > 0 ? (worked * 100) / calcObjMin : 0;
+			
 			this.stats = {
 				...this.stats,
 				target_min: target,

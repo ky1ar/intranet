@@ -64,7 +64,7 @@ def handle_logs_and_exceptions(method):
             if isinstance(result, respon):
                 return result
 
-            response, response_code = result  # asumes siempre tuple
+            response, response_code = result
             if response_code != 200:
                 return format.error(response, response_code)
             return format.success(response)

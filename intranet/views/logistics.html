@@ -8,7 +8,10 @@
 			</div>
 
 			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
-				<div class="item" @click="pendings_open = !pendings_open">
+				<div class="item" @click="pdfProcess()">
+					<img alt="" width="22" height="22" src="/static/images/icons/pdf.svg">
+				</div>
+				<div class="item" @click="pendings_open = !pendings_open" x-show="editAllowed()">
 					<img alt="" width="22" height="22" src="/static/images/icons/pending.svg">
 				</div>
 				<div class="item" @click="search()">
@@ -49,7 +52,7 @@
 				</div>
 			</div>
 
-			<div class="right frost-dark" x-show="editAllowed()">
+			<div class="right frost-dark">
 				<div class="mobile-hide item" @click="pdfProcess()">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/pdf.svg">
 					<span x-text="pdf_loading ? 'Generando...' : 'Rótulo'"></span>
@@ -62,12 +65,12 @@
 					/>
 				</div>
 
-				<div class="mobile-hide item" @click="pendings_open = !pendings_open">
+				<div class="mobile-hide item" x-show="editAllowed()" @click="pendings_open = !pendings_open">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/pending.svg">
 					<span x-text="`Pendientes ${$store.cache.getData('logistics_pendings')?.length || 0}`"></span>
 				</div>
 
-				<div class="item" @click="processShippingModal()">
+				<div class="item" @click="processShippingModal()" x-show="editAllowed()">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
 					<span>Añadir</span>
 				</div>
