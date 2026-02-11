@@ -138,6 +138,10 @@ class ComplaintService:
                     return add_client, acc
                 data["client_id"] = add_client
             else:
+                updated_client, ucc = self.client_repository.update_client(client, client_data)
+                if ucc != 200:
+                    return updated_client, ucc
+                
                 data["client_id"] = client.id
         
         consumption_id = data.get("consumption_id")
