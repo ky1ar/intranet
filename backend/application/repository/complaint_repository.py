@@ -43,11 +43,13 @@ class ComplaintRepository:
 
     @handle_db_exceptions
     def get_complaints(self, user_id=None):
-        query = g.db_session.query(ComplaintRequest).filter(ComplaintRequest.status_id != 9)
+        query = g.db_session.query(ComplaintRequest)
 
         if user_id:
-            pass
-            # query = query.filter(ComplaintRequest.user_id == user_id)
+            query = query.filter(
+                (ComplaintRequest.owner_id == user_id) |
+                (ComplaintRequest.seller_id == user_id)
+            )
 
         complaints = query.all()
 

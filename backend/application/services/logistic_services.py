@@ -727,6 +727,7 @@ class LogisticService:
 
         full_text = self._extract_text(filepath)
         data, missing = self.parse_odoo_picking_text(full_text)
+
         if missing:
             return {
                 "missing": missing,
@@ -740,7 +741,15 @@ class LogisticService:
             base_url=current_app.root_path  # útil si luego usas assets locales
         ).write_pdf()
 
+        try:
+            if filepath and os.path.exists(filepath):
+                os.remove(filepath)
+                logging.info("Deleted source PDF %s", filepath)
+        except Exception:
+            logging.exception("Failed deleting source PDF %s", filepath)
+        
         filename = f'{original_name[:-4]}_A5.pdf'
+        
         logging.info(filename)
         return send_file(
             BytesIO(pdf_bytes),

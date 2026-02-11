@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from application.db_models.odoo_model import OdooInvoiceCursor, OdooPaidInvoice
 from flask import g
 
@@ -8,6 +8,30 @@ class OdooRepository:
         return g.db_session.query(OdooInvoiceCursor).filter_by(id=1).first()
 
 
+    def get_sent_with_pdf(self):
+        cutoff = datetime.utcnow() - timedelta(minutes=10)
+        return (
+            g.db_session.query(OdooPaidInvoice)
+            .filter(
+                OdooPaidInvoice.sent_whatsapp == True,
+                OdooPaidInvoice.pdf_ready == True,
+                OdooPaidInvoice.pdf_path.isnot(None),
+            )
+            .all()
+        )
+
+    def clear_pdf_fields(self, invoice_id):
+        row = self.get_by_invoice_id(invoice_id)
+        if not row:
+            return
+
+        row.pdf_ready = False
+        row.pdf_filename = None
+        row.pdf_path = None
+        row.pdf_size = 0
+        g.db_session.commit()
+
+        
     def upsert_cursor(self, last_write_date, last_id):
         row = self.get_cursor()
         if not row:
@@ -21,7 +45,6 @@ class OdooRepository:
         return row
 
 
-    # ✅ Nuevo
     def get_by_invoice_id(self, invoice_id):
         return g.db_session.query(OdooPaidInvoice).filter_by(invoice_id=invoice_id).first()
 
@@ -49,7 +72,6 @@ class OdooRepository:
         return row
 
 
-    # ✅ Nuevo: actualizar estado del PDF
     def update_pdf(self, invoice_id, pdf_ready=False, pdf_filename=None, pdf_path=None, pdf_size=0):
         row = self.get_by_invoice_id(invoice_id)
         if not row:
@@ -62,7 +84,6 @@ class OdooRepository:
         return row
 
 
-    # ✅ Nuevo: marcar envío OK
     def mark_sent(self, invoice_id):
         row = self.get_by_invoice_id(invoice_id)
         if not row:
@@ -74,7 +95,6 @@ class OdooRepository:
         return row
 
 
-    # ✅ Nuevo: marcar fallo (sin marcar enviado)
     def mark_send_failed(self, invoice_id, err: str):
         row = self.get_by_invoice_id(invoice_id)
         if not row:

@@ -15,6 +15,15 @@ class Config:
         "max_overflow": 10,
         "pool_timeout": 30,
     }
+    MAIL_SERVER = os.getenv("MAIL_SERVER")
+    MAIL_PORT = int(os.getenv("MAIL_PORT"))
+    MAIL_USE_SSL = os.getenv("MAIL_USE_SSL", "false").lower() == "true"
+    MAIL_USE_TLS = os.getenv("MAIL_USE_TLS", "false").lower() == "true"
+    MAIL_USERNAME = os.getenv("MAIL_USERNAME")
+    MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
+    MAIL_DEFAULT_SENDER = os.getenv("MAIL_SENDER")
+
+
     API_HOST = os.getenv("API_HOST")
     API_PORT = int(os.getenv("API_PORT"))
 

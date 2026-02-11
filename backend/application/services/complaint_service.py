@@ -1,7 +1,9 @@
-import logging, threading, os, uuid
+import logging, os, uuid
 from werkzeug.utils import secure_filename
-from flask import request, send_file
-from datetime import datetime, timezone, timedelta, date
+from flask import request, send_file, render_template
+from flask_mail import Message
+from datetime import  date, datetime
+from application import mail
 from application.handlers import handle_exceptions
 from application.utils import format_name, format_datetime, calculate_passed_days, format_date
 from application.repository.complaint_repository import ComplaintRepository
@@ -34,6 +36,7 @@ class ComplaintService:
         self.leader_lvl = 3
         self.admin_lvl = 4
         self.fabrix_id = 21
+        self.admin_dep = 1
 
 
     def _attachments_dir(self, path=Config.UPLOAD_PROPF_FOLDER):
@@ -73,7 +76,7 @@ class ComplaintService:
     @handle_exceptions
     def new(self, data):
         user_id = data.get("user_id")
-
+        send_mail = False
         client_id = data.get("client_id")
         client_data = data.pop("client")
 
@@ -87,6 +90,7 @@ class ComplaintService:
         address = client_data.get("address")
 
         if not user_id:
+            send_mail = True
             user_id = self.fabrix_id
         
         if client_id:
@@ -147,18 +151,44 @@ class ComplaintService:
         if not request:
                 return "Ingresa la solicitud del cliente", 400
         
+        complaint_letter = "RC" if data.get("type_id") == 1 else "QJ"
+
         complaint_id, ncc = self.complaint_repository.new_complaint(data)
         if ncc != 200:
             return complaint_id, ncc
 
-        socketio.emit("complaint_dashboard_update", {})
         new_history, nhc = self.complaint_repository.new_history(complaint_id, user_id, 0, "El cliente registró su reclamo")
         if nhc != 200:
             return new_history, nhc
-            
-        # threading.Thread(target=self.whatsapp.new_order, args=(phone, notes, order_number, machine_name)).start()
-        # if is_from_bot and leader.phone:
-        #     threading.Thread(target=self.whatsapp.new_order_alert, args=(leader.phone, order_number, machine_name)).start()
+        
+        department_user_ids, duic = self.user_repository.get_user_ids_by_department(department_id=self.admin_dep)
+        if duic != 200:
+            return department_user_ids, duic
+        
+        department_user_ids.append(23)
+
+        self.push_service.send_to_users(
+            user_ids=department_user_ids,
+            title=f"Nuevo Reclamo {complaint_letter}-{complaint_id}",
+            body="Se ha registrado un nuevo reclamo pendiente de gestión.",
+        )
+
+        if send_mail:
+            html_content = render_template(
+                'claim.html',
+                email=email,
+                complaint_id=f"{complaint_letter}-{complaint_id}",
+                current_year=datetime.now().year
+            )
+            msg = Message(
+                subject="Confirmación de Reclamo - Krear 3D",
+                sender=("Tienda Krear 3D", "web@tiendakrear3d.com"),
+                recipients=[email],
+                html=html_content
+            )
+            mail.send(msg)
+
+        socketio.emit("complaint_dashboard_update", {})
 
         return "Reclamo registrado correctamente", 200
     
@@ -328,6 +358,7 @@ class ComplaintService:
             return complaint, cc
 
         current_status_id = complaint.status_id
+        complaint_letter = "RC" if complaint.complaint_type_id == 1 else "QJ"
         
         move, mc = self.complaint_repository.move_status(complaint, current_status_id, data) 
         if mc != 200:
@@ -337,6 +368,22 @@ class ComplaintService:
         new_history, nhc = self.complaint_repository.new_history(complaint_id, user_id, current_status_id, notes) 
         if nhc != 200:
             return new_history, nhc
+
+        if current_status_id == 2:
+            owner_id = data.get("owner_id")
+            seller_id = data.get("seller_id")
+
+            users_to_send = []
+            if owner_id:
+                users_to_send.append(int(owner_id))
+            if seller_id and seller_id != owner_id:
+                users_to_send.append(int(seller_id))
+                    
+            self.push_service.send_to_users(
+                user_ids=users_to_send,
+                title=f"Reclamo {complaint_letter}-{complaint_id} asignado",
+                body="Se te ha asignado un nuevo reclamo, por favor agrega evidencias.",
+            )
 
         return "Reclamo actualizado correctamente", 200
     
@@ -587,7 +634,7 @@ class ComplaintService:
         
         self.push_service.send_to_users(
             user_ids=participants,
-            title=f"Nuevo mensaje, solicitud {complaint_letter}-{complaint_id}",
+            title=f"Nuevo mensaje, reclamo {complaint_letter}-{complaint_id}",
             body=f"{format_name(user_name, True)}: {comment}",
         )
         socketio.emit("complaint_dashboard_update", {})

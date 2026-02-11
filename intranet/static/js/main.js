@@ -109,10 +109,10 @@ document.addEventListener('alpine:init', () => {
             { name: 'tracking', label: 'Tracking', image: 'tracking', title: 'Krear 3D - Trackings' },
             { name: 'support', label: 'Soporte', image: 'support', title: 'Krear 3D - Soporte' },
             { name: 'purchases', label: 'Compras', image: 'purchases', title: 'Krear 3D - Compras' },
-            { name: 'complaint', label: 'Reclamos', image: 'complaint', title: 'Krear 3D - Reclamos' },
         ],
         restricted_pages: [
             { name: 'driver', label: 'Conductor', image: 'driver', title: 'Krear 3D - Conductor' },
+            { name: 'complaint', label: 'Reclamos', image: 'complaint', title: 'Krear 3D - Reclamos' },
             //{ name: 'marketing', label: 'Marketing', image: 'marketing', title: 'Krear 3D - Marketing' },
             { name: 'guest', label: 'Fabrix', image: 'fabrix', title: 'Krear 3D - Fabrix' },
         ],
@@ -396,31 +396,48 @@ document.addEventListener('alpine:init', () => {
         },
 
         getPages() {
-            const department_id = this.user.department_id;
-            const level_id = this.user.level_id;
-            const user_id = this.user.id;
+            const { department_id, level_id, id: user_id } = this.user;
 
             if (user_id === 21) {
                 return this.getRestricted(['guest']);
             }
 
+            let pages = [...this.common_pages];
+
+            const add = (tags) => {
+                pages = pages.concat(this.getRestricted(tags));
+            };
+
+            const userRules = {
+                19: ['guest'],
+                12: ['guest'],
+                15: ['complaint'],
+            };
+
+            if (userRules[user_id]) {
+                add(userRules[user_id]);
+            }
+
+            const departmentRules = {
+                1: ['complaint'],
+                2: ['driver', 'complaint'],
+                3: ['complaint'],
+                4: ['marketing'],
+                5: ['complaint'],
+            };
+
+            if (departmentRules[department_id]) {
+                add(departmentRules[department_id]);
+            }
+
             if (level_id === 4) {
-                return [...this.common_pages, ...this.restricted_pages];
+                pages = pages.concat(this.restricted_pages);
             }
 
-            if (department_id === 2) {
-                return [...this.common_pages, ...this.getRestricted(['driver'])];
-            }
-
-            if (department_id === 4) {
-                return [...this.common_pages, ...this.getRestricted(['marketing'])];
-            }
-
-            if (user_id === 19 || user_id === 12) {
-                return [...this.common_pages, ...this.getRestricted(['guest'])];
-            }
-
-            return this.common_pages;
+            return pages.filter(
+                (page, index, self) =>
+                    index === self.findIndex(p => p.name === page.name)
+            );
         },
 
         getRestricted(allowedNames) {

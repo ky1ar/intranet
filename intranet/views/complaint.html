@@ -7,34 +7,34 @@
 				</div>
 			</div>
 
-			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
+			<!-- <div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
 				<div class="item" @click="search()">
 					<img alt="" width="18" height="18" src="/static/images/icons/find.svg">
 				</div>
-				<!-- <div class="item" @click="viewHistory()">
+				<div class="item" @click="viewHistory()">
 					<img alt="" width="18" height="18" src="/static/images/icons/history.svg">
-				</div> -->
-				<!-- <div class="item" @click="viewStatistics()">
+				</div>
+				<div class="item" @click="viewStatistics()">
 					<img alt="" width="18" height="18" src="/static/images/icons/report.svg">
-				</div> -->
-			</div>
+				</div>
+			</div> -->
 			
-			<div class="left mobile-hide frost">
+			<!-- <div class="left mobile-hide frost">
 				<div class="item" @click="search()">
 					<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
 					<span>Buscar</span>
 				</div>
-				<!-- <div class="item" @click="viewHistory()">
+				<div class="item" @click="viewHistory()">
 					<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
 					<span>Historial</span>
-				</div> -->
-				<!-- <div class="item" @click="viewStatistics()">
+				</div>
+				<div class="item" @click="viewStatistics()">
 					<img alt="" width="20" height="20" src="/static/images/icons/report.svg">
 					<span>Estadísticas</span>
-				</div> -->
-			</div> 
+				</div>
+			</div>  -->
 
-			<div class="right frost-dark" x-show="editAllowed()">
+			<div class="right frost-dark" x-show="editAllowed()" style="margin-left: auto;">
 				<div class="item" @click="addOrder()">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
 					<span>Añadir</span>
@@ -147,7 +147,7 @@
 
 							<label class="white">
 								<select x-model="category_id">
-									<option value="null" disabled selected>Clasificación</option>
+									<option value="null" disabled selected>Categoría</option>
 
 									<template x-for="categories in $store.cache.getData('complaint_categories')" :key="categories.id">
 										<option :value="categories.id" x-text="categories.name"></option>
@@ -925,13 +925,17 @@
             },
 
 			async getProvince() {
+				this.new_complaint.province_id = null;
+    			this.new_complaint.district_id = null;
+
 				await Alpine.store('cache').fetchData([
 					{ key: 'common_provinces', url: `/common/provinces/${this.new_complaint.department_id}`, force: true },
 				]);
-				this.new_complaint.district_id = null;
 			},
 
 			async getDistrict() {
+				this.new_complaint.district_id = null;
+				
 				await Alpine.store('cache').fetchData([
 					{ key: 'common_districts', url: `/common/districts/${this.new_complaint.province_id}`, force: true },
 				]);
@@ -1211,47 +1215,7 @@
 				} finally {
 					this.processing = false;
 				}
-				
-				// total_photos = this.proof_photos.length;
-				// if (total_photos < 1) {
-				// 	this.showError('move_status', 'Añade al menos 1 imagen');
-				// 	this.processing = false;
-				// 	return;
-				// }
-
-				// const formData = new FormData();
-				// for (let i = 0; i < total_photos; i++) {
-				// 	const resized = await Alpine.store('cache').resizeImage(this.proof_photos[i].file, 1024, 1024);
-				// 	formData.append('images[]', resized);
-				// }
-				// formData.append("user_id", Alpine.store('cache').user.id);
-				// formData.append("order_number", this.selected_complaint.order_number);
-				// formData.append("send", this.sendWhatsapp);
-				// formData.append("notes", this.status_notes);
-				// formData.append("status_id", this.selected_complaint.status_id);
-
-				// try {
-				// 	const response = await fetch(`${this.api}/support/order/next`, {
-				// 		method: 'POST',
-				// 		body: formData
-				// 	});
 			
-				// 	if (!response.ok) {
-				// 		throw new Error('Error al asignar la orden.');
-				// 	}
-				// 	if (this.selected_complaint.status_id == 8) {
-				// 		Alpine.store('cache').hideAllModals();
-				// 	} else {
-				// 		Alpine.store('cache').hideModal('status');
-				// 	}
-
-				// 	this.selected_complaint = null;
-
-				// } catch (error) {
-				// 	console.error('Error en la asignación:', error);
-				// } finally {
-				// 	this.processing = false;
-				// }
 			},
 			async proofModal() {
 				await this.loadProofFiles();

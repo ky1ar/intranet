@@ -2,11 +2,8 @@ import logging, os, re
 from datetime import datetime, date, timedelta
 from application.repository.odoo_repository import OdooRepository
 from application.integrations.odoo_client import OdooClient
-from application.handlers import handle_exceptions
-from application.utils import format_name
 from application.proxy.whatsapp import Whatsapp
 from config import Config
-from flask import g
 
 
 class OdooService:
@@ -86,6 +83,7 @@ class OdooService:
         if not cursor:
             invoices = self.odoo_client.list_validated_last(limit=1)
             if not invoices:
+                self.cleanup_sent_pdfs()
                 return [], 200
 
             items = self._persist_and_map(invoices)
@@ -93,6 +91,7 @@ class OdooService:
             newest = invoices[0]
             self.odoo_repository.upsert_cursor(newest["write_date"], newest["id"])
 
+            self.cleanup_sent_pdfs()
             return items, 200
 
         invoices = self.odoo_client.list_validated_since(
@@ -109,6 +108,7 @@ class OdooService:
         newest = invoices[-1]
         self.odoo_repository.upsert_cursor(newest["write_date"], newest["id"])
 
+        self.cleanup_sent_pdfs()
         return items, 200
 
     
@@ -238,3 +238,18 @@ class OdooService:
             )
 
         return items
+    
+
+    def cleanup_sent_pdfs(self):
+        rows = self.odoo_repository.get_sent_with_pdf()
+
+        for row in rows:
+            try:
+                if row.pdf_path and os.path.exists(row.pdf_path):
+                    os.remove(row.pdf_path)
+                    logging.info("Deleted PDF %s", row.pdf_path)
+
+                self.odoo_repository.clear_pdf_fields(row.invoice_id)
+
+            except Exception:
+                logging.exception("Failed deleting PDF invoice_id=%s", row.invoice_id)
