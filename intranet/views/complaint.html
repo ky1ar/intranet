@@ -449,7 +449,7 @@
 						</label>
 
 						<label class="white">
-							<select x-model="new_complaint.province_id" @change="getDistrict()">
+							<select x-model="new_complaint.province_id" @change="getDistrict()" :disabled="!new_complaint.department_id">
 								<option value="null" selected disabled>Provincia</option>
 
 								<template x-for="method in $store.cache.getData('common_provinces')" :key="method.id">
@@ -459,7 +459,7 @@
 						</label>
 
 						<label class="white">
-							<select x-model="new_complaint.district_id">
+							<select x-model="new_complaint.district_id" :disabled="!new_complaint.province_id">
 								<option value="null" selected disabled>Distrito</option>
 
 								<template x-for="method in $store.cache.getData('common_districts')" :key="method.id">
