@@ -5,7 +5,7 @@ monkey.patch_all()
 import redis
 import firebase_admin
 from firebase_admin import credentials
-from config import Config, Redis
+
 from flask import Flask, g, request
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
@@ -15,6 +15,8 @@ from flask_jwt_extended import JWTManager
 from sqlalchemy.exc import OperationalError
 from sqlalchemy import text
 from flask_cors import CORS
+
+from config import Config, Redis
 
 
 app = Flask(__name__)
@@ -56,6 +58,7 @@ from application.routes.purchase_routes import purchase_bp
 from application.routes.attendance_routes import attendance_bp
 from application.routes.odoo_routes import odoo_bp
 from application.routes.complaint_routes import complaint_bp
+from application.routes.import_routes import import_bp
 from application.routes.common_routes import common_bp
 
 
@@ -74,6 +77,7 @@ app.register_blueprint(purchase_bp)
 app.register_blueprint(attendance_bp)
 app.register_blueprint(odoo_bp)
 app.register_blueprint(complaint_bp)
+app.register_blueprint(import_bp)
 app.register_blueprint(common_bp)
 
 
