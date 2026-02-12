@@ -388,22 +388,32 @@ class LogisticRepository:
     def get_orders_like(self, order_number):
         search_term = f"%{order_number}%"
 
-        results = (
-            g.db_session.query(ShippingOrders)
+        subq = (
+            g.db_session.query(
+                ShippingOrders.id.label("sid"),
+                db.func.max(ClientOrders.number).label("num"),
+            )
             .join(ClientOrders, ShippingOrders.client_order_id == ClientOrders.id)
             .join(Clients, ClientOrders.client_id == Clients.id)
             .filter(
+                ShippingOrders.is_deleted.is_(False),
                 db.or_(
                     db.cast(ClientOrders.number, db.String).ilike(search_term),
                     Clients.name.ilike(search_term),
-                    Clients.document.ilike(search_term)
-                )
+                    Clients.document.ilike(search_term),
+                ),
             )
-            .filter(ShippingOrders.is_deleted.is_(False))
-            .order_by(ClientOrders.number.desc())
-            .distinct()
+            .group_by(ShippingOrders.id)
+            .subquery()
+        )
+
+        results = (
+            g.db_session.query(ShippingOrders)
+            .join(subq, ShippingOrders.id == subq.c.sid)
+            .order_by(subq.c.num.desc())
             .all()
         )
+
         if not results:
             return None, 400
 

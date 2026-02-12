@@ -26,7 +26,7 @@ except Exception:
     openpyxl = None
 
 
-class ComplaintService:
+class ImportService:
     def __init__(self):
         self.complaint_repository = ComplaintRepository()
         self.client_repository = ClientRepository()

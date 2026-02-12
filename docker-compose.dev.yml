@@ -12,7 +12,7 @@ services:
     env_file:
       - backend/.env.${ENV}
     networks:
-      - krear3d
+      - backend
     volumes:
       - ./backend:/application
       - ./shared_uploads:/shared_uploads
@@ -30,7 +30,7 @@ services:
     image: redis:latest
     container_name: redis_dev
     networks:
-      - krear3d
+      - backend
     restart: always
     command: redis-server --requirepass "150723"
 
@@ -40,7 +40,7 @@ services:
       dockerfile: Dockerfile
     container_name: intranet_dev
     networks:
-      - krear3d
+      - backend
     volumes:
       - ./intranet:/usr/share/nginx/html
       - ./shared_uploads:/usr/share/nginx/html/static/images/uploads
@@ -56,7 +56,7 @@ services:
       dockerfile: Dockerfile
     container_name: registro_dev
     networks:
-      - krear3d
+      - backend
     volumes:
       - ./registro:/usr/share/nginx/html
       - ./shared_uploads:/usr/share/nginx/html/static/images/uploads
@@ -66,8 +66,8 @@ services:
     restart: always
 
 networks:
-  krear3d:
-    driver: bridge
+  backend:
+    external: true
 
 volumes:
   shared_uploads:

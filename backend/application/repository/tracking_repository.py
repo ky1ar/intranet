@@ -211,21 +211,31 @@ class TrackingRepository:
     def get_orders_like(self, order_number):
         search_term = f"%{order_number}%"
 
-        results = (
-            g.db_session.query(TrackingOrders)
+        subq = (
+            g.db_session.query(
+                TrackingOrders.id.label("tid"),
+                db.func.max(ClientOrders.number).label("num"),
+            )
             .join(ClientOrders, TrackingOrders.client_order_id == ClientOrders.id)
             .join(Clients, ClientOrders.client_id == Clients.id)
             .filter(
                 db.or_(
                     db.cast(ClientOrders.number, db.String).ilike(search_term),
                     Clients.name.ilike(search_term),
-                    Clients.document.ilike(search_term)
+                    Clients.document.ilike(search_term),
                 )
             )
-            .order_by(ClientOrders.number.desc())
-            .distinct()
+            .group_by(TrackingOrders.id)
+            .subquery()
+        )
+
+        results = (
+            g.db_session.query(TrackingOrders)
+            .join(subq, TrackingOrders.id == subq.c.tid)
+            .order_by(subq.c.num.desc())
             .all()
         )
+
         if not results:
             return None, 400
 

@@ -498,20 +498,30 @@ class SupportRepository:
     def get_orders_like(self, order_number):
         search_term = f"%{order_number}%"
 
-        results = (
-            g.db_session.query(ServiceOrders)
+        subq = (
+            g.db_session.query(
+                ServiceOrders.id.label("sid"),
+                db.func.max(ServiceOrders.order_number).label("num"),
+            )
             .join(Clients, ServiceOrders.client_id == Clients.id)
             .filter(
                 db.or_(
                     db.cast(ServiceOrders.order_number, db.String).ilike(search_term),
                     Clients.name.ilike(search_term),
-                    Clients.document.ilike(search_term)
+                    Clients.document.ilike(search_term),
                 )
             )
-            .order_by(ServiceOrders.order_number.desc())
-            .distinct()
+            .group_by(ServiceOrders.id)
+            .subquery()
+        )
+
+        results = (
+            g.db_session.query(ServiceOrders)
+            .join(subq, ServiceOrders.id == subq.c.sid)
+            .order_by(subq.c.num.desc())
             .all()
         )
+
         if not results:
             return None, 400
 
