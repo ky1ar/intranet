@@ -115,18 +115,18 @@ class ComplaintService:
                 return "Ingrese un documento", 400
             if not name:
                 return "Ingrese el nombre", 400
-            if not phone or len(phone) != 9:
-                return "Ingresa un celular válido", 400
-            if not email:
-                return "Ingresa tu correo", 400
-            if not department_id:
-                return "Selecciona un departamento", 400
-            if not province_id:
-                return "Selecciona una provincia", 400
-            if not district_id:
-                return "Selecciona un distrito", 400
-            if not address:
-                return "Ingresa tu dirección", 400
+            # if not phone:
+            #     return "Ingresa un celular válido", 400
+            # if not email:
+            #     return "Ingresa tu correo", 400
+            # if not department_id:
+            #     return "Selecciona un departamento", 400
+            # if not province_id:
+            #     return "Selecciona una provincia", 400
+            # if not district_id:
+            #     return "Selecciona un distrito", 400
+            # if not address:
+            #     return "Ingresa tu dirección", 400
             
             client, cc = self.client_repository.get_client_by_document(document)
             if cc == 500:
@@ -138,11 +138,12 @@ class ComplaintService:
                     return add_client, acc
                 data["client_id"] = add_client
             else:
+                client_id = client.id
                 updated_client, ucc = self.client_repository.update_client(client, client_data)
                 if ucc != 200:
                     return updated_client, ucc
                 
-                data["client_id"] = client.id
+                data["client_id"] = client_id
         
         consumption_id = data.get("consumption_id")
         type_id = data.get("type_id")
@@ -152,8 +153,8 @@ class ComplaintService:
                 return "Selecciona un tipo de reclamo", 400
         if not consumption_id:
                 return "Selecciona un tipo de consumo", 400
-        if not request:
-                return "Ingresa la solicitud del cliente", 400
+        # if not request:
+        #         return "Ingresa la solicitud del cliente", 400
         
         complaint_letter = "RC" if data.get("type_id") == 1 else "QJ"
 
@@ -177,7 +178,7 @@ class ComplaintService:
             body="Se ha registrado un nuevo reclamo pendiente de gestión.",
         )
 
-        if send_mail:
+        if send_mail and email:
             html_content = render_template(
                 'claim.html',
                 email=email,
@@ -297,9 +298,9 @@ class ComplaintService:
             "client_name": complaint.client.name,
             "phone": complaint.client.phone,
             "email": complaint.client.email,
-            "department": complaint.client.department.name,
-            "province": complaint.client.province.name,
-            "district": complaint.client.district.name,
+            "department": complaint.client.department.name if complaint.client.department else "Desconocido",
+            "province": complaint.client.province.name if complaint.client.province else "Desconocido",
+            "district": complaint.client.district.name if complaint.client.district else "Desconocido",
             "address": complaint.client.address,
             "priority": 'low',
             "passed_days": passed_days,
