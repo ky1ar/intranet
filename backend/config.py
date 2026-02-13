@@ -91,3 +91,8 @@ class Olva:
 
 class Marvisur:
     TRACK_URL = os.getenv("MARVISUR_TRACK_URL")
+
+
+class Paths:
+    MAX_BYTES = 25 * 1024 * 1024
+    IMPORTS = os.path.abspath("/shared_uploads/imports/")

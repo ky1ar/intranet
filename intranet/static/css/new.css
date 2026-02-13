@@ -243,7 +243,7 @@ body.modal-open {
     max-width: 36rem;
 }
 .modal.little {
-    max-width: 28rem;
+    max-width: calc(27rem + 4px);
 }
 .modal .buttons {
     display: flex;
@@ -344,15 +344,22 @@ body.modal-open {
     background-color: white;
     border: 2px dashed white;
 }
-.modal .thumbnails-grid {
+
+.thumbnails-grid {
     gap: 1rem;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(4.5rem, 4.5rem));
+    grid-template-columns: repeat(auto-fill, minmax(4rem, 4rem));
 }
-.modal .thumbnails-grid .thumbnail-wrapper {
+.thumbnails-grid .thumb-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    cursor: pointer;
+}
+.thumbnails-grid .thumbnail-wrapper {
     position: relative;
-    width: 4.5rem;
-    height: 4.5rem;
+    width: 4rem;
+    height: 4rem;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -360,6 +367,27 @@ body.modal-open {
     border-radius: 0.75rem;
     border: 2px solid var(--newgray);
     background-color: var(--white);
+}
+.thumbnails-grid .thumbnail-wrapper .thumbnail {
+    transition: var(--transition);
+}
+.thumbnails-grid .thumb-caption {
+    font-size: 0.65rem;
+    opacity: .75;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    line-height: 0.75rem;
+}
+.thumbnails-grid .add-button {
+    border-radius: 0.75rem;
+    justify-content: center;
+    width: 4rem;
+    height: 4rem;
+    display: flex;
+    align-items: center;
+    border: 2px solid var(--newgray);
 }
 .modal .button {
     background-color: var(--primary);

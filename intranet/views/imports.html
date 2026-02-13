@@ -7,8 +7,11 @@
 				</div>
 			</div>
 
-			<!-- <div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
-				<div class="item" @click="search()">
+			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
+				<div class="item" @click="pendings_open = !pendings_open" x-show="editAllowed()">
+					<img alt="" width="22" height="22" src="/static/images/icons/pending.svg">
+				</div>
+				<!-- <div class="item" @click="search()">
 					<img alt="" width="18" height="18" src="/static/images/icons/find.svg">
 				</div>
 				<div class="item" @click="viewHistory()">
@@ -16,8 +19,8 @@
 				</div>
 				<div class="item" @click="viewStatistics()">
 					<img alt="" width="18" height="18" src="/static/images/icons/report.svg">
-				</div>
-			</div> -->
+				</div> -->
+			</div>
 			
 			<!-- <div class="left mobile-hide frost">
 				<div class="item" @click="search()">
@@ -34,7 +37,14 @@
 				</div>
 			</div>  -->
 
+			
+			
 			<div class="right frost-dark" x-show="editAllowed()" style="margin-left: auto;">
+				<div class="mobile-hide item" @click="pendings_open = !pendings_open">
+					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/pending.svg">
+					<span x-text="`Borradores ${$store.cache.getData('imports_pendings')?.length || 0}`"></span>
+				</div>
+				
 				<div class="item" @click="addOrder()">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
 					<span>Añadir</span>
@@ -42,56 +52,78 @@
 			</div>
 		</div>
 
-		<div class="board glass">
-			<template x-for="group in $store.cache.getData('complaint_dashboard')" :key="group.status_id">
-				<div class="group"
-					@dragover="onDragOver($event, group.status_id)" 
+		<div class="main-container">
+			<div x-transition.duration.300ms x-cloak x-show="pendings_open" class="pending-imports">
+				<div class="container"
+					@dragover="onDragOver($event)" 
 					@dragleave="onDragLeave($event)"
-					@drop="onDrop(group.status_id)">
-					<div class="name">
-						<img alt="" width="24" height="24"
-							:src="'/static/images/complaint/' + ($store.cache.getById('complaint_status', group.status_id)?.image || 'default.png')"
-							alt="">
-						<span x-text="$store.cache.getById('complaint_status', group.status_id)?.name || ''"></span>
-					</div>
-
-					<ul>
-						<template x-if="group.complaints.length > 0">
-							<template x-for="complaint in group.complaints" :key="complaint.id">
-								<li
-									:class="complaint.priority"
-									:draggable="editAllowed()"
-									@dragstart="onDragStart(complaint)"
-									@click="viewComplaint(complaint.id)"
-									class="white"
-									>
-									<div class="row">
-										<span class="order-number"  x-text="`${complaint.type_letter}-${complaint.id}`"></span>
-
-										<template x-if="complaint.updated_today">
-											<div class="update-dot"></div>
-										</template>
-
-										<div class="passed-days">
-											<span class="register-day" x-text="`${complaint.passed_days} d.`"></span>
-										</div>
-									</div>
-
-									<div class="row">
-										<div>
-											<span class="machine" x-text="complaint.client_name"></span>
-											<template x-if="group.status_id > 2">
-												<span class="admin-name" x-text="complaint.assigned_name"></span>
-											</template>
-										</div>
-									</div>
-								
-								</li>
-							</template>
+					@drop="onDropPending()"
+				>
+					
+					<template x-if="$store.cache.getData('imports_pendings')?.length > 0">
+						<template x-for="item in $store.cache.getData('imports_pendings')" :key="item.id">
+							<div class="item-card"
+								:draggable="true"
+								@dragstart="onDragStart(item)"
+							>   
+								<span class="number" x-text="`SP-${item.id}`"></span>
+								<span class="district" x-text="item.provider_name"></span>
+								<span class="district" x-text="item.business_name"></span>
+							</div>
 						</template>
-					</ul>
+					</template>
+					<span class="empty glass" x-show="!Array.isArray($store.cache.getData('imports_pendings'))">No hay borradores</span>
 				</div>
-			</template>
+			</div>
+
+			<div class="board glass">
+				<template x-for="group in $store.cache.getData('imports_dashboard')" :key="group.status_id">
+					<div class="group"
+						@dragover="onDragOver($event, group.status_id)" 
+						@dragleave="onDragLeave($event)"
+						@drop="onDrop(group.status_id)">
+						<div class="name">
+							<img alt="" width="24" height="24"
+								:src="'/static/images/imports/' + ($store.cache.getById('imports_status', group.status_id)?.image || 'default.png')"
+								alt="">
+							<span x-text="$store.cache.getById('imports_status', group.status_id)?.name || ''"></span>
+						</div>
+
+						<ul>
+							<template x-if="group.imports.length > 0">
+								<template x-for="item in group.imports" :key="item.id">
+									<li
+										:class="item.priority"
+										:draggable="editAllowed()"
+										@dragstart="onDragStart(item)"
+										@click="viewComplaint(item.id)"
+										class="white"
+										>
+										<div class="row">
+											<span class="order-number"  x-text="`SP-${item.id}`"></span>
+
+											<template x-if="item.updated_today">
+												<div class="update-dot"></div>
+											</template>
+
+											<!-- <div class="passed-days">
+												<span class="register-day" x-text="`${item.passed_days} d.`"></span>
+											</div> -->
+										</div>
+
+										<div class="row">
+											<div>
+												<span class="machine" x-text="item.provider_name"></span>
+												<span class="machine" x-text="item.business_name"></span>
+											</div>
+										</div>
+									</li>
+								</template>
+							</template>
+						</ul>
+					</div>
+				</template>
+			</div>
 		</div>
 
 
@@ -114,240 +146,142 @@
 				</div>
 
 				<div class="title">
-					<span x-text="`${selected_complaint?.type_letter}-${selected_complaint?.id}`"></span>
+					<span x-text="`${selected_import?.type_letter}-${selected_import?.id}`"></span>
 				</div>
 				
 				<div class="modal-content">
 					<div class="update">
 						<div class="box">
-							<img alt="" width="20" height="20"
-								:src="'/static/images/complaint/' + ($store.cache.getById('complaint_status', selected_complaint?.status_id)?.image)"
+							<img alt="" width="24" height="24"
+								:src="'/static/images/imports/' + ($store.cache.getById('imports_status', selected_import?.status_id)?.image)"
 								alt="from">
-							<span x-text="($store.cache.getById('complaint_status', selected_complaint?.status_id))?.name"></span>
+							<span x-text="($store.cache.getById('imports_status', selected_import?.status_id))?.name"></span>
 						</div>
 
 						<div class="box">
-							<img alt="" width="20" height="20"
-								:src="'/static/images/complaint/' + ($store.cache.getById('complaint_status', selected_group_id)?.image)"
+							<img alt="" width="24" height="24"
+								:src="'/static/images/imports/' + ($store.cache.getById('imports_status', selected_group_id)?.image)"
 								alt="to">
-							<span x-text="($store.cache.getById('complaint_status', selected_group_id))?.name"></span>
+							<span x-text="($store.cache.getById('imports_status', selected_group_id))?.name"></span>
 						</div>
 						<img alt="" class="arrow" width="16" height="16" src="/static/images/arrownext.svg">
 					</div>
 						
-					<template x-if="selected_complaint?.status_id == 2">
+					<template x-if="selected_import?.status_id == 2">
 						<div class="fields options">
-							<div class="order-input">
-								<!-- <img alt="" width="16" height="16" src="/static/images/icons/box.svg"> -->
-								<!-- <span>Pedido</span> -->
-								<label class="white">
-									<input type="text" x-model="selected_complaint.order_number" placeholder="Número de orden">
-								</label>
+							<label class="white">
+								<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
+
+								<span
+									style="cursor: pointer; flex: 1; line-height: 2.5rem;"
+									@click="
+										if ($refs.booking_date_input.showPicker) {
+											$refs.booking_date_input.showPicker();
+										} else {
+											$refs.booking_date_input.focus();
+										}
+									"
+									x-text="dateLabel(booking_date, 'Fecha de Booking')"
+								></span>
+
+								<input
+									x-ref="booking_date_input"
+									type="date"
+									x-model="booking_date"
+									:min="minDate"
+									style="
+										position:absolute;
+										inset:0;
+										opacity:0;
+										pointer-events:none;
+									"
+								>
+							</label>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 4">
+						<div class="capture-proof">
+							<span class="name">Documentos</span>
+
+							<div class="bottom thumbnails-grid" >
+								<template x-for="(f, index) in pending_docs" :key="f.id">
+								<div class="thumb-item" @click="removePendingDoc(index)">
+									<div class="thumbnail-wrapper">
+									<img class="delete" alt="delete" width="24" height="24"
+										src="/static/images/icons/delete.svg"
+										@click.stop="removePendingDoc(index)">
+
+									<!-- Miniatura SOLO si es imagen -->
+									<template x-if="isImageFile(f)">
+										<img class="thumbnail" :src="f.preview" :alt="f.original_name">
+									</template>
+
+									<!-- No imagen: tarjeta como ya tienes -->
+									<template x-if="!isImageFile(f)">
+										<div class="file-card thumbnail">
+											<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+										</div>
+									</template>
+									</div>
+
+									<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+								</div>
+								</template>
+
+								<!-- GUARDADOS (DEL BACKEND) -->
+								<template x-for="f in docs" :key="f.id">
+								<div class="thumb-item" @click="openAttachment(f)">
+									<div class="thumbnail-wrapper">
+									<template x-if="isImageFile(f)">
+										<img class="thumbnail" :src="getInlineUrl(f)" :alt="f.original_name">
+									</template>
+
+									<template x-if="!isImageFile(f)">
+										<div class="file-card">
+										<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+										</div>
+									</template>
+									</div>
+
+									<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+								</div>
+								</template>
+
+								<div class="add-button hover-opacity" @click="$refs.docsInput.click()">
+									<img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
+								</div>
+
+									<input
+										type="file"
+										class="hidden"
+										multiple
+										x-ref="docsInput"
+										data-target="product_list"
+										accept=".pdf,.xml,.txt,.doc,.docx,.xls,.xlsx,image/*"
+										@change="queueDocs($event)"
+										/>
 							</div>
-
-							<label class="white">
-								<select x-model="category_id">
-									<option value="null" disabled selected>Categoría</option>
-
-									<template x-for="categories in $store.cache.getData('complaint_categories')" :key="categories.id">
-										<option :value="categories.id" x-text="categories.name"></option>
-									</template>
-								</select>
-							</label>
 						</div>
 					</template>
 
-					<template x-if="selected_complaint?.status_id == 2">
-						<div class="fields options">
-
-							<label class="white">
-								<select x-model="owner_id">
-									<option value="null" disabled selected>Responsable</option>
-
-									<template x-for="workers in $store.cache.getData('common_workers')" :key="workers.id">
-										<option :value="workers.id" x-text="workers.name"></option>
-									</template>
-								</select>
-							</label>
-
-							<label class="white">
-								<select x-model="seller_id">
-									<option value="null" disabled selected>Comercial a cargo</option>
-
-									<template x-for="vendors in $store.cache.getData('common_vendors')" :key="vendors.id">
-										<option :value="vendors.id" x-text="vendors.name"></option>
-									</template>
-									<option value="0">Ninguno</option>
-
-								</select>
-							</label>
-						</div>
-					</template>
-
-					<!-- <textarea x-model="status_notes" class="text-area glass2" placeholder="Notas"></textarea> -->
+					<textarea x-model="status_notes" class="text-area glass2" placeholder="Notas"></textarea>
 					
 				</div>
 
-				<template x-if="selected_complaint?.status_id < 5">
-					<div class="buttons">
-						<button class="hover-opacity button" @click="updateStatus()" :class="buttons.move_status.class" x-text="buttons.move_status.text"></button>
-					</div>
-				</template>
+				<!-- <template x-if="selected_import?.status_id < 5"> -->
+				<div class="buttons">
+					<button class="hover-opacity button" @click="updateStatus()" :class="buttons.move_status.class" x-text="buttons.move_status.text"></button>
+				</div>
+				<!-- </template> -->
 
-				<template x-if="selected_complaint?.status_id == 5">
+				<!-- <template x-if="selected_import?.status_id == 5">
 					<div class="buttons">
 						<button class="hover-opacity button" @click="updateStatus(true)" :class="buttons.move_status.class">Resuelto</button>
 
 						<button class="hover-opacity black button" @click="updateStatus()" :class="buttons.move_status.class">Archivado</button>
 					</div>
-				</template>
-			</div>
-		</div>
-
-
-		<div
-			x-show="$store.cache.isVisibleModal('view')"
-			@mousedown.self="$store.cache.hideLastModal()"
-			class="modal-wrap"
-			id="modal-view"
-			x-transition:enter="modal-enter"
-			x-transition:enter-start="modal-enter-start"
-			x-transition:enter-end="modal-enter-end"
-			x-transition:leave="modal-leave"
-			x-transition:leave-start="modal-leave-start"
-			x-transition:leave-end="modal-leave-end"
-			x-cloak
-		>
-			<div class="modal glass2 " @click.stop>
-				<div class="modal-grabber">
-					<div class="modal-grabber-bar"></div>
-				</div>
-
-				<div class="top">
-					<span class="title" x-text="`${complaint_data?.type_letter}-${complaint_data?.id}`"></span>
-					<span class="days" :class="complaint_data?.priority" x-text="`${complaint_data?.passed_days} día${complaint_data?.passed_days == 1 ? '':'s'}`"></span>
-					<!-- <span class="title" x-text="complaint_data?.order_number"></span> -->
-					<div x-show="complaint_data?.status_id > 2" class="proof hover-opacity" @click="proofModal()">
-						<img alt="" width="16" height="16" src="/static/images/complaint/proof.svg">
-						Evidencias
-					</div>
-				</div>
-
-				<div class="box white">
-					<div class="container">
-						<span class="letter" x-text="complaint_data.client_name?.charAt(0)">A</span>
-
-						<div class="data">
-							<span class="bold" x-text="complaint_data?.client_name"></span>
-							<span class="text" x-text="complaint_data?.document"></span>
-						</div>
-
-						<div class="icons">
-							<a title="Whatsapp" :href="`https://api.whatsapp.com/send?phone=51${complaint_data?.phone}`" target="_blank" class="hover-opacity" rel="noopener noreferrer">
-								<img alt="" alt="phone" src="/static/images/whatsapp.svg" width="16" height="16">
-							</a>
-							<a title="Email" :href="``" target="_blank" class="hover-opacity" rel="noopener noreferrer">
-								<img alt="" alt="phone" src="/static/images/email.svg" width="16" height="16">
-							</a>
-						</div>
-					</div>
-					
-					<div class="container">
-						<img alt="" width="16" height="16" src="/static/images/location.svg">
-						<span class="text" x-text="`${complaint_data?.address} - ${complaint_data?.department}, ${complaint_data?.province}, ${complaint_data?.district}`"></span>
-					</div>
-				</div>
-				
-				<div class="modal-content">
-					<div class="box white">
-						<div class="container">
-							<img alt="" width="16" height="16" src="/static/images/icons/box.svg">
-
-							<div class="data">
-								<span class="bold" x-text="complaint_data?.consumption_description"></span>
-								<!-- complaint_data?.order_number -->
-								<span class="text" x-text="`${complaint_data?.order_number} - ${complaint_data?.purchase_date}`"></span>
-							</div>
-
-							<div class="data">
-								<span class="bold" x-text="`S/ ${complaint_data?.amount}`"></span>
-								<span class="text" x-text="complaint_data?.consumption_name"></span>
-							</div>
-						</div>
-						
-						<div class="container">
-							<img alt="" width="16" height="16" src="/static/images/icons/board.svg">
-
-							<div class="data">
-								<span class="bold">Detalle</span>
-								<span class="text" x-text="`${complaint_data?.detail}`"></span>
-							</div>
-						</div>
-						
-						<div class="container">
-							<img alt="" width="16" height="16" src="/static/images/icons/board.svg">
-
-							<div class="data">
-								<span class="bold">Solicitud</span>
-								<span class="text" x-text="`${complaint_data?.customer_request}`"></span>
-							</div>
-						</div>
-					</div>
-					
-					<div class="comments-container" x-show="complaint_data.modal !== 'add'">
-						<div class="comments-box gradient" :class="{'over': complaint_data.status_id > 5}">
-							<template x-if="!complaint_data.chats || complaint_data.chats.length === 0">
-								<div class="no-comments">Aún no hay mensajes</div>
-							</template>
-							
-							<template x-for="chat in complaint_data.chats" :key="chat.id">
-								<div class="user-comment" :class="{'self': chat.commenter_id == user.id}">
-									<img alt="user" :src="'/static/images/uploads/users/' + chat.commenter_image" width="24" height="24">
-									<div class="white bubble">
-										<div class="top">
-											<span x-text="chat.commenter_id == user.id ? 'Tú' :chat.commenter_name"></span>
-											<p x-text="chat.created_at"></p>
-										</div>
-										<p x-text="chat.comment"></p>
-									</div>
-								</div>
-							</template>
-						</div>
-
-						<div class="comments-input white" x-show="complaint_data.status_id <= 5">
-							<label>
-								<input type="text" x-model="complaint_data.message" placeholder="Ingresa un mensaje...">
-							</label>
-							<div class="send hover-opacity" @click="sendChat()" :class="{'disabled': complaint_data.message == '' || complaint_data.message === undefined}">
-								<img alt="enviar" width="16" height="16" src="/static/images/icons/send.svg">
-							</div>
-						</div>
-					</div>
-
-					<!-- <div class="history">
-						<template x-for="history in complaint_data?.history" :key="history.status_id">
-							<div class="row" :class="history.status_id == 3 ? 'hand hover-opacity' : ''" @click="proofModal(history.status_id)">
-								<img alt="" width="20" height="20" :src="'/static/images/complaint/' + $store.cache.getById('complaint_status', history.status_id)?.image" alt="">
-
-								<div class="left">
-									<div class="head">
-										<span class="name" x-text="$store.cache.getById('complaint_status', history.status_id)?.name"></span>
-										<span class="user_name" x-text="history.user_name"></span>
-										<div class="right">
-											<span class="date" x-text="history.created_at"></span>
-										</div>
-									</div>
-									<span class="notes" x-html="history.notes.replace(/\n/g, '<br>')"></span>
-								</div>
-							</div>
-						</template>
-					</div> -->
-				</div>
-
-				<div class="buttons" x-show="editAllowed() && complaint_data?.status_id >= 8">
-					<button class="button hover-opacity" :class="{ 'black': complaint_data && complaint_data.status_id == 8 }" @click="createPDF(complaint_data.order_number)">Descargar Reporte</button>
-					<button class="button hover-opacity" @click="finish(complaint_data)"  x-show="complaint_data?.status_id == 8">Finalizar</button>
-				</div>
+				</template> -->
 			</div>
 		</div>
 
@@ -370,303 +304,104 @@
 					<div class="modal-grabber-bar"></div>
 				</div>
 
-				<label class="white">
-					<input class="title" type="text" placeholder="N° orden" x-model="new_complaint.order_number" @blur="fetchClientOrder()">
-				</label>
-
-				<div></div>
-
 				<div class="modal-content">
 					<div class="fields">
 						<label class="white">
-							<select x-model="new_complaint.type_id">
-								<option value="null" selected disabled>Tipo de reclamo</option>
+							<select x-model="new_import.provider_id" @change="getProvider()">
+								<option value="null" selected disabled>Proveedor</option>
 
-								<template x-for="method in $store.cache.getData('complaint_types')" :key="method.id">
-									<option :value="method.id" x-text="method.name"></option>
+								<template x-for="provider in $store.cache.getData('imports_provider')" :key="provider.id">
+									<option :value="provider.id" x-text="provider.name"></option>
 								</template>
 							</select>
 						</label>
 
-						<label class="white" style="position: relative;">
-							<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
-							<span
-								style="cursor: pointer; flex: 1; line-height: 2.5rem;"
-								@click="
-									if ($refs.purchase_date.showPicker) {
-										$refs.purchase_date.showPicker();
-									} else {
-										$refs.purchase_date.focus();
-									}
-								"
-								x-text="dateLabel(new_complaint.purchase_date, 'Fecha de compra')"
-							></span>
+						<label class="white">
+							<select x-model="new_import.business_id">
+								<option value="null" selected disabled>Empresa</option>
 
-							<input
-								x-ref="purchase_date"
-								type="date"
-								x-model="new_complaint.purchase_date"
-								style="position:absolute; inset:0; opacity:0; pointer-events:none;"
-							>
+								<template x-for="business in $store.cache.getData('imports_business')" :key="business.id">
+									<option :value="business.id" x-text="business.name"></option>
+								</template>
+							</select>
+						</label>
+					</div>
+
+					<div x-show="selected_provider" class="white provider">
+						<span class="letter" x-text="selected_provider?.letter"></span>
+
+						<div class="data">
+							<div class="header">
+								<span class="name" x-text="selected_provider?.name"></span>
+								<span class="line">|</span>
+								<span class="contact" x-text="selected_provider?.contact"></span>
+							</div>
+							<div class="bottom">
+								<div x-show="selected_provider?.email" class="row">
+									<img alt="" width="14" height="14" src="/static/images/email.svg">
+									<span x-text="selected_provider?.email"></span>
+								</div>
+								
+								<div x-show="selected_provider?.phone" class="row">
+									<img alt="" width="14" height="14" src="/static/images/phone.svg">
+									<span x-text="selected_provider?.phone"></span>
+								</div>
+
+								<div x-show="selected_provider?.telephone" class="row">
+									<img alt="" width="14" height="14" src="/static/images/phone.svg">
+									<span x-text="selected_provider?.telephone"></span>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="fields">
+						<label class="white">
+							<select x-model="new_import.type_id">
+								<option value="null" selected disabled>Tipo de envío</option>
+
+								<template x-for="type in $store.cache.getData('imports_type')" :key="type.id">
+									<option :value="type.id" x-text="type.name"></option>
+								</template>
+							</select>
 						</label>
 
 						<label class="white">
-							<img alt="" alt="user" src="/static/images/id.svg" width="16" height="16">
-							<input type="text" maxlength="8" @input="new_complaint.client_document = new_complaint.client_document.replace(/\D/g, '')" placeholder="DNI" x-model="new_complaint.client_document" @blur="fetchClientData()">
+							<select x-model="new_import.incoterm_id">
+								<option value="null" selected disabled>Incoterm</option>
+
+								<template x-for="incoterm in $store.cache.getData('imports_incoterm')" :key="incoterm.id">
+									<option :value="incoterm.id" x-text="incoterm.code"></option>
+								</template>
+							</select>
+						</label>
+
+						<label class="white">
+							<select x-model="new_import.port_id">
+								<option value="null" selected disabled>Puerto</option>
+
+								<template x-for="port in $store.cache.getData('imports_port')" :key="port.id">
+									<option :value="port.id" x-text="port.name"></option>
+								</template>
+							</select>
 						</label>
 					</div>
 
 					<div class="fields">
-						<label :class="client_found ? 'glass2' : 'white'">
+						<label class="white">
 							<img alt="" alt="user" src="/static/images/user.svg" width="16" height="16">
-							<input :disabled="client_found" type="text" placeholder="Nombre completo" x-model="new_complaint.client_name">
+							<input type="text" placeholder="Agente local" x-model="new_import.local_agent">
+						</label>
+
+						<label class="white">
+							<img alt="" alt="user" src="/static/images/user.svg" width="16" height="16">
+							<input type="text" placeholder="Agente origen" x-model="new_import.origin_agent">
 						</label>
 					</div>
-
-					<div class="fields">
-						<label class="white">
-							<img alt="" alt="phone" src="/static/images/phone.svg" width="16" height="16">
-							<input type="text" maxlength="9" @input="new_complaint.client_phone = new_complaint.client_phone.replace(/\D/g, '')" placeholder="Celular" x-model="new_complaint.client_phone">
-						</label>
-
-						<label class="white">
-							<img alt="" alt="email" src="/static/images/email.svg" width="16" height="16">
-							<input type="text" placeholder="Email" x-model="new_complaint.client_email">
-						</label>
-					</div>
-
-					<div></div>
-
-					<div class="fields">
-						<label class="white">
-							<select x-model="new_complaint.department_id" @change="getProvince()">
-								<option value="null" selected disabled>Departamento</option>
-
-								<template x-for="department in $store.cache.getData('common_departments')" :key="department.id">
-									<option :value="department.id" x-text="department.name"></option>
-								</template>
-							</select>
-						</label>
-
-						<label class="white">
-							<select x-model="new_complaint.province_id" @change="getDistrict()" :disabled="!new_complaint.department_id">
-								<option value="null" selected disabled>Provincia</option>
-
-								<template x-for="method in $store.cache.getData('common_provinces')" :key="method.id">
-									<option :value="method.id" x-text="method.name"></option>
-								</template>
-							</select>
-						</label>
-
-						<label class="white">
-							<select x-model="new_complaint.district_id" :disabled="!new_complaint.province_id">
-								<option value="null" selected disabled>Distrito</option>
-
-								<template x-for="method in $store.cache.getData('common_districts')" :key="method.id">
-									<option :value="method.id" x-text="method.name"></option>
-								</template>
-							</select>
-						</label>
-					</div>
-
-					<label class="white">
-						<input type="text" placeholder="Dirección" x-model="new_complaint.address">
-					</label>
-
-					<div></div>
-
-					<div class="fields">
-						<label class="white">
-							<select x-model="new_complaint.consumption_id">
-								<option value="null" selected disabled>Tipo de consumo</option>
-
-								<template x-for="method in $store.cache.getData('complaint_consumptions')" :key="method.id">
-									<option :value="method.id" x-text="method.name"></option>
-								</template>
-							</select>
-						</label>
-
-						<label class="white">
-							<input type="text" @input="new_complaint.amount = new_complaint.amount.replace(/[^0-9.]/g, '')" placeholder="Monto reclamado S/" x-model="new_complaint.amount">
-						</label>
-
-						<label class="white">
-							<input type="text" placeholder="Descripción" x-model="new_complaint.description">
-						</label>
-					</div>
-
-					<textarea x-model="new_complaint.detail" class="text-area glass2" placeholder="Detalle del reclamo"></textarea>
-
-					<textarea x-model="new_complaint.request" class="text-area glass2" placeholder="Solicitud del cliente"></textarea>
-
 				</div>
 
 				<div class="buttons">
-					<button class="button hover-opacity" @click="newComplaint()" :class="buttons.add.class" x-text="buttons.add.text"></button>
-				</div>
-			</div>
-		</div>
-
-
-		<div
-			x-show="$store.cache.isVisibleModal('history')"
-			@mousedown.self="$store.cache.hideLastModal()"
-			class="modal-wrap common-modal"
-			id="modal-history"
-			x-transition:enter="modal-enter"
-			x-transition:enter-start="modal-enter-start"
-			x-transition:enter-end="modal-enter-end"
-			x-transition:leave="modal-leave"
-			x-transition:leave-start="modal-leave-start"
-			x-transition:leave-end="modal-leave-end"
-			x-cloak
-		>
-			<div class="modal big glass2" @click.stop>
-				<div class="modal-grabber">
-					<div class="modal-grabber-bar"></div>
-				</div>
-
-				<div class="top">
-					<span class="title">Historial</span>
-
-					<div class="pagination">
-						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstPage()" title="Primera página">
-							<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
-						</span>
-						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevPage()" title="Página anterior">
-							<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
-						</span>
-						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextPage()" title="Siguiente página">
-							<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
-						</span>
-						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastPage()" title="Última página">
-							<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
-						</span>
-					</div>
-				</div>
-
-				<div class="modal-content history">
-					<table class="mobile-hide">
-						<thead>
-							<tr>
-								<th>Orden</th>
-								<th>Equipo</th>
-								<th>Cliente</th>
-								<th>Estado</th>
-								<th>Ingreso</th>
-							</tr>
-						</thead>
-						<tbody>
-							<template x-for="history in history_list" :key="history.id">
-								<tr @click="viewComplaint(history.order_number)">
-									<td class="order">
-										<div class="machine">
-											<b x-text="history.method_letter"></b>
-											<div class="model">
-												<span x-text="history.order_number"></span>
-												<span x-show="history.origin_name == 'Provincia'" x-text="history.origin_name"></span>
-											</div>
-										</div>
-									</td>
-									<td class="machine_box">
-										<div class="machine">
-											<img alt="" width="40" height="40" :src="'/static/images/uploads/machines/'+history.machine_image" alt="">
-											<div class="model">
-												<span x-text="history.machine"></span>
-												<span x-text="history.brand"></span>
-											</div>
-										</div>
-									</td>
-									<td class="client" x-text="history.client_name"></td>
-									<td class="order">
-										<span class="finished" :class="!history.finished ? 'active' : ''" x-text="history.finished ? 'Finalizado':'Activo'"></span>
-									</td>
-									<td x-text="history.register_at"></td>
-								</tr>
-							</template>
-						</tbody>
-					</table>
-
-					<div class="mobile-show mobile-table">
-						<template x-for="history in history_list" :key="history.id">
-							<div class="row white" @click="viewComplaint(history.order_number)">
-								<div class="head">
-									<div class="info">
-										<span class="id" x-text="history.order_number"></span>
-										<span class="date" x-text="history.register_at"></span>
-									</div>
-									<div class="status" :class="!history.finished ? 'active' : 'finished'" x-text="history.finished ? 'Finalizado':'Activo'"></div>
-								</div>
-								<div class="body">
-									<span class="label">Cliente</span>
-									<span class="name" x-text="history.client_name"></span>
-								</div>
-								<div class="body">
-									<span class="label">Equipo</span>
-									<span class="name" x-text="`${history.brand} ${history.machine}`"></span>
-								</div>
-							</div>
-						</template>
-					</div>
-				</div>
-			</div>
-		</div>
-
-		<div 
-			x-show="$store.cache.isVisibleModal('proof')"
-			@mousedown.self="$store.cache.hideLastModal()"
-			class="modal-wrap common-modal"
-			id="modal-proof"
-			x-transition:enter="modal-enter"
-			x-transition:enter-start="modal-enter-start"
-			x-transition:enter-end="modal-enter-end"
-			x-transition:leave="modal-leave"
-			x-transition:leave-start="modal-leave-start"
-			x-transition:leave-end="modal-leave-end"
-			x-cloak
-		>
-			<div class="modal small glass2" @click.stop>
-				<div class="modal-grabber">
-					<div class="modal-grabber-bar"></div>
-				</div>
-
-				<div class="top">
-					<span class="title">Evidencias</span>
-				</div>
-
-				<div class="modal-content bottom thumbnails-grid" >
-					<template x-for="f in proof_files" :key="f.id">
-						<div class="thumb-item hover-opacity" @click="openAttachment(f)">
-							<div class="thumbnail-wrapper" >
-							
-							<template x-if="isImageFile(f)">
-								<img class="hover-opacity" :src="getInlineUrl(f)" :alt="f.original_name">
-							</template>
-
-							<template x-if="!isImageFile(f)">
-								<div class="file-card">
-								<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
-								</div>
-							</template>
-
-							</div>
-
-							<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
-						</div>
-					</template>
-
-					<div class="dotted-button hover-opacity" @click="$refs.proofInput.click()">
-						<img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
-					</div>
-
-						<input
-						type="file"
-						class="hidden"
-						multiple
-						x-ref="proofInput"
-						accept=".pdf,.xml,.txt,.doc,.docx,.xls,.xlsx,image/*"
-						@change="uploadProofFiles($event)"
-					/>
+					<button class="button hover-opacity" @click="newImport()" :class="buttons.add.class" x-text="buttons.add.text"></button>
 				</div>
 			</div>
 		</div>
@@ -730,42 +465,6 @@
 				</div>
 			</div>
 		</div>
-
-
-		<div
-			x-show="$store.cache.isVisibleModal('search')"
-			@mousedown.self="$store.cache.hideLastModal()"
-			x-transition.duration.300ms
-			class="modal-wrap"
-			id="modal-search"
-			x-cloak>
-			<div class="modal" @click.stop>
-				<div class="bottom glass2">
-					<img alt="" class="ico" width="20" height="20" src="/static/images/icons/find.svg">
-					<input type="text"
-						x-model="find_order_number"
-						placeholder="Orden, nombre, dni/ruc"
-						@input="findOrders()">
-					<div class="hover-opacity clear" x-show="find_order_number" title="Limpiar búsqueda" @click="find_order_number = ''; finded_orders = [];">
-						<img alt="" class="" width="12" height="12" src="/static/images/x.svg">
-					</div>
-				</div>
-				<div class="orders glass2" x-show="finded_orders.length > 0">
-					<template x-for="order in finded_orders" :key="order.id">
-						<div class="item" @click="viewComplaint(order.order_number)">
-							<div class="title">
-								<span class="order-number" x-text="order.order_number"></span>
-								<span class="machine" x-text="order.machine"></span>
-							</div>
-							<span class="client" x-text="order.client_name"></span>
-
-							<img alt="" width="48" height="48" :src="`/static/images/uploads/machines/${order.machine_image}`" alt="">
-						</div>
-						
-					</template>
-				</div>
-			</div>
-		</div>
 	</div>
 
 
@@ -773,75 +472,313 @@
 		Alpine.data('complaint_data',() => ({
 			api: Alpine.store('cache').api,
 			user: Alpine.store('cache').user,
-			owner_id: null,
-			seller_id: null,
-			category_id: null,
-			find_order_number: '',
-			dashboard: [],
-			selected_complaint: null,
-			history_list: [],
-			total_pages: null,
-			current_page: 1,
-			complaint_data: [],
-			machines: [],
-			finded_orders: [],
+			docs: [],
 			status_notes: '',
-			new_complaint: {
-				order_number: '',
+			booking_date: null,
+			minDate: "",
+			selected_import: null,
+			selected_provider: null,
+			pendings_open: false,
+			new_import: {
+				provider_id: null,
+				business_id: null,
 				type_id: null,
-				purchase_date: '',
-				client_document: '',
-				client_name: '',
-				client_phone: '',
-				client_email: '',
-				department_id: null,
-				province_id: null,
-				district_id: null,
-				address: '',
-				consumption_id: null,
-				description: '',
-				amount: null,
-				detail: '',
-				request: '',
-
+				incoterm_id: null,
+				port_id: null,
+				local_agent: '',
+				origin_agent: '',
 			},
-			client_found: false,
 			processing: false,
 			selected_group_id: null,
-			proof_files: [],
 			viewer_file: null,
 			viewer_payload: null,
-
 			buttons: {
                 add: { class: '', text: 'Añadir' },
-                move_status: { class: '', text: this.selected_complaint?.status_id == 8 ? 'Finalizar orden': 'Actualizar estado' },
+                move_status: { class: '', text: this.selected_import?.status_id == 8 ? 'Finalizar orden': 'Actualizar estado' },
             },
+			docs_target: "product_list",
+			pending_docs: [],
 
 			async init() {
-				console.log('Inicializando Complaint...');
+				console.log('Inicializando Imports...');
 
                 const socket = Alpine.store('cache').socket;
 				if (socket) {
 					socket.removeAllListeners();
-					socket.on("complaint_dashboard_update", async () => {
-						await Alpine.store('cache').refresh('complaint_dashboard');
+					socket.on("imports_dashboard_update", async () => {
+						await Alpine.store('cache').refresh(['imports_dashboard', 'imports_pendings']);
 					});
 				}	
 
+				const current_date = new Date();
+				this.minDate = current_date.toISOString().slice(0, 10);
+				
 				await Alpine.store('cache').fetchData([
-					{ key: 'complaint_dashboard', url: '/complaint/dashboard', force: true },
-					{ key: 'complaint_status', url: '/complaint/status' },
-					{ key: 'complaint_types', url: '/complaint/options/type' },
-					{ key: 'complaint_consumptions', url: '/complaint/options/consumption' },
-					{ key: 'complaint_categories', url: '/complaint/options/category' },
-
-					{ key: 'common_workers', url: '/common/workers' },
-					{ key: 'common_vendors', url: '/common/vendors' },
-					{ key: 'common_departments', url: '/common/departments' },
+					{ key: 'imports_dashboard', url: '/imports/dashboard', force: true },
+					{ key: 'imports_pendings', url: '/imports/pending', force: true },
+					{ key: 'imports_status', url: '/imports/status' },
+					{ key: 'imports_provider', url: '/imports/options/provider' },
+					{ key: 'imports_type', url: '/imports/options/type' },
+					{ key: 'imports_business', url: '/imports/options/business' },
+					{ key: 'imports_incoterm', url: '/imports/options/incoterm' },
+					{ key: 'imports_port', url: '/imports/options/port' },
 				]);
 
 				await Alpine.store('cache').verify();
+			},
 
+			queueDocs(evt) {
+				const files = evt.target.files;
+				if (!files || !files.length) return;
+
+				const target = evt.target.dataset.target || "default";
+				this.docs_target = target;
+
+				for (const file of files) {
+					const ext = (file.name.split(".").pop() || "").toLowerCase();
+
+					const item = {
+					id: `tmp-${Date.now()}-${Math.random()}`,
+					file,
+					target,
+					original_name: file.name,
+					ext,
+					preview: null, // solo imágenes
+					};
+
+					// miniatura solo para imágenes
+					if (['png','jpg','jpeg','webp','gif'].includes(ext)) {
+					item.preview = URL.createObjectURL(file);
+					}
+
+					this.pending_docs.push(item);
+				}
+
+				evt.target.value = "";
+			},
+
+			removePendingDoc(index) {
+				const item = this.pending_docs[index];
+				if (!item) return;
+
+				if (item.preview) {
+					URL.revokeObjectURL(item.preview);
+				}
+
+				this.pending_docs.splice(index, 1);
+			},
+
+			async getProvider() {
+				try {
+					const response = await fetch(`${this.api}/imports/provider/${this.new_import.provider_id}`, {
+						headers: { 
+							"Content-Type": "application/json",
+							// "Authorization": `Bearer ${this.user.token}`,
+						}
+					});
+					const payload = await response.json();
+					this.selected_provider = payload.data;
+
+				} catch (error) {
+					console.error('Error:', error);
+				}
+			},
+
+			resetOrder() {
+                this.new_import = {
+					provider_id: null,
+					business_id: null,
+					type_id: null,
+					incoterm_id: null,
+					port_id: null,
+					local_agent: '',
+					origin_agent: '',
+				};
+            },
+
+			async newImport() {
+				if (!this.new_import) return;
+				if (this.processing) return;
+
+				this.processing = true;
+
+                const payload = { 
+					provider_id: this.new_import.provider_id,
+					business_id: this.new_import.business_id,
+					type_id: this.new_import.type_id,
+					incoterm_id: this.new_import.incoterm_id,
+					port_id: this.new_import.port_id,
+					local_agent: this.new_import.local_agent,
+					origin_agent: this.new_import.origin_agent,
+                }
+
+                try {
+                    const response = await fetch(`${this.api}/imports/new`, {
+                        method: 'POST',
+                        headers: { 
+							"Content-Type": "application/json",
+							"Authorization": `Bearer ${this.user.token}`,
+						},
+                        body: JSON.stringify(payload),
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+                    
+                    this.resetOrder();
+					Alpine.store('cache').hideModal('add');
+					this.selected_provider = null;
+
+                } catch (error) {
+                    this.showError('add', error.message);
+                } finally {
+					this.processing = false;
+                }
+            }, 
+
+			async updateStatus(resolved = false) {
+				if (!this.selected_import) return;
+				
+				const import_id = this.selected_import.id;
+				const status_id = this.selected_import.status_id;
+				const booking_date = this.booking_date == '' ? null:this.booking_date;
+				const status_notes = this.status_notes;
+
+				if (status_id == 2 && booking_date === null) {
+                    this.showError('move_status', 'Selecciona una fecha de booking');
+					return;
+				}
+
+				const payload = {
+					import_id: import_id,
+					booking_date: booking_date,
+					notes: status_notes,
+				};
+				
+				if (this.processing) return;
+				this.processing = true;
+
+				if (status_id == 4) {
+					const ok = await this.uploadPendingDocs();
+					if (!ok) return;
+				}
+
+				try {
+					const response = await fetch(`${this.api}/imports/move`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							"Authorization": `Bearer ${this.user.token}`,
+						},
+						body: JSON.stringify(payload)
+					});
+
+					const jsonData = await response.json();
+                    if (!response.ok) {
+						throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+					}
+
+					Alpine.store('cache').hideModal('status');
+					this.selected_import = null;
+
+				} catch (error) {
+					this.showError('move_status', error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async uploadPendingDocs() {
+				if (!this.selected_import?.id) return true;
+				if (!this.pending_docs.length) return true;
+
+				const import_id = this.selected_import.id;
+				const target = this.docs_target || "default";
+
+				const form = new FormData();
+				form.append("target", target);
+				form.append("import_id", import_id);
+
+				for (const p of this.pending_docs) {
+					form.append("files[]", p.file);
+				}
+
+				const res = await fetch(`${this.api}/imports/attachments`, {
+					method: "POST",
+					headers: { "Authorization": `Bearer ${this.user.token}` },
+					body: form
+				});
+
+				const json = await res.json();
+				if (!res.ok) {
+					this.showError("move_status", json?.data?.message || "Upload error");
+					return false;
+				}
+
+				// limpiar previews
+				for (const p of this.pending_docs) {
+					if (p.preview) URL.revokeObjectURL(p.preview);
+				}
+				this.pending_docs = [];
+
+				// recargar docs del backend
+				await this.loadDocs(target);
+				return true;
+			},
+
+			async uploadDocs(evt) {
+				const files = evt.target.files;
+				if (!files || !files.length) return;
+
+				if (!this.selected_import) return;
+				const import_id = this.selected_import.id;
+
+				const target = evt.target.dataset.target || "default"; 
+
+				const form = new FormData();
+				form.append("target", target);
+				form.append("import_id", import_id);
+
+				for (const f of files) form.append("files[]", f);
+
+				const res = await fetch(`${this.api}/imports/attachments`, {
+					method: "POST",
+					headers: { "Authorization": `Bearer ${this.user.token}` },
+					body: form
+				});
+
+				const json = await res.json();
+				if (!res.ok) {
+					this.showError('move_status', json?.data?.message || "Upload error");
+					return;
+				}
+
+				evt.target.value = "";
+				await this.loadDocs();
+			},
+
+			async loadDocs(target = this.docs_target || "default") {
+				if (!this.selected_import?.id) return;
+
+				const import_id = this.selected_import.id;
+
+				const res = await fetch(`${this.api}/imports/attachments/${import_id}?target=${encodeURIComponent(target)}`, {
+					headers: {
+					"Content-Type": "application/json",
+					"Authorization": `Bearer ${this.user.token}`,
+					}
+				});
+
+				const json = await res.json();
+				const payload = json?.data ?? json;
+				this.docs = Array.isArray(payload) ? payload : [];
+			},
+
+			clearPendingDocs() {
+				for (const p of this.pending_docs) {
+					if (p.preview) URL.revokeObjectURL(p.preview);
+				}
+				this.pending_docs = [];
 			},
 
 			formatShortDate(iso) {
@@ -856,57 +793,6 @@
 			dateLabel(iso, fallback) {
 				return iso ? this.formatShortDate(iso) : fallback;
 			},
-			
-			async newComplaint() {
-				if (!this.new_complaint) return;
-				
-				if (this.processing) return;
-
-				this.processing = true;
-
-                const payload = { 
-                    user_id: this.user.id,
-					order_number: this.new_complaint.order_number,
-					type_id: this.new_complaint.type_id,
-					purchase_date: this.new_complaint.purchase_date,
-					client: {
-						document: this.new_complaint.client_document,
-						email: this.new_complaint.client_email,
-						name: this.new_complaint.client_name,
-						phone: this.new_complaint.client_phone,
-						department_id: this.new_complaint.department_id,
-						province_id: this.new_complaint.province_id,
-						district_id: this.new_complaint.district_id,
-						address: this.new_complaint.address,
-					},
-					consumption_id: this.new_complaint.consumption_id,
-					description: this.new_complaint.description,
-					amount: this.new_complaint.amount,
-					detail: this.new_complaint.detail,
-					request: this.new_complaint.request,
-                }
-
-                try {
-                    const response = await fetch(`${this.api}/complaint/new`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload),
-                    });
-                    
-                    const jsonData = await response.json();
-                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
-                    
-                    //this.$refs.terms.scrollTop = 0;
-                    //this.step++;
-                    this.resetOrder();
-					Alpine.store('cache').hideModal('add');
-
-                } catch (error) {
-                    this.showError('add', error.message);
-                } finally {
-					this.processing = false;
-                }
-            }, 
 
 			showError(btnKey, errorMsg) {
                 const originalText = this.buttons[btnKey].text;
@@ -924,91 +810,14 @@
                 }, 1000);
             },
 
-			async getProvince() {
-				this.new_complaint.province_id = null;
-    			this.new_complaint.district_id = null;
-
-				await Alpine.store('cache').fetchData([
-					{ key: 'common_provinces', url: `/common/provinces/${this.new_complaint.department_id}`, force: true },
-				]);
-			},
-
-			async getDistrict() {
-				this.new_complaint.district_id = null;
-				
-				await Alpine.store('cache').fetchData([
-					{ key: 'common_districts', url: `/common/districts/${this.new_complaint.province_id}`, force: true },
-				]);
-			},
-
-			async sendChat() {
-				if (!this.complaint_data.message || this.processing) return;
-				this.processing = true;
-
-				try {
-					const response = await fetch(`${this.api}/complaint/chat/${this.complaint_data.id}`, {
-						method: "POST",
-						headers: {
-							"Content-Type": "application/json",
-							"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
-						},
-						body: JSON.stringify({
-							comment: this.complaint_data.message,
-						}),
-					});
-
-					const jsonData = await response.json();
-					if (!response.ok) {
-						throw new Error(jsonData?.data?.message || "Error enviando comentario");
-					}
-					const data = jsonData.data
-					this.complaint_data.chats.push({
-						id: data.id,
-						comment: data.comment,
-						commenter_id: data.commenter_id,
-						commenter_name: data.commenter_name,
-						commenter_image: data.commenter_image,
-						created_at: data.created_at,
-					});
-
-					this.complaint_data.message = "";
-
-				} catch (error) {
-					console.error(error);
-				} finally {
-					this.processing = false;
-				}
-			},
-
-			resetOrder() {
-                this.new_complaint = {
-					order_number: '',
-					type_id: null,
-					purchase_date: '',
-					client_document: '',
-					client_name: '',
-					client_phone: '',
-					client_email: '',
-					department_id: null,
-					province_id: null,
-					district_id: null,
-					address: '',
-					consumption_id: null,
-					description: '',
-					amount: null,
-					detail: '',
-					request: '',
-				};
-            },
-
-			onDragStart(complaint) {
-				this.selected_complaint = complaint;
+			onDragStart(item) {
+				this.selected_import = item;
 			},
 
 			onDragOver(event, target_status_id) {
 				event.preventDefault();
 
-				if (this.selected_complaint.status_id == target_status_id || this.selected_complaint.status_id + 1 == target_status_id ) {
+				if (this.selected_import.status_id == target_status_id || this.selected_import.status_id + 1 == target_status_id ) {
 					event.currentTarget.classList.add('drag-over');
 					event.dataTransfer.dropEffect = 'move';
 				} else {
@@ -1025,251 +834,29 @@
 					container.classList.remove('drag-over');
 				});
 			
-				if (!this.selected_complaint) {
+				if (!this.selected_import) {
 					return;
 				}
 				
-				if (this.selected_complaint.status_id == group_id) {
-					this.selected_complaint = null;
+				if (this.selected_import.status_id == group_id) {
+					this.selected_import = null;
 					return;
 				}
 
 				this.selected_group_id = group_id;
-				this.owner_id = null;
-				this.seller_id = null;
-				this.category_id = null;
 				this.status_notes = '';
+				this.clearPendingDocs();
 				Alpine.store('cache').showModal('status');
-			},
-
-			finish(service) {
-				this.selected_complaint = service;
-				this.status_notes = '';
-				Alpine.store('cache').showModal('status');
-			},
-
-			async viewComplaint(complaint_id) {
-				try {
-					const response = await fetch(`${this.api}/complaint/view/${complaint_id}`, {
-						headers: { 
-							"Content-Type": "application/json",
-							"Authorization": `Bearer ${this.user.token}`,
-						}
-					});
-					const payload = await response.json();
-					this.complaint_data = payload.data;
-					Alpine.store('cache').showModal('view');
-				} catch (error) {
-					console.error('Error en la asignación:', error);
-				}
 			},
 
 			addOrder() {
 				Alpine.store('cache').showModal('add');
 			},
 
-			async viewHistory() {
-				await this.firstPage();
-				Alpine.store('cache').showModal('history');
-			},
-			
-			async search() {
-				this.find_order_number = '';
-				this.finded_orders = []
-
-				Alpine.store('cache').showModal('search');
-			},
-
-			async getHistory() {
-				try {
-					const response = await fetch(`${this.api}/support/history?page=${this.current_page}`);
-					const data = await response.json();
-					const jsonData = data.data || [];
-
-					this.history_list = jsonData.list;
-					this.total_pages = jsonData.pagination.pages;
-				} catch (error) {
-					console.error('Error fetching history', error);
-				} 
-			},
-
-			async firstPage() {
-				this.current_page = 1;
-				await this.getHistory();
-			},
-
-			async lastPage() {
-				this.current_page = this.total_pages;
-				await this.getHistory();
-			},
-
-			async nextPage() {
-				const new_page = this.current_page + 1;
-				if (new_page > this.total_pages)
-					return;
-				this.current_page = new_page;
-				await this.getHistory();
-			},
-
-			async prevPage() {
-				const new_page = this.current_page - 1;
-				if (new_page < 1)
-					return;
-				this.current_page = new_page;
-				await this.getHistory();
-			},
-
 			editAllowed() {
-				return (this.user.department_id == 1 || this.user.id == 23);
+				return (this.user.department_id == 8 || this.user.id == 23);
 			},
-
-			async fetchClientData() {
-				const document = this.new_complaint.client_document;
-				if (!document) {
-					this.new_complaint.client_id = '';
-					this.new_complaint.client_name = '';
-					this.new_complaint.client_phone = '';
-					this.client_found = false;
-					return;
-				}
-
-				try {
-					const response = await fetch(`${this.api}/client/data/${document}`);
-					if (!response.ok) {
-						this.new_complaint.client_id = '';
-						this.new_complaint.client_name = '';
-						this.new_complaint.client_phone = '';
-						this.new_complaint.client_email = '';
-						this.client_found = false;
-						return;
-					}
-
-					const data = await response.json();
-					if (data.success) {
-						this.new_complaint.client_id = data.data.id;
-						this.new_complaint.client_name = data.data.name;
-						this.new_complaint.client_phone = data.data.phone;
-						this.new_complaint.client_email = data.data.email;
-						this.client_found = true;
-					} else {
-						console.warn('Respuesta de API no exitosa.');
-					}
-				} catch (error) {
-					console.error('Error al obtener datos del usuario:', error);
-				} 
-			},
-
-			async updateStatus(resolved = false) {
-				if (!this.selected_complaint) return;
-				
-				const status_id = this.selected_complaint.status_id;
-				const owner_id = this.owner_id;
-				const seller_id = this.seller_id;
-				const category_id = this.category_id;
-				const status_notes = this.status_notes;
-
-				if (status_id == 2 && owner_id === null) {
-                    this.showError('move_status', 'Selecciona un responsable');
-					return;
-				}
-
-				if (status_id == 2 && category_id === null) {
-                    this.showError('move_status', 'Selecciona una categoría');
-					return;
-				}
-
-				const payload = {
-					complaint_id: this.selected_complaint.id,
-					notes: status_notes,
-					resolved: resolved,
-
-					owner_id: parseInt(owner_id),
-					category_id: parseInt(category_id),
-					seller_id: seller_id == "0" ? null: parseInt(seller_id),
-					order_number: this.selected_complaint.order_number,
-				};
-				
-				if (this.processing) return;
-				this.processing = true;
-
-				try {
-					const response = await fetch(`${this.api}/complaint/move`, {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-							"Authorization": `Bearer ${this.user.token}`,
-						},
-						body: JSON.stringify(payload)
-					});
-
-					const jsonData = await response.json();
-                    if (!response.ok) {
-						throw new Error(jsonData?.data?.message || 'Error en la solicitud');
-					}
-
-					Alpine.store('cache').hideModal('status');
-					this.selected_complaint = null;
-
-				} catch (error) {
-					this.showError('move_status', error.message);
-				} finally {
-					this.processing = false;
-				}
 			
-			},
-			async proofModal() {
-				await this.loadProofFiles();
-				this.viewer_file = null;
-				this.viewer_payload = null;
-				Alpine.store('cache').showModal('proof');
-			},
-
-			async loadProofFiles() {
-				if (!this.complaint_data?.id) return;
-
-				const complaintId = this.complaint_data.id;
-
-				const res = await fetch(`${this.api}/complaint/attachments/${complaintId}`, {
-					headers: {
-						"Content-Type": "application/json",
-						"Authorization": `Bearer ${this.user.token}`,
-					}
-				});
-
-				const json = await res.json();
-				const payload = json?.data ?? json;
-				this.proof_files = Array.isArray(payload) ? payload : [];
-			},
-
-			async uploadProofFiles(evt) {
-				const files = evt.target.files;
-				if (!files || !files.length) return;
-
-				if (!this.complaint_data?.id) return;
-				const complaintId = this.complaint_data.id;
-
-				const form = new FormData();
-				for (const f of files) form.append("files[]", f);
-
-				const res = await fetch(`${this.api}/complaint/attachments/${complaintId}`, {
-					method: "POST",
-					headers: {
-						"Authorization": `Bearer ${this.user.token}`,
-					},
-					body: form
-				});
-
-				const json = await res.json();
-				if (!res.ok) {
-					// reuse your error UI (or show modal message)
-					this.showError('move_status', json?.data?.message || "Upload error");
-					return;
-				}
-
-				evt.target.value = ""; // reset input
-				await this.loadProofFiles();
-			},
-
 			isImageFile(f) {
 				const ext = (f?.ext || '').toLowerCase();
 				return ['png','jpg','jpeg','webp','gif'].includes(ext);
@@ -1281,39 +868,44 @@
 			},
 
 			getInlineUrl(f) {
-				// f.inline_url viene del backend tipo "/complaint/attachment/<id>?disposition=inline"
-				// aquí lo convertimos a url completa
-				return `${this.api}${f.inline_url}`;
+				if (f?.is_temp) return f.local_url;   // preview local
+				return `${this.api}${f.inline_url}`;  // backend
 			},
 
 			async openAttachment(file) {
 				this.viewer_file = file;
 				this.viewer_payload = null;
 
-				// pide preview al backend
+				// TEMP: no está en backend todavía
+				if (file?.is_temp) {
+					if (this.isImageFile(file) && file.local_url) {
+					this.viewer_payload = { kind: "url", url: file.local_url };
+					} else {
+					this.viewer_payload = { kind: "download", message: "Archivo pendiente de guardar (se sube al actualizar estado)." };
+					}
+					Alpine.store("cache").showModal("attachment");
+					return;
+				}
+
+				// NORMAL: preview backend
 				const res = await fetch(`${this.api}${file.preview_url}`, {
 					headers: {
-						"Content-Type": "application/json",
-						"Authorization": `Bearer ${this.user.token}`,
+					"Content-Type": "application/json",
+					"Authorization": `Bearer ${this.user.token}`,
 					}
 				});
+
 				const json = await res.json();
 				const payload = json?.data ?? json;
 
-				// normaliza urls
-				if (payload.kind === "url") {
-					payload.url = `${this.api}${payload.url}`; // inline
-				}
-
-				// siempre tener download_url en viewer_file
+				if (payload.kind === "url") payload.url = `${this.api}${payload.url}`;
 				this.viewer_file.download_url = `${this.api}${file.download_url}`;
 
 				this.viewer_payload = payload;
-				Alpine.store('cache').showModal('attachment');
+				Alpine.store("cache").showModal("attachment");
 			},
-		}));
-		
 
+		}));
 	</script>
 
 
@@ -1323,32 +915,9 @@
 
 
 	<style>
+
 		#modal-attachment {
 			z-index: 50;
-		}
-		.thumb-item{
-			display:flex;
-			flex-direction:column;
-			gap: 0.25rem;
-		}
-		.dotted-button {
-			line-height: 3rem;
-			border-radius: 0.75rem;
-			justify-content: center;
-			font-size: 1.5rem;
-			width: 4.5rem;
-			height: 4.5rem;
-			display: flex;
-			align-items: center;
-			border: 2px solid var(--newgray);
-		}
-		.thumb-caption{
-			font-size: 0.65rem;
-			opacity: .75;
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-			text-align: center;
 		}
 		.file-card{
 			padding: 0.75rem;
@@ -1762,9 +1331,30 @@
 			overflow: auto;
 			flex-direction: column;
 		}
+		#dashboard .main-container {
+			display: flex;
+			flex: 1;
+			flex-direction: row-reverse;
+		}
+		#dashboard .pending-imports {
+			width: 15%;
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			padding-left: 1rem;
+		}
+		#dashboard .pending-imports .container {
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+			height: 100%;
+		}
+		#dashboard .pending-imports .empty {
+			text-align: center;
+			padding: 1rem;
+		}
 		#dashboard .board {
 			display: flex;
-			height: 100%;
 			user-select: none;
 			flex: 1;
 			overflow: auto;
@@ -1911,8 +1501,9 @@
 			font-weight: 500;
     		opacity: 0.75;
 		}
+
+
 		#modal-status .capture-proof {
-			max-width: 24rem;
 			display: flex;
 			flex-direction: column;
 			gap: 0.5rem;
@@ -1921,33 +1512,6 @@
 		#modal-status .capture-proof .name {
 			font-weight: 500;
         }
-		#modal-status .capture-proof .thumbnails-grid {
-			display: flex;
-			flex-wrap: wrap;
-			gap: 0.68rem;
-		}
-		#modal-status .capture-proof .dotted-button {
-			line-height: 3rem;
-			border-radius: 0.75rem;
-			justify-content: center;
-			font-size: 1.5rem;
-			width: 4.25rem;
-			height: 4.25rem;
-			display: flex;
-			align-items: center;
-			border: 2px solid var(--newgray);
-        }
-		#modal-status .capture-proof .thumbnail-wrapper {
-			position: relative;
-			width: 4.25rem;
-			height: 4.25rem;
-			display: flex;
-			justify-content: center;
-			align-items: center;
-			overflow: hidden;
-			border-radius: 0.75rem;
-			border: 2px solid var(--newgray);
-		}
 		#modal-status .capture-proof .thumbnail-wrapper .delete {
 			position: absolute;
     		filter: invert(1);
@@ -2396,6 +1960,54 @@
 		}
 		#modal-add .modal .title img {
 			border-radius: 1rem;
+		}
+		#modal-add .provider {
+			padding: 1rem;
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		#modal-add .provider .letter {
+			background-color: var(--secondary);
+			color: var(--white);
+			width: 2rem;
+			height: 2rem;
+			border-radius: 1rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+		#modal-add .provider .data {
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+			font-weight: 500;
+		}
+		#modal-add .provider .header {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			font-weight: 500;
+		}
+		#modal-add .provider .header .name {
+			font-size: 0.95rem;
+		}
+		#modal-add .provider .header .line {
+			opacity: 0.25;
+		}
+		#modal-add .provider .header .contact {
+			color: var(--primary);
+		}
+		#modal-add .provider .bottom {
+			opacity: 0.5;
+			font-size: 0.8rem;
+			display: flex;
+			gap: 1rem;
+		}
+		#modal-add .provider .bottom .row {
+			display: flex;
+			align-items: center;
+			gap: 0.25rem;
 		}
 		#modal-add .modal .machines {
 			position: absolute;

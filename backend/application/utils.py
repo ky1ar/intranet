@@ -1,5 +1,39 @@
-import logging
+import logging, os
 from datetime import datetime, timezone, timedelta, timezone, date
+
+
+def upload_path(path):
+    try:
+        os.makedirs(path, exist_ok=True)
+    except Exception:
+        logging.exception("Could not create folder: %s", path)
+        raise
+    return path
+
+
+def size(n):
+    if n is None:
+        return ""
+    n = float(n)
+    for unit in ["B","KB","MB","GB"]:
+        if n < 1024:
+            return f"{n:.0f}{unit}"
+        n /= 1024
+    return f"{n:.0f}TB"
+
+
+def file_extension(filename):
+        return (filename.rsplit(".", 1)[-1] if "." in filename else "").lower()
+
+
+def allowed_extension(filename):
+    allowed = {
+        "pdf", "xml", "txt",
+        "doc", "docx",
+        "xls", "xlsx",
+        "png", "jpg", "jpeg", "webp", "gif"
+    }
+    return file_extension(filename) in allowed
 
 
 def peru_time():
