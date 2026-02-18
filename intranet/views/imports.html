@@ -113,10 +113,13 @@
 
 										<div class="row">
 											<div>
-												<span class="machine" x-text="item.provider_name"></span>
-												<span class="machine" x-text="item.business_name"></span>
+												<span class="title" x-text="item.provider_name"></span>
+												<span class="sub" x-text="item.business_name"></span>
 											</div>
 										</div>
+
+										<img alt="repeat" x-show="item.type_id == 1" src="/static/images/icons/filled/ship.svg" width="28" height="28">
+										<img alt="repeat" x-show="item.type_id == 2" class="ico" src="/static/images/icons/filled/plane.svg" width="20" height="20">
 									</li>
 								</template>
 							</template>
@@ -152,14 +155,14 @@
 				<div class="modal-content">
 					<div class="update">
 						<div class="box">
-							<img alt="" width="24" height="24"
+							<img alt="" width="28" height="28"
 								:src="'/static/images/imports/' + ($store.cache.getById('imports_status', selected_import?.status_id)?.image)"
 								alt="from">
 							<span x-text="($store.cache.getById('imports_status', selected_import?.status_id))?.name"></span>
 						</div>
 
 						<div class="box">
-							<img alt="" width="24" height="24"
+							<img alt="" width="28" height="28"
 								:src="'/static/images/imports/' + ($store.cache.getById('imports_status', selected_group_id)?.image)"
 								alt="to">
 							<span x-text="($store.cache.getById('imports_status', selected_group_id))?.name"></span>
@@ -204,64 +207,490 @@
 						<div class="capture-proof">
 							<span class="name">Documentos</span>
 
-							<div class="bottom thumbnails-grid" >
-								<template x-for="(f, index) in pending_docs" :key="f.id">
-								<div class="thumb-item" @click="removePendingDoc(index)">
-									<div class="thumbnail-wrapper">
-									<img class="delete" alt="delete" width="24" height="24"
-										src="/static/images/icons/delete.svg"
-										@click.stop="removePendingDoc(index)">
+							<div class="bottom thumbnails-grid small-grid" >
+								<template x-for="(f, index) in pendingDocs('consolidated')" :key="f.id">
+									<div class="thumb-item" @click="removePendingDocById(f.id)">
+										<div class="thumbnail-wrapper">
+											<div class="delete-button">
+												<img class="delete" alt="delete" width="24" height="24"
+													src="/static/images/icons/delete.svg">
+											</div>
 
-									<!-- Miniatura SOLO si es imagen -->
-									<template x-if="isImageFile(f)">
-										<img class="thumbnail" :src="f.preview" :alt="f.original_name">
-									</template>
+											<template x-if="isImageFile(f)">
+												<img class="thumbnail" :src="f.preview" :alt="f.original_name">
+											</template>
 
-									<!-- No imagen: tarjeta como ya tienes -->
-									<template x-if="!isImageFile(f)">
-										<div class="file-card thumbnail">
-											<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+											<template x-if="!isImageFile(f)">
+												<div class="file-card thumbnail">
+													<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+												</div>
+											</template>
 										</div>
-									</template>
-									</div>
 
-									<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
-								</div>
+										<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+									</div>
 								</template>
 
-								<!-- GUARDADOS (DEL BACKEND) -->
-								<template x-for="f in docs" :key="f.id">
-								<div class="thumb-item" @click="openAttachment(f)">
-									<div class="thumbnail-wrapper">
-									<template x-if="isImageFile(f)">
-										<img class="thumbnail" :src="getInlineUrl(f)" :alt="f.original_name">
-									</template>
-
-									<template x-if="!isImageFile(f)">
-										<div class="file-card">
-										<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
-										</div>
-									</template>
-									</div>
-
-									<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
-								</div>
-								</template>
-
-								<div class="add-button hover-opacity" @click="$refs.docsInput.click()">
+								<div class="add-button hover-opacity" @click="$refs.consolidatedInput.click()">
 									<img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
 								</div>
 
-									<input
-										type="file"
-										class="hidden"
-										multiple
-										x-ref="docsInput"
-										data-target="product_list"
-										accept=".pdf,.xml,.txt,.doc,.docx,.xls,.xlsx,image/*"
-										@change="queueDocs($event)"
-										/>
+								<input
+									type="file"
+									class="hidden"
+									multiple
+									x-ref="consolidatedInput"
+									data-target="consolidated"
+									accept=".pdf,.xml,.txt,.doc,.docx,.xls,.xlsx,image/*"
+									@change="queueDocs($event)"
+									/>
 							</div>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 5">
+						<div class="fields options">
+							<label class="white">
+								<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
+
+								<span
+									style="cursor: pointer; flex: 1; line-height: 2.5rem;"
+									@click="
+										if ($refs.etd_date_input.showPicker) {
+											$refs.etd_date_input.showPicker();
+										} else {
+											$refs.etd_date_input.focus();
+										}
+									"
+									x-text="dateLabel(etd_date, `ETD`)"
+								></span>
+
+								<input
+									x-ref="etd_date_input"
+									type="date"
+									x-model="etd_date"
+									:min="minDate"
+									style="
+										position:absolute;
+										inset:0;
+										opacity:0;
+										pointer-events:none;
+									"
+								>
+							</label>
+
+							<label class="white">
+								<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
+
+								<span
+									style="cursor: pointer; flex: 1; line-height: 2.5rem;"
+									@click="
+										if ($refs.eta_date_input.showPicker) {
+											$refs.eta_date_input.showPicker();
+										} else {
+											$refs.eta_date_input.focus();
+										}
+									"
+									x-text="dateLabel(eta_date, `ETA`)"
+								></span>
+
+								<input
+									x-ref="eta_date_input"
+									type="date"
+									x-model="eta_date"
+									:min="minDate"
+									style="
+										position:absolute;
+										inset:0;
+										opacity:0;
+										pointer-events:none;
+									"
+								>
+							</label>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 5">
+						<div class="capture-proof">
+							<span class="name">Datos de carga</span>
+
+							<div class="fields options">
+								<label class="white number">
+									<b>Cantidad</b>
+									<input type="number" min="0" step="1" placeholder="0.00" x-model.number="qty">
+								</label>
+
+								<label class="white number">
+									<b>Pallets</b>
+									<input type="number" min="0" step="1" placeholder="0.00" x-model.number="pallets">
+								</label>
+							</div>
+
+							<div class="fields options">
+								<label class="white number">
+									<b>Peso (kg)</b>
+									<input type="number" min="0" step="0.01" placeholder="0.00" x-model.number="weight">
+								</label>
+
+								<label class="white number">
+									<b>Vol. (m³)</b>
+									<input type="number" min="0" step="0.01" placeholder="0.00" x-model.number="volume">
+								</label>
+							</div>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 5">
+						<div class="capture-proof">
+							<span class="name">Lista de productos</span>
+
+							<div class="bottom thumbnails-grid small-grid">
+								<template x-for="(f, index) in pendingDocs('product_list')" :key="f.id">
+									<div class="thumb-item" @click="removePendingDocById(f.id)">
+										<div class="thumbnail-wrapper">
+											<div class="delete-button">
+												<img class="delete" alt="delete" width="24" height="24"
+													src="/static/images/icons/delete.svg">
+											</div>
+
+											<template x-if="isImageFile(f)">
+												<img class="thumbnail" :src="f.preview" :alt="f.original_name">
+											</template>
+
+											<template x-if="!isImageFile(f)">
+												<div class="file-card thumbnail">
+													<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+												</div>
+											</template>
+										</div>
+
+										<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+									</div>
+								</template>
+
+								<div class="add-button hover-opacity" @click="$refs.productlistInput.click()">
+									<img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
+								</div>
+
+								<input
+									type="file"
+									class="hidden"
+									multiple
+									x-ref="productlistInput"
+									data-target="product_list"
+									accept=".pdf,.xml,.txt,.doc,.docx,.xls,.xlsx,image/*"
+									@change="queueDocs($event)"
+									/>
+									
+								<!-- <template x-for="f in docs" :key="f.id">
+									<div class="thumb-item" @click="openAttachment(f)">
+										<div class="thumbnail-wrapper">
+										<template x-if="isImageFile(f)">
+											<img class="thumbnail" :src="getInlineUrl(f)" :alt="f.original_name">
+										</template>
+
+										<template x-if="!isImageFile(f)">
+											<div class="file-card">
+											<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+											</div>
+										</template>
+										</div>
+
+										<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+									</div>
+								</template> -->
+							</div>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 6">
+						<div class="capture-proof">
+							<span class="name">Invoice</span>
+
+							<div class="bottom thumbnails-grid small-grid" >
+								<template x-for="(f, index) in pendingDocs('invoice')" :key="f.id">
+									<div class="thumb-item" @click="removePendingDocById(f.id)">
+										<div class="thumbnail-wrapper">
+											<div class="delete-button">
+												<img class="delete" alt="delete" width="24" height="24"
+													src="/static/images/icons/delete.svg">
+											</div>
+
+											<template x-if="isImageFile(f)">
+												<img class="thumbnail" :src="f.preview" :alt="f.original_name">
+											</template>
+
+											<template x-if="!isImageFile(f)">
+												<div class="file-card thumbnail">
+													<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+												</div>
+											</template>
+										</div>
+
+										<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+									</div>
+								</template>
+
+								<div class="add-button hover-opacity" @click="$refs.invoiceInput.click()">
+									<img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
+								</div>
+
+								<input
+									type="file"
+									class="hidden"
+									multiple
+									x-ref="invoiceInput"
+									data-target="invoice"
+									accept=".pdf,.xml,.txt,.doc,.docx,.xls,.xlsx,image/*"
+									@change="queueDocs($event)"
+									/>
+							</div>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 6">
+						<div class="capture-proof">
+							<span class="name">Packing List</span>
+
+							<div class="bottom thumbnails-grid small-grid" >
+								<template x-for="(f, index) in pendingDocs('packing_list')" :key="f.id">
+									<div class="thumb-item" @click="removePendingDocById(f.id)">
+										<div class="thumbnail-wrapper">
+											<div class="delete-button">
+												<img class="delete" alt="delete" width="24" height="24"
+													src="/static/images/icons/delete.svg">
+											</div>
+
+											<template x-if="isImageFile(f)">
+												<img class="thumbnail" :src="f.preview" :alt="f.original_name">
+											</template>
+
+											<template x-if="!isImageFile(f)">
+												<div class="file-card thumbnail">
+													<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+												</div>
+											</template>
+										</div>
+
+										<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+									</div>
+								</template>
+
+								<div class="add-button hover-opacity" @click="$refs.plInput.click()">
+									<img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
+								</div>
+
+								<input
+									type="file"
+									class="hidden"
+									multiple
+									x-ref="plInput"
+									data-target="packing_list"
+									accept=".pdf,.xml,.txt,.doc,.docx,.xls,.xlsx,image/*"
+									@change="queueDocs($event)"
+									/>
+							</div>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 6">
+						<div class="capture-proof">
+							<span class="name">Constancia</span>
+
+							<div class="bottom thumbnails-grid small-grid" >
+								<template x-for="(f, index) in pendingDocs('certificate')" :key="f.id">
+									<div class="thumb-item" @click="removePendingDocById(f.id)">
+										<div class="thumbnail-wrapper">
+											<div class="delete-button">
+												<img class="delete" alt="delete" width="24" height="24"
+													src="/static/images/icons/delete.svg">
+											</div>
+
+											<template x-if="isImageFile(f)">
+												<img class="thumbnail" :src="f.preview" :alt="f.original_name">
+											</template>
+
+											<template x-if="!isImageFile(f)">
+												<div class="file-card thumbnail">
+													<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+												</div>
+											</template>
+										</div>
+
+										<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+									</div>
+								</template>
+
+								<div class="add-button hover-opacity" @click="$refs.certificateInput.click()">
+									<img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
+								</div>
+
+								<input
+									type="file"
+									class="hidden"
+									multiple
+									x-ref="certificateInput"
+									data-target="certificate"
+									accept=".pdf,.xml,.txt,.doc,.docx,.xls,.xlsx,image/*"
+									@change="queueDocs($event)"
+									/>
+							</div>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 6">
+						<div class="capture-proof">
+							<span class="name">COO</span>
+
+							<div class="bottom thumbnails-grid small-grid" >
+								<template x-for="(f, index) in pendingDocs('coo')" :key="f.id">
+									<div class="thumb-item" @click="removePendingDocById(f.id)">
+										<div class="thumbnail-wrapper">
+											<div class="delete-button">
+												<img class="delete" alt="delete" width="24" height="24"
+													src="/static/images/icons/delete.svg">
+											</div>
+
+											<template x-if="isImageFile(f)">
+												<img class="thumbnail" :src="f.preview" :alt="f.original_name">
+											</template>
+
+											<template x-if="!isImageFile(f)">
+												<div class="file-card thumbnail">
+													<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+												</div>
+											</template>
+										</div>
+
+										<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+									</div>
+								</template>
+
+								<div class="add-button hover-opacity" @click="$refs.cooInput.click()">
+									<img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
+								</div>
+
+								<input
+									type="file"
+									class="hidden"
+									multiple
+									x-ref="cooInput"
+									data-target="coo"
+									accept=".pdf,.xml,.txt,.doc,.docx,.xls,.xlsx,image/*"
+									@change="queueDocs($event)"
+									/>
+							</div>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 7">
+						<div class="fields options">
+							<label class="white">
+								<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
+
+								<span
+									style="cursor: pointer; flex: 1; line-height: 2.5rem;"
+									@click="
+										if ($refs.deadline_input.showPicker) {
+											$refs.deadline_input.showPicker();
+										} else {
+											$refs.deadline_input.focus();
+										}
+									"
+									x-text="dateLabel(deadline_date, 'Deadline')"
+								></span>
+
+								<input
+									x-ref="deadline_input"
+									type="date"
+									x-model="deadline_date"
+									:min="minDate"
+									style="
+										position:absolute;
+										inset:0;
+										opacity:0;
+										pointer-events:none;
+									"
+								>
+							</label>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 7">
+						<div class="capture-proof">
+							<span class="name">Documentos</span>
+
+							<div class="bottom thumbnails-grid small-grid" >
+								<template x-for="(f, index) in pendingDocs('arrive')" :key="f.id">
+									<div class="thumb-item" @click="removePendingDocById(f.id)">
+										<div class="thumbnail-wrapper">
+											<div class="delete-button">
+												<img class="delete" alt="delete" width="24" height="24"
+													src="/static/images/icons/delete.svg">
+											</div>
+
+											<template x-if="isImageFile(f)">
+												<img class="thumbnail" :src="f.preview" :alt="f.original_name">
+											</template>
+
+											<template x-if="!isImageFile(f)">
+												<div class="file-card thumbnail">
+													<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+												</div>
+											</template>
+										</div>
+
+										<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+									</div>
+								</template>
+
+								<div class="add-button hover-opacity" @click="$refs.arriveInput.click()">
+									<img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
+								</div>
+
+								<input
+									type="file"
+									class="hidden"
+									multiple
+									x-ref="arriveInput"
+									data-target="arrive"
+									accept=".pdf,.xml,.txt,.doc,.docx,.xls,.xlsx,image/*"
+									@change="queueDocs($event)"
+									/>
+							</div>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 9">
+						<div class="fields options">
+							<label class="white">
+								<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
+
+								<span
+									style="cursor: pointer; flex: 1; line-height: 2.5rem;"
+									@click="
+										if ($refs.pay_date_input.showPicker) {
+											$refs.pay_date_input.showPicker();
+										} else {
+											$refs.pay_date_input.focus();
+										}
+									"
+									x-text="dateLabel(pay_date, 'Fecha de pago')"
+								></span>
+
+								<input
+									x-ref="pay_date_input"
+									type="date"
+									x-model="pay_date"
+									:min="minDate"
+									style="
+										position:absolute;
+										inset:0;
+										opacity:0;
+										pointer-events:none;
+									"
+								>
+							</label>
 						</div>
 					</template>
 
@@ -473,9 +902,17 @@
 			api: Alpine.store('cache').api,
 			user: Alpine.store('cache').user,
 			docs: [],
+			minDate: "",
 			status_notes: '',
 			booking_date: null,
-			minDate: "",
+			etd_date: null,
+			eta_date: null,
+			deadline_date: null,
+			pay_date: null,
+			qty: null,
+			pallets: null,
+			weight: null,
+			volume: null,
 			selected_import: null,
 			selected_provider: null,
 			pendings_open: false,
@@ -538,23 +975,37 @@
 					const ext = (file.name.split(".").pop() || "").toLowerCase();
 
 					const item = {
-					id: `tmp-${Date.now()}-${Math.random()}`,
-					file,
-					target,
-					original_name: file.name,
-					ext,
-					preview: null, // solo imágenes
+						id: `tmp-${Date.now()}-${Math.random()}`,
+						file,
+						target,
+						original_name: file.name,
+						ext,
+						preview: null, // solo imágenes
 					};
 
 					// miniatura solo para imágenes
 					if (['png','jpg','jpeg','webp','gif'].includes(ext)) {
-					item.preview = URL.createObjectURL(file);
+						item.preview = URL.createObjectURL(file);
 					}
 
 					this.pending_docs.push(item);
 				}
 
 				evt.target.value = "";
+			},
+
+			pendingDocs(target) {
+				return this.pending_docs.filter(p => p.target === target);
+			},
+
+			removePendingDocById(id) {
+				const idx = this.pending_docs.findIndex(p => p.id === id);
+				if (idx === -1) return;
+
+				const item = this.pending_docs[idx];
+				if (item.preview) URL.revokeObjectURL(item.preview);
+
+				this.pending_docs.splice(idx, 1);
 			},
 
 			removePendingDoc(index) {
@@ -594,6 +1045,19 @@
 					local_agent: '',
 					origin_agent: '',
 				};
+            },
+
+			resetStatus() {
+				this.status_notes = '';
+				this.booking_date = null;
+				this.etd_date = null;
+				this.eta_date = null;
+				this.deadline_date = null;
+				this.pay_date = null;
+				this.qty = null;
+				this.pallets = null;
+				this.weight = null;
+				this.volume = null;
             },
 
 			async newImport() {
@@ -642,25 +1106,63 @@
 				const import_id = this.selected_import.id;
 				const status_id = this.selected_import.status_id;
 				const booking_date = this.booking_date == '' ? null:this.booking_date;
+				const etd_date = this.etd_date == '' ? null:this.etd_date;
+				const eta_date = this.eta_date == '' ? null:this.eta_date;
+				const deadline_date = this.deadline_date == '' ? null:this.deadline_date;
+				const pay_date = this.pay_date == '' ? null:this.pay_date;
 				const status_notes = this.status_notes;
+				const qty = this.qty;
+				const pallets = this.pallets;
+				const weight = this.weight;
+				const volume = this.volume;
 
 				if (status_id == 2 && booking_date === null) {
                     this.showError('move_status', 'Selecciona una fecha de booking');
 					return;
 				}
 
+				if (status_id == 5 && etd_date === null) {
+                    this.showError('move_status', 'Selecciona una fecha de salida');
+					return;
+				}
+
+				if (status_id == 5 && eta_date === null) {
+                    this.showError('move_status', 'Selecciona una fecha de llegada');
+					return;
+				}
+
+				if (status_id == 7 && deadline_date === null) {
+                    this.showError('move_status', 'Selecciona un deadline');
+					return;
+				}
+
+				if (status_id == 9 && pay_date === null) {
+                    this.showError('move_status', 'Selecciona una fecha de pago');
+					return;
+				}
+
 				const payload = {
 					import_id: import_id,
 					booking_date: booking_date,
+					etd_date: etd_date,
+					eta_date: eta_date,
+					deadline_date: deadline_date,
+					qty: qty,
+					pallets: pallets,
+					weight: weight,
+					volume: volume,
 					notes: status_notes,
 				};
 				
 				if (this.processing) return;
 				this.processing = true;
 
-				if (status_id == 4) {
+				if ([4, 5, 6, 7].includes(status_id)) {
 					const ok = await this.uploadPendingDocs();
-					if (!ok) return;
+					if (!ok) {
+						this.processing = false;
+						return;
+					}
 				}
 
 				try {
@@ -693,68 +1195,40 @@
 				if (!this.pending_docs.length) return true;
 
 				const import_id = this.selected_import.id;
-				const target = this.docs_target || "default";
 
-				const form = new FormData();
-				form.append("target", target);
-				form.append("import_id", import_id);
+				const grouped = this.pending_docs.reduce((acc, p) => {
+					(acc[p.target] ||= []).push(p);
+					return acc;
+				}, {});
 
-				for (const p of this.pending_docs) {
+				for (const [target, files] of Object.entries(grouped)) {
+					const form = new FormData();
+					form.append("target", target);
+					form.append("import_id", import_id);
+
+					for (const p of files) {
 					form.append("files[]", p.file);
-				}
+					}
 
-				const res = await fetch(`${this.api}/imports/attachments`, {
+					const res = await fetch(`${this.api}/imports/attachments`, {
 					method: "POST",
 					headers: { "Authorization": `Bearer ${this.user.token}` },
 					body: form
-				});
+					});
 
-				const json = await res.json();
-				if (!res.ok) {
+					const json = await res.json();
+					if (!res.ok) {
 					this.showError("move_status", json?.data?.message || "Upload error");
-					return false;
+					return false; // NO limpies nada, así el usuario no pierde su cola
+					}
 				}
 
-				// limpiar previews
 				for (const p of this.pending_docs) {
 					if (p.preview) URL.revokeObjectURL(p.preview);
 				}
 				this.pending_docs = [];
 
-				// recargar docs del backend
-				await this.loadDocs(target);
 				return true;
-			},
-
-			async uploadDocs(evt) {
-				const files = evt.target.files;
-				if (!files || !files.length) return;
-
-				if (!this.selected_import) return;
-				const import_id = this.selected_import.id;
-
-				const target = evt.target.dataset.target || "default"; 
-
-				const form = new FormData();
-				form.append("target", target);
-				form.append("import_id", import_id);
-
-				for (const f of files) form.append("files[]", f);
-
-				const res = await fetch(`${this.api}/imports/attachments`, {
-					method: "POST",
-					headers: { "Authorization": `Bearer ${this.user.token}` },
-					body: form
-				});
-
-				const json = await res.json();
-				if (!res.ok) {
-					this.showError('move_status', json?.data?.message || "Upload error");
-					return;
-				}
-
-				evt.target.value = "";
-				await this.loadDocs();
 			},
 
 			async loadDocs(target = this.docs_target || "default") {
@@ -844,7 +1318,7 @@
 				}
 
 				this.selected_group_id = group_id;
-				this.status_notes = '';
+				this.resetStatus();
 				this.clearPendingDocs();
 				Alpine.store('cache').showModal('status');
 			},
@@ -915,7 +1389,15 @@
 
 
 	<style>
-
+		.modal label.number b {
+			min-width: 4rem;
+			font-size: 0.7rem;
+			opacity: 0.5;
+			font-weight: 700;
+		}
+		.modal label.number input {
+			text-align: right;
+		}
 		#modal-attachment {
 			z-index: 50;
 		}
@@ -1414,7 +1896,7 @@
 		}
 		#dashboard ul li .order-number {
 			font-size: 1rem;
-			font-weight: 600;
+			font-weight: 700;
 			line-height: 1rem;
 		}
 		#dashboard ul li .passed-days {
@@ -1457,11 +1939,17 @@
 			margin-top: 0.5rem;
 			display: none;
 		}
-		#dashboard ul li .machine {
+		#dashboard ul li .title {
 			font-weight: 600;
 			font-size: 0.75rem;
 			line-height: 1rem;
 			display: block;
+		}
+		#dashboard ul li .sub {
+			opacity: 0.5;
+    		font-size: 0.65rem;
+			line-height: 0.5rem;
+    		margin-top: 0.25rem;
 		}
 		#dashboard ul li .buttons {
 			display: flex;
@@ -1470,10 +1958,12 @@
 		#dashboard ul li img {
 			mix-blend-mode: darken;
 			position: absolute;
-			bottom: 0.5rem;
-			right: 0.5rem;
-			width: 2rem;
+			top: 0.25rem;
+			right: 0.25rem;
 			pointer-events: none;
+		}
+		#dashboard ul li img.ico {
+			margin: 0.25rem;
 		}
 		#dashboard ul li.low .register-day {
 			color: #6fcc85;
@@ -1512,23 +2002,7 @@
 		#modal-status .capture-proof .name {
 			font-weight: 500;
         }
-		#modal-status .capture-proof .thumbnail-wrapper .delete {
-			position: absolute;
-    		filter: invert(1);
-			opacity: 0;
-			transition: var(--transition);
-			pointer-events: none;
-			z-index: 10;
-		}
-		#modal-status .capture-proof .thumbnail-wrapper .thumbnail {
-			transition: var(--transition);
-		}
-		#modal-status .capture-proof .thumbnail-wrapper:hover .delete {
-			opacity: 1;
-		}
-		#modal-status .capture-proof .thumbnail-wrapper:hover .thumbnail {
-			filter: brightness(0.65) blur(2px);
-		}
+
 		#modal-status .alert {
 			font-size: 0.75rem;
 			color: var(--primary);
@@ -1538,18 +2012,16 @@
 			display: flex;
 			justify-content: center;
 			gap: 1rem;
-			background-color: white;
-			box-shadow: 0 0 2rem hsl(0deg 0% 0% / 5%);
 			border-radius: 1rem;
 			position: relative;
 		}
 		#modal-status .update .box {
-			padding: 1rem;
 			display: flex;
 			flex-direction: column;
 			align-items: center;
 			gap: 0.5rem;
 			flex: 1;
+			font-weight: 600;
 		}
 		#modal-status .update .arrow {
 			position: absolute;
@@ -1561,7 +2033,7 @@
 			transform: translate(-50%, -50%) rotate(180deg);
 		}
 		#modal-status .update .box img {
-			margin-top: 0.5rem;
+			margin-top: 0.25rem;
 		}
 		#modal-status .update .box span {
 			font-size: 0.8rem;

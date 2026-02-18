@@ -101,6 +101,7 @@ class ImportService:
                     "id": item.id,
                     "provider_name": item.provider.name,
                     "business_name": item.business.name,
+                    "type_id": item.type_id,
                     "type_letter": "SP",
                     "priority": 'low',
                     "updated_today": updated_today,

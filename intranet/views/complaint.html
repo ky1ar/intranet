@@ -655,7 +655,7 @@
 						</div>
 					</template>
 
-					<div class="dotted-button hover-opacity" @click="$refs.proofInput.click()">
+					<div class="add-button hover-opacity" @click="$refs.proofInput.click()">
 						<img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
 					</div>
 
@@ -1326,30 +1326,6 @@
 		#modal-attachment {
 			z-index: 50;
 		}
-		.thumb-item{
-			display:flex;
-			flex-direction:column;
-			gap: 0.25rem;
-		}
-		.dotted-button {
-			line-height: 3rem;
-			border-radius: 0.75rem;
-			justify-content: center;
-			font-size: 1.5rem;
-			width: 4.5rem;
-			height: 4.5rem;
-			display: flex;
-			align-items: center;
-			border: 2px solid var(--newgray);
-		}
-		.thumb-caption{
-			font-size: 0.65rem;
-			opacity: .75;
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-			text-align: center;
-		}
 		.file-card{
 			padding: 0.75rem;
 			display: flex;
@@ -1921,50 +1897,7 @@
 		#modal-status .capture-proof .name {
 			font-weight: 500;
         }
-		#modal-status .capture-proof .thumbnails-grid {
-			display: flex;
-			flex-wrap: wrap;
-			gap: 0.68rem;
-		}
-		#modal-status .capture-proof .dotted-button {
-			line-height: 3rem;
-			border-radius: 0.75rem;
-			justify-content: center;
-			font-size: 1.5rem;
-			width: 4.25rem;
-			height: 4.25rem;
-			display: flex;
-			align-items: center;
-			border: 2px solid var(--newgray);
-        }
-		#modal-status .capture-proof .thumbnail-wrapper {
-			position: relative;
-			width: 4.25rem;
-			height: 4.25rem;
-			display: flex;
-			justify-content: center;
-			align-items: center;
-			overflow: hidden;
-			border-radius: 0.75rem;
-			border: 2px solid var(--newgray);
-		}
-		#modal-status .capture-proof .thumbnail-wrapper .delete {
-			position: absolute;
-    		filter: invert(1);
-			opacity: 0;
-			transition: var(--transition);
-			pointer-events: none;
-			z-index: 10;
-		}
-		#modal-status .capture-proof .thumbnail-wrapper .thumbnail {
-			transition: var(--transition);
-		}
-		#modal-status .capture-proof .thumbnail-wrapper:hover .delete {
-			opacity: 1;
-		}
-		#modal-status .capture-proof .thumbnail-wrapper:hover .thumbnail {
-			filter: brightness(0.65) blur(2px);
-		}
+
 		#modal-status .alert {
 			font-size: 0.75rem;
 			color: var(--primary);
