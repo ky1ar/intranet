@@ -70,7 +70,7 @@ class ImportShipment(BaseModel):
     volume = db.Column(db.Float)
     deadline_date = db.Column(db.Date)
     pay_date = db.Column(db.Date)
-    traffic_light = db.Column(db.Integer)
+    traffic_light = db.Column(db.String(12))
     delivery_date = db.Column(db.Date)
     delivery_time = db.Column(db.Time)
     delivery_name = db.Column(db.String(128))

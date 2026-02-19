@@ -56,6 +56,8 @@ class ImportService:
                 "id": item.id,
                 "provider_name": item.provider.name,
                 "business_name": item.business.name,
+                "status_id": item.status_id,
+                "type_id": item.type_id,
             }
 
             result.append(order_data)
@@ -107,6 +109,7 @@ class ImportService:
                     "updated_today": updated_today,
                     "passed_days": passed_days,
                     "status_id": status.id,
+                    "traffic_light": item.traffic_light,
                 }
                     
                 imports_list.append(imports_data)

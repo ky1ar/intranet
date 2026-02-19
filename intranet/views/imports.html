@@ -62,13 +62,21 @@
 					
 					<template x-if="$store.cache.getData('imports_pendings')?.length > 0">
 						<template x-for="item in $store.cache.getData('imports_pendings')" :key="item.id">
-							<div class="item-card"
+							<div class="item-card white"
 								:draggable="true"
 								@dragstart="onDragStart(item)"
 							>   
-								<span class="number" x-text="`SP-${item.id}`"></span>
-								<span class="district" x-text="item.provider_name"></span>
-								<span class="district" x-text="item.business_name"></span>
+								<div class="row">
+									<span class="order-number" x-text="`SP-${item.id}`"></span>
+								</div>
+								<div class="row">
+									<div>
+										<span class="title" x-text="item.provider_name"></span>
+										<span class="sub" x-text="item.business_name"></span>
+									</div>
+								</div>
+								<img alt="repeat" x-show="item.type_id == 1" src="/static/images/icons/filled/ship.svg" width="28" height="28">
+								<img alt="repeat" x-show="item.type_id == 2" class="ico" src="/static/images/icons/filled/plane.svg" width="20" height="20" style="display: none;">
 							</div>
 						</template>
 					</template>
@@ -120,6 +128,7 @@
 
 										<img alt="repeat" x-show="item.type_id == 1" src="/static/images/icons/filled/ship.svg" width="28" height="28">
 										<img alt="repeat" x-show="item.type_id == 2" class="ico" src="/static/images/icons/filled/plane.svg" width="20" height="20">
+										<span x-show="item.traffic_light" class="dot" :class="item.traffic_light"></span>
 									</li>
 								</template>
 							</template>
@@ -694,6 +703,138 @@
 						</div>
 					</template>
 
+					<template x-if="selected_import?.status_id == 9">
+						<div class="traffic-row">
+							<div
+								class="traffic-pill"
+								role="button"
+								tabindex="0"
+								@click="cyclePayLight()"
+								@keydown.enter.prevent="cyclePayLight()"
+								@keydown.space.prevent="cyclePayLight()"
+								:title="`Semáforo: ${payLightLabel(traffic_light)}`"
+							>
+								<span class="dot green" :class="{ on: traffic_light === 'green' }"></span>
+								<span class="dot amber" :class="{ on: traffic_light === 'amber' }"></span>
+								<span class="dot red"   :class="{ on: traffic_light === 'red' }"></span>
+							</div>
+
+							<span class="traffic-text">Semáforo</span>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 10">
+						<div class="capture-proof">
+							<span class="name">Facturas</span>
+
+							<div class="bottom thumbnails-grid small-grid" >
+								<template x-for="(f, index) in pendingDocs('invoices')" :key="f.id">
+									<div class="thumb-item" @click="removePendingDocById(f.id)">
+										<div class="thumbnail-wrapper">
+											<div class="delete-button">
+												<img class="delete" alt="delete" width="24" height="24"
+													src="/static/images/icons/delete.svg">
+											</div>
+
+											<template x-if="isImageFile(f)">
+												<img class="thumbnail" :src="f.preview" :alt="f.original_name">
+											</template>
+
+											<template x-if="!isImageFile(f)">
+												<div class="file-card thumbnail">
+													<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+												</div>
+											</template>
+										</div>
+
+										<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+									</div>
+								</template>
+
+								<div class="add-button hover-opacity" @click="$refs.invoicesInput.click()">
+									<img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
+								</div>
+
+								<input
+									type="file"
+									class="hidden"
+									multiple
+									x-ref="invoicesInput"
+									data-target="invoices"
+									accept=".pdf,.xml,.txt,.doc,.docx,.xls,.xlsx,image/*"
+									@change="queueDocs($event)"
+									/>
+							</div>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 12">
+						<div class="fields options">
+							<label class="white">
+								<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
+
+								<span
+									style="cursor: pointer; flex: 1; line-height: 2.5rem;"
+									@click="
+										if ($refs.delivery_date_input.showPicker) {
+											$refs.delivery_date_input.showPicker();
+										} else {
+											$refs.delivery_date_input.focus();
+										}
+									"
+									x-text="dateLabel(delivery_date, `Fecha de retiro`)"
+								></span>
+
+								<input
+									x-ref="delivery_date_input"
+									type="date"
+									x-model="delivery_date"
+									:min="minDate"
+									style="
+										position:absolute;
+										inset:0;
+										opacity:0;
+										pointer-events:none;
+									"
+								>
+							</label>
+
+							<label class="white">
+								<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
+				
+								<input
+									type="time"
+									x-model="delivery_time"
+								>
+							</label>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 12">
+						<div class="capture-proof">
+							<span class="name">Datos de transportista</span>
+
+							<div class="fields options">
+								<label class="white">
+									<img alt="" src="/static/images/user.svg" width="16" height="16">
+									<input type="text" placeholder="Nombre" x-model="delivery_name">
+								</label>
+							</div>
+							
+							<div class="fields options">
+								<label class="white">
+									<img alt="" src="/static/images/phone.svg" width="16" height="16">
+									<input type="text" placeholder="Celular" x-model="delivery_phone">
+								</label>
+
+								<label class="white">
+									<img alt="" src="/static/images/document.svg" width="16" height="16">
+									<input type="text" placeholder="Placa" x-model="delivery_code">
+								</label>
+							</div>
+						</div>
+					</template>
+
 					<textarea x-model="status_notes" class="text-area glass2" placeholder="Notas"></textarea>
 					
 				</div>
@@ -908,6 +1049,11 @@
 			etd_date: null,
 			eta_date: null,
 			deadline_date: null,
+			delivery_date: null,
+			delivery_time: null,
+			delivery_name: '',
+			delivery_phone: '',
+			delivery_code: '',
 			pay_date: null,
 			qty: null,
 			pallets: null,
@@ -916,6 +1062,7 @@
 			selected_import: null,
 			selected_provider: null,
 			pendings_open: false,
+			traffic_light: 'green',
 			new_import: {
 				provider_id: null,
 				business_id: null,
@@ -1053,12 +1200,31 @@
 				this.etd_date = null;
 				this.eta_date = null;
 				this.deadline_date = null;
+				this.delivery_date = null,
+				this.delivery_time = null,
+				this.delivery_name = '';
+				this.delivery_phone = '';
+				this.delivery_code = '';
 				this.pay_date = null;
 				this.qty = null;
 				this.pallets = null;
 				this.weight = null;
 				this.volume = null;
+				this.traffic_light = 'green';
             },
+
+			cyclePayLight() {
+				const order = ['green', 'amber', 'red'];
+				const i = order.indexOf(this.traffic_light);
+				this.traffic_light = order[(i + 1) % order.length];
+			},
+
+			payLightLabel(color) {
+				if (color === 'green') return 'Verde';
+				if (color === 'amber') return 'Ámbar';
+				if (color === 'red') return 'Rojo';
+				return 'Verde';
+			},
 
 			async newImport() {
 				if (!this.new_import) return;
@@ -1109,8 +1275,14 @@
 				const etd_date = this.etd_date == '' ? null:this.etd_date;
 				const eta_date = this.eta_date == '' ? null:this.eta_date;
 				const deadline_date = this.deadline_date == '' ? null:this.deadline_date;
+				const delivery_date = this.delivery_date == '' ? null:this.delivery_date;
+				const delivery_time = this.delivery_time == '' ? null:this.delivery_time;
+				const delivery_name = this.delivery_name;
+				const delivery_phone = this.delivery_phone;
+				const delivery_code = this.delivery_code;
 				const pay_date = this.pay_date == '' ? null:this.pay_date;
 				const status_notes = this.status_notes;
+				const traffic_light = this.traffic_light;
 				const qty = this.qty;
 				const pallets = this.pallets;
 				const weight = this.weight;
@@ -1141,17 +1313,34 @@
 					return;
 				}
 
+				if (status_id == 12 && delivery_date === null) {
+                    this.showError('move_status', 'Selecciona un fecha de retiro');
+					return;
+				}
+
+				if (status_id == 12 && delivery_time === null) {
+                    this.showError('move_status', 'Selecciona un hora de cita');
+					return;
+				}
+
 				const payload = {
 					import_id: import_id,
 					booking_date: booking_date,
 					etd_date: etd_date,
 					eta_date: eta_date,
 					deadline_date: deadline_date,
+					delivery_date: delivery_date,
+					delivery_time: delivery_time,
+					delivery_name: delivery_name,
+					delivery_phone: delivery_phone,
+					delivery_code: delivery_code,
 					qty: qty,
 					pallets: pallets,
 					weight: weight,
 					volume: volume,
 					notes: status_notes,
+					pay_date: pay_date,
+  					traffic_light: traffic_light,
 				};
 				
 				if (this.processing) return;
@@ -1320,7 +1509,11 @@
 				this.selected_group_id = group_id;
 				this.resetStatus();
 				this.clearPendingDocs();
-				Alpine.store('cache').showModal('status');
+				if (group_id == 2) {
+					this.updateStatus();
+				} else {
+					Alpine.store('cache').showModal('status');
+				}
 			},
 
 			addOrder() {
@@ -1389,6 +1582,59 @@
 
 
 	<style>
+		.traffic-row{
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			justify-content: center;
+			flex-direction: row-reverse;
+			font-weight: 600;
+		}
+		.traffic-pill{
+		    height: 3.5rem;
+			padding: 0 1.5rem;
+			border-radius: 1rem;
+			display: flex;
+			align-items: center;
+			gap: 1rem;
+			cursor: pointer;
+			user-select: none;
+			background: rgb(255 255 255 / 85%);
+			box-shadow: 0 10px 22px rgba(0, 0, 0, .08);
+			transition: transform .12s ease, box-shadow .12s ease;
+		}
+		.traffic-pill:hover{
+			box-shadow: 0 12px 26px rgba(0,0,0,.10);
+		}
+		.traffic-pill .dot{
+			width: 1.5rem;
+			height: 1.5rem;
+			border-radius: 2rem;
+			background: #6a6a6a;
+			border: 2px solid #2f2f2f;
+			opacity: .35;
+			transform: scale(.98);
+			transition: all .15s ease;
+		}
+		.traffic-pill .dot.on{
+			opacity: 1;
+			border: 2px solid transparent;
+		}
+		.traffic-pill .dot.red.on{
+			background: #ff4d4f;
+			box-shadow: 0 0 0 6px rgba(255, 77, 79, .16), 0 0 0 6px rgba(255, 77, 79, .16);
+		}
+		.traffic-pill .dot.amber.on{
+			background: #faad14;
+			box-shadow: 0 0 0 6px rgba(250, 173, 20, .18);
+		}
+		.traffic-pill .dot.green.on{
+		    background: #7ac734;
+    		box-shadow: 0 0 0 0.5rem rgb(114 199 52 / 29%);
+		}
+		.traffic-text{
+			color: rgba(0,0,0,.75);
+		}
 		.modal label.number b {
 			min-width: 4rem;
 			font-size: 0.7rem;
@@ -1831,6 +2077,47 @@
 			gap: 0.75rem;
 			height: 100%;
 		}
+		#dashboard .pending-imports .item-card {
+			gap: 0.25rem;
+			cursor: pointer;
+			padding: 0.75rem;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			flex-direction: column;
+			position: relative;
+			transition: var(--transition);
+		}
+		#dashboard .pending-imports .item-card .row {
+			display: flex;
+			justify-content: space-between;
+			width: 100%;
+			align-items: center;
+		}
+		#dashboard .pending-imports .item-card .order-number {
+			font-size: 1rem;
+			font-weight: 700;
+			line-height: 1rem;
+		}
+		#dashboard .pending-imports .item-card .title {
+			font-weight: 600;
+			font-size: 0.75rem;
+			line-height: 1rem;
+			display: block;
+		}
+		#dashboard .pending-imports .item-card .sub {
+			opacity: 0.5;
+			font-size: 0.65rem;
+			line-height: 0.5rem;
+			margin-top: 0.25rem;
+		}
+		#dashboard .pending-imports .item-card img {
+			mix-blend-mode: darken;
+			position: absolute;
+			top: 0.25rem;
+			right: 0.25rem;
+			pointer-events: none;
+		}
 		#dashboard .pending-imports .empty {
 			text-align: center;
 			padding: 1rem;
@@ -1881,6 +2168,26 @@
 			flex-direction: column;
 			position: relative;
 			transition: var(--transition);
+		}
+		#dashboard ul li .dot {
+			width: 0.75rem;
+			height: 0.75rem;
+			position: absolute;
+			bottom: 0.75rem;
+			right: 0.75rem;
+			border-radius: 1rem;
+		}
+		#dashboard ul li .dot.red{
+			background: #ff4d4f;
+			box-shadow: 0 0 0 6px rgba(255, 77, 79, .16), 0 0 0 6px rgba(255, 77, 79, .16);
+		}
+		#dashboard ul li .dot.amber{
+			background: #faad14;
+			box-shadow: 0 0 0 6px rgba(250, 173, 20, .18);
+		}
+		#dashboard ul li .dot.green{
+		    background: #7ac734;
+    		box-shadow: 0 0 0 0.5rem rgb(114 199 52 / 29%);
 		}
 		#dashboard .group.drag-over {
 			background-color: #ffffff80;
