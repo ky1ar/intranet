@@ -2,13 +2,17 @@ import logging, time, hmac, hashlib, uuid
 from application.repository.dev_repository import DevRepository
 from application.handlers import handle_exceptions
 from application.proxy.whatsapp import Whatsapp
+from application.services.push_service import PushSender
+from application.repository.user_repository import UserRepository
 from flask import g
 
 
 class DevService:
     def __init__(self):
         self.dev_repository = DevRepository()
+        self.user_repository = UserRepository()
         self.whatsapp = Whatsapp()
+        self.push_service = PushSender()
         self.default_campaign = 'creality_fest'
 
 
@@ -215,3 +219,20 @@ class DevService:
 
         return f"{base}@{sig}", 200
     
+
+    @handle_exceptions
+    def push(self, data):
+        pn_title = data.get("title")
+        message = data.get("message")
+
+        user_ids, duic = self.user_repository.get_all_user_ids()
+        if duic != 200:
+            return user_ids, duic
+        
+        self.push_service.send_to_users(
+            user_ids=user_ids,
+            title=pn_title,
+            body=message,
+        )
+
+        return "Enviado correctamente", 200
