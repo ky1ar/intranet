@@ -281,6 +281,28 @@ class ImportService:
         return "Reclamo actualizado correctamente", 200
 
 
+    @handle_exceptions
+    def down(self, data):
+        user_id = int(get_jwt_identity())
+        import_id = data.get("import_id")
+        
+        import_shipment, isc = self.import_repository.get_import(import_id) 
+        if isc != 200:
+            return import_shipment, isc
+
+        current_status_id = import_shipment.status_id
+        move, mc = self.import_repository.move_status(import_shipment, current_status_id, data, down=True) 
+        if mc != 200:
+            return move, mc
+        
+        new_history, nhc = self.import_repository.new_history(import_id, user_id, current_status_id, down=True) 
+        if nhc != 200:
+            return new_history, nhc
+
+        socketio.emit("imports_dashboard_update", {})
+        return "Reclamo actualizado correctamente", 200
+    
+    
     def attachments_list(self, import_id):
         target = (request.args.get("target") or "default").strip()
 

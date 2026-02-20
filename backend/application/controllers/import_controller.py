@@ -65,6 +65,11 @@ class ImportController:
 
 
     @handle_logs_and_exceptions
+    def import_down(self, data):
+        return self.import_service.down(data)
+
+
+    @handle_logs_and_exceptions
     def import_attachments_list(self, import_id):
         return self.import_service.attachments_list(import_id)
 

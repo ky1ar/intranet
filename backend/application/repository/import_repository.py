@@ -143,10 +143,10 @@ class ImportRepository:
 
 
     @handle_db_exceptions
-    def new_history(self, import_id, user_id, current_status_id, notes):
+    def new_history(self, import_id, user_id, current_status_id, notes=None, down=False):
         new_order_status = ImportStatusHistory(
             import_shipment_id=import_id,
-            status_id=current_status_id + 1,
+            status_id=current_status_id + (-1 if down else 1),
             user_id=user_id,
             notes=notes,
             created_at=peru_time(),
@@ -185,33 +185,34 @@ class ImportRepository:
 
 
     @handle_db_exceptions
-    def move_status(self, import_shipment, current_status_id, data):
-        if current_status_id == 2:
-            import_shipment.booking_date = data.get("booking_date")
+    def move_status(self, import_shipment, current_status_id, data, down=False):
+        if not down:
+            if current_status_id == 2:
+                import_shipment.booking_date = data.get("booking_date")
 
-        if current_status_id == 5:
-            import_shipment.etd_date = data.get("etd_date")
-            import_shipment.eta_date = data.get("eta_date")
-            import_shipment.qty = data.get("qty")
-            import_shipment.pallets = data.get("pallets")
-            import_shipment.weight = data.get("weight")
-            import_shipment.volume = data.get("volume")
+            if current_status_id == 5:
+                import_shipment.etd_date = data.get("etd_date")
+                import_shipment.eta_date = data.get("eta_date")
+                import_shipment.qty = data.get("qty")
+                import_shipment.pallets = data.get("pallets")
+                import_shipment.weight = data.get("weight")
+                import_shipment.volume = data.get("volume")
 
-        if current_status_id == 7:
-            import_shipment.deadline_date = data.get("deadline_date")
+            if current_status_id == 7:
+                import_shipment.deadline_date = data.get("deadline_date")
 
-        if current_status_id == 9:
-            import_shipment.pay_date = data.get("pay_date")
-            import_shipment.traffic_light = data.get("traffic_light")
+            if current_status_id == 9:
+                import_shipment.pay_date = data.get("pay_date")
+                import_shipment.traffic_light = data.get("traffic_light")
 
-        if current_status_id == 12:
-            import_shipment.delivery_date = data.get("delivery_date")
-            import_shipment.delivery_time = data.get("delivery_time")
-            import_shipment.delivery_name = data.get("delivery_name")
-            import_shipment.delivery_phone = data.get("delivery_phone")
-            import_shipment.delivery_code = data.get("delivery_code")
+            if current_status_id == 12:
+                import_shipment.delivery_date = data.get("delivery_date")
+                import_shipment.delivery_time = data.get("delivery_time")
+                import_shipment.delivery_name = data.get("delivery_name")
+                import_shipment.delivery_phone = data.get("delivery_phone")
+                import_shipment.delivery_code = data.get("delivery_code")
 
-        import_shipment.status_id = current_status_id + 1
+        import_shipment.status_id = current_status_id + (-1 if down else 1)
 
         g.db_session.add(import_shipment)
         g.db_session.commit()

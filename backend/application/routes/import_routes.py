@@ -40,6 +40,12 @@ def move():
     return controller.import_move(request.get_json())
 
 
+@import_bp.route("/down", methods=["POST"])
+@jwt_required()
+def down():
+    return controller.import_down(request.get_json())
+
+
 @import_bp.route("/options/provider", methods=["GET"])
 def options_provider():
     return controller.import_options_provider()
