@@ -289,10 +289,19 @@
 						</div>
 						
 						<div class="item">
-							<div class="label">Vacaciones</div>
+							<div class="label">Vacaciones tomadas</div>
 							<div class="data" x-text="stats.vacation_days"></div>
 						</div>
 						
+						<div class="item">
+							<div class="label">Vacaciones disponibles</div>
+							<div class="data" x-text="available_leave"></div>
+						</div>
+
+						<div class="item">
+							<div class="label">Fecha de liquidación</div>
+							<div class="data" x-text="finish_date" style="font-size: 0.85rem;"></div>
+						</div>
 						<!-- <div class="item">
 							<div class="label">Bonos</div>
 							<div class="data" x-text="stats.bonus_count"></div>
@@ -885,6 +894,8 @@
 			bonus_count: 0,        // para después
 			compliance_pct: 0,
 		},
+		available_leave: 0,
+		finish_date: '-',
 
 		async init() {
 			console.log('Inicializando attendance...');
@@ -1052,8 +1063,10 @@
 		buildGrid() {
 			const data = Alpine.store('cache').getData('attendance_period') || {};
 			const weeks = data.weeks || [];
-			const days = [];
+			this.available_leave = data.available_leave || 0;
+			this.finish_date = data.finish_date || '-';
 
+			const days = [];
 			const todayISO = this.todayLocalISO();
 
 			const hasValidIntervals = (d) => {
@@ -1099,18 +1112,18 @@
 					d.is_summary = shouldShowSummary;
 
 					d.summary = shouldShowSummary ? {
-						worked_min: cumWorked,
-						target_min: cumTarget,
-						delta_min: cumWorked - cumTarget,
-						incomplete: cumIncomplete,
-					} : null;
+							worked_min: cumWorked,
+							target_min: cumTarget,
+							delta_min: cumWorked - cumTarget,
+							incomplete: cumIncomplete,
+						} : null;
 					} else {
-					d.is_summary = false;
+						d.is_summary = false;
 					}
 
 					days.push(d);
 				}
-				}
+			}
 
 			this.gridDays = days;
 			this.buildMonthStats(data);

@@ -74,6 +74,15 @@ body.modal-open {
     min-height: 100dvh;
     width: 100%;
 }
+.overflow {
+    overflow: auto;
+}
+.percent50 {
+    width: 50%;
+}
+.percent75 {
+    width: 75%;
+}
 .hidden {
     display: none;
 }
@@ -110,6 +119,16 @@ body.modal-open {
     background-color: var(--white);
     box-shadow: 0 0 1rem hsl(0deg 0% 0% / 5%);
     border-radius: 0.75rem;
+}
+.grey {
+    background-color: var(--gray);
+    box-shadow: 0 0 1rem hsl(0deg 0% 0% / 5%);
+    border-radius: 0.75rem;
+}
+.flexbox {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 .gradient {
     /* background: linear-gradient(315deg, hsl(20deg 22% 85% / 80%), hsl(211deg 22% 85% / 80%)); */
@@ -233,6 +252,9 @@ body.modal-open {
     max-width: 48rem;
     width: calc(100% - 2rem);
 }
+.modal.extrabig {
+    max-width: 74rem;
+}
 .modal.extra {
     max-width: 68rem;
 }
@@ -309,6 +331,9 @@ body.modal-open {
     flex-direction: column;
     gap: 1rem;
     overflow: auto;
+}
+.modal .modal-content.dual {
+    flex-direction: row;
 }
 .modal .textarea {
     padding: 1rem;
@@ -496,6 +521,7 @@ body.modal-open {
     align-items: center;
     flex: 1;
     padding: 0 0.75rem;
+    min-width: 0;
     position: relative;
 }
 .modal label select,
@@ -508,6 +534,19 @@ body.modal-open {
     border: none;
     outline: none;
     background-color: transparent;
+}
+.modal label textarea {
+    field-sizing: content;
+    color: var(--black);
+    padding: 0.5rem 0.125rem;
+    width: 100%;
+    font-family: var(--font);
+    border: none;
+    outline: none;
+    background-color: transparent;
+    max-height: 8rem;
+    resize: none;
+    font-size: 0.8rem;
 }
 .modal label select {
     cursor: pointer;
@@ -582,13 +621,18 @@ body.modal-open {
     display: flex;
     flex-direction: column;
     max-width: 48rem;
+    padding: 1rem;
+    background-image: url(https://www.tiendakrear3d.com/wp-content/uploads/2026/02/wspbg.png);
+    background-color: #ebebeb;
+    border: 2px solid #ffffff;
+    gap: 0.5rem;
 }
 .comments-container .comments-box {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    padding: 1.5rem 1rem;
-    border-radius: 0.75rem 0.75rem 0 0;
+    padding: 0.25rem 0;
+    flex: 1;
 }
 .comments-container .comments-box.over {
     border-radius: 0.75rem;
@@ -601,10 +645,11 @@ body.modal-open {
 .comments-container .comments-box .no-comments{
     text-align: center;
     opacity: 0.5;
+    margin: auto;
 }
 .comments-container .comments-input {
     display: flex;
-    border-radius: 0 0 0.75rem 0.75rem;
+    border-radius: 1.25rem;
 }
 .comments-container .comments-input .send {
     height: 2.5rem;
@@ -624,10 +669,10 @@ body.modal-open {
 .comments-container .user-comment .bubble {
     margin: 0;
     font-size: 0.8rem;
-    max-width: 55%;
-    padding: 0.25rem 0.6rem 0.5rem 0.7rem;
-    border-radius: 0.75rem;
-    border-top-left-radius: 0.25rem;
+    max-width: 65%;
+    padding: 0.5rem 0.75rem 0.75rem 0.75rem;
+    border-radius: 0.5rem;
+    border-top-left-radius: 0;
     display: flex;
     flex-direction: column;
 }
@@ -638,6 +683,8 @@ body.modal-open {
     margin: 0;
     opacity: 0.75;
     padding-top: 0.125rem;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 .comments-container .user-comment .bubble .top {
     display: flex;
@@ -654,9 +701,9 @@ body.modal-open {
     flex-direction: row-reverse;
 }
 .comments-container .user-comment.self .bubble {
-    border-radius: 0.75rem;
-    border-top-right-radius: 0.25rem;
-    padding: 0.25rem 0.7rem 0.5rem 0.6rem;
+    border-radius: 0.5rem;
+    border-top-right-radius: 0;
+    padding: 0.5rem 0.75rem 0.75rem 0.75rem;
 }
 /***********************************************************************************/
 #sidebar {
@@ -924,6 +971,18 @@ body.modal-open {
 @media only screen and (max-width: 75rem) {
 	.controls .item span {
         display: none;
+    }
+    .modal .modal-content.dual {
+        flex-direction: column;
+    }
+    .percent75 {
+        width: 100%;
+    }
+    .percent50 {
+        width: 100%;
+    }
+    .comments-container {
+        max-width: initial;
     }
 }
 /****************************************************	62rem	992px	 ***************************************************/ 

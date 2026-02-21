@@ -31,7 +31,6 @@ def period():
         "offset": offset,
         "user_id": user_id
     }
-
     return controller.summary_by_offset(data)
 
 

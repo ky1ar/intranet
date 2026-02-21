@@ -96,13 +96,22 @@ class UserRepository:
 
     @handle_db_exceptions
     def get_custom_team(self, department_id, user_id):
-        query = g.db_session.query(Users).filter(Users.level_id != 1).filter(Users.level_id != 5).filter(Users.department_id != 7).filter(Users.id != 23).filter(Users.id != 21)
+        query = (
+            g.db_session.query(Users)
+            .filter(Users.level_id != 1)
+            .filter(Users.level_id != 5)
+            .filter(Users.department_id != 7)
+            .filter(Users.id != 23)
+            .filter(Users.id != 21)
+        )
 
-        if department_id != 7 and user_id != 23 and user_id != 1:
+        if user_id == 15:
+            query = query.filter(Users.department_id.in_([3, 4]))
+
+        elif department_id != 7 and user_id != 23 and user_id != 1:
             query = query.filter(Users.department_id == department_id)
 
         team = query.order_by(Users.name).all()
-
         return team or [], 200
     
 

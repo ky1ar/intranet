@@ -559,9 +559,7 @@ class AttendanceService:
         if rc != 200:
             return payload, rc
 
-        start_in_period, sic = self.attendance_repository.get_user_profile_start_in_period(
-            user_id, period.start_date, period.end_date
-        )
+        start_in_period, sic = self.attendance_repository.get_user_profile_start_in_period(user_id, period.start_date, period.end_date)
         if sic != 200:
             return start_in_period, sic
 
@@ -572,6 +570,11 @@ class AttendanceService:
                 "profile_error": "Usuario sin perfil asignado en este período (user_work_profile)",
             }, 200
 
+        leave_adjustment, _ = self.attendance_repository.get_user_leave_adjustment(user_id)
+        if leave_adjustment:
+            payload["available_leave"] = int(leave_adjustment.available)
+            payload["finish_date"] = leave_adjustment.finish_date
+            
         effective_start = max(period.start_date, start_in_period)
         payload["effective_start_date"] = effective_start.isoformat()
 

@@ -49,3 +49,14 @@ class LeaveRequest(BaseModel):
     duration = db.relationship("LeaveDuration", lazy="joined", foreign_keys=[duration_id])
     type = db.relationship("LeaveType", lazy="joined", foreign_keys=[leave_type_id])
     assigned = db.relationship("Users", lazy="joined", foreign_keys=[assigned_user_id])
+
+
+class LeaveAdjustment(BaseModel):
+    __tablename__ = 'leave_adjustment'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    available = db.Column(db.Float, nullable=False)
+    finish_date = db.Column(db.String(24), nullable=False)
+
+    user = db.relationship("Users", lazy="joined", foreign_keys=[user_id])

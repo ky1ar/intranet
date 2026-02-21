@@ -5,7 +5,7 @@ from calendar import monthrange
 from application.handlers import handle_db_exceptions
 from application.utils import peru_time
 from application.db_models.attendance_model import AttendanceMark, AttendancePeriod, UserWorkProfile, WorkProfileShift, AttendanceDayAdjustment
-from application.db_models.leave_model import LeaveDuration, LeaveType, LeaveRequest
+from application.db_models.leave_model import LeaveDuration, LeaveType, LeaveRequest, LeaveAdjustment
 from application.models import Holidays
 from flask import g
 
@@ -41,6 +41,18 @@ class AttendanceRepository:
         return row.start_date, 200
 
     
+    @handle_db_exceptions
+    def get_user_leave_adjustment(self, user_id):
+        row = (
+            g.db_session.query(LeaveAdjustment)
+            .filter(LeaveAdjustment.user_id == int(user_id))
+            .first()
+        )
+        if not row:
+            return None, 200
+        return row, 200
+
+        
     @handle_db_exceptions
     def get_user_work_profile_row_in_range(self, user_id: int, start_date: date, end_date: date):
         row = (

@@ -218,7 +218,7 @@
 			x-transition:leave-end="modal-leave-end"
 			x-cloak
 		>
-			<div class="modal glass2 " @click.stop>
+			<div class="modal glass2 extrabig" @click.stop>
 				<div class="modal-grabber">
 					<div class="modal-grabber-bar"></div>
 				</div>
@@ -243,10 +243,10 @@
 						</div>
 
 						<div class="icons">
-							<a title="Whatsapp" :href="`https://api.whatsapp.com/send?phone=51${complaint_data?.phone}`" target="_blank" class="hover-opacity" rel="noopener noreferrer">
+							<a title="Whatsapp" :href="`https://api.whatsapp.com/send?phone=${complaint_data?.phone}`" target="_blank" class="hover-opacity" rel="noopener noreferrer">
 								<img alt="" alt="phone" src="/static/images/whatsapp.svg" width="16" height="16">
 							</a>
-							<a title="Email" :href="``" target="_blank" class="hover-opacity" rel="noopener noreferrer">
+							<a title="Email" :href="`mailto:${complaint_data?.email}`" target="_blank" class="hover-opacity" rel="noopener noreferrer">
 								<img alt="" alt="phone" src="/static/images/email.svg" width="16" height="16">
 							</a>
 						</div>
@@ -256,10 +256,15 @@
 						<img alt="" width="16" height="16" src="/static/images/location.svg">
 						<span class="text" x-text="`${complaint_data?.address} - ${complaint_data?.department}, ${complaint_data?.province}, ${complaint_data?.district}`"></span>
 					</div>
+
+					<div class="container">
+						<img alt="" width="16" height="16" src="/static/images/email.svg">
+						<span class="text" x-text="complaint_data?.email"></span>
+					</div>
 				</div>
 				
-				<div class="modal-content">
-					<div class="box white">
+				<div class="modal-content dual">
+					<div class="detail box white overflow percent50">
 						<div class="container">
 							<img alt="" width="16" height="16" src="/static/images/icons/box.svg">
 
@@ -294,10 +299,10 @@
 						</div>
 					</div>
 					
-					<div class="comments-container" x-show="complaint_data.modal !== 'add'">
-						<div class="comments-box gradient" :class="{'over': complaint_data.status_id > 5}">
+					<div class="comments-container white percent50" x-show="complaint_data.modal !== 'add'">
+						<div class="comments-box overflow" :class="{'over': complaint_data.status_id > 5}">
 							<template x-if="!complaint_data.chats || complaint_data.chats.length === 0">
-								<div class="no-comments">Aún no hay mensajes</div>
+								<div class="no-comments">Nada por aquí</div>
 							</template>
 							
 							<template x-for="chat in complaint_data.chats" :key="chat.id">
@@ -316,7 +321,7 @@
 
 						<div class="comments-input white" x-show="complaint_data.status_id <= 5">
 							<label>
-								<input type="text" x-model="complaint_data.message" placeholder="Ingresa un mensaje...">
+								<textarea type="text" x-model="complaint_data.message" placeholder="Ingresa un mensaje..." @keydown.enter="handleEnterSend($event)"></textarea>
 							</label>
 							<div class="send hover-opacity" @click="sendChat()" :class="{'disabled': complaint_data.message == '' || complaint_data.message === undefined}">
 								<img alt="enviar" width="16" height="16" src="/static/images/icons/send.svg">
@@ -324,24 +329,6 @@
 						</div>
 					</div>
 
-					<!-- <div class="history">
-						<template x-for="history in complaint_data?.history" :key="history.status_id">
-							<div class="row" :class="history.status_id == 3 ? 'hand hover-opacity' : ''" @click="proofModal(history.status_id)">
-								<img alt="" width="20" height="20" :src="'/static/images/complaint/' + $store.cache.getById('complaint_status', history.status_id)?.image" alt="">
-
-								<div class="left">
-									<div class="head">
-										<span class="name" x-text="$store.cache.getById('complaint_status', history.status_id)?.name"></span>
-										<span class="user_name" x-text="history.user_name"></span>
-										<div class="right">
-											<span class="date" x-text="history.created_at"></span>
-										</div>
-									</div>
-									<span class="notes" x-html="history.notes.replace(/\n/g, '<br>')"></span>
-								</div>
-							</div>
-						</template>
-					</div> -->
 				</div>
 
 				<div class="buttons" x-show="editAllowed() && complaint_data?.status_id >= 8">
@@ -855,6 +842,13 @@
 
 			dateLabel(iso, fallback) {
 				return iso ? this.formatShortDate(iso) : fallback;
+			},
+
+			handleEnterSend(e) {
+				if (e.shiftKey) return;
+
+				e.preventDefault();
+				this.sendChat();
 			},
 			
 			async newComplaint() {
@@ -2351,6 +2345,11 @@
 			background-color: var(--gray);
 		}
 
+		@media only screen and (max-width: 75rem) {
+			#modal-view .detail {
+				overflow: visible;
+			}
+		}
 
 		@media only screen and (max-width: 48rem) {
 			#dashboard {

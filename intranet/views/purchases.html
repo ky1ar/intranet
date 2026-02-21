@@ -86,7 +86,7 @@
 			x-cloak
 		>
 			
-			<div class="modal glass2" @click.stop>
+			<div class="modal glass2 extrabig" @click.stop>
 				<div class="modal-grabber">
 					<div class="modal-grabber-bar"></div>
 				</div>
@@ -103,211 +103,278 @@
 					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">
 				</div> -->
 
-				<div class="modal-content">
-					<div class="view-box" x-show="['view','delete'].includes(process_purchase.modal)">
-						<div class="view-header mobile-hide">
-							<span>Nº</span>
-							<div class="sub">
-								<span>Ítem</span>
-								<span>Cant.</span>
-								<span>Precio</span>
-								<span>URL</span>
-								<span># Pedido</span>
+				<div class="modal-content dual">
+					<div class="flexbox overflow percent75">
+						<div class="view-box" x-show="['view','delete'].includes(process_purchase.modal)">
+							<div class="view-header mobile-hide">
+								<span>Nº</span>
+								<div class="sub">
+									<span>Ítem</span>
+									<span>Cant.</span>
+									<span>Precio</span>
+									<span>URL</span>
+									<span># Pedido</span>
+								</div>
+							</div>
+
+							<template x-for="(item, index) in process_purchase.items" :key="index">
+								<div class="view-row white">
+									<span x-text="(index + 1) + '.'"></span>
+									<div class="sub mobile-hide">
+										<span x-text="item.title"></span>
+										<span x-text="item.quantity"></span>
+										<span x-text="item.price ? item.price:'-'"></span>
+										<template x-if="item.url">
+											<a :href="item.url" target="_blank" rel="noopener">
+												<img alt="link" width="16" height="16"
+													src="/static/images/icons/link.svg">
+											</a>
+										</template>
+										<template x-if="!item.url">
+											<span>-</span>
+										</template>
+										<template x-if="process_purchase.status_id == 4 && (user_id == 1 || user_id == 23 || department_id == 8)">
+											<label class="white order">
+												<input
+												type="text"
+												placeholder="Número..."
+												x-model="item.order_number"
+												>
+											</label>
+										</template>
+
+										<template x-if="!(process_purchase.status_id == 4 && (user_id == 1 || user_id == 23 || department_id == 8))">
+											<span x-text="item.order_number ? item.order_number : '-'"></span>
+										</template>
+									</div>
+									<div class="list mobile-show">
+										<div class="pair">
+											<span class="name" x-text="item.title"></span>
+										</div>
+										<div class="specs">
+											<div class="pair">
+												<span class="label">Cant.</span>
+												<span class="name" x-text="item.quantity"></span>
+											</div>
+											<div class="pair">
+												<span class="label">Precio</span>
+												<span class="name" x-text="item.price ? item.price:'-'"></span>
+											</div>
+											<div class="pair">
+												<span class="label">URL</span>
+												<template x-if="item.url">
+													<a :href="item.url" target="_blank" rel="noopener">
+														<img alt="link" width="16" height="16"
+															src="/static/images/icons/link.svg">
+													</a>
+												</template>
+												<template x-if="!item.url">
+													<span class="name" >-</span>
+												</template>
+											</div>
+											<div class="pair">
+												<span class="label">Nº Pedido</span>
+
+												<template x-if="process_purchase.status_id == 4 && (user_id == 1 || user_id == 23 || department_id == 8)">
+													<label class="white order">
+														<input
+															type="text"
+															placeholder="Número..."
+															x-model="item.order_number"
+														/>
+													</label>
+												</template>
+
+												<template x-if="!(process_purchase.status_id == 4 && (user_id == 1 || user_id == 23 || department_id == 8))">
+													<span class="name" x-text="item.order_number ? item.order_number : '-'"></span>
+												</template>
+											</div>
+										</div>
+									</div>
+								</div>
+							</template>
+
+							<div class="view-row glass2 total" x-show="process_purchase.items?.length">
+								<span></span>
+								<div class="sub">
+									<span class="mobile-hide">Total</span>
+									<span x-text="sumQty(process_purchase.items)"></span>
+									<span x-text="sumPrice(process_purchase.items)"></span>
+									<span></span>
+									<span></span>
+								</div>
 							</div>
 						</div>
+						<!-- INPUTS -->
+						<div class="grid" x-show="['edit','approve','add'].includes(process_purchase.modal)">
+							<label class="white">
+								<select x-model="process_purchase.type_id">
+									<template x-for="type in $store.cache.getData('purchases_type')" :key="type.id">
+										<option :value="type.id" x-text="type.name"></option>
+									</template>
+								</select>
+							</label>
+							<label class="white">
+								<select x-model="process_purchase.urgency_id">
+									<template x-for="urgency in $store.cache.getData('purchases_urgency')" :key="urgency.id">
+										<option :value="urgency.id" x-text="urgency.name"></option>
+									</template>
+								</select>
+							</label>
+							<!-- <label class="white">
+								<input type="date" x-model="process_purchase.register_date">
+							</label> -->
 
-						<template x-for="(item, index) in process_purchase.items" :key="index">
-							<div class="view-row white">
-								<span x-text="(index + 1) + '.'"></span>
-								<div class="sub mobile-hide">
-									<span x-text="item.title"></span>
-									<span x-text="item.quantity"></span>
-									<span x-text="item.price ? item.price:'-'"></span>
-									<template x-if="item.url">
-										<a :href="item.url" target="_blank" rel="noopener">
-											<img alt="link" width="16" height="16"
-												src="/static/images/icons/link.svg">
-										</a>
-									</template>
-									<template x-if="!item.url">
-										<span>-</span>
-									</template>
-									<template x-if="process_purchase.status_id == 4 && (user_id == 1 || user_id == 23 || department_id == 8)">
-										<label class="white order">
-											<input
-											type="text"
-											placeholder="Número..."
-											x-model="item.order_number"
-											>
+							<label class="white express">
+								Caja chica
+								<label class="box">
+									<input id="express" type="checkbox" x-model="process_purchase.express">
+									<span class="slider"></span>
+								</label>
+							</label>
+							<label class="white express">
+								Validación TI
+								<label class="box">
+									<input id="it-validation" type="checkbox" x-model="process_purchase.it_validation">
+									<span class="slider"></span>
+								</label>
+							</label>
+						</div>
+
+						<div class="items-box" x-show="['edit','approve','add'].includes(process_purchase.modal)">
+							<div class="items-header">
+								<span>Nº</span>
+								<div class="sub">
+									<span>Ítem</span>
+									<span class="mobile-hide">Cant.</span>
+									<span class="mobile-hide">Precio</span>
+									<span class="mobile-hide">URL</span>
+								</div>
+								
+								<button type="button" class="new hover-opacity" @click="addItem()" title="Agregar">
+									<img alt="Agregar" width="16" height="16" src="/static/images/icons/add.svg">
+								</button>
+							</div>
+							<template x-for="(item, index) in process_purchase.items" :key="index">
+								<div class="items-row">
+									<span x-text="(index + 1) + '.'"></span>
+									<div class="sub">
+										<label class="white">
+											<input type="text" placeholder="Agregar título" x-model="item.title">
 										</label>
-									</template>
+										
+										<label class="white">
+											<input type="number" min="1" step="1" placeholder="1" x-model.number="item.quantity">
+										</label>
 
-									<template x-if="!(process_purchase.status_id == 4 && (user_id == 1 || user_id == 23 || department_id == 8))">
-										<span x-text="item.order_number ? item.order_number : '-'"></span>
-									</template>
-								</div>
+										<label class="white">
+											<input type="number" min="0" step="0.01" placeholder="0.00" x-model.number="item.price">
+										</label>
 
-								<div class="list mobile-show">
-									<div class="pair">
-										<span class="name" x-text="item.title"></span>
+										<label class="white">
+											<input type="url" placeholder="Añadir URL" x-model="item.url">
+										</label>
 									</div>
-									<div class="specs">
-										<div class="pair">
-											<span class="label">Cant.</span>
-											<span class="name" x-text="item.quantity"></span>
-										</div>
-										<div class="pair">
-											<span class="label">Precio</span>
-											<span class="name" x-text="item.price ? item.price:'-'"></span>
-										</div>
-										<div class="pair">
-											<span class="label">URL</span>
-											<template x-if="item.url">
-												<a :href="item.url" target="_blank" rel="noopener">
-													<img alt="link" width="16" height="16"
-														src="/static/images/icons/link.svg">
-												</a>
-											</template>
-											<template x-if="!item.url">
-												<span class="name" >-</span>
-											</template>
-										</div>
-										<div class="pair">
-											<span class="label">Nº Pedido</span>
-
-											<template x-if="process_purchase.status_id == 4 && (user_id == 1 || user_id == 23 || department_id == 8)">
-												<label class="white order">
-													<input
-														type="text"
-														placeholder="Número..."
-														x-model="item.order_number"
-													/>
-												</label>
-											</template>
-
-											<template x-if="!(process_purchase.status_id == 4 && (user_id == 1 || user_id == 23 || department_id == 8))">
-												<span class="name" x-text="item.order_number ? item.order_number : '-'"></span>
-											</template>
-										</div>
-									</div>
+									
+									<button type="button" class="remove hover-opacity" @click="removeItem(index)" title="Eliminar">
+										<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
+									</button>
 								</div>
-							</div>
-						</template>
+							</template>
 
-						<div class="view-row glass2 total" x-show="process_purchase.items?.length">
-							<span></span>
-							<div class="sub">
-								<span class="mobile-hide">Total</span>
-								<span x-text="sumQty(process_purchase.items)"></span>
-								<span x-text="sumPrice(process_purchase.items)"></span>
+							<div class="items-row total" x-show="process_purchase.items?.length">
 								<span></span>
+								<div class="sub glass2">
+									<span>Total</span>
+									<span x-text="sumQty(process_purchase.items)"></span>
+									<span x-text="sumPrice(process_purchase.items)"></span>
+									<span class="mobile-hide"></span>
+								</div>
 								<span></span>
 							</div>
 						</div>
-					</div>
+					<!-- COMMENTS -->
 
-					<!-- INPUTS -->
-					<div class="grid" x-show="['edit','approve','add'].includes(process_purchase.modal)">
-						<label class="white">
-							<select x-model="process_purchase.type_id">
-								<template x-for="type in $store.cache.getData('purchases_type')" :key="type.id">
-									<option :value="type.id" x-text="type.name"></option>
-								</template>
-							</select>
+						<label class="white" x-show="process_purchase.modal === 'add'">
+							<input type="text" x-model="process_purchase.comment" placeholder="Ingresa un comentario...">
 						</label>
 
-						<label class="white">
-							<select x-model="process_purchase.urgency_id">
-								<template x-for="urgency in $store.cache.getData('purchases_urgency')" :key="urgency.id">
-									<option :value="urgency.id" x-text="urgency.name"></option>
-								</template>
-							</select>
-						</label>
-						<!-- <label class="white">
-							<input type="date" x-model="process_purchase.register_date">
-						</label> -->
+						<!-- BUTTONS -->
 
-						<label class="white express">
-							Caja chica
-							<label class="box">
-								<input id="express" type="checkbox" x-model="process_purchase.express">
-								<span class="slider"></span>
-							</label>
-						</label>
+						<div class="buttons" x-show="process_purchase.modal === 'add'">
+							<button class="button icon hover-opacity" @click="newRequest()" :class="buttons.add.class">
+								<img alt="update" width="16" height="16" src="/static/images/icons/add.svg">
+								<span x-text="buttons.add.text"></span>
+							</button>
+						</div>	
 
-						<label class="white express">
-							Validación TI
-							<label class="box">
-								<input id="it-validation" type="checkbox" x-model="process_purchase.it_validation">
-								<span class="slider"></span>
-							</label>
-						</label>
-					</div>
-					
+						<div class="buttons" 
+							x-show="process_purchase.modal === 'view' && (user_id == 1 || user_id == 23 || department_id == 8) && process_purchase.status_id > 2 && process_purchase.status_id < 7">
+							<button x-show="process_purchase.status_id == 3" class="button icon lime hover-opacity" @click="progressRequest()" :class="buttons.progress.class">
+								<img alt="eliminar" width="16" height="16" src="/static/images/icons/progress.svg">
+								<span x-text="buttons.progress.text"></span>
+							</button>
 
-					<div class="items-box" x-show="['edit','approve','add'].includes(process_purchase.modal)">
-						<div class="items-header">
-							<span>Nº</span>
-							<div class="sub">
-								<span>Ítem</span>
-								<span class="mobile-hide">Cant.</span>
-								<span class="mobile-hide">Precio</span>
-								<span class="mobile-hide">URL</span>
-							</div>
-							<button type="button" class="new hover-opacity" @click="addItem()" title="Agregar">
-								<img alt="Agregar" width="16" height="16" src="/static/images/icons/add.svg">
+							<button x-show="process_purchase.status_id == 4" class="button icon blue hover-opacity" @click="payRequest()" :class="buttons.payed.class">
+								<img alt="eliminar" width="16" height="16" src="/static/images/icons/payed.svg">
+								<span x-text="buttons.payed.text"></span>
+							</button>
+
+							<button x-show="process_purchase.status_id == 5" class="button icon violet hover-opacity" @click="invoiceRequest()" :class="buttons.invoiced.class">
+								<img alt="update" width="16" height="16" src="/static/images/icons/invoiced.svg">
+								<span x-text="buttons.invoiced.text"></span>
+							</button>
+
+							<button x-show="process_purchase.status_id == 6"
+								class="button icon teal hover-opacity"
+								@click="deliverRequest()"
+								:class="buttons.delivered.class">
+								<img alt="entregado" width="16" height="16" src="/static/images/icons/deliver.svg">
+								<span x-text="buttons.delivered.text"></span>
 							</button>
 						</div>
 
-						<template x-for="(item, index) in process_purchase.items" :key="index">
-							<div class="items-row">
-								<span x-text="(index + 1) + '.'"></span>
-								<div class="sub">
-									<label class="white">
-										<input type="text" placeholder="Agregar título" x-model="item.title">
-									</label>
-									
-									<label class="white">
-										<input type="number" min="1" step="1" placeholder="1" x-model.number="item.quantity">
-									</label>
+						<div class="buttons" x-show="process_purchase.modal === 'edit'">
+							<button class="button icon black hover-opacity" @click="deleteRequest()" :class="buttons.remove.class">
+								<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
+								<span x-text="buttons.remove.text"></span>
+							</button>
 
-									<label class="white">
-										<input type="number" min="0" step="0.01" placeholder="0.00" x-model.number="item.price">
-									</label>
+							<button class="button icon hover-opacity" @click="updateRequest()" :class="buttons.update.class">
+								<img alt="update" width="16" height="16" src="/static/images/icons/update.svg">
+								<span x-text="buttons.update.text"></span>
+							</button>
+						</div>
 
-									<label class="white">
-										<input type="url" placeholder="Añadir URL" x-model="item.url">
-									</label>
-								</div>
-								
-								<button type="button" class="remove hover-opacity" @click="removeItem(index)" title="Eliminar">
-									<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
-								</button>
-							</div>
-						</template>
+						<div class="buttons" x-show="process_purchase.modal === 'approve'">
+							<button class="button icon red hover-opacity" @click="rejectRequest()" :class="buttons.reject.class">
+								<img alt="eliminar" width="18" height="18" src="/static/images/icons/dislike.svg">
+								<span x-text="buttons.reject.text"></span>
+							</button>
 
-						<div class="items-row total" x-show="process_purchase.items?.length">
-							<span></span>
-							<div class="sub glass2">
-								<span>Total</span>
-								<span x-text="sumQty(process_purchase.items)"></span>
-								<span x-text="sumPrice(process_purchase.items)"></span>
-								<span class="mobile-hide"></span>
-							</div>
-							<span></span>
+							<button class="button icon green hover-opacity" @click="approveRequest()" :class="buttons.approve.class">
+								<img alt="update" width="18" height="18" src="/static/images/icons/like.svg">
+								<span x-text="buttons.approve.text"></span>
+							</button>
+						</div>
+
+						<div class="buttons" x-show="process_purchase.modal === 'delete'">
+							<button class="button icon red hover-opacity" @click="deleteRequest()" :class="buttons.remove.class">
+								<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
+								<span x-text="buttons.remove.text"></span>
+							</button>
+
+							<button x-show="(user_id == 1 || user_id == 23 || department_id == 8) && (process_purchase.express || process_purchase.status_id == 2)" class="button icon lime hover-opacity" @click="progressRequest()" :class="buttons.progress.class">
+								<img alt="eliminar" width="16" height="16" src="/static/images/icons/progress.svg">
+								<span x-text="buttons.progress.text"></span>
+							</button>
 						</div>
 					</div>
-
-					<!-- COMMENTS -->
-
-					<label class="white" x-show="process_purchase.modal === 'add'">
-						<input type="text" x-model="process_purchase.comment" placeholder="Ingresa un comentario...">
-					</label>
-
-					<div class="comments-container" x-show="process_purchase.modal !== 'add'">
-						<div class="comments-box gradient" :class="{'over': process_purchase.status_id > 5}">
+					
+					<div class="comments-container  white percent50" x-show="process_purchase.modal !== 'add'">
+						<div class="comments-box overflow" :class="{'over': process_purchase.status_id > 5}">
 							<template x-if="!process_purchase.chats || process_purchase.chats.length === 0">
-								<div class="no-comments">Aún no hay mensajes</div>
+								<div class="no-comments">Nada por aquí</div>
 							</template>
 							
 							<template x-for="chat in process_purchase.chats" :key="chat.id">
@@ -326,7 +393,7 @@
 
 						<div class="comments-input white" x-show="process_purchase.status_id <= 5">
 							<label>
-								<input type="text" x-model="process_purchase.message" placeholder="Ingresa un mensaje...">
+								<textarea type="text" x-model="process_purchase.message" placeholder="Ingresa un mensaje..." @keydown.enter="handleEnterSend($event)"></textarea>
 							</label>
 							<div class="send hover-opacity" @click="sendChat()" :class="{'disabled': process_purchase.message == '' || process_purchase.message === undefined}">
 								<img alt="enviar" width="16" height="16" src="/static/images/icons/send.svg">
@@ -336,76 +403,6 @@
 					
 				</div>
 
-				<!-- BUTTONS -->
-
-				<div class="buttons" x-show="process_purchase.modal === 'add'">
-					<button class="button icon hover-opacity" @click="newRequest()" :class="buttons.add.class">
-						<img alt="update" width="16" height="16" src="/static/images/icons/add.svg">
-						<span x-text="buttons.add.text"></span>
-					</button>
-				</div>	
-
-				<div class="buttons" 
-					x-show="process_purchase.modal === 'view' && (user_id == 1 || user_id == 23 || department_id == 8) && process_purchase.status_id > 2 && process_purchase.status_id < 7">
-					<button x-show="process_purchase.status_id == 3" class="button icon lime hover-opacity" @click="progressRequest()" :class="buttons.progress.class">
-						<img alt="eliminar" width="16" height="16" src="/static/images/icons/progress.svg">
-						<span x-text="buttons.progress.text"></span>
-					</button>
-
-					<button x-show="process_purchase.status_id == 4" class="button icon blue hover-opacity" @click="payRequest()" :class="buttons.payed.class">
-						<img alt="eliminar" width="16" height="16" src="/static/images/icons/payed.svg">
-						<span x-text="buttons.payed.text"></span>
-					</button>
-
-					<button x-show="process_purchase.status_id == 5" class="button icon violet hover-opacity" @click="invoiceRequest()" :class="buttons.invoiced.class">
-						<img alt="update" width="16" height="16" src="/static/images/icons/invoiced.svg">
-						<span x-text="buttons.invoiced.text"></span>
-					</button>
-
-					<button x-show="process_purchase.status_id == 6"
-						class="button icon teal hover-opacity"
-						@click="deliverRequest()"
-						:class="buttons.delivered.class">
-						<img alt="entregado" width="16" height="16" src="/static/images/icons/deliver.svg">
-						<span x-text="buttons.delivered.text"></span>
-					</button>
-				</div>
-
-				<div class="buttons" x-show="process_purchase.modal === 'edit'">
-					<button class="button icon black hover-opacity" @click="deleteRequest()" :class="buttons.remove.class">
-						<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
-						<span x-text="buttons.remove.text"></span>
-					</button>
-
-					<button class="button icon hover-opacity" @click="updateRequest()" :class="buttons.update.class">
-						<img alt="update" width="16" height="16" src="/static/images/icons/update.svg">
-						<span x-text="buttons.update.text"></span>
-					</button>
-				</div>
-
-				<div class="buttons" x-show="process_purchase.modal === 'approve'">
-					<button class="button icon red hover-opacity" @click="rejectRequest()" :class="buttons.reject.class">
-						<img alt="eliminar" width="18" height="18" src="/static/images/icons/dislike.svg">
-						<span x-text="buttons.reject.text"></span>
-					</button>
-
-					<button class="button icon green hover-opacity" @click="approveRequest()" :class="buttons.approve.class">
-						<img alt="update" width="18" height="18" src="/static/images/icons/like.svg">
-						<span x-text="buttons.approve.text"></span>
-					</button>
-				</div>
-
-				<div class="buttons" x-show="process_purchase.modal === 'delete'">
-					<button class="button icon red hover-opacity" @click="deleteRequest()" :class="buttons.remove.class">
-						<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
-						<span x-text="buttons.remove.text"></span>
-					</button>
-
-					<button x-show="(user_id == 1 || user_id == 23 || department_id == 8) && (process_purchase.express || process_purchase.status_id == 2)" class="button icon lime hover-opacity" @click="progressRequest()" :class="buttons.progress.class">
-						<img alt="eliminar" width="16" height="16" src="/static/images/icons/progress.svg">
-						<span x-text="buttons.progress.text"></span>
-					</button>
-				</div>
 			</div>
 		</div>
 
@@ -533,6 +530,13 @@
 				}
 			},
 
+			handleEnterSend(e) {
+				if (e.shiftKey) return;
+
+				e.preventDefault();
+				this.sendChat();
+			},
+			
 			async progressRequest() {
 				if (this.processing) return;
 
