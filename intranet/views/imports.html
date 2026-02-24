@@ -104,7 +104,7 @@
 										:class="item.priority"
 										:draggable="editAllowed()"
 										@dragstart="onDragStart(item)"
-										@click="viewComplaint(item.id)"
+										@click="viewItem(item.id)"
 										class="white"
 										>
 										<div class="row">
@@ -135,6 +135,141 @@
 						</ul>
 					</div>
 				</template>
+			</div>
+		</div>
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('view')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-view"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2 extrabig" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="top">
+					<span class="title" x-text="`SP-${import_data?.id}`"></span>
+					<span class="days" x-text="import_data?.passed_days"></span>
+				</div>
+				
+				<div class="modal-content dual">
+					<div class="data overflow percent50">
+						<div class="box white">
+							<div class="container">
+								<span class="letter" x-text="import_data.provider?.name?.charAt(0)"></span>
+
+								<div class="data">
+									<span class="bold" x-text="import_data?.provider?.name"></span>
+									<span class="text" x-text="import_data?.document"></span>
+								</div>
+
+								<div class="icons">
+									<a title="Whatsapp" :href="`https://api.whatsapp.com/send?phone=${import_data?.phone}`" target="_blank" class="hover-opacity" rel="noopener noreferrer">
+										<img alt="" alt="phone" src="/static/images/whatsapp.svg" width="16" height="16">
+									</a>
+									<a title="Email" :href="`mailto:${import_data?.email}`" target="_blank" class="hover-opacity" rel="noopener noreferrer">
+										<img alt="" alt="phone" src="/static/images/email.svg" width="16" height="16">
+									</a>
+								</div>
+							</div>
+							
+							<div class="container">
+								<img alt="" width="16" height="16" src="/static/images/location.svg">
+								<span class="text" x-text="`${import_data?.address} - ${import_data?.department}, ${import_data?.province}, ${import_data?.district}`"></span>
+							</div>
+
+							<div class="container">
+								<img alt="" width="16" height="16" src="/static/images/email.svg">
+								<span class="text" x-text="import_data?.email"></span>
+							</div>
+						</div>
+						
+						<div class="box white">
+							<div class="container">
+								<img alt="" width="16" height="16" src="/static/images/icons/box.svg">
+
+								<div class="data">
+									<span class="bold" x-text="import_data?.consumption_description"></span>
+									<!-- import_data?.order_number -->
+									<span class="text" x-text="`${import_data?.order_number} - ${import_data?.purchase_date}`"></span>
+								</div>
+
+								<div class="data">
+									<span class="bold" x-text="`S/ ${import_data?.amount}`"></span>
+									<span class="text" x-text="import_data?.consumption_name"></span>
+								</div>
+							</div>
+						</div>
+
+						<div class="box white" x-show="import_data?.detail">
+							<div class="container">
+								<img alt="" width="16" height="16" src="/static/images/icons/board.svg">
+
+								<div class="data">
+									<span class="bold">Detalle</span>
+									<span class="text" x-text="`${import_data?.detail}`"></span>
+								</div>
+							</div>
+						</div>
+
+						<div class="box white">
+							<div class="container">
+								<img alt="" width="16" height="16" src="/static/images/icons/board.svg">
+
+								<div class="data">
+									<span class="bold">Solicitud</span>
+									<span class="text" x-text="`${import_data?.customer_request}`"></span>
+								</div>
+							</div>
+						</div>
+					</div>
+					
+					<div class="comments-container white percent50" x-show="import_data.modal !== 'add'">
+						<div class="comments-box overflow" x-ref="commentsBox" :class="{'over': import_data.status_id > 5}">
+							<template x-if="!import_data.chats || import_data.chats.length === 0">
+								<div class="no-comments">Nada por aquí</div>
+							</template>
+							
+							<template x-for="chat in import_data.chats" :key="chat.id">
+								<div class="user-comment" :class="{'self': chat.commenter_id == user.id}">
+									<img alt="user" :src="'/static/images/uploads/users/' + chat.commenter_image" width="24" height="24">
+									<div class="white bubble">
+										<div class="top">
+											<span x-text="chat.commenter_id == user.id ? 'Tú' :chat.commenter_name"></span>
+											<p x-text="chat.created_at"></p>
+										</div>
+										<p x-text="chat.comment"></p>
+									</div>
+								</div>
+							</template>
+						</div>
+
+						<div class="comments-input white" x-show="import_data.status_id <= 5">
+							<label>
+								<textarea type="text" x-model="import_data.message" placeholder="Ingresa un mensaje..." @keydown.enter="handleEnterSend($event)"></textarea>
+							</label>
+							<div class="send hover-opacity" @click="sendChat()" :class="{'disabled': import_data.message == '' || import_data.message === undefined}">
+								<img alt="enviar" width="16" height="16" src="/static/images/icons/send.svg">
+							</div>
+						</div>
+					</div>
+
+				</div>
+
+				<div class="buttons" x-show="editAllowed() && import_data?.status_id >= 8">
+					<button class="button hover-opacity" :class="{ 'black': import_data && import_data.status_id == 8 }" @click="createPDF(import_data.order_number)">Descargar Reporte</button>
+					<button class="button hover-opacity" @click="finish(import_data)"  x-show="import_data?.status_id == 8">Finalizar</button>
+				</div>
 			</div>
 		</div>
 
@@ -1053,6 +1188,7 @@
 			weight: null,
 			volume: null,
 			selected_import: null,
+			import_data: null,
 			selected_provider: null,
 			pendings_open: false,
 			traffic_light: 'green',
@@ -1132,6 +1268,17 @@
 				}
 
 				evt.target.value = "";
+			},
+
+			async viewItem(item_id) {
+				try {
+					const response = await fetch(`${this.api}/imports/view/${item_id}`);
+					const data = await response.json();
+					this.import_data = data.data;
+					Alpine.store('cache').showModal('view');
+				} catch (error) {
+					console.error('Error en la asignación:', error);
+				}
 			},
 
 			pendingDocs(target) {
@@ -2690,6 +2837,11 @@
 		#modal-view .top .days.high {
 			background-color: #fee3e1;
 			border: 2px solid #ffceca;
+		}
+		#modal-view .data {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
 		}
 		#modal-view .hover-opacity.finish {
 			padding: 0.25rem 0;

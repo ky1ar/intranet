@@ -17,6 +17,11 @@ def get_provider(provider_id):
     return controller.import_get_provider(provider_id)
 
 
+@import_bp.route("/view/<import_id>", methods=["GET"])
+def view(import_id):
+    return controller.import_view(import_id)
+
+
 @import_bp.route("/dashboard", methods=["GET"])
 @jwt_required()
 def dashboard():

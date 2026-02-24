@@ -20,6 +20,11 @@ class ImportController:
 
 
     @handle_logs_and_exceptions
+    def import_view(self, import_id):
+        return self.import_service.view(import_id)
+
+
+    @handle_logs_and_exceptions
     def import_dashboard(self):
         return self.import_service.dashboard()
     

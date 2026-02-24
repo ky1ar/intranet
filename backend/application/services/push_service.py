@@ -9,6 +9,71 @@ class PushSender:
         self.push_repository = PushRepository()
 
 
+    def prefetch_registration_tokens(self, user_ids):
+        rows, rc = self.push_repository.get_tokens_by_users(user_ids)
+        if rc != 200:
+            return [], list(user_ids)
+
+        users_with_tokens = set()
+        tokens = []
+
+        for token, uid in rows:
+            if token:
+                tokens.append(token)
+                users_with_tokens.add(int(uid))
+
+        users_without = [uid for uid in user_ids if int(uid) not in users_with_tokens]
+
+        tokens = list(dict.fromkeys(tokens))
+        return tokens, users_without
+    
+
+    def send_to_tokens(self, registration_tokens, title, body, data=None):
+        if not registration_tokens:
+            logging.info("[FCM] No tokens to send")
+            return {"success": False, "message": "Sin tokens"}, 200
+
+        raw_data = data or {}
+        safe_data = {}
+        for k, v in raw_data.items():
+            if v is None:
+                continue
+            if isinstance(v, (dict, list)):
+                safe_data[str(k)] = json.dumps(v, ensure_ascii=False)
+            else:
+                safe_data[str(k)] = str(v)
+
+        total_sent = 0
+        total_failed = 0
+
+        def chunks(lst, size=500):
+            for i in range(0, len(lst), size):
+                yield lst[i:i+size]
+
+        for chunk in chunks(registration_tokens, 500):
+            message = messaging.MulticastMessage(
+                notification=messaging.Notification(title=title, body=body),
+                data=safe_data,
+                tokens=chunk,
+            )
+
+            try:
+                response = messaging.send_each_for_multicast(message)
+                total_sent += response.success_count
+                total_failed += response.failure_count
+                logging.info(f"[FCM] {response.success_count} ok, {response.failure_count} error (chunk={len(chunk)})")
+            except Exception as e:
+                logging.exception(f"[FCM] Error enviando multicast: {e}")
+                total_failed += len(chunk)
+
+        return {
+            "success": True,
+            "message": "Notificaciones procesadas",
+            "sent": total_sent,
+            "failed": total_failed,
+        }, 200
+    
+
     @handle_exceptions
     def send_to_user(self, user_id, title, body, data=None):
         tokens, tc = self.push_repository.get_tokens_by_user(user_id)

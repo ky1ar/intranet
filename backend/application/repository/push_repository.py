@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta, timezone
-
 from application.handlers import handle_db_exceptions
 from application.models import FireCloudTokens
 from flask import g
@@ -12,6 +11,19 @@ class PushRepository:
         return utc_now - timedelta(hours=5)
 
 
+    @handle_db_exceptions
+    def get_tokens_by_users(self, user_ids):
+        if not user_ids:
+            return [], 200
+
+        rows = (
+            g.db_session.query(FireCloudTokens.token, FireCloudTokens.user_id)
+            .filter(FireCloudTokens.user_id.in_(list(set(map(int, user_ids)))))
+            .all()
+        )
+        return rows, 200
+
+        
     @handle_db_exceptions
     def upsert_token(self, user_id, device_id, token, device_platform, user_agent):
         session = g.db_session

@@ -637,12 +637,16 @@ class ComplaintService:
             include_owners=True,
         )
         
-        self.push_service.send_to_users(
-            user_ids=participants,
-            title=f"Nuevo mensaje, reclamo {complaint_letter}-{complaint_id}",
-            body=f"{format_name(user_name, True)}: {comment}",
-        )
-        socketio.emit("complaint_dashboard_update", {})
+        title = f"Nuevo mensaje, reclamo {complaint_letter}-{complaint_id}"
+        body = f"{format_name(user_name, True)}: {comment}"
+
+        registration_tokens, users_without = self.push_service.prefetch_registration_tokens(participants)
+
+        socketio.start_background_task(self.push_service.send_to_tokens, registration_tokens, title, body, None)
+        socketio.start_background_task(socketio.emit, "complaint_dashboard_update", {})
+
+        if users_without:
+            logging.info(f"[FCM] users_without_tokens={users_without}")
 
         return {
             "id": chat.id,

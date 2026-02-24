@@ -1,10 +1,10 @@
 import logging, os, uuid
-from datetime import date, datetime
+from datetime import date
 from werkzeug.utils import secure_filename
 from flask import request, send_file, render_template
 from flask_jwt_extended import get_jwt_identity
 from application.handlers import handle_exceptions
-from application.utils import format_name, format_datetime, calculate_passed_days, format_date, size, file_extension, allowed_extension, upload_path
+from application.utils import format_time, calculate_passed_days, format_date, size, file_extension, allowed_extension, upload_path
 from application.repository.import_repository import ImportRepository
 from application.repository.user_repository import UserRepository
 from application.repository.client_repository import ClientRepository
@@ -215,6 +215,89 @@ class ImportService:
             "telephone": provider.telephone,
         }
         return response, 200
+    
+
+    @handle_exceptions
+    def view(self, import_id):
+        import_shipment, isc = self.import_repository.get_import(import_id) 
+        if isc != 200:
+            return import_shipment, isc
+
+        register_days = 0
+        import_history, ihc = self.import_repository.get_import_history(import_id, 2) 
+        if ihc == 200:
+            register_days = calculate_passed_days(import_history.created_at)
+
+        order_data = {
+            "id": import_shipment.id,
+            "passed_days": f"{register_days}  día{'' if register_days == 1 else 's'}",
+            "provider": {
+                "name": import_shipment.provider.name,
+                "contact": import_shipment.provider.contact,
+                "email": import_shipment.provider.email,
+                "phone": import_shipment.provider.phone,
+                "telephone": import_shipment.provider.telephone,
+            },
+            "business_name": import_shipment.business.name,
+            "type_id": import_shipment.type_id,
+            "incoterm_code": import_shipment.incoterm.code,
+            "port_name": import_shipment.port.name.title(),
+            "status_id": import_shipment.status_id,
+            "status_name": import_shipment.status.name,
+            "local_agent_name": import_shipment.local_agent_name.title() if import_shipment.local_agent_name else None,
+            "origin_agent_name": import_shipment.origin_agent_name.title() if import_shipment.origin_agent_name else None,
+            "dates": {
+                "booking": format_date(import_shipment.booking_date),
+                "etd": format_date(import_shipment.etd_date),
+                "eta": format_date(import_shipment.eta_date),
+                "deadline": format_date(import_shipment.deadline_date),
+                "pay": format_date(import_shipment.pay_date),
+            },
+            "cargo_details": {
+                "qty": import_shipment.qty,
+                "pallets": import_shipment.pallets,
+                "weight": import_shipment.weight,
+                "volume": import_shipment.volume,
+            },
+            "traffic_light": import_shipment.traffic_light,
+            "delivery": {
+                "date": format_date(import_shipment.delivery_date),
+                "time": format_time(import_shipment.delivery_time),
+                "name": import_shipment.delivery_name,
+                "phone": import_shipment.delivery_phone,
+                "code": import_shipment.delivery_code,
+            },
+        }
+
+        # history, history_status = self.import_repository.get_service_order_history(import_shipment.id) 
+        # if history_status != 200:
+        #     return history, history_status
+        
+        # history_dict = [
+        #     {
+        #         "status_id": row.status_id,
+        #         "user_name": row.user.name.split()[0],
+        #         "notes": row.notes if row.notes else "",
+        #         "register_at":  format_datetime(row.register_at)
+
+        #     } for row in history
+        # ]
+        # order_data["history"] = history_dict
+                
+        # photos, photos_status = self.import_repository.get_photos(import_shipment.id) 
+        # if photos_status != 200:
+        #     return photos, photos_status
+        
+        # photos_dict = [
+        #     {
+        #         "id": photo_row.id,
+        #         "filename": photo_row.filename,
+        #         "status_id": photo_row.status_id,
+        #     } for photo_row in photos
+        # ]
+        # order_data["photos"] = photos_dict
+
+        return order_data, 200
     
 
     @handle_exceptions

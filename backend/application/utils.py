@@ -1,5 +1,5 @@
 import logging, os
-from datetime import datetime, timezone, timedelta, timezone, date
+from datetime import datetime, timezone, timedelta, timezone, date, time
 
 
 def upload_path(path):
@@ -113,6 +113,35 @@ def format_date(d):
         return ""
 
     return f"{d.day} {meses_largos[d.month - 1].title()} {d.year}"
+
+
+def format_time(t, seconds=False):
+    if not t:
+        return ""
+
+    # String
+    if isinstance(t, str):
+        s = t.strip().replace("Z", "")
+        try:
+            # 'HH:MM' o 'HH:MM:SS'
+            if len(s) in (5, 8) and s[2] == ":":
+                fmt = "%H:%M:%S" if len(s) == 8 else "%H:%M"
+                t = datetime.strptime(s, fmt).time()
+            else:
+                # ISO datetime
+                t = datetime.fromisoformat(s).time()
+        except Exception:
+            return ""
+
+    # Datetime -> time
+    if isinstance(t, datetime):
+        t = t.time()
+
+    if not isinstance(t, time):
+        return ""
+
+    fmt = "%I:%M:%S %p" if seconds else "%I:%M %p"
+    return t.strftime(fmt).lower().lstrip("0")
 
 
 def calculate_passed_days(start_date):

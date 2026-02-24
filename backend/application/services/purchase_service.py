@@ -229,7 +229,7 @@ class PurchaseService:
                 continue
             dto["items"].append({
                 "id": item.id,
-                "title": item.title,
+                "title": item.title.title(),
                 "description": item.description,
                 "quantity": item.quantity,
                 "price": float(item.price) if item.price is not None else None,

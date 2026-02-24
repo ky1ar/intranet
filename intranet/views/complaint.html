@@ -232,75 +232,81 @@
 						Evidencias
 					</div>
 				</div>
-
-				<div class="box white">
-					<div class="container">
-						<span class="letter" x-text="complaint_data.client_name?.charAt(0)">A</span>
-
-						<div class="data">
-							<span class="bold" x-text="complaint_data?.client_name"></span>
-							<span class="text" x-text="complaint_data?.document"></span>
-						</div>
-
-						<div class="icons">
-							<a title="Whatsapp" :href="`https://api.whatsapp.com/send?phone=${complaint_data?.phone}`" target="_blank" class="hover-opacity" rel="noopener noreferrer">
-								<img alt="" alt="phone" src="/static/images/whatsapp.svg" width="16" height="16">
-							</a>
-							<a title="Email" :href="`mailto:${complaint_data?.email}`" target="_blank" class="hover-opacity" rel="noopener noreferrer">
-								<img alt="" alt="phone" src="/static/images/email.svg" width="16" height="16">
-							</a>
-						</div>
-					</div>
-					
-					<div class="container">
-						<img alt="" width="16" height="16" src="/static/images/location.svg">
-						<span class="text" x-text="`${complaint_data?.address} - ${complaint_data?.department}, ${complaint_data?.province}, ${complaint_data?.district}`"></span>
-					</div>
-
-					<div class="container">
-						<img alt="" width="16" height="16" src="/static/images/email.svg">
-						<span class="text" x-text="complaint_data?.email"></span>
-					</div>
-				</div>
 				
 				<div class="modal-content dual">
-					<div class="detail box white overflow percent50">
-						<div class="container">
-							<img alt="" width="16" height="16" src="/static/images/icons/box.svg">
+					<div class="detail flexbox overflow percent50">
+						<div class="box white">
+							<div class="container">
+								<span class="letter" x-text="complaint_data.client_name?.charAt(0)">A</span>
 
-							<div class="data">
-								<span class="bold" x-text="complaint_data?.consumption_description"></span>
-								<!-- complaint_data?.order_number -->
-								<span class="text" x-text="`${complaint_data?.order_number} - ${complaint_data?.purchase_date}`"></span>
+								<div class="data">
+									<span class="bold" x-text="complaint_data?.client_name"></span>
+									<span class="text" x-text="complaint_data?.document"></span>
+								</div>
+
+								<div class="icons">
+									<a title="Whatsapp" :href="`https://api.whatsapp.com/send?phone=${complaint_data?.phone}`" target="_blank" class="hover-opacity" rel="noopener noreferrer">
+										<img alt="" alt="phone" src="/static/images/whatsapp.svg" width="16" height="16">
+									</a>
+									<a title="Email" :href="`mailto:${complaint_data?.email}`" target="_blank" class="hover-opacity" rel="noopener noreferrer">
+										<img alt="" alt="phone" src="/static/images/email.svg" width="16" height="16">
+									</a>
+								</div>
+							</div>
+							
+							<div class="container">
+								<img alt="" width="16" height="16" src="/static/images/location.svg">
+								<span class="text" x-text="`${complaint_data?.address} - ${complaint_data?.department}, ${complaint_data?.province}, ${complaint_data?.district}`"></span>
 							</div>
 
-							<div class="data">
-								<span class="bold" x-text="`S/ ${complaint_data?.amount}`"></span>
-								<span class="text" x-text="complaint_data?.consumption_name"></span>
+							<div class="container">
+								<img alt="" width="16" height="16" src="/static/images/email.svg">
+								<span class="text" x-text="complaint_data?.email"></span>
 							</div>
 						</div>
 						
-						<div class="container">
-							<img alt="" width="16" height="16" src="/static/images/icons/board.svg">
+						<div class="box white">
+							<div class="container">
+								<img alt="" width="16" height="16" src="/static/images/icons/box.svg">
 
-							<div class="data">
-								<span class="bold">Detalle</span>
-								<span class="text" x-text="`${complaint_data?.detail}`"></span>
+								<div class="data">
+									<span class="bold" x-text="complaint_data?.consumption_description"></span>
+									<!-- complaint_data?.order_number -->
+									<span class="text" x-text="`${complaint_data?.order_number} - ${complaint_data?.purchase_date}`"></span>
+								</div>
+
+								<div class="data">
+									<span class="bold" x-text="`S/ ${complaint_data?.amount}`"></span>
+									<span class="text" x-text="complaint_data?.consumption_name"></span>
+								</div>
 							</div>
 						</div>
-						
-						<div class="container">
-							<img alt="" width="16" height="16" src="/static/images/icons/board.svg">
 
-							<div class="data">
-								<span class="bold">Solicitud</span>
-								<span class="text" x-text="`${complaint_data?.customer_request}`"></span>
+						<div class="box white" x-show="complaint_data?.detail">
+							<div class="container">
+								<img alt="" width="16" height="16" src="/static/images/icons/board.svg">
+
+								<div class="data">
+									<span class="bold">Detalle</span>
+									<span class="text" x-text="`${complaint_data?.detail}`"></span>
+								</div>
+							</div>
+						</div>
+
+						<div class="box white">
+							<div class="container">
+								<img alt="" width="16" height="16" src="/static/images/icons/board.svg">
+
+								<div class="data">
+									<span class="bold">Solicitud</span>
+									<span class="text" x-text="`${complaint_data?.customer_request}`"></span>
+								</div>
 							</div>
 						</div>
 					</div>
 					
 					<div class="comments-container white percent50" x-show="complaint_data.modal !== 'add'">
-						<div class="comments-box overflow" :class="{'over': complaint_data.status_id > 5}">
+						<div class="comments-box overflow" x-ref="commentsBox" :class="{'over': complaint_data.status_id > 5}">
 							<template x-if="!complaint_data.chats || complaint_data.chats.length === 0">
 								<div class="no-comments">Nada por aquí</div>
 							</template>
@@ -935,6 +941,16 @@
 				]);
 			},
 
+			scrollCommentsToBottom(behavior = 'smooth') {
+				const box = this.$refs.commentsBox;
+				if (!box) return;
+
+				box.scrollTo({
+					top: box.scrollHeight,
+					behavior
+				});
+			},
+
 			async sendChat() {
 				if (!this.complaint_data.message || this.processing) return;
 				this.processing = true;
@@ -966,7 +982,7 @@
 					});
 
 					this.complaint_data.message = "";
-
+					this.$nextTick(() => this.scrollCommentsToBottom());
 				} catch (error) {
 					console.error(error);
 				} finally {
@@ -1053,6 +1069,7 @@
 					const payload = await response.json();
 					this.complaint_data = payload.data;
 					Alpine.store('cache').showModal('view');
+					this.$nextTick(() => this.scrollCommentsToBottom('auto'));
 				} catch (error) {
 					console.error('Error en la asignación:', error);
 				}

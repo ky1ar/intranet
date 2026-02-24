@@ -185,6 +185,19 @@ class ImportRepository:
 
 
     @handle_db_exceptions
+    def get_import_history(self, import_id, status_id):
+        history = (
+            g.db_session.query(ImportStatusHistory)
+            .filter(ImportStatusHistory.import_shipment_id == import_id, ImportStatusHistory.status_id == status_id)
+            .first()
+        )
+        if not history:
+            return 'Estado no localizado, verifique los datos', 400
+
+        return history, 200
+
+        
+    @handle_db_exceptions
     def move_status(self, import_shipment, current_status_id, data, down=False):
         if not down:
             if current_status_id == 2:
