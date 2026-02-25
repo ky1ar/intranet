@@ -8,6 +8,9 @@
 			</div>
 
 			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
+				<div class="item" @click="openQrModal()">
+					<img alt="" width="20" height="20" src="/static/images/icons/qr.svg">
+				</div>
 				<div class="item" @click="pdfProcess()">
 					<img alt="" width="22" height="22" src="/static/images/icons/pdf.svg">
 				</div>
@@ -53,6 +56,11 @@
 			</div>
 
 			<div class="right frost-dark">
+				<div class="item" @click="openQrModal()">
+					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/qr.svg">
+					<span>QR</span>
+				</div>
+
 				<div class="mobile-hide item" @click="pdfProcess()">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/pdf.svg">
 					<span x-text="pdf_loading ? 'Generando...' : 'Rótulo'"></span>
@@ -161,6 +169,61 @@
 				</template>
 			</div>
 		</div>
+
+		<div
+			x-show="$store.cache.isVisibleModal('qr')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-qr"
+			x-cloak
+			>
+			<div class="modal glass2" @click.stop style="max-width: 20rem">
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="top">
+					<span class="title">Generar QR</span>
+					
+				</div>
+
+				<div class="modal-content">
+					<div class="container">
+						<label class="white">
+							<img alt="tag" src="/static/images/icons/tag.svg" width="16" height="16">
+							<input
+								x-ref="qrInput"
+								type="text"
+								maxlength="10"
+								placeholder="Código"
+								x-model="qr_value"
+								@input="qr_value = sanitizeQr(qr_value); onQrChange()"
+								@keydown.enter.prevent="generateQr()"
+								style="text-transform:uppercase;"
+							>
+						</label>
+
+						<button class="button hover-opacity" @click="generateQr()">
+							Generar
+						</button>
+					</div>
+					
+
+					<div class="white" style="display:flex; justify-content:center; position: relative;">
+						<div id="logistics_qr_dummy" x-show="!qr_svg">El QR aparecerá aquí</div>
+						<div id="logistics_qr_result"></div>
+					</div>
+				</div>
+
+				<div class="buttons">
+					<button class="button black hover-opacity" @click="downloadQr()" x-show="qr_svg">
+						Descargar
+					</button>
+				</div>
+			</div>
+		</div>
+
 
 		<div
 			x-show="$store.cache.isVisibleModal('process')"
@@ -667,6 +730,11 @@
 			chartTech: null,
 			pdf_loading: false,
 			pdf_error: '',
+			qr_value: '',
+			qr_error: '',
+			qr_writer: null,
+			qr_generated_value: '',
+			qr_svg: null,
 
 			async init() {
 				console.log('Inicializando Logistics...');
@@ -697,6 +765,138 @@
 				}
 				
 				await Alpine.store('cache').verify();
+			},
+
+			onQrChange() {
+				if (this.qr_value !== this.qr_generated_value) {
+					const cont = document.getElementById('logistics_qr_result');
+					if (cont) cont.innerHTML = '';
+					this.qr_svg = null;
+				}
+			},
+
+			generateQr() {
+				const clean = this.sanitizeQr(this.qr_value);
+				this.qr_value = clean;
+				if (!clean) return;
+
+				this.qr_generated_value = clean;
+				this.renderQr(clean);
+			},
+
+			openQrModal() {
+				this.qr_value = '';
+				Alpine.store('cache').showModal('qr');
+
+				this.$nextTick(() => {
+					const cont = document.getElementById('logistics_qr_result');
+					if (cont) cont.innerHTML = '';
+					this.qr_svg = null;
+
+					setTimeout(() => this.$refs.qrInput?.focus(), 50);
+				});
+			},
+
+			sanitizeQr(value) {
+				return (value || '')
+					.toUpperCase()
+					.replace(/[^A-Z0-9]/g, '')
+					.slice(0, 10);
+			},
+
+			renderQr(code) {
+				const cont = document.getElementById('logistics_qr_result');
+				if (!cont) return;
+
+				cont.innerHTML = '';
+
+				if (!code) return;
+
+				const ZX = window.ZXingBrowser || window.ZXing;
+				if (!ZX || !ZX.BrowserQRCodeSvgWriter) return;
+
+				try {
+					const writer = new ZX.BrowserQRCodeSvgWriter();
+					const svg = writer.write(code, 240, 240); 
+					this.qr_svg = svg;    
+					cont.appendChild(svg);
+				} catch (e) {
+					console.error(e);
+				}
+			},
+
+			async downloadQr() {
+				if (!this.qr_generated_value) return;
+
+				const cont = document.getElementById('logistics_qr_result');
+				const svgEl = this.qr_svg || cont?.querySelector('svg');
+
+				if (!svgEl) {
+					this.qr_error = 'Primero genera el QR.';
+					return;
+				}
+
+				const base = (() => {
+					const vb = svgEl.viewBox?.baseVal;
+					if (vb?.width) return Math.round(vb.width);
+					const w = parseFloat(svgEl.getAttribute('width'));
+					if (w) return Math.round(w);
+					return 220;
+				})();
+
+				const scale = 4;
+				const size = base * scale;
+
+				const clone = svgEl.cloneNode(true);
+				clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+				clone.setAttribute('width', String(size));
+				clone.setAttribute('height', String(size));
+				clone.setAttribute('shape-rendering', 'crispEdges');
+
+				const svgText = new XMLSerializer().serializeToString(clone);
+				const svgBlob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
+				const url = URL.createObjectURL(svgBlob);
+
+				try {
+					const img = new Image();
+					img.decoding = 'async';
+
+					await new Promise((resolve, reject) => {
+						img.onload = resolve;
+						img.onerror = reject;
+						img.src = url;
+					});
+
+					const canvas = document.createElement('canvas');
+					canvas.width = size;
+					canvas.height = size;
+
+					const ctx = canvas.getContext('2d');
+
+					ctx.imageSmoothingEnabled = false;
+					ctx.fillStyle = '#ffffff';
+					ctx.fillRect(0, 0, size, size);
+
+					ctx.drawImage(img, 0, 0, size, size);
+
+					const filename = `qr_${this.qr_generated_value}.png`;
+
+					canvas.toBlob((blob) => {
+						const aUrl = URL.createObjectURL(blob);
+						const a = document.createElement('a');
+						a.href = aUrl;
+						a.download = filename;
+						document.body.appendChild(a);
+						a.click();
+						a.remove();
+						URL.revokeObjectURL(aUrl);
+					}, 'image/png');
+				} catch (e) {
+					console.error(e);
+					this.qr_error = 'No se pudo descargar el PNG.';
+				} finally {
+					URL.revokeObjectURL(url);
+				}
 			},
 
 			async search() {
@@ -1429,6 +1629,27 @@
 
 
 	<style>
+		#modal-qr .container {
+			display: flex;
+    		gap: 0.5rem;
+		}
+		#modal-qr .container .button {
+			width: 6rem;
+		}
+		#logistics_qr_result {
+			width: 15rem;
+    		height: 15rem;
+		}
+		#logistics_qr_dummy {
+			display: flex;
+			width: 100%;
+			height: 100%;
+			justify-content: center;
+			align-items: center;
+			position: absolute;
+			font-weight: 500;
+			opacity: 0.5;
+		}
 		.mobile-table {
 			flex-direction: column;
 			gap: 0.75rem;
