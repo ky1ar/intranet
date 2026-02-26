@@ -371,8 +371,8 @@
 						</div>
 					</div>
 					
-					<div class="comments-container  white percent50" x-show="process_purchase.modal !== 'add'">
-						<div class="comments-box overflow" :class="{'over': process_purchase.status_id > 5}">
+					<div class="comments-container white percent50" x-show="process_purchase.modal !== 'add'">
+						<div class="comments-box overflow" x-ref="commentsBox">
 							<template x-if="!process_purchase.chats || process_purchase.chats.length === 0">
 								<div class="no-comments">Nada por aquí</div>
 							</template>
@@ -812,6 +812,16 @@
 				}
 			},
 
+			scrollCommentsToBottom(behavior = 'smooth') {
+				const box = this.$refs.commentsBox;
+				if (!box) return;
+
+				box.scrollTo({
+					top: box.scrollHeight,
+					behavior
+				});
+			},
+
 			async sendChat() {
 				if (!this.process_purchase.message || this.processing) return;
 
@@ -844,12 +854,7 @@
 					});
 
 					this.process_purchase.message = "";
-
-					// opcional: scroll al final
-					// this.$nextTick(() => {
-					// 	const box = document.querySelector("#modal-process .comments-box");
-					// 	if (box) box.scrollTop = box.scrollHeight;
-					// });
+					this.$nextTick(() => this.scrollCommentsToBottom());
 
 				} catch (error) {
 					console.error(error);
@@ -972,6 +977,7 @@
 						];
 					}
 					Alpine.store("cache").showModal("process");
+					this.$nextTick(() => this.scrollCommentsToBottom('auto'));
 				} catch (error) {
 					console.error(error);
 				} 

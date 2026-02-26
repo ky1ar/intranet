@@ -9,16 +9,20 @@ class OdooRepository:
 
 
     def get_sent_with_pdf(self):
-        cutoff = datetime.utcnow() - timedelta(minutes=10)
+        cutoff = datetime.utcnow() - timedelta(days=7)
+
         return (
             g.db_session.query(OdooPaidInvoice)
             .filter(
                 OdooPaidInvoice.sent_whatsapp == True,
                 OdooPaidInvoice.pdf_ready == True,
                 OdooPaidInvoice.pdf_path.isnot(None),
+                OdooPaidInvoice.sent_at.isnot(None),
+                OdooPaidInvoice.sent_at <= cutoff,
             )
             .all()
         )
+    
 
     def clear_pdf_fields(self, invoice_id):
         row = self.get_by_invoice_id(invoice_id)
