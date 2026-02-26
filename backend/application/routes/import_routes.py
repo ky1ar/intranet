@@ -86,3 +86,23 @@ def attachments_list(import_id):
 @jwt_required()
 def attachments_upload():
     return controller.import_attachments_upload()
+
+
+@import_bp.route("/attachment/<int:attachment_id>", methods=["GET"])
+# @jwt_required()
+def attachment_stream(attachment_id):
+    return controller.import_attachment_stream(attachment_id)
+
+
+@import_bp.route("/attachment/<int:attachment_id>/preview", methods=["GET"])
+@jwt_required()
+def attachment_preview(attachment_id):
+    return controller.import_attachment_preview(attachment_id)
+
+
+@import_bp.route("/chat/<int:import_id>", methods=["POST"])
+@jwt_required()
+def chat(import_id):
+    data = request.get_json() or {}
+    data["import_id"] = import_id
+    return controller.import_chat(data)

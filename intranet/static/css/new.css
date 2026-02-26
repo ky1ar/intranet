@@ -78,10 +78,10 @@ body.modal-open {
     overflow: auto;
 }
 .percent50 {
-    width: 50%;
+    width: 50% !important;
 }
 .percent75 {
-    width: 75%;
+    width: 75% !important;
 }
 .hidden {
     display: none;

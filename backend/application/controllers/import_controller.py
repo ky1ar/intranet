@@ -82,3 +82,19 @@ class ImportController:
     @handle_logs_and_exceptions
     def import_attachments_upload(self):
         return self.import_service.attachments_upload()
+    
+
+    @handle_logs_and_exceptions
+    def import_attachment_stream(self, attachment_id):
+        disposition = request.args.get("disposition", "inline")
+        return self.import_service.attachment_stream(attachment_id, disposition)
+
+
+    @handle_logs_and_exceptions
+    def import_attachment_preview(self, attachment_id):
+        return self.import_service.attachment_preview(attachment_id)
+    
+
+    @handle_logs_and_exceptions
+    def import_chat(self, data):
+        return self.import_service.chat(data)

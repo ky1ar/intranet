@@ -115,3 +115,16 @@ class ImportAttachment(BaseModel):
 
     import_shipment = db.relationship("ImportShipment", lazy="joined", foreign_keys=[import_shipment_id])
     user = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
+
+
+class ImportChats(db.Model):
+    __tablename__ = 'import_chats'
+
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+    import_shipment_id = db.Column(db.Integer, db.ForeignKey('import_shipment.id'), nullable=False)
+    comment = db.Column(db.Text, nullable=False)
+    commenter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column( db.DateTime, nullable=False)
+    
+    commenter = db.relationship( "Users", lazy="joined", foreign_keys=[commenter_id])
+    import_shipment = db.relationship( "ImportShipment", lazy="joined", foreign_keys=[import_shipment_id], backref=db.backref("chats", lazy="selectin"))

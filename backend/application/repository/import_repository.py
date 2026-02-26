@@ -1,6 +1,6 @@
 import logging
 from application.handlers import handle_db_exceptions
-from application.db_models.import_model import ImportShipment, ImportBusiness, ImportIncoterm, ImportPort, ImportProvider, ImportStatus, ImportStatusHistory, ImportType, ImportAttachment
+from application.db_models.import_model import ImportShipment, ImportBusiness, ImportIncoterm, ImportPort, ImportProvider, ImportStatus, ImportStatusHistory, ImportType, ImportAttachment, ImportChats
 from application.utils import peru_time
 from flask import g
 
@@ -242,6 +242,54 @@ class ImportRepository:
             .all()
         )
         return rows or [], 200
+
+
+    @handle_db_exceptions
+    def get_attachments_by_import(self, import_id):
+        rows = (
+            g.db_session.query(ImportAttachment)
+            .filter(ImportAttachment.import_shipment_id == import_id)
+            .order_by(ImportAttachment.id.desc())
+            .all()
+        )
+        return rows or [], 200
+
+
+    @handle_db_exceptions
+    def get_attachment_by_id(self, attachment_id):
+        row = (
+            g.db_session.query(ImportAttachment)
+            .filter(ImportAttachment.id == attachment_id)
+            .first()
+        )
+        if not row:
+            return "Not found", 404
+        return row, 200
+
+
+    @handle_db_exceptions
+    def add_chat(self, import_id, user_id, comment):
+        chat = ImportChats(
+            import_shipment_id=import_id,
+            commenter_id=user_id,
+            comment=comment,
+            created_at=peru_time(),
+        )
+        g.db_session.add(chat)
+        g.db_session.commit()
+        g.db_session.refresh(chat)
+        return chat, 200
+    
+
+    @handle_db_exceptions
+    def get_chat_participants(self, import_id, exclude_user_id = None):
+        q = (g.db_session.query(ImportChats.commenter_id).filter(ImportChats.import_shipment_id == import_id))
+
+        if exclude_user_id is not None:
+            q = q.filter(ImportChats.commenter_id != exclude_user_id)
+
+        user_ids = [row[0] for row in q.distinct().all()]
+        return user_ids, 200
 
 
     @handle_db_exceptions

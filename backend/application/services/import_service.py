@@ -4,13 +4,24 @@ from werkzeug.utils import secure_filename
 from flask import request, send_file, render_template
 from flask_jwt_extended import get_jwt_identity
 from application.handlers import handle_exceptions
-from application.utils import format_time, calculate_passed_days, format_date, size, file_extension, allowed_extension, upload_path
+from application.utils import format_time, calculate_passed_days, format_date, size, file_extension, allowed_extension, upload_path, format_name, format_datetime
 from application.repository.import_repository import ImportRepository
 from application.repository.user_repository import UserRepository
 from application.repository.client_repository import ClientRepository
 from application.services.push_service import PushSender
 from application import socketio
 from config import Paths
+
+
+try:
+    from docx import Document
+except Exception:
+    Document = None
+
+try:
+    import openpyxl
+except Exception:
+    openpyxl = None
 
 
 
@@ -64,6 +75,22 @@ class ImportService:
         return result, 200
 
 
+    def _serialize_attachment(self, r):
+        return {
+            "id": r.id,
+            "target": r.target,
+            "original_name": r.original_name,
+            "mime_type": r.mime_type,
+            "size_bytes": r.size_bytes,
+            "size_h": size(r.size_bytes),
+            "created_at": str(r.created_at),
+            "ext": file_extension(r.original_name),
+
+            "inline_url": f"/imports/attachment/{r.id}?disposition=inline",
+            "download_url": f"/imports/attachment/{r.id}?disposition=attachment",
+            "preview_url": f"/imports/attachment/{r.id}/preview",
+        }
+
     @handle_exceptions
     def dashboard(self):
         user_id = int(get_jwt_identity())
@@ -105,7 +132,6 @@ class ImportService:
                     "business_name": item.business.name,
                     "type_id": item.type_id,
                     "type_letter": "SP",
-                    "priority": 'low',
                     "updated_today": updated_today,
                     "passed_days": passed_days,
                     "status_id": status.id,
@@ -267,36 +293,74 @@ class ImportService:
                 "phone": import_shipment.delivery_phone,
                 "code": import_shipment.delivery_code,
             },
+            "chats": []
         }
 
-        # history, history_status = self.import_repository.get_service_order_history(import_shipment.id) 
-        # if history_status != 200:
-        #     return history, history_status
-        
-        # history_dict = [
-        #     {
-        #         "status_id": row.status_id,
-        #         "user_name": row.user.name.split()[0],
-        #         "notes": row.notes if row.notes else "",
-        #         "register_at":  format_datetime(row.register_at)
+        for chat in import_shipment.chats:
+            order_data["chats"].append({
+                "id": chat.id,
+                "comment": chat.comment,
+                "commenter_id": chat.commenter_id,
+                "commenter_name": format_name(chat.commenter.name),
+                "commenter_image": chat.commenter.image,
+                "created_at": format_datetime(chat.created_at),
+            })
+            
 
-        #     } for row in history
-        # ]
-        # order_data["history"] = history_dict
-                
-        # photos, photos_status = self.import_repository.get_photos(import_shipment.id) 
-        # if photos_status != 200:
-        #     return photos, photos_status
-        
-        # photos_dict = [
-        #     {
-        #         "id": photo_row.id,
-        #         "filename": photo_row.filename,
-        #         "status_id": photo_row.status_id,
-        #     } for photo_row in photos
-        # ]
-        # order_data["photos"] = photos_dict
+        attachments, arc = self.import_repository.get_attachments_by_import(import_id)
+        if arc != 200:
+            return attachments, arc
 
+        target_labels = {
+            "consolidated": "Documentos consolidados",
+            "product_list": "Lista de productos",
+            "invoice": "Invoice",
+            "packing_list": "Packing List",
+            "certificate": "Constancia",
+            "coo": "COO",
+            "arrive": "Documentos de llegada",
+            "invoices": "Facturas",
+            "default": "Archivos",
+        }
+
+        grouped = {}
+        for r in attachments:
+            key = (r.target or "default").strip() or "default"
+            grouped.setdefault(key, []).append(self._serialize_attachment(r))
+
+        ordered_targets = [
+            "consolidated",
+            "product_list",
+            "invoice",
+            "packing_list",
+            "certificate",
+            "coo",
+            "arrive",
+            "invoices",
+            "default",
+        ]
+
+        attachment_sections = []
+        for target in ordered_targets:
+            files = grouped.get(target, [])
+            if files:
+                attachment_sections.append({
+                    "target": target,
+                    "label": target_labels.get(target, target.replace("_", " ").title()),
+                    "files": files
+                })
+
+        for target, files in grouped.items():
+            if target not in ordered_targets and files:
+                attachment_sections.append({
+                    "target": target,
+                    "label": target_labels.get(target, target.replace("_", " ").title()),
+                    "files": files
+                })
+
+        order_data["attachment_sections"] = attachment_sections
+        
+        
         return order_data, 200
     
 
@@ -470,3 +534,125 @@ class ImportService:
             saved_ids.append(new_id)
 
         return {"data": {"uploaded": saved_ids}}, 200
+
+
+    def attachment_stream(self, attachment_id, disposition="inline"):
+        row, rc = self.import_repository.get_attachment_by_id(int(attachment_id))
+        if rc != 200:
+            return row, rc
+
+        path = os.path.join(Paths.IMPORTS, row.stored_name)
+        if not os.path.exists(path):
+            return "File missing on disk", 404
+
+        as_attachment = (disposition == "attachment")
+        return send_file(
+            path,
+            mimetype=row.mime_type or "application/octet-stream",
+            as_attachment=as_attachment,
+            download_name=row.original_name
+        )
+
+
+    def _file_ext(self, filename):
+        return (filename.rsplit(".", 1)[-1] if "." in filename else "").lower()
+    
+
+    # GET /complaint/attachment/<attachment_id>/preview
+    def attachment_preview(self, attachment_id):
+        row, rc = self.import_repository.get_attachment_by_id(int(attachment_id))
+        if rc != 200:
+            return row, rc
+
+        ext = self._file_ext(row.original_name)
+        inline_url = f"/imports/attachment/{row.id}?disposition=inline"
+
+        if ext in {"png","jpg","jpeg","webp","gif","pdf"}:
+            return {"kind": "url", "url": inline_url, "name": row.original_name}, 200
+
+        path = os.path.join(Paths.IMPORTS, row.stored_name)
+        if not os.path.exists(path):
+            return "File missing on disk", 404
+
+        if ext in {"txt","xml"}:
+            with open(path, "r", encoding="utf-8", errors="replace") as fp:
+                text = fp.read(200_000)
+            return {"kind": "text", "text": text, "name": row.original_name}, 200
+
+        if ext == "docx" and Document:
+            doc = Document(path)
+            parts = [p.text for p in doc.paragraphs if p.text]
+            text = "\n".join(parts)[:200_000]
+            return {"kind": "text", "text": text, "name": row.original_name}, 200
+
+        if ext == "xlsx" and openpyxl:
+            wb = openpyxl.load_workbook(path, data_only=True)
+            ws = wb.active
+            max_rows = min(ws.max_row or 0, 50)
+            max_cols = min(ws.max_column or 0, 20)
+
+            rows_html = []
+            for r in range(1, max_rows + 1):
+                cols = []
+                for c in range(1, max_cols + 1):
+                    v = ws.cell(row=r, column=c).value
+                    cols.append(f"<td>{'' if v is None else str(v)}</td>")
+                rows_html.append("<tr>" + "".join(cols) + "</tr>")
+
+            html = "<table>" + "".join(rows_html) + "</table>"
+            return {"kind": "html", "html": html, "name": row.original_name}, 200
+
+        return {
+            "kind": "download",
+            "name": row.original_name,
+            "message": "Vista previa no disponible",
+            "download_url": f"/complaint/attachment/{row.id}?disposition=attachment"
+        }, 200
+
+
+    @handle_exceptions
+    def chat(self, data):
+        import_id = data.get("import_id")
+        if not import_id:
+            return "import_id requerido", 400
+
+        comment = (data.get("comment") or "").strip()
+        if not comment:
+            return "Comentario vacío", 400
+
+        current_user_id = int(get_jwt_identity())
+        user, uc = self.user_repository.get_user_by_id(current_user_id)
+        if uc != 200:
+            return user, uc
+        
+        user_name = user.name
+
+        import_data, idc = self.import_repository.get_import(import_id)
+        if idc != 200:
+            return import_data, idc
+
+        chat, cc = self.import_repository.add_chat(import_id=import_id, user_id=current_user_id, comment=comment)
+        if cc != 200:
+            return chat, cc
+
+        participants, _ = self.import_repository.get_chat_participants(import_id=import_id, exclude_user_id=current_user_id)
+        
+        title = f"Nuevo mensaje, importación SP-{import_id}"
+        body = f"{format_name(user_name, True)}: {comment}"
+
+        registration_tokens, users_without = self.push_service.prefetch_registration_tokens(participants)
+
+        socketio.start_background_task(self.push_service.send_to_tokens, registration_tokens, title, body, None)
+        socketio.start_background_task(socketio.emit, "complaint_dashboard_update", {})
+
+        if users_without:
+            logging.info(f"[FCM] users_without_tokens={users_without}")
+
+        return {
+            "id": chat.id,
+            "comment": chat.comment,
+            "commenter_id": chat.commenter_id,
+            "commenter_name": format_name(chat.commenter.name),
+            "commenter_image": chat.commenter.image,
+            "created_at": format_datetime(chat.created_at),
+        }, 200
