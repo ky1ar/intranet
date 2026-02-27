@@ -277,6 +277,62 @@
 							</div>
 						</div>
 
+						<div class="box white"  x-show="import_data?.cargo_details?.qty">
+							<div class="pair-content" style="justify-content: space-between;">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/images/imports/pickup.svg">
+									<span class="black" x-text="`Cantidad:`"></span>
+									<span class="text" x-text="`${import_data?.cargo_details?.qty}`"></span>
+								</div>
+
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/images/imports/pickup.svg">
+									<span class="black" x-text="`Pallets:`"></span>
+									<span class="text" x-text="`${import_data?.cargo_details?.pallets}`"></span>
+								</div>
+
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/images/imports/pickup.svg">
+									<span class="black" x-text="`Peso (kg):`"></span>
+									<span class="text" x-text="`${import_data?.cargo_details?.weight}`"></span>
+								</div>
+
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/images/imports/pickup.svg">
+									<span class="black" x-text="`Vol. (m³):`"></span>
+									<span class="text" x-text="`${import_data?.cargo_details?.volume}`"></span>
+								</div>
+							</div>
+						</div>
+
+						<div class="box white"  x-show="import_data?.cargo_details?.qty">
+							<div class="pair-content" style="justify-content: space-between;">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/images/imports/pickup.svg">
+									<span class="black" x-text="`Cantidad:`"></span>
+									<span class="text" x-text="`${import_data?.cargo_details?.qty}`"></span>
+								</div>
+
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/images/imports/pickup.svg">
+									<span class="black" x-text="`Pallets:`"></span>
+									<span class="text" x-text="`${import_data?.cargo_details?.pallets}`"></span>
+								</div>
+
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/images/imports/pickup.svg">
+									<span class="black" x-text="`Peso (kg):`"></span>
+									<span class="text" x-text="`${import_data?.cargo_details?.weight}`"></span>
+								</div>
+
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/images/imports/pickup.svg">
+									<span class="black" x-text="`Vol. (m³):`"></span>
+									<span class="text" x-text="`${import_data?.cargo_details?.volume}`"></span>
+								</div>
+							</div>
+						</div>
+						
 						<template x-for="section in (import_data?.attachment_sections || [])" :key="section.target">
 							<div class="box white" x-show="section.files && section.files.length">
 								<div class="pair-content" style="margin-bottom: .5rem;">
@@ -2809,7 +2865,7 @@
 		#modal-view .box .pair-content .pair {
 			display: flex;
 			align-items: center;
-			gap: 0.5rem;
+			gap: 0.325rem;
 		}
 		#modal-view .box .pair-content .pair .text {
 			opacity: 0.5;

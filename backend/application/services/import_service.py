@@ -24,7 +24,6 @@ except Exception:
     openpyxl = None
 
 
-
 class ImportService:
     def __init__(self):
         self.import_repository = ImportRepository()
