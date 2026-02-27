@@ -115,52 +115,6 @@ def extract_picking():
     return controller.logistic_extract_picking(data)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@logistic_bp.route("/uploads/machines/<filename>")
-def uploads_machines(filename):
-    return send_from_directory(Config.UPLOAD_MACHINES_FOLDER, filename)
-
-
-@logistic_bp.route("/register_token", methods=["POST"])
-def register_token():
-    return controller.register_token(request.get_json())
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+@logistic_bp.post("/qr/pdf")
+def logistic_qr_pdf():
+    return controller.logistic_qr_pdf(request.get_json() or {})

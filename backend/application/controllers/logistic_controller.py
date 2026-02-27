@@ -109,49 +109,7 @@ class LogisticController:
     @handle_logs_and_exceptions
     def logistic_extract_picking(self, data):
         return self.logistic_service.extract_picking(data)
-        
+    
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    @handle_logs_and_exceptions
-    def send_message(self, data):
-        return self.logistic_service.send_message(data, template=3)
-
-
-    @handle_logs_and_exceptions
-    def register_token(self, request):
-        if validation_error := validate_request(
-            request, 
-            {"user_id", "device_id", "token"}
-        ):
-            return validation_error, 400
-        
-        return self.logistic_service.register_token(request)
-
-
+    def logistic_qr_pdf(self, data):
+        return self.logistic_service.generate_qr_pdf(data)

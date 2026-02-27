@@ -34,7 +34,8 @@ class Config:
     UPLOAD_PICKING_FOLDER = os.path.abspath("/shared_uploads/picking/")
     UPLOAD_MACHINES_FOLDER = os.path.abspath("uploads/machines/")
     UPLOAD_PROPF_FOLDER = os.path.abspath("/shared_uploads/complaint_proof/")
-
+    QR_FOLDER = os.path.abspath("/shared_uploads/qr/")
+    
 
     BASE_URL = os.getenv("BASE_URL")
     CONTACT_PHONE = os.getenv("CONTACT_PHONE")

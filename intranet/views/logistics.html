@@ -191,24 +191,64 @@
 				<div class="modal-content">
 					<div class="container">
 						<label class="white">
-							<img alt="tag" src="/static/images/icons/tag.svg" width="16" height="16">
 							<input
 								x-ref="qrInput"
 								type="text"
-								maxlength="10"
-								placeholder="Código"
-								x-model="qr_value"
-								@input="qr_value = sanitizeQr(qr_value); onQrChange()"
+								maxlength="3"
+								x-model="qr_value1"
+								@input="qr_value1 = sanitizeQr(qr_value1); onQrChange()"
 								@keydown.enter.prevent="generateQr()"
 								style="text-transform:uppercase;"
+								autocomplete="off"
 							>
 						</label>
 
-						<button class="button hover-opacity" @click="generateQr()">
-							Generar
-						</button>
+						<label class="white">
+							<input
+								type="text"
+								maxlength="2"
+								x-model="qr_value2"
+								@input="qr_value2 = sanitizeQr(qr_value2); onQrChange()"
+								@keydown.enter.prevent="generateQr()"
+								style="text-transform:uppercase;"
+								autocomplete="off"
+							>
+						</label>
+
+						<label class="white" style="flex: 0.5;">
+							<input
+								type="text"
+								maxlength="1"
+								x-model="qr_value3"
+								@input="qr_value3 = sanitizeQr(qr_value3); onQrChange()"
+								@keydown.enter.prevent="generateQr()"
+								style="text-transform:uppercase;"
+								autocomplete="off"
+							>
+						</label>
+						<button class="button hover-opacity" @click="generateQr()" :class="buttons.generate.class" x-text="buttons.generate.text"></button>
 					</div>
 					
+					<div class="container">
+						<label class="white" style="padding: 0.75rem;">
+							<input type="radio" x-model="qr_orientation" value="vertical" style="width: 1rem;height: 1rem;margin: 0;">
+							<span>Vertical</span>
+						</label>
+
+						<label class="white" style="padding: 0.75rem;">
+							<input type="radio" x-model="qr_orientation" value="horizontal" style="width: 1rem;height: 1rem;margin: 0;">
+							<span>Horizontal</span>
+						</label>
+					</div>
+
+					<div class="container" x-show="qr_orientation === 'vertical'" x-transition>
+						<label class="white" style="flex:1;">
+							<select x-model="qr_arrow_side">
+								<option value="right">Flecha derecha</option>
+								<option value="left">Flecha izquierda</option>
+							</select>
+						</label>
+					</div>
 
 					<div class="white" style="display:flex; justify-content:center; position: relative;">
 						<div id="logistics_qr_dummy" x-show="!qr_svg">El QR aparecerá aquí</div>
@@ -719,6 +759,7 @@
                 process: { class: '', text: 'Añadir' },
                 update: { class: '', text: 'Actualizar' },
                 delete: { class: '', text: 'Eliminar' },
+				generate: { class: '', text: 'Generar' },
             },
 			client_order_found: false,
 			client_found: false,
@@ -730,11 +771,15 @@
 			chartTech: null,
 			pdf_loading: false,
 			pdf_error: '',
-			qr_value: '',
+			qr_value1: '',
+			qr_value2: '',
+			qr_value3: '',
 			qr_error: '',
 			qr_writer: null,
 			qr_generated_value: '',
 			qr_svg: null,
+			qr_orientation: 'vertical',
+			qr_arrow_side: 'right',
 
 			async init() {
 				console.log('Inicializando Logistics...');
@@ -768,7 +813,7 @@
 			},
 
 			onQrChange() {
-				if (this.qr_value !== this.qr_generated_value) {
+				if (`${this.qr_value1}-${this.qr_value2}-${this.qr_value3}` !== this.qr_generated_value) {
 					const cont = document.getElementById('logistics_qr_result');
 					if (cont) cont.innerHTML = '';
 					this.qr_svg = null;
@@ -776,16 +821,31 @@
 			},
 
 			generateQr() {
-				const clean = this.sanitizeQr(this.qr_value);
-				this.qr_value = clean;
-				if (!clean) return;
+				const clean1 = this.sanitizeQr(this.qr_value1);
+				const clean2 = this.sanitizeQr(this.qr_value2);
+				const clean3 = this.sanitizeQr(this.qr_value3);
 
-				this.qr_generated_value = clean;
-				this.renderQr(clean);
+				this.qr_value1 = clean1;
+				this.qr_value2 = clean2;
+				this.qr_value3 = clean3;
+
+				if (!clean1 || !clean2 || !clean3) {
+					this.showError('generate', 'Incompleto');
+					return;
+				}
+				
+				const qr = `${clean1}-${clean2}-${clean3}`;
+				this.qr_generated_value = qr;
+				this.renderQr(qr);
 			},
 
 			openQrModal() {
-				this.qr_value = '';
+				this.qr_value1 = '';
+				this.qr_value2 = '';
+				this.qr_value3 = '';
+				this.qr_orientation = 'vertical';
+				this.qr_arrow_side = 'right';
+
 				Alpine.store('cache').showModal('qr');
 
 				this.$nextTick(() => {
@@ -795,6 +855,20 @@
 
 					setTimeout(() => this.$refs.qrInput?.focus(), 50);
 				});
+			},
+
+			sanitizeLetters(value) {
+				return (value || '')
+					.toUpperCase()
+					.replace(/[^A-Z]/g, '')
+					.slice(0, 10);
+			},
+
+			sanitizeNumbers(value) {
+				return (value || '')
+					.toUpperCase()
+					.replace(/[^0-9]/g, '')
+					.slice(0, 10);
 			},
 
 			sanitizeQr(value) {
@@ -826,76 +900,45 @@
 			},
 
 			async downloadQr() {
-				if (!this.qr_generated_value) return;
-
-				const cont = document.getElementById('logistics_qr_result');
-				const svgEl = this.qr_svg || cont?.querySelector('svg');
-
-				if (!svgEl) {
+				if (!this.qr_generated_value) {
 					this.qr_error = 'Primero genera el QR.';
 					return;
 				}
 
-				const base = (() => {
-					const vb = svgEl.viewBox?.baseVal;
-					if (vb?.width) return Math.round(vb.width);
-					const w = parseFloat(svgEl.getAttribute('width'));
-					if (w) return Math.round(w);
-					return 220;
-				})();
-
-				const scale = 4;
-				const size = base * scale;
-
-				const clone = svgEl.cloneNode(true);
-				clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-				clone.setAttribute('width', String(size));
-				clone.setAttribute('height', String(size));
-				clone.setAttribute('shape-rendering', 'crispEdges');
-
-				const svgText = new XMLSerializer().serializeToString(clone);
-				const svgBlob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
-				const url = URL.createObjectURL(svgBlob);
+				this.qr_error = '';
 
 				try {
-					const img = new Image();
-					img.decoding = 'async';
-
-					await new Promise((resolve, reject) => {
-						img.onload = resolve;
-						img.onerror = reject;
-						img.src = url;
+					const payload = {
+						code: this.qr_generated_value,
+						orientation: this.qr_orientation,
+						arrow_side: this.qr_orientation === 'vertical' ? this.qr_arrow_side : null
+					};
+					
+					const res = await fetch(`${this.api}/logistic/qr/pdf`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(payload)
 					});
 
-					const canvas = document.createElement('canvas');
-					canvas.width = size;
-					canvas.height = size;
+					if (!res.ok) {
+						const err = await res.json().catch(() => ({}));
+						throw new Error(err?.error || 'No se pudo generar el PDF');
+					}
 
-					const ctx = canvas.getContext('2d');
+					const blob = await res.blob();
+					const url = window.URL.createObjectURL(blob);
 
-					ctx.imageSmoothingEnabled = false;
-					ctx.fillStyle = '#ffffff';
-					ctx.fillRect(0, 0, size, size);
+					const a = document.createElement('a');
+					a.href = url;
+					a.download = `qr_${this.qr_generated_value}.pdf`;
+					document.body.appendChild(a);
+					a.click();
+					a.remove();
 
-					ctx.drawImage(img, 0, 0, size, size);
-
-					const filename = `qr_${this.qr_generated_value}.png`;
-
-					canvas.toBlob((blob) => {
-						const aUrl = URL.createObjectURL(blob);
-						const a = document.createElement('a');
-						a.href = aUrl;
-						a.download = filename;
-						document.body.appendChild(a);
-						a.click();
-						a.remove();
-						URL.revokeObjectURL(aUrl);
-					}, 'image/png');
+					window.URL.revokeObjectURL(url);
 				} catch (e) {
 					console.error(e);
-					this.qr_error = 'No se pudo descargar el PNG.';
-				} finally {
-					URL.revokeObjectURL(url);
+					this.qr_error = e.message || 'No se pudo descargar el PDF.';
 				}
 			},
 

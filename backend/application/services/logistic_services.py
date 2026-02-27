@@ -1,4 +1,6 @@
-import logging, re, threading, pdfplumber, os
+import logging, re, threading, pdfplumber, os, base64, io, uuid
+import qrcode
+from qrcode.constants import ERROR_CORRECT_M
 from io import BytesIO
 from weasyprint import HTML
 from flask import send_file, render_template, current_app
@@ -10,6 +12,7 @@ from application.repository.client_repository import ClientRepository
 from application.proxy.whatsapp import Whatsapp
 from flask import g
 from application import socketio
+from config import Config
 
 
 class LogisticService:
@@ -759,34 +762,104 @@ class LogisticService:
         )
 
 
+    def _build_qr_png_b64(self, code, box_size = 32, border = 1):
+        qr = qrcode.QRCode(
+            version=None,
+            error_correction=ERROR_CORRECT_M,
+            box_size=box_size,
+            border=border,
+        )
+        qr.add_data(code)
+        qr.make(fit=True)
+
+        img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+
+        buf = io.BytesIO()
+        img.save(buf, format="PNG", optimize=False)
+        return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
+    def _build_qr_pdf_bytes(self, code, orientation="vertical", arrow_side="right"):
+        # QR png base64
+        qr_png_b64 = self._build_qr_png_b64(code, box_size=16, border=1)
+
+        # separar código: B10-50-A
+        parts = [p.strip() for p in code.split("-")]
+        if len(parts) != 3 or not all(parts):
+            raise ValueError("Formato de código inválido. Use B10-50-A")
+
+        code_1, code_2, code_3 = parts
+
+        # template según orientación
+        template_name = "rotulo_qr_a5.html" if orientation == "vertical" else "rotulo_qr_a5h.html"
+
+        # rotación para la flecha (solo vertical)
+        arrow_rotate_deg = 180 if (orientation == "vertical" and arrow_side == "left") else 0
+
+        html_out = render_template(
+            template_name,
+            data={
+                "qr_png_b64": qr_png_b64,
+                "code_1": code_1,
+                "code_2": code_2,
+                "code_3": code_3,
+                "code_full": code,
+                "orientation": orientation,
+                "arrow_side": arrow_side,
+                "arrow_rotate_deg": arrow_rotate_deg,
+            }
+        )
+
+        return HTML(
+            string=html_out,
+            base_url=current_app.root_path
+        ).write_pdf()
 
 
+    def _attachments_dir(self, path=Config.QR_FOLDER):
+        try:
+            os.makedirs(path, exist_ok=True)
+        except Exception:
+            logging.exception("Could not create upload folder: %s", path)
+            raise
+        return path
 
 
+    @handle_exceptions
+    def generate_qr_pdf(self, data):
+        code = (data.get("code") or "").strip().upper()
+        if not code:
+            return "Código inválido", 400
 
+        orientation = (data.get("orientation") or "vertical").strip().lower()
+        if orientation not in ("vertical", "horizontal"):
+            return "Orientación inválida", 400
 
+        arrow_side = (data.get("arrow_side") or "right").strip().lower()
+        if arrow_side not in ("right", "left"):
+            arrow_side = "right"
 
+        # Si es horizontal, ignora flecha lateral (si tu template horizontal no la usa)
+        if orientation != "vertical":
+            arrow_side = "right"
 
+        pdf_bytes = self._build_qr_pdf_bytes(
+            code=code,
+            orientation=orientation,
+            arrow_side=arrow_side
+        )
 
+        filename = f"qr_{code}_{uuid.uuid4().hex[:8]}.pdf"
+        filepath = os.path.join(self._attachments_dir(), filename)
 
+        with open(filepath, "wb") as f:
+            f.write(pdf_bytes)
 
+        logging.info("QR PDF generado y guardado: %s", filepath)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        return send_file(
+            BytesIO(pdf_bytes),
+            mimetype="application/pdf",
+            as_attachment=True,
+            download_name=f"qr_{code}.pdf"
+        )
