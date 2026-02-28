@@ -977,10 +977,10 @@ body.modal-open {
         flex-direction: column;
     }
     .percent75 {
-        width: 100%;
+        width: 100% !important;
     }
     .percent50 {
-        width: 100%;
+        width: 100% !important;
     }
     .comments-container {
         max-width: initial;
