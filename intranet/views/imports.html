@@ -195,6 +195,8 @@
 								<img alt="repeat" x-show="import_data?.type_id == 1" class="type" src="/static/images/icons/filled/ship.svg" width="28" height="28">
 
 								<img alt="repeat" x-show="import_data?.type_id == 2" class="type fix" src="/static/images/icons/filled/plane.svg" width="20" height="20" style="display: none;">
+
+								<span x-show="import_data?.traffic_light" class="dot red" :class="import_data?.traffic_light"></span>
 							</div>
 							
 							<div class="pair-content">
@@ -305,30 +307,40 @@
 							</div>
 						</div>
 
-						<div class="box white"  x-show="import_data?.cargo_details?.qty">
-							<div class="pair-content" style="justify-content: space-between;">
+						<div class="box white"  x-show="import_data?.delivery?.date">
+							<div class="pair-content">
 								<div class="pair">
-									<img alt="" width="16" height="16" src="/static/images/imports/pickup.svg">
-									<span class="black" x-text="`Cantidad:`"></span>
-									<span class="text" x-text="`${import_data?.cargo_details?.qty}`"></span>
+									<img alt="" width="16" height="16" src="/static/images/icons/filled/calendar.svg">
+									<span class="black" x-text="`Fecha de entrega:`"></span>
+									<span class="text" x-text="`${import_data?.delivery?.date}`"></span>
 								</div>
-
+							</div>
+							<div class="pair-content">
 								<div class="pair">
-									<img alt="" width="16" height="16" src="/static/images/imports/pickup.svg">
-									<span class="black" x-text="`Pallets:`"></span>
-									<span class="text" x-text="`${import_data?.cargo_details?.pallets}`"></span>
+									<img alt="" width="16" height="16" src="/static/images/icons/filled/calendar.svg">
+									<span class="black" x-text="`Hora de la cita:`"></span>
+									<span class="text" x-text="`${import_data?.delivery?.time}`"></span>
 								</div>
-
+							</div>
+							<div class="pair-content" x-show="import_data?.delivery?.name">
 								<div class="pair">
-									<img alt="" width="16" height="16" src="/static/images/imports/pickup.svg">
-									<span class="black" x-text="`Peso (kg):`"></span>
-									<span class="text" x-text="`${import_data?.cargo_details?.weight}`"></span>
+									<img alt="" width="16" height="16" src="/static/images/icons/user.svg">
+									<span class="black" x-text="`Nombre:`"></span>
+									<span class="text" x-text="`${import_data?.delivery?.name}`"></span>
 								</div>
-
+							</div>
+							<div class="pair-content" x-show="import_data?.delivery?.phone">
 								<div class="pair">
-									<img alt="" width="16" height="16" src="/static/images/imports/pickup.svg">
-									<span class="black" x-text="`Vol. (m³):`"></span>
-									<span class="text" x-text="`${import_data?.cargo_details?.volume}`"></span>
+									<img alt="" width="16" height="16" src="/static/images/icons/user.svg">
+									<span class="black" x-text="`Celular:`"></span>
+									<span class="text" x-text="`${import_data?.delivery?.phone}`"></span>
+								</div>
+							</div>
+							<div class="pair-content" x-show="import_data?.delivery?.code">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/images/icons/user.svg">
+									<span class="black" x-text="`Placa:`"></span>
+									<span class="text" x-text="`${import_data?.delivery?.code}`"></span>
 								</div>
 							</div>
 						</div>
@@ -2894,6 +2906,26 @@
 		}
 		#dashboard .box .container .type.fix {
 			margin: 0.25rem;
+		}
+		#dashboard .box .container .dot {
+			width: 0.75rem;
+			height: 0.75rem;
+			position: absolute;
+			top: 0.25rem;
+			right: 2.25rem;
+			border-radius: 1rem;
+		}
+		#dashboard .box .container .dot.red{
+			background: #f36567;
+			box-shadow: 0 0 0 0.25rem rgba(255, 77, 79, 0.22);
+		}
+		#dashboard .box .container .dot.amber{
+			background: #faad14;
+			box-shadow: 0 0 0 0.25rem rgba(250, 173, 20, .18);
+		}
+		#dashboard .box .container .dot.green{
+		    background: #7ac734;
+    		box-shadow: 0 0 0 0.25rem rgba(114, 199, 52, 0.29);
 		}
 		#modal-view .box .letter {
 			background-color: var(--secondary);

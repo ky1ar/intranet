@@ -1,13 +1,15 @@
 import logging, os, uuid
 from datetime import date
+from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
-from flask import request, send_file, render_template
+from flask import request, send_file
 from flask_jwt_extended import get_jwt_identity
 from application.handlers import handle_exceptions
 from application.utils import format_time, calculate_passed_days, format_date, size, file_extension, allowed_extension, upload_path, format_name, format_datetime
 from application.repository.import_repository import ImportRepository
 from application.repository.user_repository import UserRepository
 from application.repository.client_repository import ClientRepository
+from application.repository.schedule_repository import ScheduleRepository
 from application.services.push_service import PushSender
 from application import socketio
 from config import Paths
@@ -29,6 +31,7 @@ class ImportService:
         self.import_repository = ImportRepository()
         self.client_repository = ClientRepository()
         self.user_repository = UserRepository()
+        self.schedule_repository = ScheduleRepository()
         self.push_service = PushSender()
         self.worker_lvl = 2
         self.leader_lvl = 3
@@ -408,6 +411,8 @@ class ImportService:
         user_id = int(get_jwt_identity())
         import_id = data.get("import_id")
         notes = data.get("notes")
+        etd_date = data.get("etd_date")
+        eta_date = data.get("eta_date")
         
         import_shipment, isc = self.import_repository.get_import(import_id) 
         if isc != 200:
@@ -422,9 +427,39 @@ class ImportService:
         if nhc != 200:
             return new_history, nhc
 
+        if current_status_id == 5:
+            eta_base = str(eta_date)[:10]
+            eta_dt = datetime.strptime(eta_base, "%Y-%m-%d")
 
-        socketio.emit("imports_dashboard_update", {})
-        return "Reclamo actualizado correctamente", 200
+            payload = {
+                "user_id": user_id,
+                "title": f"Importacion SP-{import_id}",
+                "description": "Evento creado automáticamente para coordinación interna.",
+                "start_datetime": eta_dt.strftime("%Y-%m-%dT00:00"),
+                "end_datetime": eta_dt.strftime("%Y-%m-%dT00:00"),
+                "meet": None,
+                "hex_color": "#7986CB",
+                "visibility_id": "1",
+                "repeat_id": 1,
+                "notify_id": 1,
+                "all_day": True
+            }
+            
+            new_event_id, aec = self.schedule_repository.add_event(payload)
+            if aec != 200:
+                return new_event_id, aec
+            
+            participants, _ = self.user_repository.get_all_user_ids()
+            title = f"🛳️ Próxima salida"
+            body = f"La importación SP-{import_id} tiene salida estimada (ETD) el {format_date(etd_date)}. Se actualizó el calendario con la fecha de arribo."
+
+            registration_tokens, _ = self.push_service.prefetch_registration_tokens(participants)
+            socketio.start_background_task(self.push_service.send_to_tokens, registration_tokens, title, body, None)
+            socketio.start_background_task(socketio.emit, "calendar_update_dashboard", {})
+
+        socketio.start_background_task(socketio.emit, "imports_dashboard_update", {})
+
+        return "Actualizado correctamente", 200
 
 
     @handle_exceptions
@@ -446,7 +481,7 @@ class ImportService:
             return new_history, nhc
 
         socketio.emit("imports_dashboard_update", {})
-        return "Reclamo actualizado correctamente", 200
+        return "Actualizado correctamente", 200
     
     
     def attachments_list(self, import_id):
@@ -605,7 +640,7 @@ class ImportService:
             "kind": "download",
             "name": row.original_name,
             "message": "Vista previa no disponible",
-            "download_url": f"/complaint/attachment/{row.id}?disposition=attachment"
+            "download_url": f"/imports/attachment/{row.id}?disposition=attachment"
         }, 200
 
 
@@ -642,7 +677,7 @@ class ImportService:
         registration_tokens, users_without = self.push_service.prefetch_registration_tokens(participants)
 
         socketio.start_background_task(self.push_service.send_to_tokens, registration_tokens, title, body, None)
-        socketio.start_background_task(socketio.emit, "complaint_dashboard_update", {})
+        # socketio.start_background_task(socketio.emit, "imports_dashboard_update", {})
 
         if users_without:
             logging.info(f"[FCM] users_without_tokens={users_without}")
