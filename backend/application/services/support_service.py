@@ -866,8 +866,12 @@ class SupportService:
             return orders_by_tech, orders_by_tech_code
         
         by_tech = [
-            {'technician': format_name(name, True), 'count': count}
-            for name, count in orders_by_tech
+            {
+                'technician_id': tech_id,
+                'technician': format_name(name, True),
+                'count': count
+            }
+            for tech_id, name, count in orders_by_tech
         ]
         result = {
             "count":  {
