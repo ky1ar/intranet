@@ -222,65 +222,91 @@
 				</div>
 
 				<div class="top">
-					<span class="title" x-text="`${service_order?.order_number}`"></span>
+					<span class="title" x-text="`${service_order?.method_letter}-${service_order?.order_number}`"></span>
 					<span class="days" :class="service_order?.priority" x-text="`${service_order?.passed_days}`"></span>
-					<div class="copy-pay white hover-opacity" title="Descargar rótulo" @click="getLinkPDF(service_order.order_number)">
-						<img alt="" alt="icon" src="/static/images/icons/pdf.svg" width="16" height="16">
-					</div>
-					<template x-if="service_order?.status_id > 1">
-						<div class="pay" :class="service_order.paid == 0 ? '' : 'payed'">
-							<template x-if="!editAllowed()">
-								<span x-text="service_order.paid == 0 ? 'pendiente' : 'pagado'"></span>
-							</template>
-							<template x-if="editAllowed()">
-								<div class="copy-pay white hover-opacity" title="Copiar link de pago" @click="navigator.clipboard.writeText('https://express.culqi.com/pago/OCMZHYTVEX')">
-									<img alt="" width="16" height="16" src="/static/images/icons/link.svg">
-								</div>
-							</template>
-							<template x-if="editAllowed()">
-								<span class="hover-opacity" @click="updateOrder('paid')" title="Cambiar estado de pago" x-text="service_order.paid == 0 ? 'pendiente' : 'pagado'"></span>
-							</template>
-							<template x-if="editAllowed()">
-								<input
-									type="text"
-									placeholder="0.0"
-									@input="service_order.pay_amount = service_order.pay_amount.replace(/[^0-9.]/g, '')"
-									@blur="updateOrder('pay_amount')"
-									:size="Math.max(1, String(service_order.pay_amount || 0).length)"
-									x-model="service_order.pay_amount"
-								>
-							</template>
+					<div class="top-controls buttons">
+						<template x-if="editAllowed()">
+							<div class="copy-pay button black hover-opacity" title="Copiar link de pago" @click="navigator.clipboard.writeText('https://express.culqi.com/pago/OCMZHYTVEX')">
+								<img alt="" width="16" height="16" src="/static/images/icons/link.svg">
+								Link de pago
+							</div>
+						</template>
+						<div class="copy-pay button  hover-opacity" title="Descargar rótulo" @click="getLinkPDF(service_order.order_number)">
+							<img alt="" alt="icon" src="/static/images/icons/pdf.svg" width="16" height="16">
+							Rótulo
 						</div>
-					</template>
+					</div>
+					
 				</div>
 
-				<div class="client">
-					<template x-if="service_order?.photos?.length !== 0">
-						<div class="show-photos hover-opacity" @click="$store.cache.showModal('photos');">
-							<img class="icon" alt="camera" width="24" height="24" src="/static/images/icons/camera.svg">
+				<div class="flexbox flex-row">
+					<div class="client white">
+						<template x-if="service_order?.photos?.length !== 0">
+							<div class="show-photos hover-opacity" @click="$store.cache.showModal('photos');">
+								<img class="icon" alt="camera" width="24" height="24" src="/static/images/icons/camera.svg">
+								<img class="thumb" alt="thumb" width="48" height="48" :src="'/static/images/uploads/machines/'+service_order?.machine_image" alt="">
+							</div>
+						</template>
+						
+						<template x-if="service_order?.photos?.length == 0">
 							<img class="thumb" alt="thumb" width="48" height="48" :src="'/static/images/uploads/machines/'+service_order?.machine_image" alt="">
+						</template>
+						
+						<div class="data">
+							<div class="head">
+								<span class="brand" x-text="service_order?.brand_name"></span>
+								<span class="line">|</span>
+								<span class="model" x-text="service_order?.machine_model"></span>
+							</div>
+							
+							<!-- <span class="machine" x-text="service_order?.machine"></span> -->
+							<span class="name" x-text="show_document ? service_order?.client_document : service_order?.client_name"></span>
+						</div>
+
+						<div class="icons">
+							<a title="Enviar whatsapp" :href="'https://api.whatsapp.com/send?phone=' + service_order?.client_phone" target="_blank" class="hover-opacity" rel="noopener noreferrer">
+								<img alt="" alt="phone" src="/static/images/whatsapp.svg" width="16" height="16">
+							</a>
+
+							<button title="Alternar nombre/documento" @click="show_document = !show_document" class="hover-opacity">
+								<img alt="" alt="document" src="/static/images/document.svg" width="16" height="16">
+							</button>
+						</div>
+					</div>
+
+					<!-- <template x-if="!editAllowed()">
+						<span x-text="service_order.paid == 0 ? 'pendiente' : 'pagado'"></span>
+					</template> -->
+
+					<!--  -->
+					
+					<template x-if="service_order?.status_id > 1 && editAllowed()">
+						<div class="white pay" :class="service_order.paid == 0 ? '' : 'payed'">
+							<div class="pay-box">
+								<div class="btn hover-opacity" @click="updateOrder('paid')" title="Cambiar estado de pago">
+									<img alt="" width="22" height="22" src="/static/images/icons/money.svg">
+								</div>
+								
+								<div class="pay-cnt">
+									<span class="pay-head" x-text="service_order.paid == 0 ? 'Pendiente' : 'Pagado'"></span>
+									
+									<div class="pay-body">
+										<span>S/</span>
+										<input
+											type="text"
+											placeholder="0.0"
+											@input="service_order.pay_amount = service_order.pay_amount.replace(/[^0-9.]/g, '')"
+											@blur="updateOrder('pay_amount')"
+											:size="Math.max(1, String(service_order.pay_amount || 0).length)"
+											x-model="service_order.pay_amount"
+										>
+									</div>
+								</div>
+							</div>
 						</div>
 					</template>
-					
-					<template x-if="service_order?.photos?.length == 0">
-						<img class="thumb" alt="thumb" width="48" height="48" :src="'/static/images/uploads/machines/'+service_order?.machine_image" alt="">
-					</template>
-					
-					<div class="data">
-						<span class="machine" x-text="service_order?.machine"></span>
-						<span class="name" x-text="show_document ? service_order?.client_document : service_order?.client_name"></span>
-					</div>
-
-					<div class="icons">
-						<a title="Enviar whatsapp" :href="'https://api.whatsapp.com/send?phone=' + service_order?.client_phone" target="_blank" class="hover-opacity" rel="noopener noreferrer">
-							<img alt="" alt="phone" src="/static/images/whatsapp.svg" width="16" height="16">
-						</a>
-
-						<button title="Alternar nombre/documento" @click="show_document = !show_document" class="hover-opacity">
-							<img alt="" alt="document" src="/static/images/document.svg" width="16" height="16">
-						</button>
-					</div>
 				</div>
+				
 
 				<div class="modal-content">
 					<template x-if="!editAllowed()">
@@ -2579,12 +2605,9 @@
 			font-weight: 700;
 		}
 		#modal-view .client {
-			background-color: white;
 			display: flex;
 			align-items: center;
 			padding: 1rem;
-			border-radius: 1rem;
-			box-shadow: 0 0 1rem hsl(0deg 0% 0% / 2.5%);
 			width: 100%;
 			gap: 1rem;
 		}
@@ -2617,6 +2640,21 @@
 			flex-direction: column;
 			gap: 0.25rem;
 			justify-content: center;
+		}
+		#modal-view .client .data .head {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			font-weight: 500;
+			font-size: 1rem;
+		}
+		#modal-view .client .data .head .brand {
+		}
+		#modal-view .client .data .head .line {
+			opacity: 0.25;
+		}
+		#modal-view .client .data .head .model {
+			color: var(--primary);
 		}
 		#modal-view .client .data .machine {
 			font-size: 1rem;
@@ -2660,48 +2698,92 @@
 			gap: 0.5rem;
 			align-items: center;
 		}
-		#modal-view .top .copy-pay {
-			padding: 0.5rem;
-			border-radius: 2rem;
-			display: flex;
-		}
-		#modal-view .top .pay {
-			align-items: center;
-			justify-content: end;
-			display: flex;
-			gap: 0.5rem;
+		#modal-view .top-controls {
 			margin-left: auto;
 		}
-		#modal-view .top .pay span {
-			padding: 0.5rem 0.75rem;
-			background-color: var(--graydarkest);
+		#modal-view .copy-pay {
+			padding: 0.5rem 1rem;
+			border-radius: 2rem;
+			display: flex;
+			gap: 0.25rem;
+			font-size: 0.75rem;
+			line-height: initial;
+			width: initial;
+		}
+		#modal-view .copy-pay img {
+			min-width: 1rem;
+			filter: invert(1);
+		}
+		#modal-view .pay {
+			display: flex;
+			gap: 0.5rem;
+			flex-direction: column;
+			padding: 1rem;
+			justify-content: center;
+		}
+		#modal-view .pay .pay-box {
+			display: flex;
+			gap: 0.75rem;
+			align-items: center;
+		}
+		#modal-view .pay .btn {
+			background-color: var(--graydark);
 			display: flex;
 			justify-content: center;
 			align-items: center;
-			color: var(--black);
-			font-size: 0.7rem;
-			font-weight: 500;
 			border-radius: 2rem;
+			width: 2.5rem;
+			height: 2.5rem;
 		}
-		#modal-view .top .pay input {
+		#modal-view .pay .btn img {
+			min-width: 1.35rem;
+		}
+		#modal-view .pay .pay-cnt {
+			display: flex;
+			gap: 0.125rem;
+			flex-direction: column;
+		}
+		#modal-view .pay .pay-head {
+			display: flex;
+			gap: 0.5rem;
+			font-size: 0.75rem;
+			min-width: 6rem;
+			font-weight: 500;
+			opacity: 0.75;
+		}
+		#modal-view .pay .pay-body {
+			display: flex;
+			gap: 0.25rem;
+			align-items: center;
+			font-size: 1rem;
+			font-weight: 500;
+			transition: var(--transition);
+		}
+		#modal-view .pay input {
 			border: none;
 			outline: none;
 			padding: 0;
 			margin: 0;
-			font-weight: 600;
-			font-size: 1rem;
-			text-align: right;
+			font-weight: 500;
+			font-size: 1.25rem;
 			background-color: transparent;
 			font-family: inherit;
 			transition: var(--transition);
 		}
-		#modal-view .top .pay.payed span {
-			color: white;
+		#modal-view .pay.payed .btn {
 			background-color: #4BBC66;
 		}
-		#modal-view .top .pay.payed input {
+		#modal-view .pay.payed .btn img {
+			filter: invert(1);
+		}
+		#modal-view .pay.payed .pay-body {
 			color: #4BBC66;
 		}
+		#modal-view .pay.payed input {
+			color: #4BBC66;
+		}
+
+
 		#modal-view .top .days {
 			font-weight: 600;
 			padding: 0.25rem 0.75rem;

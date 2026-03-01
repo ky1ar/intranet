@@ -131,6 +131,9 @@ body.modal-open {
     gap: 1rem;
     width: 100%;
 }
+.flexbox.flex-row {
+    flex-direction: row;
+}
 .gradient {
     /* background: linear-gradient(315deg, hsl(20deg 22% 85% / 80%), hsl(211deg 22% 85% / 80%)); */
     background-color: #d9d9d9;

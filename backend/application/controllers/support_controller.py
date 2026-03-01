@@ -20,9 +20,6 @@ class SupportController:
         return self.support.order_consult(order_number, document)
     
 
-
-    
-
     @handle_logs_and_exceptions
     def support_service_order_prev(self, data):
         if validation := validate_request(data, {"order_number", "user_id"}):

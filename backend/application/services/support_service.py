@@ -201,7 +201,6 @@ class SupportService:
         if service_order_status != 200:
             return service_order, service_order_status
         
-        #register_days = self.calculate_passed_days(service_order.register_at)
         register_days = 0
         order_status, order_status_code = self.support_repository.get_order_status(service_order.id, 2) 
         if order_status_code == 200:
@@ -212,6 +211,8 @@ class SupportService:
             "technician_id": service_order.technician_id,
             "technician_name": service_order.technician.name.split()[0],
             "machine": f"{service_order.machine.brand.name} {service_order.machine.model}",
+            "brand_name": service_order.machine.brand.name,
+            "machine_model": service_order.machine.model,
             "machine_image": service_order.machine.image,
             "client_name": service_order.client.name.title(),
             "client_document": service_order.client.document,
@@ -221,6 +222,7 @@ class SupportService:
             "origin_name": service_order.origin.name if service_order.origin else None,
             "origin_id": service_order.origin_id,
             "method_name": service_order.method.name if service_order.method else None,
+            "method_letter": service_order.method.name[0] if service_order.method and service_order.method.name else None,
             "method_id": service_order.method_id,
             "paid": service_order.paid,
             "pay_amount": service_order.pay_amount,
