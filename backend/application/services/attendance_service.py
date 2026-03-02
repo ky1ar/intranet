@@ -387,7 +387,7 @@ class AttendanceService:
         level_id = user.level_id
         department_id = user.department_id
 
-        if department_id == self.management_dep or user_id == 23:
+        if department_id == self.management_dep or user_id == 23 or user_id == 1 or user_id == 1123:
             return self._get_manager_request_list(user_id)
         
         if level_id == self.leader_lvl:
