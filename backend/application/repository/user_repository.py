@@ -108,7 +108,7 @@ class UserRepository:
         if user_id == 15:
             query = query.filter(Users.department_id.in_([3, 4]))
 
-        elif department_id != 7 and user_id != 23 and user_id != 1:
+        elif department_id != 7 and user_id not in [23, 1, 1123]:
             query = query.filter(Users.department_id == department_id)
 
         team = query.order_by(Users.name).all()
