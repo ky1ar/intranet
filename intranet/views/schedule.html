@@ -260,6 +260,78 @@
 								</template>
 							</select>
 						</label> -->
+					</div>	
+					
+					<!-- USUARIOS ESPECÍFICOS -->
+					<div class="white custom-visibility" x-show="Number(event_data.visibility_id) === 4" x-data="{ open:false, q:'' }" ">
+						<div class="custom-button hover-opacity" @click.prevent="open=!open">
+							Seleccionar usuarios(<span x-text="event_data.audience_user_ids.length"></span>)
+						</div>
+
+						<div class="item-list" x-show="open" x-transition>
+							<template x-for="u in ($store.cache.getData('user_options') || []).filter(x => !q || (x.name||'').toLowerCase().includes(q.toLowerCase()))" :key="u.id">
+								<label class="item">
+									<input type="checkbox"
+										:checked="event_data.audience_user_ids.includes(u.id)"
+										@change="
+											if ($event.target.checked) {
+												if (!event_data.audience_user_ids.includes(u.id)) event_data.audience_user_ids.push(u.id)
+											} else {
+												event_data.audience_user_ids = event_data.audience_user_ids.filter(id => id !== u.id)
+											}
+										"
+									>
+									<span x-text="u.name"></span>
+								</label>
+							</template>
+						</div>
+
+						<!-- chips -->
+						<div class="chips" x-show="event_data.audience_user_ids.length > 0">
+							<template x-for="uid in event_data.audience_user_ids" :key="uid">
+								<span class="chip"
+									@click="event_data.audience_user_ids = event_data.audience_user_ids.filter(x => x !== uid)"
+									x-text="(($store.cache.getData('user_options')||[]).find(x=>x.id===uid)?.name) || `#${uid}`"
+									title="Quitar"
+								></span>
+							</template>
+						</div>
+					</div>
+
+					<!-- ÁREAS ESPECÍFICAS -->
+					<div class="white custom-visibility" x-show="Number(event_data.visibility_id) === 5" x-data="{ open:false, q:'' }" ">
+						<div class="custom-button hover-opacity" @click.prevent="open=!open">
+							Seleccionar áreas (<span x-text="event_data.audience_department_ids.length"></span>)
+						</div>
+
+						<div class="item-list" x-show="open" x-transition>
+							<template x-for="d in ($store.cache.getData('department_options') || []).filter(x => !q || (x.name||'').toLowerCase().includes(q.toLowerCase()))" :key="d.id">
+								<label class="item">
+									<input type="checkbox"
+										:checked="event_data.audience_department_ids.includes(d.id)"
+										@change="
+											if ($event.target.checked) {
+												if (!event_data.audience_department_ids.includes(d.id)) event_data.audience_department_ids.push(d.id)
+											} else {
+												event_data.audience_department_ids = event_data.audience_department_ids.filter(id => id !== d.id)
+											}
+										"
+									>
+									<span x-text="d.name"></span>
+								</label>
+							</template>
+						</div>
+
+						<!-- chips -->
+						<div class="chips" x-show="event_data.audience_department_ids.length > 0">
+							<template x-for="did in event_data.audience_department_ids" :key="did">
+								<span class="chip"
+									@click="event_data.audience_department_ids = event_data.audience_department_ids.filter(x => x !== did)"
+									x-text="(($store.cache.getData('department_options')||[]).find(x=>x.id===did)?.name) || `#${did}`"
+									title="Quitar"
+								></span>
+							</template>
+						</div>
 					</div>
 
 					<!--  DESCRIPCIÓN -->
@@ -403,11 +475,13 @@
 			meet: '',
 			all_day: true,
 			color: '',
-			visibility_id: null,
+			visibility_id: 3,
 			repeat_id: null,
 			notify_id: null,
 			start_iso: null,
     		end_iso: null,
+			audience_user_ids: [],
+			audience_department_ids: [],
 		},
 
 		currentYear: 2025,
@@ -429,8 +503,9 @@
 				{ key: 'calendar_dashboard', url: `/schedule/month?offset=${this.offset}`, force: true },
 				{ key: 'visibility_options', url: '/schedule/options/visibility' },
 				{ key: 'repeat_options',     url: '/schedule/options/repeat' },
-				//{ key: 'notify_options',     url: '/schedule/options/notify' },
 				{ key: 'color_options',      url: '/schedule/options/colors' },
+				{ key: 'user_options', url: '/schedule/options/users' },
+				{ key: 'department_options', url: '/schedule/options/departments' },
 			]).then(() => Alpine.store('cache').verify()).catch(() => {});
 		},
 
@@ -598,6 +673,8 @@
 				this.event_data.all_day      = !!d.all_day;
 				this.event_data.color        = d.hex_color || '';
 				this.event_data.visibility_id = d.visibility_id;
+				this.event_data.audience_user_ids = d.audience_user_ids || [];
+				this.event_data.audience_department_ids = d.audience_department_ids || [];
 				this.event_data.repeat_id     = d.repeat_id;
 				this.event_data.notify_id     = d.notify_id;
 				this.event_data.creator_id   = d.creator_id;
@@ -657,11 +734,13 @@
 				meet: '',
 				all_day: true,
 				color: '',
-				visibility_id: null,
+				visibility_id: 3,
 				repeat_id: null,
 				notify_id: null,
 				start_iso: null,
         		end_iso: null,
+				audience_user_ids: [],
+				audience_department_ids: [],
 			};
 			this.can_edit = false;
 			//this.clearErrors();
@@ -714,7 +793,9 @@
 				visibility_id:  this.event_data.visibility_id || 3,
 				repeat_id:      this.event_data.repeat_id || 1,
 				notify_id:      this.event_data.notify_id || 1,
-				all_day:        !!this.event_data.all_day
+				all_day:        !!this.event_data.all_day,
+				audience_user_ids: (Number(this.event_data.visibility_id) === 4) ? (this.event_data.audience_user_ids || []) : [],
+				audience_department_ids: (Number(this.event_data.visibility_id) === 5) ? (this.event_data.audience_department_ids || []) : [],
 			};
 
 			try {
@@ -757,7 +838,9 @@
 				visibility_id:  this.event_data.visibility_id || 3,
 				repeat_id:      this.event_data.repeat_id || 1,
 				notify_id:      this.event_data.notify_id || 1,
-				all_day:        !!this.event_data.all_day
+				all_day:        !!this.event_data.all_day,
+				audience_user_ids: (Number(this.event_data.visibility_id) === 4) ? (this.event_data.audience_user_ids || []) : [],
+				audience_department_ids: (Number(this.event_data.visibility_id) === 5) ? (this.event_data.audience_department_ids || []) : [],
 			};
 
 			try {
@@ -1029,6 +1112,56 @@
 		}
 		#modal-event .color-option.selected {
 			box-shadow: 0 0 0 2px var(--primary);
+		}
+		#modal-event .custom-visibility {
+			width: 100%;
+			flex-direction: column;
+			display: flex;
+			padding: 0 0.75rem;
+		}
+		#modal-event .custom-visibility .item-list {
+			max-height: 28dvh;
+			overflow: auto;
+			display: flex;
+			flex-direction: column;
+			background-color: var(--gray);
+			padding: 0.25rem;
+			border-radius: 0.5rem;
+			margin-bottom: 0.75rem;
+		}
+		#modal-event .custom-visibility .item-list .item {
+			padding: .5rem;
+			cursor: pointer;
+			border-radius: 0.25rem;
+			transition: var(--transition);
+		}
+		#modal-event .custom-visibility .item-list .item:hover {
+			background-color: var(--white);
+		}
+		#modal-event .custom-visibility .item-list .item input {
+			width: initial;
+			height: initial;
+			margin: 0;
+		}
+		#modal-event .custom-visibility .chips {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.5rem;
+			border-top: 2px solid #00000020;
+			padding: 0.75rem 0;
+		}
+		#modal-event .custom-visibility .chips .chip {
+			padding: 0.25rem 0.75rem;
+			border-radius: 1rem;
+			cursor: pointer;
+			font-size: 0.75rem;
+			font-weight: 500;
+			background-color: var(--graydark);
+		}
+		#modal-event .custom-button {
+			width: 100%;
+			text-align: center;
+			padding: 0.75rem;
 		}
 		#schedule .main .card {
 			flex: 1;

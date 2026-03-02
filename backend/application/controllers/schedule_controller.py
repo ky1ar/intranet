@@ -57,3 +57,12 @@ class ScheduleController:
     @handle_logs_and_exceptions
     def schedule_notify_upcoming(self):
         return self.schedule.notify_upcoming_events()
+    
+
+    @handle_logs_and_exceptions
+    def schedule_get_users(self):
+        return self.schedule.get_users_options()
+
+    @handle_logs_and_exceptions
+    def schedule_get_departments(self):
+        return self.schedule.get_departments_options()

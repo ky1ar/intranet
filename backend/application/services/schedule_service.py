@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timedelta, date, timezone
 from calendar import monthrange
 from application.handlers import handle_exceptions
+from application.utils import format_name
 from application.repository.schedule_repository import ScheduleRepository
 from application.repository.user_repository import UserRepository
 from application.services.general_service import GeneralService
@@ -18,7 +19,7 @@ class ScheduleService:
         self.push_sender = PushSender()
 
 
-    def _audience_for_visibility(self, visibility_id: int, creator_id: int, creator_dept_id: int) -> set[int]:
+    def _audience_for_visibility(self, visibility_id, creator_id, creator_dept_id):
         """
         visibility_id:
           1 = TODOS
@@ -45,6 +46,43 @@ class ScheduleService:
         except Exception:
             return set()
     
+
+    def _audience_for_event(self, event, user_ids_specific=None, dept_ids_specific=None):
+        """
+        Devuelve set de user_ids que deben ser notificados (EXCLUYE al creador).
+        visibility_id:
+        1 TODOS
+        2 ÁREA (del creador)
+        3 PRIVADO
+        4 USUARIOS ESPECÍFICOS
+        5 ÁREAS ESPECÍFICAS
+        """
+        creator_id = int(event.user_id)
+        vis = int(event.visibility_id or 1)
+
+        audience: set[int] = set()
+
+        if vis == 1:
+            ids, _ = self.user_repository.get_all_user_ids()
+            audience = set(ids)
+
+        elif vis == 2:
+            creator_dept, _ = self.user_repository.get_user_department_id(creator_id)
+            if creator_dept:
+                ids, _ = self.user_repository.get_user_ids_by_department(creator_dept)
+                audience = set(ids)
+
+        elif vis == 4:
+            audience = set(int(x) for x in (user_ids_specific or []))
+
+        elif vis == 5:
+            dept_ids = [int(x) for x in (dept_ids_specific or [])]
+            ids, _ = self.schedule_repository.get_user_ids_by_departments(dept_ids)
+            audience = set(ids)
+
+        # 3 o default => vacío
+        audience.discard(creator_id)
+        return audience
 
     def _build_event_payload(self, event, action):
         data = {
@@ -73,7 +111,7 @@ class ScheduleService:
         actor_name = "Alguien"
 
         if creator and getattr(creator, "name", None):
-            full_name = self.general_service.format_name(creator.name or "").strip()
+            full_name = format_name(creator.name)
             actor_name = full_name.split(" ", 1)[0] or "Alguien"
 
         if action == "created":
@@ -183,6 +221,10 @@ class ScheduleService:
         if ec != 200:
             return events, ec
 
+        event_ids = [int(e.id) for e in events]
+        users_map, _ = self.schedule_repository.get_event_users_map(event_ids)
+        depts_map, _ = self.schedule_repository.get_event_departments_map(event_ids)
+
         filtered_events = []
         for ev in events:
             # El creador siempre ve sus eventos
@@ -190,7 +232,7 @@ class ScheduleService:
                 filtered_events.append(ev)
                 continue
 
-            vis = ev.visibility_id or 1
+            vis = int(ev.visibility_id or 1)
 
             if vis == 1:
                 filtered_events.append(ev)
@@ -206,6 +248,18 @@ class ScheduleService:
                 continue
 
             if vis == 3:
+                continue
+            
+            if vis == 4:
+                allowed_users = users_map.get(int(ev.id), set())
+                if viewer_id in allowed_users:
+                    filtered_events.append(ev)
+                continue
+
+            if vis == 5:
+                allowed_depts = depts_map.get(int(ev.id), set())
+                if viewer_dept_id in allowed_depts:
+                    filtered_events.append(ev)
                 continue
 
             filtered_events.append(ev)
@@ -383,7 +437,7 @@ class ScheduleService:
             for u in birthday_users:
                 birthday_events.append({
                     "id": f"birthday-{u.id}",
-                    "label": f"🎂 {self.general_service.format_name(u.name)}",
+                    "label": f"🎂 {format_name(u.name)}",
                     "time": "",
                     "hexColor": None,
                     "allDay": True,
@@ -508,13 +562,31 @@ class ScheduleService:
             if aec != 200:
                 return new_event_id, aec
             
+            vis = int(data.get("visibility_id") or 1)
+            if vis == 4:
+                user_ids = data.get("audience_user_ids") or []
+                if not user_ids:
+                    return "Selecciona al menos un usuario", 422
+                self.schedule_repository.replace_event_users(new_event_id, user_ids)
+
+            elif vis == 5:
+                dept_ids = data.get("audience_department_ids") or []
+                if not dept_ids:
+                    return "Selecciona al menos un área", 422
+                self.schedule_repository.replace_event_departments(new_event_id, dept_ids)
+                
             socketio.emit("calendar_update_dashboard", {})
 
             event, ec = self.schedule_repository.get_event_by_id(new_event_id)
             if ec == 200:
-                creator_id = event.user_id
-                creator_dept, _ = self.user_repository.get_user_department_id(creator_id)
-                audience = self._audience_for_visibility(event.visibility_id or 1, creator_id, creator_dept)
+                u_map, _ = self.schedule_repository.get_event_users_map([event.id])
+                d_map, _ = self.schedule_repository.get_event_departments_map([event.id])
+
+                audience = self._audience_for_event(
+                    event,
+                    user_ids_specific=list(u_map.get(event.id, [])),
+                    dept_ids_specific=list(d_map.get(event.id, [])),
+                )
                 self._notify_bulk(audience, event, "created")
                 
             return "Evento registrado correctamente", 200
@@ -524,32 +596,68 @@ class ScheduleService:
         if ec != 200:
             return event, ec
 
-        old_vis = event.visibility_id or 1
-        creator_id = event.user_id
-        creator_dept, _ = self.user_repository.get_user_department_id(creator_id)
+        eid = int(event_id)  # 👈 GUARDA SIEMPRE COMO PRIMITIVO
 
-        old_audience = self._audience_for_visibility(old_vis, creator_id, creator_dept)
+        old_vis = int(event.visibility_id or 1)
+        creator_id = int(event.user_id)
 
+        old_u_map, _ = self.schedule_repository.get_event_users_map([eid])
+        old_d_map, _ = self.schedule_repository.get_event_departments_map([eid])
+
+        old_audience = self._audience_for_event(
+            event,
+            user_ids_specific=list(old_u_map.get(eid, [])),
+            dept_ids_specific=list(old_d_map.get(eid, [])),
+        )
+
+        # parse new_vis
         raw_new_vis = data.get("visibility_id")
-
         try:
             new_vis = int(raw_new_vis) if raw_new_vis not in (None, "") else old_vis
         except (TypeError, ValueError):
             new_vis = old_vis
-
         data["visibility_id"] = new_vis
+
+        new_user_ids = data.get("audience_user_ids") or []
+        new_dept_ids = data.get("audience_department_ids") or []
+
+        if new_vis == 4 and not new_user_ids:
+            return "Selecciona al menos un usuario", 422
+        if new_vis == 5 and not new_dept_ids:
+            return "Selecciona al menos un área", 422
+
         updated, uec = self.schedule_repository.update_event(event, data)
         if uec != 200:
             return updated, uec
-        
-        new_audience = self._audience_for_visibility(new_vis, creator_id, creator_dept)
-        added   = new_audience - old_audience    # ganan visibilidad
-        removed = old_audience - new_audience    # pierden visibilidad
-        stayed  = new_audience & old_audience    # se mantienen (opcional updated)
 
-        event, ec = self.schedule_repository.get_event_by_id(event_id)
+        # 👇 IMPORTANTÍSIMO: NO usar event.id aquí (ya puede estar detached)
+        if new_vis == 4:
+            self.schedule_repository.replace_event_users(eid, new_user_ids)
+            self.schedule_repository.replace_event_departments(eid, [])
+        elif new_vis == 5:
+            self.schedule_repository.replace_event_departments(eid, new_dept_ids)
+            self.schedule_repository.replace_event_users(eid, [])
+        else:
+            self.schedule_repository.replace_event_users(eid, [])
+            self.schedule_repository.replace_event_departments(eid, [])
+
+        # re-fetch (acá ya trabajas con uno nuevo)
+        event, ec = self.schedule_repository.get_event_by_id(eid)
         if ec != 200:
             return event, ec
+
+        new_u_map, _ = self.schedule_repository.get_event_users_map([eid])
+        new_d_map, _ = self.schedule_repository.get_event_departments_map([eid])
+
+        new_audience = self._audience_for_event(
+            event,
+            user_ids_specific=list(new_u_map.get(eid, [])),
+            dept_ids_specific=list(new_d_map.get(eid, [])),
+        )
+
+        added   = new_audience - old_audience
+        removed = old_audience - new_audience
+        stayed  = new_audience & old_audience
 
         self._notify_bulk(added, event, "created")
         self._notify_bulk(removed, event, "removed")
@@ -642,6 +750,9 @@ class ScheduleService:
         if ec != 200:
             return event, ec
         
+        u_map, _ = self.schedule_repository.get_event_users_map([event.id])
+        d_map, _ = self.schedule_repository.get_event_departments_map([event.id])
+
         return {
             "id": event.id,
             "creator_id": event.user_id,
@@ -651,10 +762,31 @@ class ScheduleService:
             "hex_color": event.hex_color,
             "all_day": True if event.all_day or event.all_day == 1 else False,
             "end_datetime": event.end_datetime.isoformat() if event.end_datetime else None,
-            "creator_name": self.general_service.format_name(event.user.name),
+            "creator_name": format_name(event.user.name),
             "title": event.title,
             "repeat_id": event.repeat_id,
             "notify_id": event.notify_id,
             "visibility_id": event.visibility_id,
+            "audience_user_ids": sorted(list(u_map.get(event.id, set()))),
+            "audience_department_ids": sorted(list(d_map.get(event.id, set()))),
             "created_at": event.created_at.isoformat(),
         }, 200
+
+
+    @handle_exceptions
+    def get_users_options(self):
+        users, uc = self.schedule_repository.get_users_minimal()
+        if uc != 200:
+            return users, uc
+        # formatea bonito
+        for u in users:
+            u["name"] = format_name(u["name"])
+        return users, 200
+
+
+    @handle_exceptions
+    def get_departments_options(self):
+        deps, dc = self.schedule_repository.get_departments()
+        if dc != 200:
+            return deps, dc
+        return deps, 200

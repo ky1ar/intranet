@@ -575,6 +575,8 @@ class Events(db.Model):
     visibility = db.relationship("Visibility", lazy="joined", foreign_keys=[visibility_id])
     repeat = db.relationship("Repeat", lazy="joined", foreign_keys=[repeat_id])
     notify = db.relationship("Notify", lazy="joined", foreign_keys=[notify_id])
+    visibility_users = db.relationship("EventVisibilityUser", lazy="selectin", cascade="all, delete-orphan", primaryjoin="Events.id==EventVisibilityUser.event_id")
+    visibility_departments = db.relationship("EventVisibilityDepartment", lazy="selectin", cascade="all, delete-orphan",primaryjoin="Events.id==EventVisibilityDepartment.event_id")
 
 
 class Visibility(db.Model):
@@ -583,6 +585,30 @@ class Visibility(db.Model):
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
     name = db.Column(db.String(100), nullable=False)
     slug = db.Column(db.String(100), nullable=False)
+
+
+class EventVisibilityUser(db.Model):
+    __tablename__ = "schedule_event_visibility_users"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    event_id = db.Column(db.Integer, db.ForeignKey("schedule_events.id"), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+
+    __table_args__ = (
+        db.UniqueConstraint("event_id", "user_id", name="uq_event_user"),
+    )
+
+
+class EventVisibilityDepartment(db.Model):
+    __tablename__ = "schedule_event_visibility_departments"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    event_id = db.Column(db.Integer, db.ForeignKey("schedule_events.id"), nullable=False, index=True)
+    department_id = db.Column(db.Integer, db.ForeignKey("user_department.id"), nullable=False, index=True)
+
+    __table_args__ = (
+        db.UniqueConstraint("event_id", "department_id", name="uq_event_dept"),
+    )
 
 
 class Repeat(db.Model):

@@ -52,3 +52,13 @@ def get_colors():
 @schedule_bp.route("/notifications/upcoming", methods=["POST"])
 def notify_upcoming():
     return controller.schedule_notify_upcoming()
+
+
+@schedule_bp.route("/options/users", methods=["GET"])
+def get_users():
+    return controller.schedule_get_users()
+
+
+@schedule_bp.route("/options/departments", methods=["GET"])
+def get_departments():
+    return controller.schedule_get_departments()

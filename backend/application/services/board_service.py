@@ -231,7 +231,7 @@ class BoardService:
             "title": issue.title,
             "type_id": issue.type_id,
             "updated_at": issue.updated_at,
-            "reporter_name": self.general_service.format_name(issue.reporter.name),
+            "reporter_name": format_name(issue.reporter.name),
             "formatted_date": self._format_datetime_es(issue.created_at),
         }, 200
     

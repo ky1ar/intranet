@@ -2,8 +2,11 @@ import logging
 from datetime import date, datetime, timezone, timedelta, timezone
 from application.handlers import handle_db_exceptions
 from application.models import Events, Visibility, Repeat, Notify, Colors, Holidays
+from application.models import EventVisibilityUser, EventVisibilityDepartment
+from application.models import Users, UserDepartment
+from sqlalchemy import or_, and_
 from flask import g
-from sqlalchemy import or_
+
 
 class ScheduleRepository:
     def __init__(self):
@@ -16,6 +19,86 @@ class ScheduleRepository:
         g.db_session.add(holiday)
         g.db_session.commit()
         return holiday, 200
+
+
+    @handle_db_exceptions
+    def replace_event_users(self, event_id, user_ids):
+        g.db_session.query(EventVisibilityUser).filter(EventVisibilityUser.event_id == event_id).delete()
+        rows = [EventVisibilityUser(event_id=event_id, user_id=int(uid)) for uid in (user_ids or [])]
+        if rows:
+            g.db_session.bulk_save_objects(rows)
+        g.db_session.commit()
+        return True, 200
+
+
+    @handle_db_exceptions
+    def replace_event_departments(self, event_id, dept_ids):
+        g.db_session.query(EventVisibilityDepartment).filter(EventVisibilityDepartment.event_id == event_id).delete()
+        rows = [EventVisibilityDepartment(event_id=event_id, department_id=int(did)) for did in (dept_ids or [])]
+        if rows:
+            g.db_session.bulk_save_objects(rows)
+        g.db_session.commit()
+        return True, 200
+
+
+    @handle_db_exceptions
+    def get_event_users_map(self, event_ids):
+        if not event_ids:
+            return {}, 200
+        rows = (
+            g.db_session.query(EventVisibilityUser.event_id, EventVisibilityUser.user_id)
+            .filter(EventVisibilityUser.event_id.in_(event_ids))
+            .all()
+        )
+        m = {}
+        for eid, uid in rows:
+            m.setdefault(int(eid), set()).add(int(uid))
+        return m, 200
+
+
+    @handle_db_exceptions
+    def get_event_departments_map(self, event_ids):
+        if not event_ids:
+            return {}, 200
+        rows = (
+            g.db_session.query(EventVisibilityDepartment.event_id, EventVisibilityDepartment.department_id)
+            .filter(EventVisibilityDepartment.event_id.in_(event_ids))
+            .all()
+        )
+        m = {}
+        for eid, did in rows:
+            m.setdefault(int(eid), set()).add(int(did))
+        return m, 200
+
+    
+    @handle_db_exceptions
+    def get_user_ids_by_departments(self, dept_ids: list[int]):
+        if not dept_ids:
+            return [], 200
+        ids = (
+            g.db_session.query(Users.id)
+            .filter(Users.department_id.in_([int(x) for x in dept_ids]))
+            .all()
+        )
+        return [int(r[0]) for r in ids], 200
+
+    @handle_db_exceptions
+    def get_users_minimal(self):
+        users = (
+            g.db_session.query(Users.id, Users.name, Users.department_id)
+            .filter(Users.level_id != 1)
+            .filter(Users.level_id != 5)
+            .filter(Users.id != 21)
+            .order_by(Users.name.asc())
+            .all()
+        )
+        return [{"id": int(u.id), "name": u.name or "", "department_id": u.department_id} for u in users], 200
+
+
+    @handle_db_exceptions
+    def get_departments(self):
+        deps = g.db_session.query(UserDepartment.id, UserDepartment.name).order_by(UserDepartment.name.asc()).all()
+        return [{"id": int(d.id), "name": d.name or ""} for d in deps], 200
 
 
     @handle_db_exceptions
@@ -72,7 +155,7 @@ class ScheduleRepository:
 
     @handle_db_exceptions
     def get_visibility(self):
-        visibility = g.db_session.query(Visibility).order_by(Visibility.id.desc()).all()
+        visibility = g.db_session.query(Visibility).order_by(Visibility.name.desc()).all()
         if not visibility:
             return [], 200
 
