@@ -98,3 +98,13 @@ class ImportController:
     @handle_logs_and_exceptions
     def import_chat(self, data):
         return self.import_service.chat(data)
+    
+
+    @handle_logs_and_exceptions
+    def import_draft_update_agents(self, data):
+        return self.import_service.draft_update_agents(data)
+
+
+    @handle_logs_and_exceptions
+    def import_draft_delete(self, data):
+        return self.import_service.draft_delete(data)

@@ -794,3 +794,85 @@ class ImportService:
             "commenter_image": chat.commenter.image,
             "created_at": format_datetime(chat.created_at),
         }, 200
+
+
+    @handle_exceptions
+    def draft_update_agents(self, data):
+        user_id = int(get_jwt_identity())
+        import_id = data.get("import_id")
+
+        local_agent = (data.get("local_agent") or "").strip()
+        origin_agent = (data.get("origin_agent") or "").strip()
+
+        if not import_id:
+            return "import_id requerido", 400
+        if not local_agent:
+            return "Ingresa agente local", 400
+        if not origin_agent:
+            return "Ingresa agente de origen", 400
+
+        # (Opcional pero recomendado) misma regla del front
+        user, uc = self.user_repository.get_user_by_id(user_id)
+        if uc != 200:
+            return user, uc
+        if not (user.department_id == 8 or user.id == 23):
+            return "No autorizado", 403
+
+        import_shipment, isc = self.import_repository.get_import(import_id)
+        if isc != 200:
+            return import_shipment, isc
+
+        if import_shipment.status_id != 1:
+            return "Solo se puede editar agentes cuando está en borrador", 400
+
+        ok, rc = self.import_repository.update_draft_agents(
+            import_shipment=import_shipment,
+            local_agent=local_agent,
+            origin_agent=origin_agent
+        )
+        if rc != 200:
+            return ok, rc
+
+        socketio.emit("imports_dashboard_update", {})
+        return "Borrador actualizado correctamente", 200
+
+
+    @handle_exceptions
+    def draft_delete(self, data):
+        user_id = int(get_jwt_identity())
+        import_id = data.get("import_id")
+
+        if not import_id:
+            return "import_id requerido", 400
+
+        # (Opcional pero recomendado) misma regla del front
+        user, uc = self.user_repository.get_user_by_id(user_id)
+        if uc != 200:
+            return user, uc
+        if not (user.department_id == 8 or user.id == 23):
+            return "No autorizado", 403
+
+        import_shipment, isc = self.import_repository.get_import(import_id)
+        if isc != 200:
+            return import_shipment, isc
+
+        if import_shipment.status_id != 1:
+            return "Solo se puede eliminar cuando está en borrador", 400
+
+        # Limpieza de archivos físicos (por si existieran)
+        attachments, arc = self.import_repository.get_attachments_by_import(import_id)
+        if arc == 200:
+            for a in attachments:
+                try:
+                    path = os.path.join(Paths.IMPORTS, a.stored_name)
+                    if os.path.exists(path):
+                        os.remove(path)
+                except Exception as e:
+                    logging.warning(f"No se pudo eliminar archivo {a.stored_name}: {e}")
+
+        deleted, dc = self.import_repository.delete_import_draft(import_id)
+        if dc != 200:
+            return deleted, dc
+
+        socketio.emit("imports_dashboard_update", {})
+        return "Borrador eliminado correctamente", 200

@@ -60,13 +60,49 @@ class ImportRepository:
     def get_options_provider(self):
         providers = (
             g.db_session.query(ImportProvider)
-            .order_by(ImportProvider.id)
+            .order_by(ImportProvider.name)
             .all()
         )
         
         if not providers:
             return [], 400
         return providers, 200
+
+
+    @handle_db_exceptions
+    def update_draft_agents(self, import_shipment, local_agent, origin_agent):
+        import_shipment.local_agent_name = local_agent
+        import_shipment.origin_agent_name = origin_agent
+        g.db_session.add(import_shipment)
+        g.db_session.commit()
+        return True, 200
+
+    
+    @handle_db_exceptions
+    def delete_import_draft(self, import_shipment_id):
+        # eliminar hijos primero (por si no hay cascade en DB)
+        g.db_session.query(ImportChats).filter(
+            ImportChats.import_shipment_id == import_shipment_id
+        ).delete(synchronize_session=False)
+
+        g.db_session.query(ImportAttachment).filter(
+            ImportAttachment.import_shipment_id == import_shipment_id
+        ).delete(synchronize_session=False)
+
+        g.db_session.query(ImportStatusHistory).filter(
+            ImportStatusHistory.import_shipment_id == import_shipment_id
+        ).delete(synchronize_session=False)
+
+        g.db_session.query(ImportShipmentLine).filter(
+            ImportShipmentLine.import_shipment_id == import_shipment_id
+        ).delete(synchronize_session=False)
+
+        g.db_session.query(ImportShipment).filter(
+            ImportShipment.id == import_shipment_id
+        ).delete(synchronize_session=False)
+
+        g.db_session.commit()
+        return True, 200
 
 
     @handle_db_exceptions

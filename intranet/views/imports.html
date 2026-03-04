@@ -189,7 +189,7 @@
 					<span class="title" x-text="`SP-${import_data?.id}`"></span>
 					<span class="text" x-text="import_data?.business_name || '-'" style="margin-right: auto;font-weight: 500;opacity: 0.5;margin-left: 0.5rem;"></span>
 					<span class="days" x-text="`${import_data?.passed_days}`"></span>
-				</div>
+					</div>
 				
 				<div class="modal-content dual">
 					<div class="dataview overflow percent50">
@@ -202,7 +202,7 @@
 									<div class="data">
 										<div class="head">
 											<span class="name" x-text="line.provider_name"></span>
-											<span class="line">|</span>
+											<span class="line" x-show="line.provider_contact">|</span>
 											<span class="contact" x-text="line.provider_contact"></span>
 											<span class="icon" x-text="line.incoterm_code"></span>
 										</div>
@@ -214,7 +214,14 @@
 											</div>
 											
 											<div x-show="line.provider_phone" class="pair">
-												<img alt="" width="14" height="14" src="/static/images/phone.svg">
+												<img
+													alt=""
+													width="14"
+													height="14"
+													:src="(line.provider_phone || '').toLowerCase().includes('www')
+														? '/static/images/icons/web.svg'
+														: '/static/images/phone.svg'"
+												>
 												<span class="text" x-text="line.provider_phone"></span>
 											</div>
 
@@ -240,11 +247,14 @@
 										</div>
 
 										<div class="pair">
+											<img alt="" width="16" height="16" src="/static/images/icons/money.svg">
 											<span class="black">Adelanto:</span>
 											<span class="text" x-text="`${import_data?.advance_payment_percent ?? 0}%`"></span>
 										</div>
 
 										<div class="pair">
+											<img alt="" width="16" height="16" src="/static/images/icons/calendar2.svg">
+
 											<span class="black">Saldo:</span>
 											<span class="text" x-text="`${import_data?.balance_days ?? 0} día(s)`"></span>
 										</div>
@@ -259,7 +269,37 @@
 							</div>
 						</div>
 
-						<div class="box white">
+						<div class="box glass2" x-show="editAllowed() && import_data?.status_id == 1" style="border-radius: 0.75rem;padding: 0.75rem;">
+							<div class="fields options">
+								<label class="white">
+									<img alt="" src="/static/images/icons/user.svg" width="16" height="16">
+									<input type="text" placeholder="Agente local" x-model="import_data.local_agent_name">
+								</label>
+							</div>
+
+							<div class="fields options">
+								<label class="white">
+									<img alt="" src="/static/images/icons/user.svg" width="16" height="16">
+									<input type="text" placeholder="Agente de origen" x-model="import_data.origin_agent_name">
+								</label>
+							</div>
+
+							<div class="buttons" x-show="editAllowed() && import_data?.status_id == 1" style="display:flex; gap:.5rem;">
+								<button class="button hover-opacity"
+									@click="saveDraftAgents()"
+									:class="buttons.save_draft?.class"
+									x-text="buttons.save_draft?.text || 'Actualizar agentes'">
+								</button>
+
+								<button class="button hover-opacity black"
+									@click="deleteDraft()"
+									:class="buttons.delete_draft?.class"
+									x-text="buttons.delete_draft?.text || 'Eliminar borrador'">
+								</button>
+							</div>
+						</div>
+
+						<div class="box white" x-show="!(editAllowed() && import_data?.status_id == 1)">
 							<div class="pair-content">
 								<div class="pair">
 									<img alt="" width="14" height="14" src="/static/images/icons/user.svg">
@@ -276,6 +316,7 @@
 								</div>
 							</div>
 						</div>
+
 
 						<div class="box white"  x-show="import_data?.dates?.booking">
 							<div class="pair-content">
@@ -1227,7 +1268,7 @@
 									<div class="data">
 										<div class="header">
 											<span class="name" x-text="line.provider_preview?.name"></span>
-											<span class="line">|</span>
+											<span class="line" x-show="line.provider_preview?.contact">|</span>
 											<span class="contact" x-text="line.provider_preview?.contact"></span>
 										</div>
 										<div class="bottom">
@@ -1237,7 +1278,14 @@
 											</div>
 											
 											<div x-show="line.provider_preview?.phone" class="row">
-												<img alt="" width="14" height="14" src="/static/images/phone.svg">
+												<img
+													alt=""
+													width="14"
+													height="14"
+													:src="(line.provider_preview?.phone || '').toLowerCase().includes('www')
+														? '/static/images/icons/web.svg'
+														: '/static/images/phone.svg'"
+												>
 												<span x-text="line.provider_preview?.phone"></span>
 											</div>
 
@@ -1428,6 +1476,8 @@
 			buttons: {
                 add: { class: '', text: 'Añadir' },
                 move_status: { class: '', text: this.selected_import?.status_id == 8 ? 'Finalizar orden': 'Actualizar estado' },
+				save_draft: { class: '', text: 'Actualizar agentes' },
+    			delete_draft: { class: '', text: 'Eliminar borrador' },
             },
 			docs_target: "product_list",
 			pending_docs: [],
@@ -1462,6 +1512,77 @@
 				}
 
 				await Alpine.store('cache').verify();
+			},
+
+			async saveDraftAgents() {
+				if (!this.import_data?.id) return;
+				if (this.processing) return;
+
+				const local_agent = (this.import_data?.local_agent_name || '').trim();
+				const origin_agent = (this.import_data?.origin_agent_name || '').trim();
+
+				if (!local_agent) return this.showError('save_draft', 'Ingresa agente local');
+				if (!origin_agent) return this.showError('save_draft', 'Ingresa agente origen');
+
+				this.processing = true;
+				try {
+					const response = await fetch(`${this.api}/imports/draft/${this.import_data.id}/agents`, {
+						method: 'PUT',
+						headers: {
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${this.user.token}`,
+						},
+						body: JSON.stringify({
+							local_agent,
+							origin_agent
+						})
+					});
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || 'Error actualizando borrador');
+					}
+
+					// refresca board + borradores + detalle actual
+					await Alpine.store('cache').refresh(['imports_dashboard', 'imports_pendings']);
+					await this.viewItem(this.import_data.id);
+
+				} catch (error) {
+					this.showError('save_draft', error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async deleteDraft() {
+				if (!this.import_data?.id) return;
+				if (this.processing) return;
+
+				this.processing = true;
+				try {
+					const response = await fetch(`${this.api}/imports/draft/${this.import_data.id}`, {
+						method: 'DELETE',
+						headers: {
+							'Authorization': `Bearer ${this.user.token}`,
+						}
+					});
+
+					let jsonData = {};
+					try { jsonData = await response.json(); } catch (e) {}
+
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || 'Error eliminando borrador');
+					}
+
+					Alpine.store('cache').hideModal('view');
+					this.import_data = null;
+					await Alpine.store('cache').refresh(['imports_dashboard', 'imports_pendings']);
+
+				} catch (error) {
+					this.showError('delete_draft', error.message);
+				} finally {
+					this.processing = false;
+				}
 			},
 
 			emptyImportLine() {
@@ -2735,8 +2856,8 @@
 			width: 0.5rem;
 			height: 0.5rem;
 			position: absolute;
-			bottom: 0.8rem;
-			right: 2.25rem;
+			bottom: 0.9rem;
+			right: 2.5rem;
 			border-radius: 1rem;
 		}
 		#dashboard ul li .dot.red{
@@ -3038,6 +3159,7 @@
 			display: flex;
 			flex-direction: column;
 			gap: 0.125rem;
+			width: 100%;
 		}
 		#modal-view .box .container .data + .data {
 			margin-left: auto;
@@ -3057,6 +3179,12 @@
 		}
 		#modal-view .box .container .data .head .contact {
 			color: var(--primary);
+		}
+		#modal-view .box .container .data .head .icon {
+			margin-left: auto;
+			font-size: 0.75rem;
+			opacity: 0.5;
+			font-weight: 700;
 		}
 		#modal-view .box .pair-content {
 			font-size: 0.8rem;
@@ -3125,14 +3253,13 @@
 			background-color: var(--secondary);
 			color: var(--white);
 			width: 2rem;
+			min-width: 2rem;
     		height: 2rem;
 			border-radius: 1rem;
 			display: flex;
 			justify-content: center;
 			align-items: center;
 		}
-		
-
 		#modal-view .client {
 			display: flex;
 			align-items: center;
@@ -3275,6 +3402,7 @@
 			font-size: 0.85rem;
 			background-color: #fddbc9;
     		border: 2px solid #f8a87f;
+			margin: -0.5rem 0;
 		}
 		#modal-view .dataview {
 			display: flex;

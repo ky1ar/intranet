@@ -106,3 +106,17 @@ def chat(import_id):
     data = request.get_json() or {}
     data["import_id"] = import_id
     return controller.import_chat(data)
+
+
+@import_bp.route("/draft/<int:import_id>/agents", methods=["PUT"])
+@jwt_required()
+def draft_update_agents(import_id):
+    data = request.get_json() or {}
+    data["import_id"] = import_id
+    return controller.import_draft_update_agents(data)
+
+
+@import_bp.route("/draft/<int:import_id>", methods=["DELETE"])
+@jwt_required()
+def draft_delete(import_id):
+    return controller.import_draft_delete({"import_id": import_id})
