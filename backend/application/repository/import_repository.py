@@ -1,7 +1,11 @@
 import logging
-from application.handlers import handle_db_exceptions
-from application.db_models.import_model import ImportShipment, ImportBusiness, ImportIncoterm, ImportPort, ImportProvider, ImportStatus, ImportStatusHistory, ImportType, ImportAttachment, ImportChats
 from application.utils import peru_time
+from application.handlers import handle_db_exceptions
+from application.db_models.import_model import (
+    ImportShipment, ImportBusiness, ImportIncoterm, ImportPort, ImportProvider,
+    ImportStatus, ImportStatusHistory, ImportType, ImportAttachment, ImportChats,
+    ImportShipmentLine
+)
 from flask import g
 
 
@@ -23,10 +27,7 @@ class ImportRepository:
             .filter(ImportShipment.status_id != 14)
             .all()
         )
-        if not imports:
-            return [], 200
-
-        return imports, 200
+        return imports or [], 200
     
 
     @handle_db_exceptions
@@ -124,22 +125,35 @@ class ImportRepository:
 
     @handle_db_exceptions
     def new_import(self, data):
+        lines = data.get("lines") or []
+        if not isinstance(lines, list) or not lines:
+            return "Debe enviar al menos una línea", 400
+
         new_import = ImportShipment(
-            provider_id = int(data.get("provider_id")),
-            business_id = int(data.get("business_id")),
-            type_id = int(data.get("type_id")),
-            incoterm_id = int(data.get("incoterm_id")),
-            port_id = int(data.get("port_id")),
-            status_id = 1,
-            local_agent_name = data.get("local_agent"),
-            origin_agent_name = data.get("origin_agent"),
+            business_id=int(data.get("business_id")),
+            type_id=int(data.get("type_id")),
+            port_id=int(data.get("port_id")),
+            status_id=1,
+            local_agent_name=(data.get("local_agent") or "").strip(),
+            origin_agent_name=(data.get("origin_agent") or "").strip(),
+            advance_payment_percent=data.get("advance_payment_percent"),
+            balance_days=int(data.get("balance_days")),
         )
 
         g.db_session.add(new_import)
         g.db_session.flush()
-        import_id = new_import.id
+
+        for idx, line in enumerate(lines, start=1):
+            row = ImportShipmentLine(
+                import_shipment_id=new_import.id,
+                provider_id=int(line.get("provider_id")),
+                incoterm_id=int(line.get("incoterm_id")),
+                position=idx,
+            )
+            g.db_session.add(row)
+
         g.db_session.commit()
-        return import_id, 200
+        return new_import.id, 200
 
 
     @handle_db_exceptions
@@ -161,14 +175,9 @@ class ImportRepository:
         imports = (
             g.db_session.query(ImportShipment)
             .filter(ImportShipment.status_id == status_id)
-            # .filter(ShippingOrders.is_deleted.is_(False))
             .all()
         )
-
-        if not imports:
-            return 'No se encontraron ordenes de pedido para este estado', 404
-        
-        return imports, 200
+        return imports or [], 200
 
 
     @handle_db_exceptions

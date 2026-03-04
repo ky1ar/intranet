@@ -1,4 +1,6 @@
 import logging, os, uuid
+import openpyxl
+from docx import Document
 from werkzeug.utils import secure_filename
 from flask import request, send_file, render_template
 from flask_mail import Message
@@ -13,17 +15,6 @@ from application.services.push_service import PushSender
 from application import socketio
 from flask_jwt_extended import get_jwt_identity
 from config import Config
-
-
-try:
-    from docx import Document
-except Exception:
-    Document = None
-
-try:
-    import openpyxl
-except Exception:
-    openpyxl = None
 
 
 class ComplaintService:

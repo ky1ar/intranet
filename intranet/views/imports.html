@@ -70,18 +70,31 @@
 								<div class="row">
 									<span class="order-number" x-text="`SP-${item.id}`"></span>
 								</div>
+								
 								<div class="row">
 									<div>
-										<span class="title" x-text="item.provider_name"></span>
+										<div class="title multi-lines">
+											<template x-for="(pname, i) in item.provider_names" :key="`${item.id}-p-${i}`">
+												<span x-text="pname"></span>
+											</template>
+										</div>
 										<span class="sub" x-text="item.business_name"></span>
 									</div>
 								</div>
-								<img alt="repeat" x-show="item.type_id == 1" src="/static/images/icons/filled/ship.svg" width="28" height="28">
-								<img alt="repeat" x-show="item.type_id == 2" class="ico" src="/static/images/icons/filled/plane.svg" width="20" height="20" style="display: none;">
+
+								<img alt="ship" x-show="item.type_id == 1" src="/static/images/icons/filled/ship.svg" width="28" height="28">
+								<img alt="plane" x-show="item.type_id == 2" class="ico" src="/static/images/icons/filled/plane.svg" width="20" height="20">
+
+								<!-- <div class="row" style="justify-content:space-between; align-items:center;">
+									<div style="display:flex; flex-direction:column; gap:.1rem;">
+										<span class="sub" x-text="`${item.line_count || 0} línea(s)`"></span>
+										<span class="sub" x-text="`${item.port_name || '-'} · ${item.incoterms_text || '-'}`"></span>
+									</div>
+								</div> -->
 							</div>
 						</template>
 					</template>
-					<span class="empty glass" x-show="!Array.isArray($store.cache.getData('imports_pendings'))">No hay borradores</span>
+					<span class="empty glass" x-show="$store.cache.getData('imports_pendings')?.length == 0">No hay borradores</span>
 				</div>
 			</div>
 
@@ -121,14 +134,29 @@
 
 										<div class="row">
 											<div>
-												<span class="title" x-text="item.provider_name"></span>
+												<div class="title multi-lines">
+													<template x-for="(pname, i) in item.provider_names" :key="`${item.id}-p-${i}`">
+														<span x-text="pname"></span>
+													</template>
+												</div>
 												<span class="sub" x-text="item.business_name"></span>
 											</div>
 										</div>
 
-										<img alt="repeat" x-show="item.type_id == 1" src="/static/images/icons/filled/ship.svg" width="28" height="28">
-										<img alt="repeat" x-show="item.type_id == 2" class="ico" src="/static/images/icons/filled/plane.svg" width="20" height="20">
+										<img alt="ship" x-show="item.type_id == 1" src="/static/images/icons/filled/ship.svg" width="28" height="28">
+										<img alt="plane" x-show="item.type_id == 2" class="ico" src="/static/images/icons/filled/plane.svg" width="20" height="20">
 										<span x-show="item.traffic_light" class="dot" :class="item.traffic_light"></span>
+										
+										<!-- <div class="row" style="justify-content:space-between; align-items:center;">
+											<div style="display:flex; flex-direction:column; gap:.1rem;">
+												<span class="sub" x-text="`${item.line_count || 0} línea(s)`"></span>
+												<span class="sub" x-text="`${item.port_name || '-'} · ${item.incoterms_text || '-'}`"></span>
+											</div>
+
+											<div style="display:flex; align-items:center; gap:.35rem;">
+												
+											</div>
+										</div> -->
 									</li>
 								</template>
 							</template>
@@ -159,61 +187,74 @@
 
 				<div class="top">
 					<span class="title" x-text="`SP-${import_data?.id}`"></span>
+					<span class="text" x-text="import_data?.business_name || '-'" style="margin-right: auto;font-weight: 500;opacity: 0.5;margin-left: 0.5rem;"></span>
 					<span class="days" x-text="`${import_data?.passed_days}`"></span>
 				</div>
 				
 				<div class="modal-content dual">
 					<div class="dataview overflow percent50">
+						<!-- Líneas: proveedor + incoterm -->
+						<div class="box glass2" x-show="import_data?.lines?.length" style="border-radius: 0.75rem;padding: 0.75rem;">
+							<template x-for="line in (import_data?.lines || [])" :key="line.id">
+								<div class="container white" style="padding:.65rem; border-radius:.8rem;">
+									<span class="letter" x-text="line.provider_name?.charAt(0)"></span>
+
+									<div class="data">
+										<div class="head">
+											<span class="name" x-text="line.provider_name"></span>
+											<span class="line">|</span>
+											<span class="contact" x-text="line.provider_contact"></span>
+											<span class="icon" x-text="line.incoterm_code"></span>
+										</div>
+
+										<div class="pair-content">
+											<div x-show="line.provider_email" class="pair">
+												<img alt="" width="14" height="14" src="/static/images/email.svg">
+												<span class="text" x-text="line.provider_email"></span>
+											</div>
+											
+											<div x-show="line.provider_phone" class="pair">
+												<img alt="" width="14" height="14" src="/static/images/phone.svg">
+												<span class="text" x-text="line.provider_phone"></span>
+											</div>
+
+											<div x-show="line.provider_telephone" class="pair">
+												<img alt="" width="14" height="14" src="/static/images/phone.svg">
+												<span class="text" x-text="line.provider_telephone"></span>
+											</div>
+										</div>
+									</div>
+								</div>
+							</template>
+						</div>
+
+						<!-- Resumen de shipment (compartido) -->
 						<div class="box white">
 							<div class="container">
-								<span class="letter" x-text="import_data?.provider?.name?.charAt(0)"></span>
-
 								<div class="data">
-									<div class="head">
-										<span class="name" x-text="import_data?.provider?.name"></span>
-										<span class="line">|</span>
-										<span class="contact" x-text="import_data?.provider?.contact"></span>
-									</div>
 									<div class="pair-content">
-										<div x-show="import_data?.provider?.email" class="pair">
-											<img alt="" width="14" height="14" src="/static/images/email.svg">
-											<span class="text" x-text="import_data?.provider?.email"></span>
-										</div>
-										
-										<div x-show="import_data?.provider?.phone" class="pair">
-											<img alt="" width="14" height="14" src="/static/images/phone.svg">
-											<span class="text" x-text="import_data?.provider?.phone"></span>
+										<div class="pair">
+											<img alt="" width="16" height="16" src="/static/images/location.svg">
+											<span class="black">Puerto:</span>
+											<span class="text" x-text="import_data?.port_name || '-'"></span>
 										</div>
 
-										<div x-show="import_data?.provider?.telephone" class="pair">
-											<img alt="" width="14" height="14" src="/static/images/phone.svg">
-											<span class="text" x-text="import_data?.provider?.telephone"></span>
+										<div class="pair">
+											<span class="black">Adelanto:</span>
+											<span class="text" x-text="`${import_data?.advance_payment_percent ?? 0}%`"></span>
+										</div>
+
+										<div class="pair">
+											<span class="black">Saldo:</span>
+											<span class="text" x-text="`${import_data?.balance_days ?? 0} día(s)`"></span>
 										</div>
 									</div>
 								</div>
-								
-								<img alt="repeat" x-show="import_data?.type_id == 1" class="type" src="/static/images/icons/filled/ship.svg" width="28" height="28">
 
-								<img alt="repeat" x-show="import_data?.type_id == 2" class="type fix" src="/static/images/icons/filled/plane.svg" width="20" height="20" style="display: none;">
-
-								<span x-show="import_data?.traffic_light" class="dot red" :class="import_data?.traffic_light"></span>
-							</div>
-							
-							<div class="pair-content">
-								<div class="pair">
-									<img alt="" width="16" height="16" src="/static/images/location.svg">
-									<span class="black" x-text="`Puerto:`"></span>
-									<span class="text" x-text="`${import_data?.port_name}`"></span>
-								</div>
-								
-								<div class="pair">
-									<img alt="" width="14" height="14" src="/static/images/icons/board.svg">
-									<span class="black" x-text="`Incoterm:`"></span>
-									<span class="text" x-text="`${import_data?.incoterm_code}`"></span>
-								</div>
-
-								<div class="pair buss">
-									<span class="black" x-text="`${import_data?.business_name}`"></span>
+								<div style="display:flex; align-items:center; gap:.4rem; margin-left:auto;">
+									<img alt="ship" x-show="import_data?.type_id == 1" class="type" src="/static/images/icons/filled/ship.svg" width="28" height="28">
+									<img alt="plane" x-show="import_data?.type_id == 2" class="type fix" src="/static/images/icons/filled/plane.svg" width="20" height="20">
+									<span x-show="import_data?.traffic_light" class="dot red" :class="import_data?.traffic_light"></span>
 								</div>
 							</div>
 						</div>
@@ -1147,61 +1188,90 @@
 				</div>
 
 				<div class="modal-content">
+					<!-- Líneas -->
+					
+					<div class="flexbox" style="gap: 0.5rem;">
+						<template x-for="(line, index) in new_import.lines" :key="line._uid">
+							<div class="glass2" style="padding:.75rem; border-radius: 0.75rem;">
+								<div class="fields">
+									<label class="white">
+										<select x-model="line.provider_id" @change="loadProviderPreviewForLine(line)">
+											<option value="null" selected disabled>Proveedor</option>
+											<template x-for="provider in $store.cache.getData('imports_provider')" :key="provider.id">
+												<option :value="provider.id" x-text="provider.name"></option>
+											</template>
+										</select>
+									</label>
+
+									<label class="white">
+										<select x-model="line.incoterm_id">
+											<option value="null" selected disabled>Incoterm</option>
+											<template x-for="incoterm in $store.cache.getData('imports_incoterm')" :key="incoterm.id">
+												<option :value="incoterm.id" x-text="incoterm.code"></option>
+											</template>
+										</select>
+									</label>
+
+									<div
+										class="delete-provider white hover-opacity"
+										@click="removeImportLine(index)"
+										x-show="new_import.lines.length > 1"
+									>
+										<img alt="delete" width="16" height="16" src="/static/images/icons/delete.svg">
+									</div>
+								</div>
+
+								<div x-show="line.provider_preview" class="white provider" style="margin-top: .6rem;">
+									<span class="letter" x-text="line.provider_preview?.letter"></span>
+
+									<div class="data">
+										<div class="header">
+											<span class="name" x-text="line.provider_preview?.name"></span>
+											<span class="line">|</span>
+											<span class="contact" x-text="line.provider_preview?.contact"></span>
+										</div>
+										<div class="bottom">
+											<div x-show="line.provider_preview?.email" class="row">
+												<img alt="" width="14" height="14" src="/static/images/email.svg">
+												<span x-text="line.provider_preview?.email"></span>
+											</div>
+											
+											<div x-show="line.provider_preview?.phone" class="row">
+												<img alt="" width="14" height="14" src="/static/images/phone.svg">
+												<span x-text="line.provider_preview?.phone"></span>
+											</div>
+
+											<div x-show="line.provider_preview?.telephone" class="row">
+												<img alt="" width="14" height="14" src="/static/images/phone.svg">
+												<span x-text="line.provider_preview?.telephone"></span>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</template>
+					</div>
+					
+					<div class="add-provider hover-opacity glass2"
+						@click="addImportLine()">
+						<img alt="" width="16" height="16" src="/static/images/icons/add2.svg">
+						<span>Agregar proveedor</span>
+					</div>
+				
+
 					<div class="fields">
-						<label class="white">
-							<select x-model="new_import.provider_id" @change="getProvider()">
-								<option value="null" selected disabled>Proveedor</option>
-
-								<template x-for="provider in $store.cache.getData('imports_provider')" :key="provider.id">
-									<option :value="provider.id" x-text="provider.name"></option>
-								</template>
-							</select>
-						</label>
-
 						<label class="white">
 							<select x-model="new_import.business_id">
 								<option value="null" selected disabled>Empresa</option>
-
 								<template x-for="business in $store.cache.getData('imports_business')" :key="business.id">
 									<option :value="business.id" x-text="business.name"></option>
 								</template>
 							</select>
 						</label>
-					</div>
 
-					<div x-show="selected_provider" class="white provider">
-						<span class="letter" x-text="selected_provider?.letter"></span>
-
-						<div class="data">
-							<div class="header">
-								<span class="name" x-text="selected_provider?.name"></span>
-								<span class="line">|</span>
-								<span class="contact" x-text="selected_provider?.contact"></span>
-							</div>
-							<div class="bottom">
-								<div x-show="selected_provider?.email" class="row">
-									<img alt="" width="14" height="14" src="/static/images/email.svg">
-									<span x-text="selected_provider?.email"></span>
-								</div>
-								
-								<div x-show="selected_provider?.phone" class="row">
-									<img alt="" width="14" height="14" src="/static/images/phone.svg">
-									<span x-text="selected_provider?.phone"></span>
-								</div>
-
-								<div x-show="selected_provider?.telephone" class="row">
-									<img alt="" width="14" height="14" src="/static/images/phone.svg">
-									<span x-text="selected_provider?.telephone"></span>
-								</div>
-							</div>
-						</div>
-					</div>
-
-					<div class="fields">
 						<label class="white">
 							<select x-model="new_import.type_id">
 								<option value="null" selected disabled>Tipo de envío</option>
-
 								<template x-for="type in $store.cache.getData('imports_type')" :key="type.id">
 									<option :value="type.id" x-text="type.name"></option>
 								</template>
@@ -1209,19 +1279,8 @@
 						</label>
 
 						<label class="white">
-							<select x-model="new_import.incoterm_id">
-								<option value="null" selected disabled>Incoterm</option>
-
-								<template x-for="incoterm in $store.cache.getData('imports_incoterm')" :key="incoterm.id">
-									<option :value="incoterm.id" x-text="incoterm.code"></option>
-								</template>
-							</select>
-						</label>
-
-						<label class="white">
 							<select x-model="new_import.port_id">
 								<option value="null" selected disabled>Puerto</option>
-
 								<template x-for="port in $store.cache.getData('imports_port')" :key="port.id">
 									<option :value="port.id" x-text="port.name"></option>
 								</template>
@@ -1231,15 +1290,29 @@
 
 					<div class="fields">
 						<label class="white">
-							<img alt="" alt="user" src="/static/images/user.svg" width="16" height="16">
+							<img alt="" src="/static/images/user.svg" width="16" height="16">
 							<input type="text" placeholder="Agente local" x-model="new_import.local_agent">
 						</label>
 
 						<label class="white">
-							<img alt="" alt="user" src="/static/images/user.svg" width="16" height="16">
+							<img alt="" src="/static/images/user.svg" width="16" height="16">
 							<input type="text" placeholder="Agente origen" x-model="new_import.origin_agent">
 						</label>
 					</div>
+
+					<div class="fields">
+						<label class="white number">
+							<b style="min-width: 8rem;">Adelanto de pago (%)</b>
+							<input type="number" min="0" max="100" step="0.01" placeholder="0.00" x-model.number="new_import.advance_payment_percent">
+						</label>
+
+						<label class="white number">
+							<b style="min-width: 8rem;">Saldo (días)</b>
+							<input type="number" min="0" step="1" placeholder="0" x-model.number="new_import.balance_days">
+						</label>
+					</div>
+
+					
 				</div>
 
 				<div class="buttons">
@@ -1333,18 +1406,20 @@
 			volume: null,
 			selected_import: null,
 			import_data: null,
-			selected_provider: null,
-			pendings_open: false,
-			traffic_light: 'green',
 			new_import: {
-				provider_id: null,
 				business_id: null,
 				type_id: null,
-				incoterm_id: null,
 				port_id: null,
 				local_agent: '',
 				origin_agent: '',
+				advance_payment_percent: null, // %
+				balance_days: null,            // días
+				lines: []
 			},
+			provider_preview_cache: {},
+			provider_preview_loading: {},
+			pendings_open: false,
+			traffic_light: 'green',
 			message: '',
 			processing: false,
 			selected_group_id: null,
@@ -1382,7 +1457,112 @@
 					{ key: 'imports_port', url: '/imports/options/port' },
 				]);
 
+				if (!this.new_import.lines.length) {
+					this.new_import.lines = [this.emptyImportLine()];
+				}
+
 				await Alpine.store('cache').verify();
+			},
+
+			emptyImportLine() {
+				return {
+					_uid: `line-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+					provider_id: null,
+					incoterm_id: null,
+					provider_preview: null,
+				};
+			},
+
+			addImportLine() {
+				if (!this.new_import || typeof this.new_import !== 'object') {
+					this.new_import = {};
+				}
+
+				if (!Array.isArray(this.new_import.lines)) {
+					this.new_import.lines = [];
+				}
+
+				this.new_import.lines.push(this.emptyImportLine());
+			},
+
+			removeImportLine(index) {
+				if (this.new_import.lines.length <= 1) return;
+				this.new_import.lines.splice(index, 1);
+			},
+
+			resetOrder() {
+				this.new_import = {
+					business_id: null,
+					type_id: null,
+					port_id: null,
+					local_agent: '',
+					origin_agent: '',
+					advance_payment_percent: null,
+					balance_days: null,
+					lines: [this.emptyImportLine()],
+				};
+			},
+
+			providerNameById(id) {
+				if (!id) return '';
+				const row = (Alpine.store('cache').getData('imports_provider') || []).find(x => Number(x.id) === Number(id));
+				return row?.name || '';
+			},
+			businessNameById(id) {
+				if (!id) return '';
+				const row = (Alpine.store('cache').getData('imports_business') || []).find(x => Number(x.id) === Number(id));
+				return row?.name || '';
+			},
+			typeNameById(id) {
+				if (!id) return '';
+				const row = (Alpine.store('cache').getData('imports_type') || []).find(x => Number(x.id) === Number(id));
+				return row?.name || '';
+			},
+
+			async loadProviderPreviewForLine(line) {
+				if (!line) return;
+
+				const providerId = Number(line.provider_id || 0);
+				if (!providerId) {
+					line.provider_preview = null;
+					return;
+				}
+
+				if (this.provider_preview_cache[providerId]) {
+					line.provider_preview = this.provider_preview_cache[providerId];
+					return;
+				}
+
+				if (this.provider_preview_loading[providerId]) return;
+				this.provider_preview_loading[providerId] = true;
+
+				try {
+					const response = await fetch(`${this.api}/imports/provider/${providerId}`, {
+						headers: { "Content-Type": "application/json" }
+					});
+
+					const payload = await response.json();
+					if (!response.ok) throw new Error(payload?.data?.message || 'No se pudo cargar proveedor');
+
+					const data = payload?.data || payload;
+					const preview = {
+						id: data.id,
+						name: data.name,
+						contact: data.contact,
+						letter: data.letter,
+						email: data.email,
+						phone: data.phone,
+						telephone: data.telephone,
+					};
+
+					this.provider_preview_cache[providerId] = preview;
+					line.provider_preview = preview;
+				} catch (error) {
+					console.error('Error cargando proveedor:', error);
+					line.provider_preview = null;
+				} finally {
+					delete this.provider_preview_loading[providerId];
+				}
 			},
 
 			queueDocs(evt) {
@@ -1451,34 +1631,6 @@
 				this.pending_docs.splice(index, 1);
 			},
 
-			async getProvider() {
-				try {
-					const response = await fetch(`${this.api}/imports/provider/${this.new_import.provider_id}`, {
-						headers: { 
-							"Content-Type": "application/json",
-							// "Authorization": `Bearer ${this.user.token}`,
-						}
-					});
-					const payload = await response.json();
-					this.selected_provider = payload.data;
-
-				} catch (error) {
-					console.error('Error:', error);
-				}
-			},
-
-			resetOrder() {
-                this.new_import = {
-					provider_id: null,
-					business_id: null,
-					type_id: null,
-					incoterm_id: null,
-					port_id: null,
-					local_agent: '',
-					origin_agent: '',
-				};
-            },
-
 			resetStatus() {
 				this.status_notes = '';
 				this.booking_date = null;
@@ -1512,44 +1664,75 @@
 			},
 
 			async newImport() {
-				if (!this.new_import) return;
 				if (this.processing) return;
+
+				const payload = {
+					business_id: this.new_import.business_id,
+					type_id: this.new_import.type_id,
+					port_id: this.new_import.port_id,
+					local_agent: (this.new_import.local_agent || '').trim(),
+					origin_agent: (this.new_import.origin_agent || '').trim(),
+					advance_payment_percent: this.new_import.advance_payment_percent || 0,
+					balance_days: this.new_import.balance_days || 0,
+					lines: (this.new_import.lines || []).map((x, idx) => ({
+						provider_id: x.provider_id ? Number(x.provider_id) : null,
+						incoterm_id: x.incoterm_id ? Number(x.incoterm_id) : null,
+						position: idx + 1,
+					}))
+				};
+
+				if (!payload.business_id) return this.showError('add', 'Selecciona empresa');
+				if (!payload.type_id) return this.showError('add', 'Selecciona tipo');
+				if (!payload.port_id) return this.showError('add', 'Selecciona puerto');
+				if (!payload.local_agent) return this.showError('add', 'Ingresa agente local');
+				if (!payload.origin_agent) return this.showError('add', 'Ingresa agente origen');
+
+				if (payload.advance_payment_percent === null || payload.advance_payment_percent === '') {
+					return this.showError('add', 'Ingresa adelanto %');
+				}
+				if (Number(payload.advance_payment_percent) < 0 || Number(payload.advance_payment_percent) > 100) {
+					return this.showError('add', 'Adelanto 0 a 100');
+				}
+
+				if (payload.balance_days === null || payload.balance_days === '') {
+					return this.showError('add', 'Ingresa saldo (días)');
+				}
+				if (Number(payload.balance_days) < 0) {
+					return this.showError('add', 'Saldo inválido');
+				}
+
+				if (!payload.lines.length) return this.showError('add', 'Agrega línea');
+
+				for (let i = 0; i < payload.lines.length; i++) {
+					const row = payload.lines[i];
+					if (!row.provider_id) return this.showError('add', `Línea ${i+1}: proveedor`);
+					if (!row.incoterm_id) return this.showError('add', `Línea ${i+1}: incoterm`);
+				}
 
 				this.processing = true;
 
-                const payload = { 
-					provider_id: this.new_import.provider_id,
-					business_id: this.new_import.business_id,
-					type_id: this.new_import.type_id,
-					incoterm_id: this.new_import.incoterm_id,
-					port_id: this.new_import.port_id,
-					local_agent: this.new_import.local_agent,
-					origin_agent: this.new_import.origin_agent,
-                }
-
-                try {
-                    const response = await fetch(`${this.api}/imports/new`, {
-                        method: 'POST',
-                        headers: { 
+				try {
+					const response = await fetch(`${this.api}/imports/new`, {
+						method: 'POST',
+						headers: { 
 							"Content-Type": "application/json",
 							"Authorization": `Bearer ${this.user.token}`,
 						},
-                        body: JSON.stringify(payload),
-                    });
-                    
-                    const jsonData = await response.json();
-                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
-                    
-                    this.resetOrder();
+						body: JSON.stringify(payload),
+					});
+					
+					const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+					
+					this.resetOrder();
 					Alpine.store('cache').hideModal('add');
-					this.selected_provider = null;
 
-                } catch (error) {
-                    this.showError('add', error.message);
-                } finally {
+				} catch (error) {
+					this.showError('add', error.message);
+				} finally {
 					this.processing = false;
-                }
-            }, 
+				}
+			},
 
 			async updateStatus() {
 				if (!this.selected_import) return;
@@ -1797,23 +1980,6 @@
 				}
 			},
 
-			async loadDocs(target = this.docs_target || "default") {
-				if (!this.selected_import?.id) return;
-
-				const import_id = this.selected_import.id;
-
-				const res = await fetch(`${this.api}/imports/attachments/${import_id}?target=${encodeURIComponent(target)}`, {
-					headers: {
-					"Content-Type": "application/json",
-					"Authorization": `Bearer ${this.user.token}`,
-					}
-				});
-
-				const json = await res.json();
-				const payload = json?.data ?? json;
-				this.docs = Array.isArray(payload) ? payload : [];
-			},
-
 			clearPendingDocs() {
 				for (const p of this.pending_docs) {
 					if (p.preview) URL.revokeObjectURL(p.preview);
@@ -1856,12 +2022,21 @@
 
 			onDragOver(event, target_status_id = 1) {
 				event.preventDefault();
-				console.log(target_status_id)
-				if (this.selected_import.status_id == target_status_id || this.selected_import.status_id + 1 == target_status_id || this.selected_import.status_id - 1 == 1 ) {
+
+				if (!this.selected_import) {
+					if (event.dataTransfer) event.dataTransfer.dropEffect = 'none';
+					return;
+				}
+
+				if (
+					this.selected_import.status_id == target_status_id ||
+					this.selected_import.status_id + 1 == target_status_id ||
+					this.selected_import.status_id - 1 == 1
+				) {
 					event.currentTarget.classList.add('drag-over');
-					event.dataTransfer.dropEffect = 'move';
+					if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
 				} else {
-					event.dataTransfer.dropEffect = 'none';
+					if (event.dataTransfer) event.dataTransfer.dropEffect = 'none';
 				}
 			},
 			
@@ -1896,6 +2071,14 @@
 			},
 			
 			addOrder() {
+				if (!this.new_import || typeof this.new_import !== 'object') {
+					this.resetOrder();
+				} else if (!Array.isArray(this.new_import.lines)) {
+					this.new_import.lines = [this.emptyImportLine()];
+				} else if (this.new_import.lines.length === 0) {
+					this.new_import.lines.push(this.emptyImportLine());
+				}
+
 				Alpine.store('cache').showModal('add');
 			},
 
@@ -2493,8 +2676,8 @@
 		#dashboard .pending-imports .item-card img {
 			mix-blend-mode: darken;
 			position: absolute;
-			top: 0.25rem;
-			right: 0.25rem;
+			bottom: 0.35rem;
+			right: 0.35rem;
 			pointer-events: none;
 		}
 		#dashboard .pending-imports .empty {
@@ -2631,12 +2814,23 @@
 			line-height: 1rem;
 			display: block;
 		}
+		.multi-lines {
+			display: flex;
+			flex-direction: column;
+			gap: .1rem;
+		}
+
+		.multi-lines > span {
+			display: block;
+			line-height: 1.1;
+		}
 		#dashboard ul li .sub {
 			opacity: 0.5;
 			font-size: 0.6rem;
-			font-weight: 500;
-			line-height: 0.5rem;
-			margin-top: 0.25rem;
+			font-weight: 600;
+			line-height: 0.75rem;
+			margin-top: 0.5rem;
+			display: block;
 		}
 		#dashboard ul li .buttons {
 			display: flex;
@@ -2645,8 +2839,8 @@
 		#dashboard ul li img {
 			mix-blend-mode: darken;
 			position: absolute;
-			bottom: 0.25rem;
-			right: 0.25rem;
+			bottom: 0.35rem;
+			right: 0.35rem;
 			pointer-events: none;
 		}
 		#dashboard ul li img.ico {
@@ -3166,6 +3360,27 @@
 		}
 		#modal-add .modal .title img {
 			border-radius: 1rem;
+		}
+		#modal-add .delete-provider {
+			width: 2.5rem;
+			height: 2.5rem;
+			align-items: center;
+			justify-content: center;
+			display: flex;
+		}
+		#modal-add .add-provider {
+			padding: .5rem .75rem;
+			border-radius: .75rem;
+			display: flex;
+			align-items: center;
+			gap: .5rem;
+			justify-content: center;
+			margin-top: -0.5rem;
+			font-weight: 600;
+			color: #0000005c;
+		}
+		#modal-add .add-provider img {
+			opacity: 0.5;
 		}
 		#modal-add .provider {
 			padding: 1rem;

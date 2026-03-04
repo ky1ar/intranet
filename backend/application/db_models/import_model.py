@@ -52,15 +52,15 @@ class ImportShipment(BaseModel):
     __tablename__ = "import_shipment"
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
-    provider_id = db.Column(db.Integer, db.ForeignKey('import_provider.id'), nullable=False)
     business_id = db.Column(db.Integer, db.ForeignKey('import_business.id'), nullable=False)
     type_id = db.Column(db.Integer, db.ForeignKey('import_type.id'), nullable=False)
-    incoterm_id = db.Column(db.Integer, db.ForeignKey('import_incoterm.id'), nullable=False)
     port_id = db.Column(db.Integer, db.ForeignKey('import_port.id'), nullable=False)
     status_id = db.Column(db.Integer, db.ForeignKey('import_status.id'), nullable=False)
     description = db.Column(db.Text)
     local_agent_name = db.Column(db.String(128))
     origin_agent_name = db.Column(db.String(128))
+    advance_payment_percent = db.Column(db.Numeric(5, 2), nullable=False, default=0)
+    balance_days = db.Column(db.Integer, nullable=False, default=0)
     booking_date = db.Column(db.Date)
     etd_date = db.Column(db.Date)
     eta_date = db.Column(db.Date)
@@ -77,12 +77,26 @@ class ImportShipment(BaseModel):
     delivery_phone = db.Column(db.String(9))
     delivery_code = db.Column(db.String(9))
 
-    provider = db.relationship("ImportProvider", lazy="joined", foreign_keys=[provider_id])
     business = db.relationship("ImportBusiness", lazy="joined", foreign_keys=[business_id])
     type = db.relationship("ImportType", lazy="joined", foreign_keys=[type_id])
-    incoterm = db.relationship("ImportIncoterm", lazy="joined", foreign_keys=[incoterm_id])
     port = db.relationship("ImportPort", lazy="joined", foreign_keys=[port_id])
     status = db.relationship("ImportStatus", lazy="joined", foreign_keys=[status_id])
+    lines = db.relationship("ImportShipmentLine", back_populates="shipment", cascade="all, delete-orphan", lazy="selectin")
+
+
+class ImportShipmentLine(db.Model):
+    __tablename__ = "import_shipment_line"
+
+    id = db.Column(db.Integer, primary_key=True)
+    import_shipment_id = db.Column(db.Integer, db.ForeignKey("import_shipment.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    provider_id = db.Column(db.Integer, db.ForeignKey("import_provider.id"), nullable=False)
+    incoterm_id = db.Column(db.Integer, db.ForeignKey("import_incoterm.id"), nullable=False)
+    position = db.Column(db.Integer, nullable=False, default=1)
+
+    shipment = db.relationship("ImportShipment", back_populates="lines")
+    provider = db.relationship("ImportProvider", lazy="joined")
+    incoterm = db.relationship("ImportIncoterm", lazy="joined")
 
 
 class ImportStatusHistory(BaseModel):

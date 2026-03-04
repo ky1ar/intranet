@@ -1,4 +1,6 @@
 import logging, os, uuid
+import openpyxl
+from docx import Document
 from datetime import date
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
@@ -15,17 +17,6 @@ from application import socketio
 from config import Paths
 
 
-try:
-    from docx import Document
-except Exception:
-    Document = None
-
-try:
-    import openpyxl
-except Exception:
-    openpyxl = None
-
-
 class ImportService:
     def __init__(self):
         self.import_repository = ImportRepository()
@@ -33,11 +24,68 @@ class ImportService:
         self.user_repository = UserRepository()
         self.schedule_repository = ScheduleRepository()
         self.push_service = PushSender()
-        self.worker_lvl = 2
-        self.leader_lvl = 3
-        self.admin_lvl = 4
-        self.fabrix_id = 21
-        self.admin_dep = 1
+
+
+    def _unique_keep_order(self, values):
+        result = []
+        seen = set()
+        for v in values:
+            if not v:
+                continue
+            key = v.strip() if isinstance(v, str) else v
+            if key in seen:
+                continue
+            seen.add(key)
+            result.append(v)
+        return result
+
+    
+    def _compact_label(self, items):
+        items = self._unique_keep_order(items)
+        if not items:
+            return "-"
+        if len(items) == 1:
+            return items[0]
+        return f"{items[0]} (+{len(items)-1})"
+
+
+    def _sorted_lines(self, shipment):
+        return sorted((shipment.lines or []), key=lambda x: (x.position or 999999, x.id or 0))
+
+
+    def _shipment_summary(self, shipment):
+        lines = self._sorted_lines(shipment)
+
+        provider_names = [l.provider.name for l in lines if getattr(l, "provider", None)]
+        incoterm_codes = [l.incoterm.code for l in lines if getattr(l, "incoterm", None)]
+
+        provider_names = self._unique_keep_order(provider_names)
+        incoterm_codes = self._unique_keep_order(incoterm_codes)
+
+        return {
+            "line_count": len(lines),
+            "providers_text": self._compact_label(provider_names),              # resumido
+            "providers_full_text": ", ".join(provider_names) if provider_names else "-",  # ✅ completo
+            "provider_names": provider_names,                                   # opcional
+            "incoterms_text": self._compact_label(incoterm_codes),
+        }
+
+
+    def _serialize_shipment_line(self, line):
+        return {
+            "id": line.id,
+            "position": line.position,
+
+            "provider_id": line.provider_id,
+            "provider_name": line.provider.name if line.provider else None,
+            "provider_contact": line.provider.contact if line.provider else None,
+            "provider_email": line.provider.email if line.provider else None,
+            "provider_phone": line.provider.phone if line.provider else None,
+            "provider_telephone": line.provider.telephone if line.provider else None,
+
+            "incoterm_id": line.incoterm_id,
+            "incoterm_code": line.incoterm.code if line.incoterm else None,
+        }
 
 
     @handle_exceptions
@@ -65,15 +113,32 @@ class ImportService:
         
         result = []
         for item in imports:
+            summary = self._shipment_summary(item)
+
             order_data = {
                 "id": item.id,
-                "provider_name": item.provider.name,
-                "business_name": item.business.name,
                 "status_id": item.status_id,
+
+                # shared
+                "business_name": item.business.name if item.business else "-",
+                "port_name": item.port.name.title() if item.port and item.port.name else "-",
                 "type_id": item.type_id,
+
+                "local_agent_name": item.local_agent_name,
+                "origin_agent_name": item.origin_agent_name,
+                "advance_payment_percent": float(item.advance_payment_percent or 0),
+                "balance_days": item.balance_days or 0,
+
+                # lines summary
+                "line_count": summary["line_count"],
+                "providers_text": summary["providers_text"],
+                "providers_full_text": summary["providers_full_text"],
+                "provider_names": summary["provider_names"],
+                "incoterms_text": summary["incoterms_text"],
             }
 
             result.append(order_data)
+
         return result, 200
 
 
@@ -110,7 +175,7 @@ class ImportService:
         
         result = []
         for status in statuses:
-            if status.id == 1 or status.id == 14:
+            if status.id in (1, 14):
                 continue
 
             import_status = [import_row for import_row in imports if import_row.status_id == status.id]
@@ -128,16 +193,29 @@ class ImportService:
                 if current_status and current_status.created_at.date() == date.today():
                     updated_today = True
 
+                summary = self._shipment_summary(item)
+
                 imports_data = {
                     "id": item.id,
-                    "provider_name": item.provider.name,
-                    "business_name": item.business.name,
-                    "type_id": item.type_id,
                     "type_letter": "SP",
                     "updated_today": updated_today,
                     "passed_days": passed_days,
                     "status_id": status.id,
                     "traffic_light": item.traffic_light,
+
+                    # shared
+                    "business_name": item.business.name if item.business else "-",
+                    "port_name": item.port.name.title() if item.port and item.port.name else "-",
+                    "type_id": item.type_id,
+                    "advance_payment_percent": float(item.advance_payment_percent or 0),
+                    "balance_days": item.balance_days or 0,
+
+                    # lines summary
+                    "line_count": summary["line_count"],
+                    "providers_text": summary["providers_text"],
+                    "providers_full_text": summary["providers_full_text"],
+                    "provider_names": summary["provider_names"],
+                    "incoterms_text": summary["incoterms_text"],
                 }
                     
                 imports_list.append(imports_data)
@@ -149,6 +227,7 @@ class ImportService:
                 "status_name": status.name,
                 "imports": imports_list
             })
+
         return result, 200
     
 
@@ -256,24 +335,29 @@ class ImportService:
         if ihc == 200:
             register_days = calculate_passed_days(import_history.created_at)
 
+        sorted_lines = self._sorted_lines(import_shipment)
+        summary = self._shipment_summary(import_shipment)
+
         order_data = {
             "id": import_shipment.id,
             "passed_days": f"{register_days}  día{'' if register_days == 1 else 's'}",
-            "provider": {
-                "name": import_shipment.provider.name,
-                "contact": import_shipment.provider.contact,
-                "email": import_shipment.provider.email,
-                "phone": import_shipment.provider.phone,
-                "telephone": import_shipment.provider.telephone,
-            },
-            "business_name": import_shipment.business.name,
-            "type_id": import_shipment.type_id,
-            "incoterm_code": import_shipment.incoterm.code,
-            "port_name": import_shipment.port.name.title(),
             "status_id": import_shipment.status_id,
             "status_name": import_shipment.status.name,
+            "summary": summary,
+
+            "business_name": import_shipment.business.name if import_shipment.business else None,
+            "type_id": import_shipment.type_id,
+            "type_name": import_shipment.type.name if import_shipment.type else None,
+            "port_name": import_shipment.port.name.title() if import_shipment.port and import_shipment.port.name else None,
+
             "local_agent_name": import_shipment.local_agent_name.title() if import_shipment.local_agent_name else None,
             "origin_agent_name": import_shipment.origin_agent_name.title() if import_shipment.origin_agent_name else None,
+
+            "advance_payment_percent": float(import_shipment.advance_payment_percent or 0),
+            "balance_days": import_shipment.balance_days or 0,
+
+            "lines": [self._serialize_shipment_line(line) for line in sorted_lines],
+
             "dates": {
                 "booking": format_date(import_shipment.booking_date),
                 "etd": format_date(import_shipment.etd_date),
@@ -307,7 +391,6 @@ class ImportService:
                 "commenter_image": chat.commenter.image,
                 "created_at": format_datetime(chat.created_at),
             })
-            
 
         attachments, arc = self.import_repository.get_attachments_by_import(import_id)
         if arc != 200:
@@ -331,15 +414,8 @@ class ImportService:
             grouped.setdefault(key, []).append(self._serialize_attachment(r))
 
         ordered_targets = [
-            "consolidated",
-            "product_list",
-            "invoice",
-            "packing_list",
-            "certificate",
-            "coo",
-            "arrive",
-            "invoices",
-            "default",
+            "consolidated", "product_list", "invoice", "packing_list",
+            "certificate", "coo", "arrive", "invoices", "default",
         ]
 
         attachment_sections = []
@@ -361,8 +437,6 @@ class ImportService:
                 })
 
         order_data["attachment_sections"] = attachment_sections
-        
-        
         return order_data, 200
     
 
@@ -370,28 +444,59 @@ class ImportService:
     def new(self, data):
         user_id = int(get_jwt_identity())
 
-        provider_id = data.get("provider_id")
         business_id = data.get("business_id")
         type_id = data.get("type_id")
-        incoterm_id = data.get("incoterm_id")
         port_id = data.get("port_id")
-        local_agent = data.get("local_agent", "").strip()
-        origin_agent = data.get("origin_agent", "").strip()
+        local_agent = (data.get("local_agent") or "").strip()
+        origin_agent = (data.get("origin_agent") or "").strip()
+        advance_payment_percent = data.get("advance_payment_percent")
+        balance_days = data.get("balance_days")
+        lines = data.get("lines")
 
-        if not provider_id:
-            return "Selecciona un proveedor", 400
         if not business_id:
             return "Selecciona una empresa", 400
         if not type_id:
-            return "Selecciona un tipo", 400
-        if not incoterm_id:
-            return "Selecciona un Incoterm", 400
+            return "Selecciona un tipo de envío", 400
         if not port_id:
             return "Selecciona un puerto", 400
         if not local_agent:
             return "Ingresa un agente local", 400
         if not origin_agent:
             return "Ingresa un agente de origen", 400
+
+        if advance_payment_percent is None or advance_payment_percent == "":
+            return "Ingresa adelanto de pago (%)", 400
+        if balance_days is None or balance_days == "":
+            return "Ingresa saldo (días)", 400
+
+        try:
+            adv = float(advance_payment_percent)
+        except Exception:
+            return "Adelanto de pago inválido", 400
+
+        if adv < 0 or adv > 100:
+            return "El adelanto de pago debe estar entre 0 y 100", 400
+
+        try:
+            bal_days = int(balance_days)
+        except Exception:
+            return "Saldo (días) inválido", 400
+
+        if bal_days < 0:
+            return "Saldo (días) no puede ser negativo", 400
+
+        if not isinstance(lines, list) or not lines:
+            return "Agrega al menos una línea", 400
+
+        for i, row in enumerate(lines, start=1):
+            if not row.get("provider_id"):
+                return f"Línea {i}: selecciona un proveedor", 400
+            if not row.get("incoterm_id"):
+                return f"Línea {i}: selecciona un Incoterm", 400
+
+        # Normaliza para repo
+        data["advance_payment_percent"] = adv
+        data["balance_days"] = bal_days
 
         import_id, ncc = self.import_repository.new_import(data)
         if ncc != 200:
@@ -402,7 +507,6 @@ class ImportService:
             return new_history, nhc
 
         socketio.emit("imports_dashboard_update", {})
-
         return "Registrado correctamente", 200
     
 
