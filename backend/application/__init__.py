@@ -60,6 +60,7 @@ from application.routes.odoo_routes import odoo_bp
 from application.routes.complaint_routes import complaint_bp
 from application.routes.import_routes import import_bp
 from application.routes.common_routes import common_bp
+from application.routes.warehouse_routes import warehouse_bp
 
 
 app.register_blueprint(dev_bp)
@@ -79,6 +80,7 @@ app.register_blueprint(odoo_bp)
 app.register_blueprint(complaint_bp)
 app.register_blueprint(import_bp)
 app.register_blueprint(common_bp)
+app.register_blueprint(warehouse_bp)
 
 
 def api_key_required():

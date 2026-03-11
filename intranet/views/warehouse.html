@@ -1,0 +1,474 @@
+<div x-data="warehouse_data">
+	<div id="warehouse">
+		<div class="controls">
+			<div class="right frost-dark" style="margin-left: auto;">
+				<div class="item">
+					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/picking.svg">
+					<span>Picking</span>
+				</div>
+			</div>
+		</div>
+		
+		<div class="main">
+			<div class="main-title" x-text="`Hola, ${$store.cache.user.name.trim().split(/\s+/)[0] || ''}. ¿Que deseas ubicar?`"></div>
+
+			<div class="searchbar glass2">
+				<img alt="" class="ico" width="20" height="20" src="/static/images/icons/find.svg">
+				<input type="text"
+					x-model="product_input"
+					:placeholder="animated_placeholder"
+					@input="findProducts()">
+				<div class="hover-opacity clear" x-show="product_input" title="Limpiar búsqueda" @click="product_input = ''; finded_products = [];" style="display: none;">
+					<img alt="" class="" width="12" height="12" src="/static/images/x.svg">
+				</div>
+			</div>
+
+			
+
+			<div x-transition.duration.300ms x-cloak class="finded-products glass2" x-show="finded_locations.length > 0 || finded_products.length > 0">
+				<template x-if="finded_locations.length > 0">
+					<div class="section-locations">
+						<template x-for="loc in finded_locations" :key="`loc-${loc.label}`">
+						<div class="item" x-data="{ open: false }">
+
+							<div class="white thumb">
+							<!-- imagen fija -->
+							<img alt="" width="48" height="48" src="/static/images/icons/picking.svg">
+							</div>
+
+							<div class="title">
+							<!-- título: 3 primeros productos + ... -->
+							<span class="brand" x-text="loc.preview_text"></span>
+
+							<!-- categoría fija -->
+							<span class="category">Varios elementos</span>
+							</div>
+
+							<div class="location">
+							<span class="stock">
+								<span x-text="`${loc.products_count} items`"></span>
+							</span>
+
+							<span class="block">
+								<span class="label">Bloque</span>
+								<span class="number" x-text="loc.block || '-'"></span>
+							</span>
+
+							<span class="block black">
+								<span class="label">Rack</span>
+								<span class="number" x-text="loc.level || '-'"></span>
+							</span>
+
+							<span class="block black">
+								<span class="label">Nivel</span>
+								<span class="number fix" x-text="loc.position || '-'"></span>
+							</span>
+
+							<!-- botón desplegable -->
+							<span class="block black hover-opacity" style="cursor:pointer" @click="open = !open">
+								<span class="label">Detalle</span>
+								<span class="number" x-text="open ? '−' : '+'"></span>
+							</span>
+
+							<span class="ubi">
+								<span x-text="loc.label"></span>
+							</span>
+							</div>
+
+							<!-- lista completa debajo -->
+							<div x-show="open" x-transition.duration.200ms class="location-products">
+							<template x-for="p in (loc.products || [])" :key="p.warehouse_stock_id || `${p.product_id}-${loc.label}`">
+								<div class="location-product-row">
+								<div class="lp-left">
+									<div class="lp-name" x-text="`${p.brand} ${p.model}`"></div>
+									<div class="lp-cat" x-text="p.category || 'Impresoras 3D'"></div>
+								</div>
+								<div class="lp-right">
+									<span x-text="`${p.stock ?? 0} uds.`"></span>
+								</div>
+								</div>
+							</template>
+							</div>
+
+						</div>
+						</template>
+					</div>
+				</template>
+
+				<template x-for="row in finded_products" :key="row.warehouse_stock_id || `${row.product_id}-${row.location?.label}`">
+					<div class="item">
+						<div class="white thumb">
+							<img alt="" width="48" height="48" :src="`/static/images/uploads/machines/${row.image}`">
+						</div>
+
+						<div class="title">
+							<span class="brand" x-text="`${row.brand} ${row.model}`"></span>
+							<span class="category" x-text="`Impresoras 3D`"></span>
+						</div>
+
+						<div class="location">
+							<span class="stock">
+								<span x-text="`${row.stock ?? 0} uds.`"></span>
+							</span>
+
+							<span class="block">
+								<span class="label">Bloque</span>
+								<span class="number" x-text="row.location?.block || '-'"></span>
+							</span>
+
+							<span class="block black">
+								<span class="label">Rack</span>
+								<span class="number" x-text="row.location?.level || '-'"></span>
+							</span>
+
+							<span class="block black">
+								<span class="label">Nivel</span>
+								<span class="number fix" x-text="row.location?.position || '-'"></span>
+							</span>
+							<span class="ubi">
+								<span x-text="row.location?.label || '-'"></span>
+							</span>
+						</div>
+					</div>
+				</template>
+			</div>
+		</div>
+
+	</div>
+
+
+	<script>
+		Alpine.data('warehouse_data',() => ({
+            api: Alpine.store('cache').api,
+			buttons: {
+                process: { class: '', text: 'Añadir' },
+            },
+			animated_placeholder: '',
+			placeholder_texts: [
+				'Busca por modelo...',
+				'Buscar por marca...',
+				'Busca por ubicación...'
+			],
+			placeholder_index: 0,
+			placeholder_char_index: 0,
+			placeholder_deleting: false,
+			placeholder_timer: null,
+			product_input: '',
+			finded_products: [],
+			finded_locations: [],
+			
+			async init() {
+				console.log('Inicializando Warehouse...');
+
+				this.startPlaceholderAnimation();
+				// Socket
+                const socket = Alpine.store('cache').socket;
+				if (socket) {
+					socket.removeAllListeners();
+					// socket.on("logistics_update_dashboard", async () => {
+					// 	await Alpine.store('cache').refresh(['logistics_dashboard', 'logistics_pendings']);
+					// });
+				}
+
+				// await Alpine.store('cache').fetchData([
+				// 	{ key: 'logistics_dashboard', url: `/logistic/dashboard/week?offset=${this.offset}`, force: true },
+				// 	{ key: 'logistics_pendings', url: '/logistic/pending', force: true },
+				// 	{ key: 'drivers', url: '/general/drivers' },
+				// 	{ key: 'vendors', url: '/general/vendors' },
+				// 	{ key: 'districts', url: '/general/districts' },
+				// 	{ key: 'shipping_method', url: '/general/shipping_types' },
+				// ]);
+				
+				await Alpine.store('cache').verify();
+			},
+
+			_normalizeLocationQuery(q) {
+				return (q || '').trim().toUpperCase().replace(/\s+/g, '');
+				},
+
+				_isLocationQuery(q) {
+				const n = this._normalizeLocationQuery(q);
+				// B1, B12, B1-1, B1-1-A, etc.
+				return /^[A-Z]\d+/.test(n) || n.includes('-');
+				},
+
+				_groupLocationsFromProducts(products, prefixNormalized) {
+				const map = new Map();
+
+				for (const row of (products || [])) {
+					const loc = row.location || {};
+					const labelRaw = (loc.label || '').trim();
+					const labelNorm = this._normalizeLocationQuery(labelRaw);
+
+					if (!labelNorm) continue;
+					if (!labelNorm.startsWith(prefixNormalized)) continue;
+
+					if (!map.has(labelNorm)) {
+					map.set(labelNorm, {
+						label: labelRaw,
+						block: loc.block,
+						level: loc.level,
+						position: loc.position,
+						products: [],
+						products_count: 0,
+						preview_text: ''
+					});
+					}
+					map.get(labelNorm).products.push(row);
+				}
+
+				const res = [];
+				for (const g of map.values()) {
+					// orden interno (detalle) por stock asc (igual que tu lista principal)
+					g.products.sort((a, b) => (Number(a.stock) || 0) - (Number(b.stock) || 0));
+
+					g.products_count = g.products.length;
+
+					// preview: 3 “primeros” (para que sea útil, tomo los de mayor stock)
+					const preview = [...g.products]
+					.sort((a, b) => (Number(b.stock) || 0) - (Number(a.stock) || 0))
+					.slice(0, 3)
+					.map(p => `${p.brand} ${p.model}`);
+
+					g.preview_text = preview.join(' • ') + (g.products.length > 3 ? ' …' : '');
+					res.push(g);
+				}
+
+				// ordena ubicaciones por label (con orden numérico)
+				return res.sort((a, b) =>
+					(a.label || '').localeCompare((b.label || ''), 'es', { numeric: true, sensitivity: 'base' })
+				);
+			},
+
+			async findProducts() {
+				const input = (this.product_input || '').trim();
+
+				try {
+					if (input.length < 2) {
+					this.finded_products = [];
+					this.finded_locations = [];
+					return;
+					}
+
+					const response = await fetch(`${this.api}/warehouse/find/${encodeURIComponent(input)}`, {
+					method: 'GET',
+					headers: { 'Content-Type': 'application/json' },
+					});
+
+					const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+					const data = jsonData.data || {};
+					this.finded_locations = data.locations || [];
+
+					// Solo “items individuales” (nombre) -> stock asc
+					this.finded_products = (data.products || []).sort((a, b) => {
+					return (Number(a.stock) || 0) - (Number(b.stock) || 0);
+					});
+
+				} catch (error) {
+					console.log('Error al buscar productos:', error);
+					this.finded_products = [];
+					this.finded_locations = [];
+				}
+				},
+
+			startPlaceholderAnimation() {
+				const tick = () => {
+					const currentText = this.placeholder_texts[this.placeholder_index];
+
+					if (!this.placeholder_deleting) {
+						this.placeholder_char_index++;
+						this.animated_placeholder = currentText.slice(0, this.placeholder_char_index);
+
+						if (this.placeholder_char_index >= currentText.length) {
+							this.placeholder_deleting = true;
+							this.placeholder_timer = setTimeout(tick, 1200);
+							return;
+						}
+
+						this.placeholder_timer = setTimeout(tick, 90);
+					} else {
+						this.placeholder_char_index--;
+						this.animated_placeholder = currentText.slice(0, this.placeholder_char_index);
+
+						if (this.placeholder_char_index <= 0) {
+							this.placeholder_deleting = false;
+							this.placeholder_index = (this.placeholder_index + 1) % this.placeholder_texts.length;
+							this.placeholder_timer = setTimeout(tick, 250);
+							return;
+						}
+
+						this.placeholder_timer = setTimeout(tick, 45);
+					}
+				};
+				tick();
+			},
+			
+		}));
+	</script>
+	
+
+	<style>
+		.location-products{
+		width: 100%;
+		margin-top: .5rem;
+		padding: .5rem;
+		border-radius: .75rem;
+		background: rgba(255,255,255,.06);
+		}
+
+		.location-product-row{
+		display:flex;
+		justify-content:space-between;
+		gap: 1rem;
+		padding: .35rem .25rem;
+		border-bottom: 1px solid rgba(255,255,255,.08);
+		}
+		.location-product-row:last-child{ border-bottom: none; }
+
+		.lp-name{ font-weight: 600; }
+		.lp-cat{ opacity: .8; font-size: .85rem; }
+
+		#warehouse {
+			display: flex;
+			min-height: calc(100dvh - 6.5rem);
+			align-items: center;
+			justify-content: center;
+		}
+		#warehouse .main {
+			display: flex;
+			justify-content: center;
+			flex-direction: column;
+			gap: 1.5rem;
+			max-height: calc(100dvh - 6.5rem);
+			padding: 1rem;
+		}
+		#warehouse .main-title {
+			font-size: 1.75rem;
+			font-weight: 500;
+			text-align: center;
+		}
+		#warehouse .searchbar {
+			display: flex;
+			align-items: center;
+			padding: 0.25rem 1rem;
+			border-radius: 0.75rem;
+			position: relative;
+		}
+		#warehouse .searchbar img {
+			opacity: 0.5;
+		}
+		#warehouse .searchbar input {
+			flex: 1;
+			background-color: transparent;
+			border: none;
+			outline: none;
+			padding: 0.75rem;
+			font-family: inherit;
+			font-size: 1rem;
+			font-weight: 400;
+			min-width: 40dvw;
+		}
+		#warehouse .searchbar .clear {
+			position: absolute;
+			right: 0.5rem;
+			width: 2rem;
+			height: 2rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+		#warehouse .finded-products {
+			overflow: auto;
+			width: 100%;
+			margin-top: -1rem;
+			border-radius: 0.75rem;
+		}
+		#warehouse .finded-products .item {
+			padding: 0.5rem;
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			border-bottom: 2px solid #ffffffba;
+		}
+		#warehouse .finded-products .item:last-child {
+			border-bottom: none;
+		}
+		#warehouse .finded-products .thumb {
+			padding: 0.5rem;
+    		border-radius: 0.5rem;
+		}
+		#warehouse .finded-products .thumb img {
+			width: 2rem;
+			height: 2rem;
+			min-width: 2rem;
+		}
+		#warehouse .finded-products .title {
+			display: flex;
+			flex-direction: column;
+		}
+		#warehouse .finded-products .title .brand {
+			font-size: 0.9rem;
+    		font-weight: 500;
+		}
+		#warehouse .finded-products .title .category {
+			font-size: 0.8rem;
+			font-weight: 500;
+			opacity: 0.5;
+		}
+		#warehouse .finded-products .location {
+			display: flex;
+			margin-left: auto;
+			gap: 0.25rem;
+			align-items: center;
+		}
+		#warehouse .finded-products .location .block {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			color: var(--white);
+			background-color: #113474;
+			gap: 0.25rem;
+			padding: 0.35rem 0;
+			border-radius: 0.125rem;
+			width: 2.5rem;
+		}
+		#warehouse .finded-products .location .block.black {
+			background-color: #252c39;
+		}
+		#warehouse .finded-products .location .block .label {
+			font-size: 0.6rem;
+    		line-height: 0.65rem;
+		}
+		#warehouse .finded-products .location .block .number {
+			font-size: 1.35rem;
+			font-family: sans-serif;
+			font-weight: 800;
+			line-height: 1.35rem;
+		}
+		#warehouse .finded-products .location .block .number.fix {
+			font-weight: 700;
+		}
+		#warehouse .finded-products .location .ubi {
+			font-weight: 800;
+			font-size: 1rem;
+			font-family: sans-serif;
+			color: var(--primary);
+			display: none;
+		}
+		#warehouse .finded-products .location .stock {
+			font-weight: 500;
+			font-size: 0.9rem;
+			margin-right: 1.5rem;
+		}
+		@media only screen and (max-width: 75rem) {
+			
+		}
+		
+		@media only screen and (max-width: 48rem) {
+			
+		}
+	</style>
+</div>
