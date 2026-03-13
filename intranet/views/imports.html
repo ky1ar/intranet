@@ -63,8 +63,6 @@
 					<template x-if="$store.cache.getData('imports_pendings')?.length > 0">
 						<template x-for="item in $store.cache.getData('imports_pendings')" :key="item.id">
 							<div class="item-card white"
-								:draggable="true"
-								@dragstart="onDragStart(item)"
 								@click="viewItem(item.id)"
 							>   
 								<div class="row">
@@ -188,13 +186,21 @@
 				<div class="top">
 					<span class="title" x-text="`SP-${import_data?.id}`"></span>
 					<span class="text" x-text="import_data?.business_name || '-'" style="margin-right: auto;font-weight: 500;opacity: 0.5;margin-left: 0.5rem;"></span>
-					<span class="days" x-text="`${import_data?.passed_days}`"></span>
+					<div class="button extend hover-opacity" x-show="editAllowed() && import_data?.status_id <= 5"
+						@click="updateBasicImport()">
+						<img alt="" width="14" height="14" src="/static/images/icons/save.svg">
+						Actualizar
 					</div>
+					<span class="days" x-text="`${import_data?.passed_days}`"></span>
+				</div>
 				
 				<div class="modal-content dual">
 					<div class="dataview overflow percent50">
 						<!-- Líneas: proveedor + incoterm -->
-						<div class="box glass2" x-show="import_data?.lines?.length" style="border-radius: 0.75rem;padding: 0.75rem;">
+						<div
+							class="box glass2"
+							x-show="import_data?.lines?.length && !(editAllowed() && import_data?.status_id <= 5)"
+							style="border-radius: 0.75rem;padding: 0.75rem;">
 							<template x-for="line in (import_data?.lines || [])" :key="line.id">
 								<div class="container white" style="padding:.65rem; border-radius:.8rem;">
 									<span class="letter" x-text="line.provider_name?.charAt(0)"></span>
@@ -236,13 +242,15 @@
 						</div>
 
 						<!-- Resumen de shipment (compartido) -->
-						<div class="box white">
+						<div
+							class="box white"
+							x-show="!(editAllowed() && import_data?.status_id <= 5)">
 							<div class="container">
 								<div class="data">
 									<div class="pair-content">
 										<div class="pair">
 											<img alt="" width="16" height="16" src="/static/images/location.svg">
-											<span class="black">Puerto:</span>
+											<span class="black">Salida:</span>
 											<span class="text" x-text="import_data?.port_name || '-'"></span>
 										</div>
 
@@ -268,38 +276,176 @@
 								</div>
 							</div>
 						</div>
+						
+						<div class="flexbox" x-show="editAllowed() && import_data?.status_id <= 5">
+							<div class="flexbox" style="gap: 0.5rem;">
+								<template x-for="(line, index) in import_data.lines" :key="line._uid">
+									<div class="glass2" style="padding:.75rem; border-radius: 0.75rem;">
+										<div class="fields">
+											<label class="white">
+												<select
+													@change="
+														line.provider_id = $event.target.value;
+														loadProviderPreviewForLine(line);
+													"
+												>
+													<option value="" disabled :selected="!line.provider_id">Proveedor</option>
 
-						<div class="box glass2" x-show="editAllowed() && import_data?.status_id == 1" style="border-radius: 0.75rem;padding: 0.75rem;">
+													<template x-for="provider in providerOptions()" :key="provider.id">
+														<option
+															:value="provider.id"
+															:selected="String(line.provider_id) === String(provider.id)"
+															x-text="provider.name"
+														></option>
+													</template>
+												</select>
+											</label>
+
+											<label class="white">
+												<select
+													@change="line.incoterm_id = $event.target.value"
+												>
+													<option value="" disabled :selected="!line.incoterm_id">Incoterm</option>
+
+													<template x-for="incoterm in incotermOptions()" :key="incoterm.id">
+														<option
+															:value="incoterm.id"
+															:selected="String(line.incoterm_id) === String(incoterm.id)"
+															x-text="incoterm.code"
+														></option>
+													</template>
+												</select>
+											</label>
+
+											<label class="white" x-show="isOtherIncoterm(line.incoterm_id)">
+												<input type="text" placeholder="Incoterm" x-model="line.custom_incoterm_name">
+											</label>
+											
+											<div class="delete-provider white hover-opacity"
+												@click="removeEditableLine(index)"
+												x-show="import_data.lines.length > 1">
+												<img alt="delete" width="16" height="16" src="/static/images/icons/delete.svg">
+											</div>
+										</div>
+										
+										<div x-show="line.provider_preview" class="white provider" style="margin-top: .6rem;">
+											<span class="letter" x-text="line.provider_preview?.letter"></span>
+
+											<div class="data">
+												<div class="header">
+													<span class="name" x-text="line.provider_preview?.name"></span>
+													<span class="line" x-show="line.provider_preview?.contact">|</span>
+													<span class="contact" x-text="line.provider_preview?.contact"></span>
+												</div>
+												<div class="bottom">
+													<div x-show="line.provider_preview?.email" class="row">
+														<img alt="" width="14" height="14" src="/static/images/email.svg">
+														<span x-text="line.provider_preview?.email"></span>
+													</div>
+													
+													<div x-show="line.provider_preview?.phone" class="row">
+														<img
+															alt=""
+															width="14"
+															height="14"
+															:src="(line.provider_preview?.phone || '').toLowerCase().includes('www')
+																? '/static/images/icons/web.svg'
+																: '/static/images/phone.svg'"
+														>
+														<span x-text="line.provider_preview?.phone"></span>
+													</div>
+
+													<div x-show="line.provider_preview?.telephone" class="row">
+														<img alt="" width="14" height="14" src="/static/images/phone.svg">
+														<span x-text="line.provider_preview?.telephone"></span>
+													</div>
+												</div>
+											</div>
+										</div>
+										
+									</div>
+								</template>
+							</div>
+
+							<div class="add-provider hover-opacity glass2" @click="addEditableLine()">
+								<img alt="" width="16" height="16" src="/static/images/icons/add2.svg">
+								<span>Agregar proveedor</span>
+							</div>
+							
+							<div class="fields options">
+								<label class="white">
+									<select x-model="import_data.business_id">
+										<option value="null" selected disabled>Empresa</option>
+										<template x-for="business in $store.cache.getData('imports_business')" :key="business.id">
+											<option :value="business.id" x-text="business.name"></option>
+										</template>
+									</select>
+								</label>
+
+								<label class="white">
+									<select x-model="import_data.type_id">
+										<option value="null" selected disabled>Tipo de envío</option>
+										<template x-for="type in $store.cache.getData('imports_type')" :key="type.id">
+											<option :value="type.id" x-text="type.name"></option>
+										</template>
+									</select>
+								</label>
+								
+								<label class="white">
+									<select x-model="import_data.port_id">
+										<option value="null" disabled>Salida</option>
+										<template x-for="port in portOptions()" :key="port.id">
+											<option :value="port.id" x-text="port.name"></option>
+										</template>
+									</select>
+								</label>
+
+								<label class="white" x-show="isOtherPort(import_data.port_id)">
+									<input type="text" placeholder="Salida" x-model="import_data.custom_port_name">
+								</label>
+							</div>
+
 							<div class="fields options">
 								<label class="white">
 									<img alt="" src="/static/images/icons/user.svg" width="16" height="16">
 									<input type="text" placeholder="Agente local" x-model="import_data.local_agent_name">
 								</label>
-							</div>
 
-							<div class="fields options">
 								<label class="white">
 									<img alt="" src="/static/images/icons/user.svg" width="16" height="16">
 									<input type="text" placeholder="Agente de origen" x-model="import_data.origin_agent_name">
 								</label>
 							</div>
 
-							<div class="buttons" x-show="editAllowed() && import_data?.status_id == 1" style="display:flex; gap:.5rem;">
-								<button class="button hover-opacity"
-									@click="saveDraftAgents()"
-									:class="buttons.save_draft?.class"
-									x-text="buttons.save_draft?.text || 'Actualizar agentes'">
-								</button>
+							<div class="fields options">
+								<label class="white number">
+									<b style="min-width: 8rem;">Adelanto (%)</b>
+									<input type="number" min="0" max="100" step="0.01" x-model.number="import_data.advance_payment_percent">
+								</label>
 
-								<button class="button hover-opacity black"
+								<label class="white number">
+									<b style="min-width: 8rem;">Saldo (días)</b>
+									<input type="number" min="0" step="1" x-model.number="import_data.balance_days">
+								</label>
+							</div>
+
+							<div class="buttons" x-show="editAllowed() && import_data?.status_id == 1">
+								<button class="button icon hover-opacity black"
 									@click="deleteDraft()"
-									:class="buttons.delete_draft?.class"
-									x-text="buttons.delete_draft?.text || 'Eliminar borrador'">
+									:class="buttons.delete_draft?.class">
+									<img alt="update" width="16" height="16" src="/static/images/icons/delete.svg">
+									<span x-text="buttons.delete_draft?.text"></span>
+								</button>
+								
+								<button class="button icon hover-opacity"
+									@click="confirmImport()">
+									<img alt="update" width="16" height="16" src="/static/images/icons/approve.svg">
+									<span>Confirmar</span>
 								</button>
 							</div>
 						</div>
 
-						<div class="box white" x-show="!(editAllowed() && import_data?.status_id == 1)">
+						<div class="box white" x-show="!(editAllowed() && import_data?.status_id <= 5)">
 							<div class="pair-content">
 								<div class="pair">
 									<img alt="" width="14" height="14" src="/static/images/icons/user.svg">
@@ -357,6 +503,22 @@
 									<img alt="" width="16" height="16" src="/static/images/icons/filled/calendar.svg">
 									<span class="black" x-text="`Pago:`"></span>
 									<span class="text" x-text="`${import_data?.dates?.pay}`"></span>
+								</div>
+							</div>
+						</div>
+
+						<div class="box white" x-show="import_data?.tracking_link">
+							<div class="pair-content">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/images/icons/web.svg">
+									<span class="black">Tracking:</span>
+									<a class="text"
+										:href="import_data?.tracking_link"
+										target="_blank"
+										rel="noopener noreferrer"
+										x-text="import_data?.tracking_link"
+										style="color: var(--primary); opacity: 1;"
+									></a>
 								</div>
 							</div>
 						</div>
@@ -770,6 +932,15 @@
 									</div>
 								</template> -->
 							</div>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 5">
+						<div class="fields options">
+							<label class="white">
+								<img alt="" src="/static/images/icons/web.svg" width="16" height="16">
+								<input type="text" placeholder="Tracking link (opcional)" x-model="tracking_link">
+							</label>
 						</div>
 					</template>
 
@@ -1238,7 +1409,7 @@
 									<label class="white">
 										<select x-model="line.provider_id" @change="loadProviderPreviewForLine(line)">
 											<option value="null" selected disabled>Proveedor</option>
-											<template x-for="provider in $store.cache.getData('imports_provider')" :key="provider.id">
+											<template x-for="provider in providerOptions()" :key="provider.id">
 												<option :value="provider.id" x-text="provider.name"></option>
 											</template>
 										</select>
@@ -1246,18 +1417,20 @@
 
 									<label class="white">
 										<select x-model="line.incoterm_id">
-											<option value="null" selected disabled>Incoterm</option>
-											<template x-for="incoterm in $store.cache.getData('imports_incoterm')" :key="incoterm.id">
+											<option value="null" disabled>Incoterm</option>
+											<template x-for="incoterm in incotermOptions()" :key="incoterm.id">
 												<option :value="incoterm.id" x-text="incoterm.code"></option>
 											</template>
 										</select>
 									</label>
 
-									<div
-										class="delete-provider white hover-opacity"
+									<label class="white" x-show="isOtherIncoterm(line.incoterm_id)">
+										<input type="text" placeholder="Incoterm" x-model="line.custom_incoterm_name">
+									</label>
+
+									<div class="delete-provider white hover-opacity"
 										@click="removeImportLine(index)"
-										x-show="new_import.lines.length > 1"
-									>
+										x-show="new_import.lines.length > 1">
 										<img alt="delete" width="16" height="16" src="/static/images/icons/delete.svg">
 									</div>
 								</div>
@@ -1328,11 +1501,15 @@
 
 						<label class="white">
 							<select x-model="new_import.port_id">
-								<option value="null" selected disabled>Puerto</option>
-								<template x-for="port in $store.cache.getData('imports_port')" :key="port.id">
+								<option value="null" selected disabled>Salida</option>
+								<template x-for="port in portOptions()" :key="port.id">
 									<option :value="port.id" x-text="port.name"></option>
 								</template>
 							</select>
+						</label>
+
+						<label class="white" x-show="isOtherPort(new_import.port_id)">
+							<input type="text" placeholder="Salida" x-model="new_import.custom_port_name">
 						</label>
 					</div>
 
@@ -1458,10 +1635,11 @@
 				business_id: null,
 				type_id: null,
 				port_id: null,
+				custom_port_name: '',
 				local_agent: '',
 				origin_agent: '',
-				advance_payment_percent: null, // %
-				balance_days: null,            // días
+				advance_payment_percent: null,
+				balance_days: null,
 				lines: []
 			},
 			provider_preview_cache: {},
@@ -1476,11 +1654,12 @@
 			buttons: {
                 add: { class: '', text: 'Añadir' },
                 move_status: { class: '', text: this.selected_import?.status_id == 8 ? 'Finalizar orden': 'Actualizar estado' },
-				save_draft: { class: '', text: 'Actualizar agentes' },
-    			delete_draft: { class: '', text: 'Eliminar borrador' },
+				save_draft: { class: '', text: 'Actualizar' },
+    			delete_draft: { class: '', text: 'Eliminar' },
             },
 			docs_target: "product_list",
 			pending_docs: [],
+			tracking_link: '',
 
 			async init() {
 				console.log('Inicializando Imports...');
@@ -1514,38 +1693,67 @@
 				await Alpine.store('cache').verify();
 			},
 
-			async saveDraftAgents() {
-				if (!this.import_data?.id) return;
-				if (this.processing) return;
+			async updateBasicImport() {
+				if (!this.import_data?.id || this.processing) return;
 
-				const local_agent = (this.import_data?.local_agent_name || '').trim();
-				const origin_agent = (this.import_data?.origin_agent_name || '').trim();
+				const payload = {
+					local_agent: (this.import_data?.local_agent_name || '').trim(),
+					origin_agent: (this.import_data?.origin_agent_name || '').trim(),
+					business_id: this.import_data?.business_id,
+					type_id: this.import_data?.type_id,
 
-				if (!local_agent) return this.showError('save_draft', 'Ingresa agente local');
-				if (!origin_agent) return this.showError('save_draft', 'Ingresa agente origen');
+					port_id: this.isOtherPort(this.import_data?.port_id) ? null : this.import_data?.port_id,
+					custom_port_name: this.isOtherPort(this.import_data?.port_id)
+						? (this.import_data?.custom_port_name || '').trim()
+						: null,
+					advance_payment_percent: this.import_data?.advance_payment_percent,
+					balance_days: this.import_data?.balance_days,
+					lines: (this.import_data?.lines || []).map((x, idx) => ({
+						provider_id: x.provider_id ? Number(x.provider_id) : null,
+						incoterm_id: this.isOtherIncoterm(x.incoterm_id)
+							? null
+							: (x.incoterm_id ? Number(x.incoterm_id) : null),
+						custom_incoterm_name: this.isOtherIncoterm(x.incoterm_id)
+							? (x.custom_incoterm_name || '').trim()
+							: null,
+						position: idx + 1,
+					})),
+				};
+
+				if (!payload.local_agent) return this.showError('save_draft', 'Ingresa agente local');
+				if (!payload.origin_agent) return this.showError('save_draft', 'Ingresa agente origen');
+				if (!payload.port_id && !payload.custom_port_name) return this.showError('save_draft', 'Ingresa puerto');
+				if (payload.advance_payment_percent === null || payload.advance_payment_percent === '') return this.showError('save_draft', 'Ingresa adelanto');
+				if (Number(payload.advance_payment_percent) < 0 || Number(payload.advance_payment_percent) > 100) return this.showError('save_draft', 'Adelanto 0 a 100');
+				if (payload.balance_days === null || payload.balance_days === '') return this.showError('save_draft', 'Ingresa saldo');
+				if (Number(payload.balance_days) < 0) return this.showError('save_draft', 'Saldo inválido');
+				if (!payload.lines.length) return this.showError('save_draft', 'Agrega línea');
+
+				for (let i = 0; i < payload.lines.length; i++) {
+					const row = payload.lines[i];
+					if (!row.provider_id) return this.showError('save_draft', `Línea ${i + 1}: proveedor`);
+					if (!row.incoterm_id && !row.custom_incoterm_name) return this.showError('save_draft', `Línea ${i + 1}: incoterm`);
+				}
 
 				this.processing = true;
 				try {
-					const response = await fetch(`${this.api}/imports/draft/${this.import_data.id}/agents`, {
+					const response = await fetch(`${this.api}/imports/${this.import_data.id}/basic`, {
 						method: 'PUT',
 						headers: {
 							'Content-Type': 'application/json',
 							'Authorization': `Bearer ${this.user.token}`,
 						},
-						body: JSON.stringify({
-							local_agent,
-							origin_agent
-						})
+						body: JSON.stringify(payload)
 					});
 
 					const jsonData = await response.json();
 					if (!response.ok) {
-						throw new Error(jsonData?.data?.message || 'Error actualizando borrador');
+						throw new Error(jsonData?.data?.message || 'Error actualizando importación');
 					}
 
-					// refresca board + borradores + detalle actual
-					await Alpine.store('cache').refresh(['imports_dashboard', 'imports_pendings']);
-					await this.viewItem(this.import_data.id);
+					// await Alpine.store('cache').refresh(['imports_dashboard', 'imports_pendings']);
+					// await this.viewItem(this.import_data.id);
+					Alpine.store('cache').hideModal('view');
 
 				} catch (error) {
 					this.showError('save_draft', error.message);
@@ -1591,6 +1799,7 @@
 					provider_id: null,
 					incoterm_id: null,
 					provider_preview: null,
+					custom_incoterm_name: '',
 				};
 			},
 
@@ -1616,6 +1825,7 @@
 					business_id: null,
 					type_id: null,
 					port_id: null,
+					custom_port_name: '',
 					local_agent: '',
 					origin_agent: '',
 					advance_payment_percent: null,
@@ -1624,20 +1834,86 @@
 				};
 			},
 
+			portOptions() {
+				const rows = Alpine.store('cache').getData('imports_port') || [];
+				return [
+					...rows.map(x => ({ ...x, id: String(x.id) })),
+					{ id: '__other__', name: 'OTRO' }
+				];
+			},
+
+			incotermOptions() {
+				const rows = Alpine.store('cache').getData('imports_incoterm') || [];
+				return [
+					...rows.map(x => ({ ...x, id: String(x.id) })),
+					{ id: '__other__', code: 'OTRO' }
+				];
+			},
+
+			isOtherPort(value) {
+				return String(value) === '__other__';
+			},
+
+			isOtherIncoterm(value) {
+				return String(value) === '__other__';
+			},
+
+			addEditableLine() {
+				if (!Array.isArray(this.import_data?.lines)) this.import_data.lines = [];
+				this.import_data.lines.push(this.emptyImportLine());
+			},
+
+			removeEditableLine(index) {
+				if (!this.import_data?.lines || this.import_data.lines.length <= 1) return;
+				this.import_data.lines.splice(index, 1);
+			},
+
 			providerNameById(id) {
 				if (!id) return '';
 				const row = (Alpine.store('cache').getData('imports_provider') || []).find(x => Number(x.id) === Number(id));
 				return row?.name || '';
 			},
+
 			businessNameById(id) {
 				if (!id) return '';
 				const row = (Alpine.store('cache').getData('imports_business') || []).find(x => Number(x.id) === Number(id));
 				return row?.name || '';
 			},
+
 			typeNameById(id) {
 				if (!id) return '';
 				const row = (Alpine.store('cache').getData('imports_type') || []).find(x => Number(x.id) === Number(id));
 				return row?.name || '';
+			},
+
+			async confirmImport(item) {
+				if (!this.import_data?.id || this.processing) return;
+					this.processing = true;
+
+				try {
+					const response = await fetch(`${this.api}/imports/confirm`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${this.user.token}`,
+						},
+						body: JSON.stringify({ import_id: this.import_data.id }),
+					});
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || 'Error confirmando importación');
+					}
+
+					Alpine.store('cache').hideModal('view');
+					this.import_data = null;
+					await Alpine.store('cache').refresh(['imports_dashboard', 'imports_pendings']);
+
+				} catch (error) {
+					this.showError('save_draft', error.message);
+				} finally {
+					this.processing = false;
+				}
 			},
 
 			async loadProviderPreviewForLine(line) {
@@ -1716,14 +1992,51 @@
 				evt.target.value = "";
 			},
 
+			providerOptions() {
+				const rows = Alpine.store('cache').getData('imports_provider') || [];
+				return rows.map(x => ({ ...x, id: String(x.id) }));
+			},
+
 			async viewItem(item_id) {
 				try {
 					const response = await fetch(`${this.api}/imports/view/${item_id}`);
-					const data = await response.json();
-					this.import_data = data.data;
+					const json = await response.json();
+					const data = json.data;
+
+					const prepared = {
+						...data,
+						port_id: data.custom_port_name
+							? '__other__'
+							: (data.port_id != null ? String(data.port_id) : null),
+
+						lines: (data.lines || []).map((line, index) => ({
+							...line,
+							_uid: line.id ? `line-${line.id}` : `line-tmp-${item_id}-${index}`,
+							provider_id: line.provider_id != null ? String(line.provider_id) : null,
+							incoterm_id: line.custom_incoterm_name
+								? '__other__'
+								: (line.incoterm_id != null ? String(line.incoterm_id) : null),
+						}))
+					};
+
+					console.log('prepared lines', prepared.lines);
+					console.log('incoterm options', this.incotermOptions());
+					console.log('provider options', this.providerOptions());
+					this.import_data = null;
+					await this.$nextTick();
+
+					this.import_data = prepared;
+					await this.$nextTick();
+
+					for (const line of this.import_data.lines || []) {
+						if (line.provider_id) {
+							this.loadProviderPreviewForLine(line);
+						}
+					}
+
 					Alpine.store('cache').showModal('view');
 				} catch (error) {
-					console.error('Error en la asignación:', error);
+					console.error('Error en viewItem:', error);
 				}
 			},
 
@@ -1769,6 +2082,7 @@
 				this.weight = null;
 				this.volume = null;
 				this.traffic_light = 'green';
+				this.tracking_link = '';
             },
 
 			cyclePayLight() {
@@ -1790,21 +2104,31 @@
 				const payload = {
 					business_id: this.new_import.business_id,
 					type_id: this.new_import.type_id,
-					port_id: this.new_import.port_id,
+					port_id: this.isOtherPort(this.new_import.port_id) ? null : this.new_import.port_id,
+					custom_port_name: this.isOtherPort(this.new_import.port_id)
+						? (this.new_import.custom_port_name || '').trim()
+						: null,
 					local_agent: (this.new_import.local_agent || '').trim(),
 					origin_agent: (this.new_import.origin_agent || '').trim(),
 					advance_payment_percent: this.new_import.advance_payment_percent || 0,
 					balance_days: this.new_import.balance_days || 0,
 					lines: (this.new_import.lines || []).map((x, idx) => ({
 						provider_id: x.provider_id ? Number(x.provider_id) : null,
-						incoterm_id: x.incoterm_id ? Number(x.incoterm_id) : null,
+						incoterm_id: this.isOtherIncoterm(x.incoterm_id)
+							? null
+							: (x.incoterm_id ? Number(x.incoterm_id) : null),
+						custom_incoterm_name: this.isOtherIncoterm(x.incoterm_id)
+							? (x.custom_incoterm_name || '').trim()
+							: null,
 						position: idx + 1,
 					}))
 				};
 
 				if (!payload.business_id) return this.showError('add', 'Selecciona empresa');
 				if (!payload.type_id) return this.showError('add', 'Selecciona tipo');
-				if (!payload.port_id) return this.showError('add', 'Selecciona puerto');
+				if (!payload.port_id && !payload.custom_port_name) {
+					return this.showError('add', 'Selecciona puerto o ingresa uno manual');
+				}
 				if (!payload.local_agent) return this.showError('add', 'Ingresa agente local');
 				if (!payload.origin_agent) return this.showError('add', 'Ingresa agente origen');
 
@@ -1826,8 +2150,10 @@
 
 				for (let i = 0; i < payload.lines.length; i++) {
 					const row = payload.lines[i];
-					if (!row.provider_id) return this.showError('add', `Línea ${i+1}: proveedor`);
-					if (!row.incoterm_id) return this.showError('add', `Línea ${i+1}: incoterm`);
+					if (!row.provider_id) return this.showError('add', `Proveedor ${i+1}: nombre`);
+					if (!row.incoterm_id && !row.custom_incoterm_name) {
+						return this.showError('add', `Proveedor ${i+1}: incoterm`);
+					}
 				}
 
 				this.processing = true;
@@ -1876,6 +2202,7 @@
 				const pallets = this.pallets;
 				const weight = this.weight;
 				const volume = this.volume;
+				const tracking_link = (this.tracking_link || '').trim() || null;
 
 				if (status_id == 2 && booking_date === null) {
                     this.showError('move_status', 'Selecciona una fecha de booking');
@@ -1930,6 +2257,7 @@
 					notes: status_notes,
 					pay_date: pay_date,
   					traffic_light: traffic_light,
+					tracking_link: tracking_link,
 				};
 				
 				if (this.processing) return;
@@ -2265,6 +2593,19 @@
 
 
 	<style>
+		.modal .button.extend {
+			padding: 0.5rem 1rem;
+			border-radius: 2rem;
+			display: flex;
+			gap: 0.25rem;
+			font-size: 0.75rem;
+			line-height: initial;
+			width: initial;
+		}
+		.modal .button.extend img {
+			min-width: 0.75rem;
+    		filter: invert(1);
+		}
 		.traffic-row{
 			display: flex;
 			align-items: center;
@@ -3397,7 +3738,7 @@
 		}
 		#modal-view .top .days {
 			font-weight: 600;
-			padding: 0.25rem 0.75rem;
+			padding: 0.3rem 0.75rem;
 			border-radius: 2rem;
 			font-size: 0.85rem;
 			background-color: #fddbc9;
@@ -3489,14 +3830,14 @@
 		#modal-add .modal .title img {
 			border-radius: 1rem;
 		}
-		#modal-add .delete-provider {
+		.modal .delete-provider {
 			width: 2.5rem;
 			height: 2.5rem;
 			align-items: center;
 			justify-content: center;
 			display: flex;
 		}
-		#modal-add .add-provider {
+		.modal .add-provider {
 			padding: .5rem .75rem;
 			border-radius: .75rem;
 			display: flex;
@@ -3507,16 +3848,16 @@
 			font-weight: 600;
 			color: #0000005c;
 		}
-		#modal-add .add-provider img {
+		.modal .add-provider img {
 			opacity: 0.5;
 		}
-		#modal-add .provider {
+		.modal .provider {
 			padding: 1rem;
 			display: flex;
 			align-items: center;
 			gap: 0.75rem;
 		}
-		#modal-add .provider .letter {
+		.modal .provider .letter {
 			background-color: var(--secondary);
 			color: var(--white);
 			width: 2rem;
@@ -3526,34 +3867,35 @@
 			justify-content: center;
 			align-items: center;
 		}
-		#modal-add .provider .data {
+		.modal .provider .data {
 			display: flex;
 			flex-direction: column;
 			gap: 0.25rem;
 			font-weight: 500;
 		}
-		#modal-add .provider .header {
+		.modal .provider .header {
 			display: flex;
 			align-items: center;
 			gap: 0.5rem;
 			font-weight: 500;
+			justify-content: start !important;
 		}
-		#modal-add .provider .header .name {
+		.modal .provider .header .name {
 			font-size: 0.95rem;
 		}
-		#modal-add .provider .header .line {
+		.modal .provider .header .line {
 			opacity: 0.25;
 		}
-		#modal-add .provider .header .contact {
+		.modal .provider .header .contact {
 			color: var(--primary);
 		}
-		#modal-add .provider .bottom {
+		.modal .provider .bottom {
 			opacity: 0.5;
 			font-size: 0.8rem;
 			display: flex;
 			gap: 1rem;
 		}
-		#modal-add .provider .bottom .row {
+		.modal .provider .bottom .row {
 			display: flex;
 			align-items: center;
 			gap: 0.25rem;

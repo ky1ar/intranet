@@ -373,39 +373,158 @@
 						<span class="readonly-creator" x-text="`Creado por ${event_data.creator_name}`"></span>
 					</div>
 
-					<div class="readonly-box white">
-						<template x-if="event_data.description">
+					<template x-if="!event_data.is_import">
+						<div class="readonly-box white">
+							<template x-if="event_data.description">
+								<div class="readonly-row">
+									<span class="readonly-label">
+										<img alt="repeat" src="/static/images/icons/board.svg" width="16" height="16">
+										Descripción
+									</span>
+									<span class="readonly-value" x-html="event_data.description"></span>
+								</div>
+							</template>
+
 							<div class="readonly-row">
 								<span class="readonly-label">
-									<img alt="repeat" src="/static/images/icons/board.svg" width="16" height="16">
-									Descripción
+									<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
+									Fecha y hora
 								</span>
-								<span class="readonly-value" x-html="event_data.description"></span>
+								<span class="readonly-value" x-text="formattedEventRange()"></span>
 							</div>
-						</template>
 
-						<div class="readonly-row">
-							<span class="readonly-label">
-								<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
-								Fecha y hora
-							</span>
-							<span class="readonly-value" x-text="formattedEventRange()"></span>
+							<template x-if="event_data.meet">
+								<div class="readonly-row">
+									<span class="readonly-label">
+										<img alt="repeat" src="/static/images/icons/link.svg" width="16" height="16">
+										Google Meet
+									</span>
+									<a class="readonly-value readonly-link"
+									:href="event_data.meet"
+									target="_blank"
+									rel="noopener"
+									x-text="event_data.meet"></a>
+								</div>
+							</template>
 						</div>
+					</template>
 
-						<template x-if="event_data.meet">
+					<template x-if="event_data.is_import && event_data.import_shipment">
+						<div class="readonly-box white">
 							<div class="readonly-row">
 								<span class="readonly-label">
-									<img alt="repeat" src="/static/images/icons/link.svg" width="16" height="16">
-									Google Meet
+									<img alt="port" src="/static/images/location.svg" width="16" height="16">
+									Salida
 								</span>
-								<a class="readonly-value readonly-link"
-								:href="event_data.meet"
-								target="_blank"
-								rel="noopener"
-								x-text="event_data.meet"></a>
+								<span
+									class="readonly-value"
+									x-text="event_data.import_shipment.custom_port_name || event_data.import_shipment.port_name || '-'"
+								></span>
 							</div>
-						</template>
-					</div>
+
+							<div class="readonly-row" x-show="event_data.import_shipment.etd_date">
+								<span class="readonly-label">
+									<img alt="etd" src="/static/images/icons/calendar.svg" width="16" height="16">
+									Salida estimada
+								</span>
+								<span class="readonly-value" x-text="event_data.import_shipment.etd_date"></span>
+							</div>
+
+							<div class="readonly-row" x-show="event_data.import_shipment.eta_date">
+								<span class="readonly-label">
+									<img alt="eta" src="/static/images/icons/calendar.svg" width="16" height="16">
+									Llegada estimada
+								</span>
+								<span class="readonly-value" x-text="event_data.import_shipment.eta_date"></span>
+							</div>
+
+							<div class="readonly-row" x-show="event_data.import_shipment.tracking_link">
+								<span class="readonly-label">
+									<img alt="tracking" src="/static/images/icons/web.svg" width="16" height="16">
+									Tracking
+								</span>
+								<a
+									class="readonly-value readonly-link"
+									:href="event_data.import_shipment.tracking_link"
+									target="_blank"
+									rel="noopener"
+									x-text="event_data.import_shipment.tracking_link"
+								></a>
+							</div>
+
+							<div x-show="event_data.import_shipment.product_list_files && event_data.import_shipment.product_list_files.length">
+								<div class="readonly-row" style="margin-bottom:.5rem;">
+									<span class="readonly-label">
+										<img alt="files" src="/static/images/icons/filled/clip.svg" width="16" height="16">
+										Lista de productos
+									</span>
+								</div>
+
+								<div class="modal-content bottom thumbnails-grid small-grid">
+									<template x-for="f in event_data.import_shipment.product_list_files" :key="f.id">
+										<div class="thumb-item hover-opacity" @click="openAttachment(f)">
+											<div class="thumbnail-wrapper">
+												<template x-if="isImageFile(f)">
+													<img class="hover-opacity" :src="getInlineUrl(f)" :alt="f.original_name">
+												</template>
+
+												<template x-if="!isImageFile(f)">
+													<div class="file-card">
+														<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+													</div>
+												</template>
+											</div>
+
+											<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+										</div>
+									</template>
+								</div>
+							</div>
+						</div>
+					</template>
+
+				</div>
+			</div>
+		</div>
+
+		<div 
+			x-show="$store.cache.isVisibleModal('attachment')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-attachment"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal small glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="modal-content">
+					<template x-if="viewer_payload?.kind === 'url' && isPdfFile(viewer_file)">
+						<iframe :src="viewer_payload.url" style="width:100%; height:70vh; border:0;"></iframe>
+					</template>
+
+					<template x-if="viewer_payload?.kind === 'url' && isImageFile(viewer_file)">
+						<img style="border-radius: 0.75rem;" :src="viewer_payload.url">
+					</template>
+
+					<template x-if="viewer_payload?.kind === 'text'">
+						<div class="white" style="white-space:pre-wrap; padding: 1rem;" x-text="viewer_payload.text"></div>
+					</template>
+
+					<template x-if="viewer_payload?.kind === 'html'">
+						<div style="max-height:70vh;" x-html="viewer_payload.html"></div>
+					</template>
+
+					<template x-if="viewer_payload?.kind === 'download'">
+						<div style="text-align: center;" x-text="viewer_payload.message"></div>
+					</template>
 				</div>
 			</div>
 		</div>
@@ -448,6 +567,8 @@
 	<script>
 	Alpine.data('schedule_data', () => ({
 		api: Alpine.store('cache').api,
+		user: Alpine.store('cache').user,
+
 		user_id: Alpine.store('cache').user.id,
 		offset: 0,
 		todayISO: '',
@@ -482,8 +603,12 @@
     		end_iso: null,
 			audience_user_ids: [],
 			audience_department_ids: [],
-		},
 
+			is_import: false,
+			import_shipment: null,
+		},
+		viewer_file: null,
+		viewer_payload: null,
 		currentYear: 2025,
 		currentMonth: 11,
 
@@ -661,7 +786,6 @@
 
 		async openEvent(eventId) {
 			try {
-				//this.clearErrors();
 				const res = await fetch(`${this.api}/schedule/event/${eventId}`);
 				const json = await res.json();
 				const d = json?.data || {};
@@ -682,6 +806,9 @@
 				this.event_data.start_iso = d.start_datetime || null;
 				this.event_data.end_iso   = d.end_datetime || null;
 
+				this.event_data.is_import = !!d.is_import;
+				this.event_data.import_shipment = d.import_shipment || null;
+
 				this.edit = true;
 				this.can_edit = (this.user_id == this.event_data.creator_id);
 
@@ -697,7 +824,54 @@
 				Alpine.store('cache').showModal('event');
 			} catch (e) {
 				console.error('No se pudieron cargar los datos del evento', e);
-			} 
+			}
+		},
+
+		isImageFile(f) {
+			const ext = (f?.ext || '').toLowerCase();
+			return ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext);
+		},
+
+		isPdfFile(f) {
+			const ext = (f?.ext || '').toLowerCase();
+			return ext === 'pdf';
+		},
+
+		getInlineUrl(f) {
+			return `${this.api}${f.inline_url}`;
+		},
+
+		async openAttachment(file) {
+			this.viewer_file = file;
+			this.viewer_payload = null;
+
+			// TEMP: no está en backend todavía
+			if (file?.is_temp) {
+				if (this.isImageFile(file) && file.local_url) {
+					this.viewer_payload = { kind: "url", url: file.local_url };
+				} else {
+					this.viewer_payload = { kind: "download", message: "Archivo pendiente de guardar (se sube al actualizar estado)." };
+				}
+				Alpine.store("cache").showModal("attachment");
+				return;
+			}
+
+			// NORMAL: preview backend
+			const res = await fetch(`${this.api}${file.preview_url}`, {
+				headers: {
+				"Content-Type": "application/json",
+				"Authorization": `Bearer ${this.user.token}`,
+				}
+			});
+
+			const json = await res.json();
+			const payload = json?.data ?? json;
+
+			if (payload.kind === "url") payload.url = `${this.api}${payload.url}`;
+			this.viewer_file.download_url = `${this.api}${file.download_url}`;
+
+			this.viewer_payload = payload;
+			Alpine.store("cache").showModal("attachment");
 		},
 
 		async next() {
@@ -741,6 +915,9 @@
         		end_iso: null,
 				audience_user_ids: [],
 				audience_department_ids: [],
+
+				is_import: false,
+				import_shipment: null,
 			};
 			this.can_edit = false;
 			//this.clearErrors();

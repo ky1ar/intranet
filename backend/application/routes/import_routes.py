@@ -120,3 +120,17 @@ def draft_update_agents(import_id):
 @jwt_required()
 def draft_delete(import_id):
     return controller.import_draft_delete({"import_id": import_id})
+
+
+@import_bp.route("/<int:import_id>/basic", methods=["PUT"])
+@jwt_required()
+def update_basic(import_id):
+    data = request.get_json() or {}
+    data["import_id"] = import_id
+    return controller.import_update_basic(data)
+
+
+@import_bp.route("/confirm", methods=["POST"])
+@jwt_required()
+def confirm():
+    return controller.import_confirm(request.get_json() or {})

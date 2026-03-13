@@ -121,6 +121,11 @@ class ScheduleService:
             )
 
         if action == "updated":
+            if event.import_shipment_id:
+                return (
+                    "Nueva de fecha de arribo 🛳️",
+                    f"{actor_name} actualizó la llegada de: {titulo}."
+                )
             return (
                 "Actualización de evento ✏️",
                 f"{actor_name} actualizó el evento: {titulo}."
@@ -544,6 +549,24 @@ class ScheduleService:
         return colors_list, 200
 
 
+    def _serialize_import_attachment(self, attachment):
+        ext = ""
+        if attachment.original_name and "." in attachment.original_name:
+            ext = attachment.original_name.rsplit(".", 1)[-1].lower()
+
+        return {
+            "id": attachment.id,
+            "target": attachment.target,
+            "original_name": attachment.original_name,
+            "ext": ext,
+            "mime_type": attachment.mime_type,
+            "size_bytes": attachment.size_bytes,
+            # ajusta estas rutas si tu módulo de imports usa otras
+            "inline_url": f"/imports/attachment/{attachment.id}?disposition=inline",
+            "download_url": f"/imports/attachment/{attachment.id}?disposition=attachment",
+            "preview_url": f"/imports/attachment/{attachment.id}/preview",
+        }
+
     @handle_exceptions
     def process(self, data):
         event_id = data.get("event_id")
@@ -668,7 +691,6 @@ class ScheduleService:
         return "Evento actualizado correctamente", 200
 
 
-
     @handle_exceptions
     def delete(self, event_id):
         event, ec = self.schedule_repository.get_event_by_id(event_id)
@@ -753,6 +775,29 @@ class ScheduleService:
         u_map, _ = self.schedule_repository.get_event_users_map([event.id])
         d_map, _ = self.schedule_repository.get_event_departments_map([event.id])
 
+        is_import = event.import_shipment is not None
+        import_data = None
+
+        if is_import:
+            shipment = event.import_shipment
+
+            product_list_files, _ = self.schedule_repository.get_import_attachments(
+                shipment.id,
+                target="product_list"
+            )
+
+            import_data = {
+                "id": shipment.id,
+                "port_name": shipment.port.name.title() if shipment.port else None,
+                "custom_port_name": shipment.custom_port_name,
+                "tracking_link": shipment.tracking_link,
+                "etd_date": shipment.etd_date.isoformat() if shipment.etd_date else None,
+                "eta_date": shipment.eta_date.isoformat() if shipment.eta_date else None,
+                "product_list_files": [
+                    self._serialize_import_attachment(f) for f in product_list_files
+                ],
+            }
+
         return {
             "id": event.id,
             "creator_id": event.user_id,
@@ -770,6 +815,8 @@ class ScheduleService:
             "audience_user_ids": sorted(list(u_map.get(event.id, set()))),
             "audience_department_ids": sorted(list(d_map.get(event.id, set()))),
             "created_at": event.created_at.isoformat(),
+            "is_import": is_import,
+            "import_shipment": import_data,
         }, 200
 
 

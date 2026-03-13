@@ -76,12 +76,15 @@ class ImportShipment(BaseModel):
     delivery_name = db.Column(db.String(128))
     delivery_phone = db.Column(db.String(9))
     delivery_code = db.Column(db.String(9))
+    custom_port_name = db.Column(db.String(150), nullable=True)
+    tracking_link = db.Column(db.Text, nullable=True)
 
     business = db.relationship("ImportBusiness", lazy="joined", foreign_keys=[business_id])
     type = db.relationship("ImportType", lazy="joined", foreign_keys=[type_id])
     port = db.relationship("ImportPort", lazy="joined", foreign_keys=[port_id])
     status = db.relationship("ImportStatus", lazy="joined", foreign_keys=[status_id])
     lines = db.relationship("ImportShipmentLine", back_populates="shipment", cascade="all, delete-orphan", lazy="selectin")
+    attachments = db.relationship("ImportAttachment", back_populates="import_shipment", cascade="all, delete-orphan", lazy="selectin")
 
 
 class ImportShipmentLine(db.Model):
@@ -92,6 +95,7 @@ class ImportShipmentLine(db.Model):
 
     provider_id = db.Column(db.Integer, db.ForeignKey("import_provider.id"), nullable=False)
     incoterm_id = db.Column(db.Integer, db.ForeignKey("import_incoterm.id"), nullable=False)
+    custom_incoterm_name = db.Column(db.String(120), nullable=True)
     position = db.Column(db.Integer, nullable=False, default=1)
 
     shipment = db.relationship("ImportShipment", back_populates="lines")
@@ -127,7 +131,8 @@ class ImportAttachment(BaseModel):
     size_bytes = db.Column(db.Integer)
     created_at = db.Column(db.DateTime, nullable=False)
 
-    import_shipment = db.relationship("ImportShipment", lazy="joined", foreign_keys=[import_shipment_id])
+    # import_shipment = db.relationship("ImportShipment", lazy="joined", foreign_keys=[import_shipment_id])
+    import_shipment = db.relationship("ImportShipment", lazy="joined", foreign_keys=[import_shipment_id], back_populates="attachments")
     user = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
 
 

@@ -168,7 +168,8 @@ class ImportRepository:
         new_import = ImportShipment(
             business_id=int(data.get("business_id")),
             type_id=int(data.get("type_id")),
-            port_id=int(data.get("port_id")),
+            port_id=data.get("port_id"),
+            custom_port_name=data.get("custom_port_name"),
             status_id=1,
             local_agent_name=(data.get("local_agent") or "").strip(),
             origin_agent_name=(data.get("origin_agent") or "").strip(),
@@ -183,7 +184,8 @@ class ImportRepository:
             row = ImportShipmentLine(
                 import_shipment_id=new_import.id,
                 provider_id=int(line.get("provider_id")),
-                incoterm_id=int(line.get("incoterm_id")),
+                incoterm_id=line.get("incoterm_id"),
+                custom_incoterm_name=line.get("custom_incoterm_name"),
                 position=idx,
             )
             g.db_session.add(row)
@@ -255,6 +257,7 @@ class ImportRepository:
                 import_shipment.pallets = data.get("pallets")
                 import_shipment.weight = data.get("weight")
                 import_shipment.volume = data.get("volume")
+                import_shipment.tracking_link = data.get("tracking_link")
 
             if current_status_id == 7:
                 import_shipment.deadline_date = data.get("deadline_date")
@@ -352,3 +355,56 @@ class ImportRepository:
         g.db_session.add(row)
         g.db_session.commit()
         return row.id, 200
+    
+
+    @handle_db_exceptions
+    def update_basic(self, import_shipment, data):
+        import_shipment.port_id = data.get("port_id")
+        import_shipment.business_id = data.get("business_id")
+        import_shipment.type_id = data.get("type_id")
+        import_shipment.custom_port_name = data.get("custom_port_name")
+        import_shipment.local_agent_name = data.get("local_agent_name")
+        import_shipment.origin_agent_name = data.get("origin_agent_name")
+        import_shipment.advance_payment_percent = data.get("advance_payment_percent")
+        import_shipment.balance_days = data.get("balance_days")
+
+        g.db_session.add(import_shipment)
+
+        g.db_session.query(ImportShipmentLine).filter(
+            ImportShipmentLine.import_shipment_id == import_shipment.id
+        ).delete(synchronize_session=False)
+
+        for row in data.get("lines", []):
+            g.db_session.add(
+                ImportShipmentLine(
+                    import_shipment_id=import_shipment.id,
+                    provider_id=row.get("provider_id"),
+                    incoterm_id=row.get("incoterm_id"),
+                    custom_incoterm_name=row.get("custom_incoterm_name"),
+                    position=row.get("position"),
+                )
+            )
+
+        g.db_session.commit()
+        return True, 200
+
+
+    @handle_db_exceptions
+    def set_status(self, import_shipment, status_id):
+        import_shipment.status_id = status_id
+        g.db_session.add(import_shipment)
+        g.db_session.commit()
+        return True, 200
+
+    @handle_db_exceptions
+    def new_history_exact(self, import_id, user_id, status_id, notes=None):
+        row = ImportStatusHistory(
+            import_shipment_id=import_id,
+            status_id=status_id,
+            user_id=user_id,
+            notes=notes,
+            created_at=peru_time(),
+        )
+        g.db_session.add(row)
+        g.db_session.commit()
+        return True, 200

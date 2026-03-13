@@ -108,3 +108,13 @@ class ImportController:
     @handle_logs_and_exceptions
     def import_draft_delete(self, data):
         return self.import_service.draft_delete(data)
+
+
+    @handle_logs_and_exceptions
+    def import_update_basic(self, data):
+        return self.import_service.update_basic(data)
+    
+
+    @handle_logs_and_exceptions
+    def import_confirm(self, data):
+        return self.import_service.confirm(data)
