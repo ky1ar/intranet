@@ -560,6 +560,7 @@ class Events(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
+    import_shipment_id = db.Column(db.Integer, db.ForeignKey('import_shipment.id'))
     start_datetime = db.Column(db.DateTime, nullable=False)
     end_datetime = db.Column(db.DateTime)
     meet = db.Column(db.String(255))
@@ -575,6 +576,7 @@ class Events(db.Model):
     visibility = db.relationship("Visibility", lazy="joined", foreign_keys=[visibility_id])
     repeat = db.relationship("Repeat", lazy="joined", foreign_keys=[repeat_id])
     notify = db.relationship("Notify", lazy="joined", foreign_keys=[notify_id])
+    import_shipment = db.relationship("ImportShipment", lazy="joined", foreign_keys=[import_shipment_id])
     visibility_users = db.relationship("EventVisibilityUser", lazy="selectin", cascade="all, delete-orphan", primaryjoin="Events.id==EventVisibilityUser.event_id")
     visibility_departments = db.relationship("EventVisibilityDepartment", lazy="selectin", cascade="all, delete-orphan",primaryjoin="Events.id==EventVisibilityDepartment.event_id")
 

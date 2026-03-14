@@ -1,8 +1,7 @@
 import logging, os, uuid
 import openpyxl
 from docx import Document
-from datetime import date
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from werkzeug.utils import secure_filename
 from flask import request, send_file
 from flask_jwt_extended import get_jwt_identity
@@ -25,6 +24,98 @@ class ImportService:
         self.schedule_repository = ScheduleRepository()
         self.push_service = PushSender()
 
+
+    def _display_port_name(self, shipment):
+        if getattr(shipment, "custom_port_name", None):
+            return shipment.custom_port_name.strip()
+        if shipment.port and shipment.port.name:
+            return shipment.port.name.title()
+        return "-"
+
+
+    def _display_incoterm_code(self, line):
+        if getattr(line, "custom_incoterm_name", None):
+            return line.custom_incoterm_name.strip()
+        if line.incoterm and line.incoterm.code:
+            return line.incoterm.code
+        return "-"
+
+
+    def _format_notify_date_es(self, value):
+        if not value:
+            return "-"
+
+        if isinstance(value, datetime):
+            dt = value.date()
+        elif isinstance(value, date):
+            dt = value
+        else:
+            dt = datetime.strptime(str(value)[:10], "%Y-%m-%d").date()
+
+        months = ["Ene.", "Feb.", "Mar.", "Abr.", "May.", "Jun.", "Jul.", "Ago.", "Sep.", "Oct.", "Nov.", "Dic."]
+        base = f"{dt.day} de {months[dt.month - 1]} de {dt.year}"
+
+        today = date.today()
+        if dt == today:
+            return f"Hoy, {base}"
+        if dt == (today + timedelta(days=1)):
+            return f"Mañana, {base}"
+        return base
+
+
+    def _validate_port_payload(self, data):
+        port_id = data.get("port_id")
+        custom_port_name = (data.get("custom_port_name") or "").strip()
+
+        if not port_id and not custom_port_name:
+            return None, None, "Selecciona un puerto o ingresa uno manual"
+
+        if custom_port_name:
+            return None, custom_port_name, None
+
+        try:
+            return int(port_id), None, None
+        except Exception:
+            return None, None, "Puerto inválido"
+
+
+    def _normalize_lines_payload(self, lines):
+        if not isinstance(lines, list) or not lines:
+            return None, "Agrega al menos una línea"
+
+        normalized = []
+        for i, row in enumerate(lines, start=1):
+            provider_id = row.get("provider_id")
+            incoterm_id = row.get("incoterm_id")
+            custom_incoterm_name = (row.get("custom_incoterm_name") or "").strip()
+
+            if not provider_id:
+                return None, f"Línea {i}: selecciona un proveedor"
+
+            try:
+                provider_id = int(provider_id)
+            except Exception:
+                return None, f"Línea {i}: proveedor inválido"
+
+            if not incoterm_id and not custom_incoterm_name:
+                return None, f"Línea {i}: selecciona un Incoterm o ingresa uno manual"
+
+            parsed_incoterm_id = None
+            if incoterm_id:
+                try:
+                    parsed_incoterm_id = int(incoterm_id)
+                except Exception:
+                    return None, f"Línea {i}: Incoterm inválido"
+
+            normalized.append({
+                "provider_id": provider_id,
+                "incoterm_id": parsed_incoterm_id,
+                "custom_incoterm_name": custom_incoterm_name or None,
+                "position": i,
+            })
+
+        return normalized, None
+    
 
     def _unique_keep_order(self, values):
         result = []
@@ -57,16 +148,16 @@ class ImportService:
         lines = self._sorted_lines(shipment)
 
         provider_names = [l.provider.name for l in lines if getattr(l, "provider", None)]
-        incoterm_codes = [l.incoterm.code for l in lines if getattr(l, "incoterm", None)]
+        incoterm_codes = [self._display_incoterm_code(l) for l in lines]
 
         provider_names = self._unique_keep_order(provider_names)
         incoterm_codes = self._unique_keep_order(incoterm_codes)
 
         return {
             "line_count": len(lines),
-            "providers_text": self._compact_label(provider_names),              # resumido
-            "providers_full_text": ", ".join(provider_names) if provider_names else "-",  # ✅ completo
-            "provider_names": provider_names,                                   # opcional
+            "providers_text": self._compact_label(provider_names),
+            "providers_full_text": ", ".join(provider_names) if provider_names else "-",
+            "provider_names": provider_names,
             "incoterms_text": self._compact_label(incoterm_codes),
         }
 
@@ -84,7 +175,8 @@ class ImportService:
             "provider_telephone": line.provider.telephone if line.provider else None,
 
             "incoterm_id": line.incoterm_id,
-            "incoterm_code": line.incoterm.code if line.incoterm else None,
+            "custom_incoterm_name": getattr(line, "custom_incoterm_name", None),
+            "incoterm_code": self._display_incoterm_code(line),
         }
 
 
@@ -331,7 +423,7 @@ class ImportService:
             return import_shipment, isc
 
         register_days = 0
-        import_history, ihc = self.import_repository.get_import_history(import_id, 2) 
+        import_history, ihc = self.import_repository.get_import_history(import_id, 1) 
         if ihc == 200:
             register_days = calculate_passed_days(import_history.created_at)
 
@@ -345,10 +437,14 @@ class ImportService:
             "status_name": import_shipment.status.name,
             "summary": summary,
 
+            "business_id": import_shipment.business_id,
             "business_name": import_shipment.business.name if import_shipment.business else None,
             "type_id": import_shipment.type_id,
             "type_name": import_shipment.type.name if import_shipment.type else None,
-            "port_name": import_shipment.port.name.title() if import_shipment.port and import_shipment.port.name else None,
+            "port_name": self._display_port_name(import_shipment),
+            "port_id": import_shipment.port_id,
+            "custom_port_name": getattr(import_shipment, "custom_port_name", None),
+            "tracking_link": getattr(import_shipment, "tracking_link", None),
 
             "local_agent_name": import_shipment.local_agent_name.title() if import_shipment.local_agent_name else None,
             "origin_agent_name": import_shipment.origin_agent_name.title() if import_shipment.origin_agent_name else None,
@@ -446,7 +542,6 @@ class ImportService:
 
         business_id = data.get("business_id")
         type_id = data.get("type_id")
-        port_id = data.get("port_id")
         local_agent = (data.get("local_agent") or "").strip()
         origin_agent = (data.get("origin_agent") or "").strip()
         advance_payment_percent = data.get("advance_payment_percent")
@@ -457,12 +552,14 @@ class ImportService:
             return "Selecciona una empresa", 400
         if not type_id:
             return "Selecciona un tipo de envío", 400
-        if not port_id:
-            return "Selecciona un puerto", 400
         if not local_agent:
             return "Ingresa un agente local", 400
         if not origin_agent:
             return "Ingresa un agente de origen", 400
+
+        port_id, custom_port_name, port_error = self._validate_port_payload(data)
+        if port_error:
+            return port_error, 400
 
         if advance_payment_percent is None or advance_payment_percent == "":
             return "Ingresa adelanto de pago (%)", 400
@@ -485,18 +582,15 @@ class ImportService:
         if bal_days < 0:
             return "Saldo (días) no puede ser negativo", 400
 
-        if not isinstance(lines, list) or not lines:
-            return "Agrega al menos una línea", 400
+        normalized_lines, lines_error = self._normalize_lines_payload(lines)
+        if lines_error:
+            return lines_error, 400
 
-        for i, row in enumerate(lines, start=1):
-            if not row.get("provider_id"):
-                return f"Línea {i}: selecciona un proveedor", 400
-            if not row.get("incoterm_id"):
-                return f"Línea {i}: selecciona un Incoterm", 400
-
-        # Normaliza para repo
+        data["port_id"] = port_id
+        data["custom_port_name"] = custom_port_name
         data["advance_payment_percent"] = adv
         data["balance_days"] = bal_days
+        data["lines"] = normalized_lines
 
         import_id, ncc = self.import_repository.new_import(data)
         if ncc != 200:
@@ -522,6 +616,8 @@ class ImportService:
         if isc != 200:
             return import_shipment, isc
 
+        summary = self._shipment_summary(import_shipment)
+
         current_status_id = import_shipment.status_id
         move, mc = self.import_repository.move_status(import_shipment, current_status_id, data) 
         if mc != 200:
@@ -535,9 +631,11 @@ class ImportService:
             eta_base = str(eta_date)[:10]
             eta_dt = datetime.strptime(eta_base, "%Y-%m-%d")
 
+            providers = ", ".join(summary["provider_names"]) if summary["provider_names"] else "Importación"
+
             payload = {
                 "user_id": user_id,
-                "title": f"Importacion SP-{import_id}",
+                "title": f"{providers} | SP-{import_id}",
                 "description": "Evento creado automáticamente para coordinación interna.",
                 "start_datetime": eta_dt.strftime("%Y-%m-%dT00:00"),
                 "end_datetime": eta_dt.strftime("%Y-%m-%dT00:00"),
@@ -546,16 +644,26 @@ class ImportService:
                 "visibility_id": "1",
                 "repeat_id": 1,
                 "notify_id": 1,
-                "all_day": True
+                "all_day": True,
+                "import_shipment_id": import_id,
             }
             
             new_event_id, aec = self.schedule_repository.add_event(payload)
             if aec != 200:
                 return new_event_id, aec
             
+            etd_text = self._format_notify_date_es(etd_date)
+            eta_text = self._format_notify_date_es(eta_date)
+
+            eta_prefix = "" if eta_text.startswith(("Hoy", "Mañana")) else "el "
+
             participants, _ = self.user_repository.get_all_user_ids()
             title = f"🛳️ Próxima salida"
-            body = f"La importación SP-{import_id} tiene salida estimada (ETD) el {format_date(etd_date)}. Se actualizó el calendario con la fecha de arribo."
+            body = (
+                f"{providers} SP-{import_id} tiene salida estimada {etd_text}, "
+                f"y llegada a nuestro almacén {eta_prefix}{eta_text}. "
+                f"Entra al calendario para ver el detalle de la importación."
+            )
 
             registration_tokens, _ = self.push_service.prefetch_registration_tokens(participants)
             socketio.start_background_task(self.push_service.send_to_tokens, registration_tokens, title, body, None)
@@ -811,11 +919,11 @@ class ImportService:
         if not origin_agent:
             return "Ingresa agente de origen", 400
 
-        # (Opcional pero recomendado) misma regla del front
         user, uc = self.user_repository.get_user_by_id(user_id)
         if uc != 200:
             return user, uc
-        if not (user.department_id == 8 or user.id == 23):
+        
+        if not (user.department_id in [8, 7] or user.id == 23):
             return "No autorizado", 403
 
         import_shipment, isc = self.import_repository.get_import(import_id)
@@ -845,11 +953,11 @@ class ImportService:
         if not import_id:
             return "import_id requerido", 400
 
-        # (Opcional pero recomendado) misma regla del front
         user, uc = self.user_repository.get_user_by_id(user_id)
         if uc != 200:
             return user, uc
-        if not (user.department_id == 8 or user.id == 23):
+        
+        if not (user.department_id in [8, 7] or user.id == 23):
             return "No autorizado", 403
 
         import_shipment, isc = self.import_repository.get_import(import_id)
@@ -876,3 +984,127 @@ class ImportService:
 
         socketio.emit("imports_dashboard_update", {})
         return "Borrador eliminado correctamente", 200
+
+
+    @handle_exceptions
+    def update_basic(self, data):
+        user_id = int(get_jwt_identity())
+        import_id = data.get("import_id")
+
+        if not import_id:
+            return "import_id requerido", 400
+
+        user, uc = self.user_repository.get_user_by_id(user_id)
+        if uc != 200:
+            return user, uc
+
+        if not (user.department_id in [8, 7] or user.id == 23):
+            return "No autorizado", 403
+
+        import_shipment, isc = self.import_repository.get_import(import_id)
+        if isc != 200:
+            return import_shipment, isc
+
+        if import_shipment.status_id > 5:
+            return "Solo se puede actualizar hasta el estado 5", 400
+
+        local_agent = (data.get("local_agent") or "").strip()
+        origin_agent = (data.get("origin_agent") or "").strip()
+        advance_payment_percent = data.get("advance_payment_percent")
+        balance_days = data.get("balance_days")
+        business_id = data.get("business_id")
+        type_id = data.get("type_id")
+
+        if not local_agent:
+            return "Ingresa agente local", 400
+        if not origin_agent:
+            return "Ingresa agente de origen", 400
+
+        port_id, custom_port_name, port_error = self._validate_port_payload(data)
+        if port_error:
+            return port_error, 400
+
+        try:
+            adv = float(advance_payment_percent)
+        except Exception:
+            return "Adelanto inválido", 400
+
+        if adv < 0 or adv > 100:
+            return "El adelanto debe estar entre 0 y 100", 400
+
+        try:
+            bal_days = int(balance_days)
+        except Exception:
+            return "Saldo inválido", 400
+
+        if bal_days < 0:
+            return "Saldo inválido", 400
+
+        normalized_lines, lines_error = self._normalize_lines_payload(data.get("lines"))
+        if lines_error:
+            return lines_error, 400
+
+        payload = {
+            "port_id": port_id,
+            "business_id": business_id,
+            "type_id": type_id,
+            "custom_port_name": custom_port_name,
+            "local_agent_name": local_agent,
+            "origin_agent_name": origin_agent,
+            "advance_payment_percent": adv,
+            "balance_days": bal_days,
+            "lines": normalized_lines,
+        }
+
+        ok, rc = self.import_repository.update_basic(import_shipment, payload)
+        if rc != 200:
+            return ok, rc
+
+        socketio.emit("imports_dashboard_update", {})
+        return "Importación actualizada correctamente", 200
+
+
+    @handle_exceptions
+    def confirm(self, data):
+        user_id = int(get_jwt_identity())
+        import_id = data.get("import_id")
+
+        if not import_id:
+            return "import_id requerido", 400
+
+        user, uc = self.user_repository.get_user_by_id(user_id)
+        if uc != 200:
+            return user, uc
+
+        if not (user.department_id in [8, 7] or user.id == 23):
+            return "No autorizado", 403
+
+        import_shipment, isc = self.import_repository.get_import(import_id)
+        if isc != 200:
+            return import_shipment, isc
+
+        if import_shipment.status_id != 1:
+            return "Solo se puede confirmar desde borrador", 400
+
+        if import_shipment.type_id == 1:
+            target_status_id = 2
+        elif import_shipment.type_id == 2:
+            target_status_id = 5
+        else:
+            return "Tipo de envío no soportado para confirmación", 400
+
+        ok, rc = self.import_repository.set_status(import_shipment, target_status_id)
+        if rc != 200:
+            return ok, rc
+
+        history, hc = self.import_repository.new_history_exact(
+            import_id=import_id,
+            user_id=user_id,
+            status_id=target_status_id,
+            notes="Importación confirmada"
+        )
+        if hc != 200:
+            return history, hc
+
+        socketio.emit("imports_dashboard_update", {})
+        return "Importación confirmada correctamente", 200

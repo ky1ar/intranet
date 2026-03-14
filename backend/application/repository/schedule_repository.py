@@ -4,6 +4,7 @@ from application.handlers import handle_db_exceptions
 from application.models import Events, Visibility, Repeat, Notify, Colors, Holidays
 from application.models import EventVisibilityUser, EventVisibilityDepartment
 from application.models import Users, UserDepartment
+from application.db_models.import_model import ImportAttachment
 from sqlalchemy import or_, and_
 from flask import g
 
@@ -255,6 +256,7 @@ class ScheduleRepository:
             start_datetime = start_datetime,
             end_datetime   = end_datetime,
             meet          = data.get("meet"),
+            import_shipment_id = data.get("import_shipment_id"),
             hex_color     = data.get("hex_color"),
             visibility_id = visibility_id,
             all_day       = all_day_flag,
@@ -275,6 +277,20 @@ class ScheduleRepository:
             return "Evento no encontrado", 404
 
         return event, 200
+
+
+    @handle_db_exceptions
+    def get_import_attachments(self, import_shipment_id, target=None):
+        query = (
+            g.db_session.query(ImportAttachment)
+            .filter(ImportAttachment.import_shipment_id == import_shipment_id)
+        )
+
+        if target:
+            query = query.filter(ImportAttachment.target == target)
+
+        rows = query.order_by(ImportAttachment.created_at.desc()).all()
+        return rows or [], 200
 
 
     @handle_db_exceptions
