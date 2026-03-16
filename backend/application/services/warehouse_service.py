@@ -6,6 +6,9 @@ class WarehouseService:
     def __init__(self):
         self.warehouse_repository = WarehouseRepository()
 
+    def _location_label(self, block, level, position):
+        return f"B{block}-{level}-{position}"
+
     def _serialize_row(self, row):
         return {
             "warehouse_stock_id": row.id,
@@ -17,24 +20,43 @@ class WarehouseService:
             "stock": row.stock,
             "category": getattr(row.product, "category", None) or "Impresoras 3D",
             "location": {
-                "block": row.code.block[1:],
+                "block": row.code.block,
                 "level": row.code.level,
                 "position": row.code.position,
-                "label": f"{row.code.block}-{row.code.level}-{row.code.position}",
+                "label": self._location_label(
+                    row.code.block,
+                    row.code.level,
+                    row.code.position
+                ),
             }
         }
 
     @handle_exceptions
     def find_product(self, search):
-        rows_products, rows_locations, pc = self.warehouse_repository.get_products_like_split(search)
+        rows_products, rows_locations_products, rows_location_codes, pc = \
+            self.warehouse_repository.get_products_like_split(search)
+
         if pc != 200:
             return rows_products, pc
 
         products = [self._serialize_row(r) for r in rows_products]
 
-        # Agrupar por ubicación para el “resultado de ubicación”
+        # Pre-crear TODAS las ubicaciones encontradas, aunque tengan 0 items
         loc_map = {}
-        for r in rows_locations:
+        for code in rows_location_codes:
+            label = self._location_label(code.block, code.level, code.position)
+            loc_map[label] = {
+                "label": label,
+                "block": code.block,
+                "level": code.level,
+                "position": code.position,
+                "products": [],
+                "products_count": 0,
+                "preview_text": "Sin productos en esta ubicación",
+            }
+
+        # Llenar productos si existen
+        for r in rows_locations_products:
             item = self._serialize_row(r)
             label = item["location"]["label"]
 
@@ -46,22 +68,29 @@ class WarehouseService:
                     "position": item["location"]["position"],
                     "products": [],
                     "products_count": 0,
-                    "preview_text": "",
+                    "preview_text": "Sin productos en esta ubicación",
                 }
+
             loc_map[label]["products"].append(item)
 
-        # Preview y conteo
         locations = []
         for loc in loc_map.values():
-            loc["products"].sort(key=lambda x: (x.get("stock") or 0))  # detalle asc
+            loc["products"].sort(key=lambda x: (x.get("stock") or 0))
             loc["products_count"] = len(loc["products"])
 
-            # preview: top 3 por stock desc (para que tenga sentido visual)
-            top = sorted(loc["products"], key=lambda x: (x.get("stock") or 0), reverse=True)[:3]
-            loc["preview_text"] = " • ".join([f'{p["brand"]} {p["model"]}' for p in top]) + (" …" if loc["products_count"] > 3 else "")
+            if loc["products_count"] > 0:
+                top = sorted(
+                    loc["products"],
+                    key=lambda x: (x.get("stock") or 0),
+                    reverse=True
+                )[:3]
+
+                loc["preview_text"] = " • ".join(
+                    [f'{p["brand"]} {p["model"]}' for p in top]
+                ) + (" …" if loc["products_count"] > 3 else "")
+
             locations.append(loc)
 
-        # Orden natural por label
         locations.sort(key=lambda x: x["label"])
 
         return {"products": products, "locations": locations}, 200

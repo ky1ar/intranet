@@ -5,7 +5,7 @@ class WarehouseCodes(BaseModel):
     __tablename__ = 'warehouse_codes'
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
-    block = db.Column(db.String(5), nullable=False)
+    block = db.Column(db.Integer, nullable=False)
     level = db.Column(db.Integer, nullable=False)
     position = db.Column(db.String(1), nullable=False)
 
