@@ -36,7 +36,7 @@ def user_login():
 @jwt_required()
 def user_verify():
     return jsonify({
-        "app_version": "1.4.0x"
+        "app_version": "1.4.0y"
     }), 200
 
 

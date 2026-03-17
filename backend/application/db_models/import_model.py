@@ -54,13 +54,17 @@ class ImportShipment(BaseModel):
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
     business_id = db.Column(db.Integer, db.ForeignKey('import_business.id'), nullable=False)
     type_id = db.Column(db.Integer, db.ForeignKey('import_type.id'), nullable=False)
-    port_id = db.Column(db.Integer, db.ForeignKey('import_port.id'), nullable=False)
+    port_id = db.Column(db.Integer, db.ForeignKey('import_port.id'))
     status_id = db.Column(db.Integer, db.ForeignKey('import_status.id'), nullable=False)
+    fcl = db.Column(db.Integer, nullable=False, default=0)
+
     description = db.Column(db.Text)
     local_agent_name = db.Column(db.String(128))
     origin_agent_name = db.Column(db.String(128))
+
     advance_payment_percent = db.Column(db.Numeric(5, 2), nullable=False, default=0)
     balance_days = db.Column(db.Integer, nullable=False, default=0)
+
     booking_date = db.Column(db.Date)
     etd_date = db.Column(db.Date)
     eta_date = db.Column(db.Date)
@@ -94,8 +98,10 @@ class ImportShipmentLine(db.Model):
     import_shipment_id = db.Column(db.Integer, db.ForeignKey("import_shipment.id", ondelete="CASCADE"), nullable=False, index=True)
 
     provider_id = db.Column(db.Integer, db.ForeignKey("import_provider.id"), nullable=False)
-    incoterm_id = db.Column(db.Integer, db.ForeignKey("import_incoterm.id"), nullable=False)
+    incoterm_id = db.Column(db.Integer, db.ForeignKey("import_incoterm.id"))
     custom_incoterm_name = db.Column(db.String(120), nullable=True)
+    advance_payment_percent = db.Column(db.Numeric(5, 2), nullable=False, default=0)
+    balance_days = db.Column(db.Integer, nullable=False, default=0)
     position = db.Column(db.Integer, nullable=False, default=1)
 
     shipment = db.relationship("ImportShipment", back_populates="lines")
