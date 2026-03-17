@@ -80,7 +80,7 @@
 									</template>
 
 									<template x-if="item.fcl == 1">
-										<span class="order-number" style="color: var(--primary);display: flex; align-items: center; gap: 0.25rem;" x-html="`SP-${item.id}<img width='16' height='16' style='position: unset; width: 1rem;' src='/static/images/icons/filled/container.svg'>`"></span>
+										<span class="order-number" style="color: var(--primary);    position: relative;" x-html="`SP-${item.id}<img width='16' height='16' style='right: -1.35rem; top: -0.1rem; width: 1rem;' src='/static/images/icons/filled/container.svg'>`"></span>
 									</template>
 								</div>
 								
@@ -139,7 +139,7 @@
 											</template>
 
 											<template x-if="item.fcl == 1">
-												<span class="order-number" style="color: var(--primary);display: flex; align-items: center; gap: 0.25rem;" x-html="`SP-${item.id}<img width='16' height='16' style='position: unset; width: 1rem;' src='/static/images/icons/filled/container.svg'>`"></span>
+												<span class="order-number" style="color: var(--primary);    position: relative;" x-html="`SP-${item.id}<img width='16' height='16' style='right: -1.35rem; top: -0.1rem; width: 1rem;' src='/static/images/icons/filled/container.svg'>`"></span>
 											</template>
 											
 											<!-- <span class="order-number" x-text="`SP-${item.id}`"></span> -->
@@ -204,7 +204,7 @@
 											</template>
 
 											<template x-if="item.fcl == 1">
-												<span class="order-number" style="color: var(--primary);display: flex; align-items: center; gap: 0.25rem;" x-html="`SP-${item.id}<img width='16' height='16' style='position: unset; width: 1rem;' src='/static/images/icons/filled/container.svg'>`"></span>
+												<span class="order-number" style="color: var(--primary);    position: relative;" x-html="`SP-${item.id}<img width='16' height='16' style='right: -1.35rem; top: -0.1rem; width: 1rem;' src='/static/images/icons/filled/container.svg'>`"></span>
 											</template>
 
 											<template x-if="item.updated_today">
@@ -2787,7 +2787,7 @@
 			},
 
 			editAllowed() {
-				return (this.user.department_id == 7 || this.user.department_id == 8 || this.user.id == 23);
+				return (this.user.department_id == 7 || this.user.department_id == 8 || this.user.id == 23 || this.user.id == 1);
 			},
 			
 			isImageFile(f) {
@@ -3493,6 +3493,7 @@
 		#dashboard ul li .register-day {
 			font-size: 1rem;
 			font-weight: 700;
+			letter-spacing: -0.5px;
 		}
 		#dashboard ul li .updated-days {
 			background-color: #f0f0f0;
@@ -3564,8 +3565,7 @@
 			margin: 0.25rem;
 		}
 		#dashboard ul li .register-day {
-			color: #ff9600;
-    		opacity: 0.85;
+    		color: var(--secondary);
 		}
 		/***********************************************************************************/
 		.modal .text-area {
