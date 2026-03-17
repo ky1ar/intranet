@@ -651,18 +651,18 @@
 							</div>
 						</div>
 
-						<div class="box white"  x-show="editAllowed() && import_data?.cargo_details?.qty">
+						<div class="box white" x-show="editAllowed() && (import_data?.cargo_details?.qty || import_data?.cargo_details?.pallets)">
 							<div class="pair-content" style="justify-content: space-between;">
 								<div class="pair">
 									<img alt="" width="16" height="16" src="/static/images/imports/pickup.svg">
 									<span class="black" x-text="`Cantidad:`"></span>
-									<span class="text" x-text="`${import_data?.cargo_details?.qty}`"></span>
+									<span class="text" x-text="`${import_data?.cargo_details?.qty || 0}`"></span>
 								</div>
 
 								<div class="pair">
 									<img alt="" width="16" height="16" src="/static/images/imports/pickup.svg">
 									<span class="black" x-text="`Pallets:`"></span>
-									<span class="text" x-text="`${import_data?.cargo_details?.pallets}`"></span>
+									<span class="text" x-text="`${import_data?.cargo_details?.pallets || 0}`"></span>
 								</div>
 
 								<div class="pair">
@@ -2484,12 +2484,12 @@
 					return;
 				}
 
-				if (status_id == 12 && delivery_date === null) {
+				if (status_id == 11 && delivery_date === null) {
                     this.showError('move_status', 'Selecciona un fecha de retiro');
 					return;
 				}
 
-				if (status_id == 12 && delivery_time === null) {
+				if (status_id == 11 && delivery_time === null) {
                     this.showError('move_status', 'Selecciona un hora de cita');
 					return;
 				}
