@@ -88,6 +88,8 @@ class ImportService:
             provider_id = row.get("provider_id")
             incoterm_id = row.get("incoterm_id")
             custom_incoterm_name = (row.get("custom_incoterm_name") or "").strip()
+            advance_payment_percent = row.get("advance_payment_percent")
+            balance_days = row.get("balance_days")
 
             if not provider_id:
                 return None, f"Línea {i}: selecciona un proveedor"
@@ -107,10 +109,34 @@ class ImportService:
                 except Exception:
                     return None, f"Línea {i}: Incoterm inválido"
 
+            # if advance_payment_percent is None or advance_payment_percent == "":
+            #     return None, f"Línea {i}: ingresa adelanto"
+
+            # try:
+            #     advance_payment_percent = float(advance_payment_percent)
+            # except Exception:
+            #     return None, f"Línea {i}: adelanto inválido"
+
+            # if advance_payment_percent < 0 or advance_payment_percent > 100:
+            #     return None, f"Línea {i}: el adelanto debe estar entre 0 y 100"
+
+            # if balance_days is None or balance_days == "":
+            #     return None, f"Línea {i}: ingresa saldo"
+
+            # try:
+            #     balance_days = int(balance_days)
+            # except Exception:
+            #     return None, f"Línea {i}: saldo inválido"
+
+            # if balance_days < 0:
+            #     return None, f"Línea {i}: saldo inválido"
+
             normalized.append({
                 "provider_id": provider_id,
                 "incoterm_id": parsed_incoterm_id,
                 "custom_incoterm_name": custom_incoterm_name or None,
+                "advance_payment_percent": advance_payment_percent,
+                "balance_days": balance_days,
                 "position": i,
             })
 
@@ -177,6 +203,9 @@ class ImportService:
             "incoterm_id": line.incoterm_id,
             "custom_incoterm_name": getattr(line, "custom_incoterm_name", None),
             "incoterm_code": self._display_incoterm_code(line),
+
+            "advance_payment_percent": float(line.advance_payment_percent or 0),
+            "balance_days": line.balance_days or 0,
         }
 
 
@@ -210,6 +239,7 @@ class ImportService:
             order_data = {
                 "id": item.id,
                 "status_id": item.status_id,
+                "fcl": int(getattr(item, "fcl", 0) or 0),
 
                 # shared
                 "business_name": item.business.name if item.business else "-",
@@ -294,13 +324,14 @@ class ImportService:
                     "passed_days": passed_days,
                     "status_id": status.id,
                     "traffic_light": item.traffic_light,
+                    "fcl": int(getattr(item, "fcl", 0) or 0),
 
                     # shared
                     "business_name": item.business.name if item.business else "-",
                     "port_name": item.port.name.title() if item.port and item.port.name else "-",
                     "type_id": item.type_id,
-                    "advance_payment_percent": float(item.advance_payment_percent or 0),
-                    "balance_days": item.balance_days or 0,
+                    # "advance_payment_percent": float(item.advance_payment_percent or 0),
+                    # "balance_days": item.balance_days or 0,
 
                     # lines summary
                     "line_count": summary["line_count"],
@@ -441,6 +472,8 @@ class ImportService:
             "business_name": import_shipment.business.name if import_shipment.business else None,
             "type_id": import_shipment.type_id,
             "type_name": import_shipment.type.name if import_shipment.type else None,
+            "fcl": int(getattr(import_shipment, "fcl", 0) or 0),
+            
             "port_name": self._display_port_name(import_shipment),
             "port_id": import_shipment.port_id,
             "custom_port_name": getattr(import_shipment, "custom_port_name", None),
@@ -544,9 +577,8 @@ class ImportService:
         type_id = data.get("type_id")
         local_agent = (data.get("local_agent") or "").strip()
         origin_agent = (data.get("origin_agent") or "").strip()
-        advance_payment_percent = data.get("advance_payment_percent")
-        balance_days = data.get("balance_days")
         lines = data.get("lines")
+        fcl = 1 if str(data.get("fcl", 0)) == "1" else 0
 
         if not business_id:
             return "Selecciona una empresa", 400
@@ -561,35 +593,13 @@ class ImportService:
         if port_error:
             return port_error, 400
 
-        if advance_payment_percent is None or advance_payment_percent == "":
-            return "Ingresa adelanto de pago (%)", 400
-        if balance_days is None or balance_days == "":
-            return "Ingresa saldo (días)", 400
-
-        try:
-            adv = float(advance_payment_percent)
-        except Exception:
-            return "Adelanto de pago inválido", 400
-
-        if adv < 0 or adv > 100:
-            return "El adelanto de pago debe estar entre 0 y 100", 400
-
-        try:
-            bal_days = int(balance_days)
-        except Exception:
-            return "Saldo (días) inválido", 400
-
-        if bal_days < 0:
-            return "Saldo (días) no puede ser negativo", 400
-
         normalized_lines, lines_error = self._normalize_lines_payload(lines)
         if lines_error:
             return lines_error, 400
 
         data["port_id"] = port_id
         data["custom_port_name"] = custom_port_name
-        data["advance_payment_percent"] = adv
-        data["balance_days"] = bal_days
+        data["fcl"] = fcl
         data["lines"] = normalized_lines
 
         import_id, ncc = self.import_repository.new_import(data)
@@ -1010,10 +1020,9 @@ class ImportService:
 
         local_agent = (data.get("local_agent") or "").strip()
         origin_agent = (data.get("origin_agent") or "").strip()
-        advance_payment_percent = data.get("advance_payment_percent")
-        balance_days = data.get("balance_days")
         business_id = data.get("business_id")
         type_id = data.get("type_id")
+        fcl = 1 if str(data.get("fcl", 0)) == "1" else 0
 
         if not local_agent:
             return "Ingresa agente local", 400
@@ -1024,22 +1033,6 @@ class ImportService:
         if port_error:
             return port_error, 400
 
-        try:
-            adv = float(advance_payment_percent)
-        except Exception:
-            return "Adelanto inválido", 400
-
-        if adv < 0 or adv > 100:
-            return "El adelanto debe estar entre 0 y 100", 400
-
-        try:
-            bal_days = int(balance_days)
-        except Exception:
-            return "Saldo inválido", 400
-
-        if bal_days < 0:
-            return "Saldo inválido", 400
-
         normalized_lines, lines_error = self._normalize_lines_payload(data.get("lines"))
         if lines_error:
             return lines_error, 400
@@ -1048,11 +1041,10 @@ class ImportService:
             "port_id": port_id,
             "business_id": business_id,
             "type_id": type_id,
+            "fcl": fcl,
             "custom_port_name": custom_port_name,
             "local_agent_name": local_agent,
             "origin_agent_name": origin_agent,
-            "advance_payment_percent": adv,
-            "balance_days": bal_days,
             "lines": normalized_lines,
         }
 

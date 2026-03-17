@@ -7,10 +7,14 @@
 				</div>
 			</div>
 
-			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
-				<div class="item" @click="pendings_open = !pendings_open" x-show="editAllowed()">
+			<div class="menu-collapse frost" x-transition.duration.300ms x-show="editAllowed() && $store.cache.more_menu">
+				<div class="item" @click="pendings_open = !pendings_open">
 					<img alt="" width="22" height="22" src="/static/images/icons/pending.svg">
 				</div>
+				<div class="item" @click="toggleViewMode()">
+					<img alt="" width="22" height="22" src="/static/images/icons/eye.svg">
+				</div>
+
 				<!-- <div class="item" @click="search()">
 					<img alt="" width="18" height="18" src="/static/images/icons/find.svg">
 				</div>
@@ -22,8 +26,13 @@
 				</div> -->
 			</div>
 			
-			<!-- <div class="left mobile-hide frost">
-				<div class="item" @click="search()">
+			<div class="left mobile-hide frost" x-show="editAllowed()">
+				<div class="item" @click="toggleViewMode()">
+					<img alt="" width="22" height="22" src="/static/images/icons/eye.svg">
+					<span x-text="isSimpleView() ? 'Extendida' : 'Compacta'"></span>
+				</div>
+
+				<!-- <div class="item" @click="search()">
 					<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
 					<span>Buscar</span>
 				</div>
@@ -34,8 +43,8 @@
 				<div class="item" @click="viewStatistics()">
 					<img alt="" width="20" height="20" src="/static/images/icons/report.svg">
 					<span>Estadísticas</span>
-				</div>
-			</div>  -->
+				</div> -->
+			</div>
 
 			
 			
@@ -66,7 +75,13 @@
 								@click="viewItem(item.id)"
 							>   
 								<div class="row">
-									<span class="order-number" x-text="`SP-${item.id}`"></span>
+									<template x-if="item.fcl == 0">
+										<span class="order-number" x-text="`SP-${item.id}`"></span>
+									</template>
+
+									<template x-if="item.fcl == 1">
+										<span class="order-number" style="color: var(--primary);    position: relative;" x-html="`SP-${item.id}<img width='16' height='16' style='right: -1.35rem; top: -0.1rem; width: 1rem;' src='/static/images/icons/filled/container.svg'>`"></span>
+									</template>
 								</div>
 								
 								<div class="row">
@@ -96,7 +111,8 @@
 				</div>
 			</div>
 
-			<div class="board glass">
+			<!-- Vista completa -->
+			<div class="board glass" x-show="!isSimpleView()">
 				<template x-for="group in $store.cache.getData('imports_dashboard')" :key="group.status_id">
 					<div class="group"
 						@dragover="onDragOver($event, group.status_id)" 
@@ -104,8 +120,7 @@
 						@drop="onDrop(group.status_id)">
 						<div class="name">
 							<img alt="" width="24" height="24"
-								:src="'/static/images/imports/' + ($store.cache.getById('imports_status', group.status_id)?.image || 'default.png')"
-								alt="">
+								:src="'/static/images/imports/' + ($store.cache.getById('imports_status', group.status_id)?.image || 'default.png')">
 							<span x-text="$store.cache.getById('imports_status', group.status_id)?.name || ''"></span>
 						</div>
 
@@ -117,9 +132,17 @@
 										@dragstart="onDragStart(item)"
 										@click="viewItem(item.id)"
 										class="white"
-										>
+									>
 										<div class="row">
-											<span class="order-number"  x-text="`SP-${item.id}`"></span>
+											<template x-if="item.fcl == 0">
+												<span class="order-number" x-text="`SP-${item.id}`"></span>
+											</template>
+
+											<template x-if="item.fcl == 1">
+												<span class="order-number" style="color: var(--primary);    position: relative;" x-html="`SP-${item.id}<img width='16' height='16' style='right: -1.35rem; top: -0.1rem; width: 1rem;' src='/static/images/icons/filled/container.svg'>`"></span>
+											</template>
+											
+											<!-- <span class="order-number" x-text="`SP-${item.id}`"></span> -->
 
 											<template x-if="item.updated_today">
 												<div class="update-dot"></div>
@@ -144,19 +167,77 @@
 										<img alt="ship" x-show="item.type_id == 1" src="/static/images/icons/filled/ship.svg" width="28" height="28">
 										<img alt="plane" x-show="item.type_id == 2" class="ico" src="/static/images/icons/filled/plane.svg" width="20" height="20">
 										<span x-show="item.traffic_light" class="dot" :class="item.traffic_light"></span>
-										
-										<!-- <div class="row" style="justify-content:space-between; align-items:center;">
-											<div style="display:flex; flex-direction:column; gap:.1rem;">
-												<span class="sub" x-text="`${item.line_count || 0} línea(s)`"></span>
-												<span class="sub" x-text="`${item.port_name || '-'} · ${item.incoterms_text || '-'}`"></span>
-											</div>
-
-											<div style="display:flex; align-items:center; gap:.35rem;">
-												
-											</div>
-										</div> -->
 									</li>
 								</template>
+							</template>
+						</ul>
+					</div>
+				</template>
+			</div>
+
+			<!-- Vista simple -->
+			<div class="board glass" x-show="isSimpleView()">
+				<template x-for="group in simpleDashboard()" :key="group.key">
+					<div class="group">
+						<div class="name">
+							<!-- espacio para imagen -->
+							<img
+								x-show="group.image"
+								:src="group.image"
+								alt=""
+								width="24"
+								height="24"
+							>
+							<span x-text="group.name"></span>
+						</div>
+
+						<ul>
+							<template x-if="group.imports.length > 0">
+								<template x-for="item in group.imports" :key="item.id">
+									<li
+										class="white"
+										@click="viewItem(item.id)"
+									>
+										<div class="row">
+											<template x-if="item.fcl == 0">
+												<span class="order-number" x-text="`SP-${item.id}`"></span>
+											</template>
+
+											<template x-if="item.fcl == 1">
+												<span class="order-number" style="color: var(--primary);    position: relative;" x-html="`SP-${item.id}<img width='16' height='16' style='right: -1.35rem; top: -0.1rem; width: 1rem;' src='/static/images/icons/filled/container.svg'>`"></span>
+											</template>
+
+											<template x-if="item.updated_today">
+												<div class="update-dot"></div>
+											</template>
+
+											<div class="passed-days">
+												<span class="register-day" x-text="`${item.passed_days} d.`"></span>
+											</div>
+										</div>
+
+										<div class="row">
+											<div>
+												<div class="title multi-lines">
+													<template x-for="(pname, i) in item.provider_names" :key="`${item.id}-p-${i}`">
+														<span x-text="pname"></span>
+													</template>
+												</div>
+												<span class="sub" x-text="item.business_name"></span>
+											</div>
+										</div>
+
+										<img alt="ship" x-show="item.type_id == 1" src="/static/images/icons/filled/ship.svg" width="28" height="28">
+										<img alt="plane" x-show="item.type_id == 2" class="ico" src="/static/images/icons/filled/plane.svg" width="20" height="20">
+										<span x-show="item.traffic_light" class="dot" :class="item.traffic_light"></span>
+									</li>
+								</template>
+							</template>
+
+							<template x-if="group.imports.length === 0">
+								<li class="white" style="opacity:.55; cursor:default;">
+									Sin órdenes
+								</li>
 							</template>
 						</ul>
 					</div>
@@ -208,12 +289,12 @@
 									<div class="data">
 										<div class="head">
 											<span class="name" x-text="line.provider_name"></span>
-											<span class="line" x-show="line.provider_contact">|</span>
-											<span class="contact" x-text="line.provider_contact"></span>
-											<span class="icon" x-text="line.incoterm_code"></span>
+											<span class="line" x-show="editAllowed() && line.provider_contact">|</span>
+											<span class="contact" x-show="editAllowed()" x-text="line.provider_contact"></span>
+											<span class="icon" x-show="editAllowed()" x-text="line.incoterm_code"></span>
 										</div>
 
-										<div class="pair-content">
+										<div class="pair-content" x-show="editAllowed()">
 											<div x-show="line.provider_email" class="pair">
 												<img alt="" width="14" height="14" src="/static/images/email.svg">
 												<span class="text" x-text="line.provider_email"></span>
@@ -236,6 +317,21 @@
 												<span class="text" x-text="line.provider_telephone"></span>
 											</div>
 										</div>
+
+										<div class="pair-content" style="margin-top: .35rem;"  x-show="editAllowed()">
+											<div class="pair">
+												<img alt="" width="14" height="14" src="/static/images/icons/money.svg">
+												<span class="black">Adelanto:</span>
+												<span class="text" x-text="`${line.advance_payment_percent ?? 0}%`"></span>
+											</div>
+
+											<div class="pair">
+												<img alt="" width="14" height="14" src="/static/images/icons/calendar2.svg">
+												<span class="black">Saldo:</span>
+												<span class="text" x-text="`${line.balance_days ?? 0} día(s)`"></span>
+											</div>
+										</div>
+
 									</div>
 								</div>
 							</template>
@@ -254,7 +350,13 @@
 											<span class="text" x-text="import_data?.port_name || '-'"></span>
 										</div>
 
-										<div class="pair">
+										<div class="pair" x-show="editAllowed()">
+											<img alt="" width="16" height="16" src="/static/images/icons/board.svg">
+											<span class="black">Carga:</span>
+											<span class="text" x-text="Number(import_data?.fcl) === 1 ? 'FCL' : 'LCL'"></span>
+										</div>
+
+										<!-- <div class="pair">
 											<img alt="" width="16" height="16" src="/static/images/icons/money.svg">
 											<span class="black">Adelanto:</span>
 											<span class="text" x-text="`${import_data?.advance_payment_percent ?? 0}%`"></span>
@@ -265,7 +367,7 @@
 
 											<span class="black">Saldo:</span>
 											<span class="text" x-text="`${import_data?.balance_days ?? 0} día(s)`"></span>
-										</div>
+										</div> -->
 									</div>
 								</div>
 
@@ -363,6 +465,17 @@
 											</div>
 										</div>
 										
+										<div class="fields" style="margin-top: .5rem;">
+											<label class="white number">
+												<b style="min-width: 8rem;">Adelanto (%)</b>
+												<input type="number" min="0" max="100" step="0.01" x-model.number="line.advance_payment_percent">
+											</label>
+
+											<label class="white number">
+												<b style="min-width: 8rem;">Saldo (días)</b>
+												<input type="number" min="0" step="1" x-model.number="line.balance_days">
+											</label>
+										</div>
 									</div>
 								</template>
 							</div>
@@ -403,6 +516,14 @@
 								<label class="white" x-show="isOtherPort(import_data.port_id)">
 									<input type="text" placeholder="Salida" x-model="import_data.custom_port_name">
 								</label>
+
+								<label class="white">
+									<select x-model="import_data.fcl">
+										<template x-for="mode in shipmentLoadOptions()" :key="mode.id">
+											<option :value="mode.id" x-text="mode.name"></option>
+										</template>
+									</select>
+								</label>
 							</div>
 
 							<div class="fields options">
@@ -417,7 +538,7 @@
 								</label>
 							</div>
 
-							<div class="fields options">
+							<!-- <div class="fields options">
 								<label class="white number">
 									<b style="min-width: 8rem;">Adelanto (%)</b>
 									<input type="number" min="0" max="100" step="0.01" x-model.number="import_data.advance_payment_percent">
@@ -427,7 +548,7 @@
 									<b style="min-width: 8rem;">Saldo (días)</b>
 									<input type="number" min="0" step="1" x-model.number="import_data.balance_days">
 								</label>
-							</div>
+							</div> -->
 
 							<div class="buttons" x-show="editAllowed() && import_data?.status_id == 1">
 								<button class="button icon hover-opacity black"
@@ -445,7 +566,10 @@
 							</div>
 						</div>
 
-						<div class="box white" x-show="!(editAllowed() && import_data?.status_id <= 5)">
+						<div
+							class="box white"
+							x-show="editAllowed() && import_data?.status_id > 5"
+						>
 							<div class="pair-content">
 								<div class="pair">
 									<img alt="" width="14" height="14" src="/static/images/icons/user.svg">
@@ -464,41 +588,46 @@
 						</div>
 
 
-						<div class="box white"  x-show="import_data?.dates?.booking">
-							<div class="pair-content">
+						<div
+							class="box white"
+							x-show="
+								(editAllowed() && !!import_data?.dates?.booking) ||
+								(!editAllowed() && import_data?.status_id >= 6 && (!!import_data?.dates?.etd || !!import_data?.dates?.eta))
+							"
+						>
+							<div class="pair-content" x-show="editAllowed() && !!import_data?.dates?.booking">
 								<div class="pair">
 									<img alt="" width="16" height="16" src="/static/images/icons/filled/calendar.svg">
 									<span class="black" x-text="`Fecha de reserva:`"></span>
 									<span class="text" x-text="`${import_data?.dates?.booking}`"></span>
 								</div>
-
 							</div>
-							
-							<div class="pair-content" x-show="import_data?.dates?.etd">
+
+							<div class="pair-content" x-show="!!import_data?.dates?.etd && (editAllowed() || (!editAllowed() && import_data?.status_id >= 6))">
 								<div class="pair">
 									<img alt="" width="16" height="16" src="/static/images/icons/filled/calendar.svg">
 									<span class="black" x-text="`Salida estimada:`"></span>
 									<span class="text" x-text="`${import_data?.dates?.etd}`"></span>
 								</div>
 							</div>
-							
-							<div class="pair-content" x-show="import_data?.dates?.eta">
+
+							<div class="pair-content" x-show="!!import_data?.dates?.eta && (editAllowed() || (!editAllowed() && import_data?.status_id >= 6))">
 								<div class="pair">
 									<img alt="" width="16" height="16" src="/static/images/icons/filled/calendar.svg">
 									<span class="black" x-text="`Llegada estimada:`"></span>
 									<span class="text" x-text="`${import_data?.dates?.eta}`"></span>
 								</div>
 							</div>
-							
-							<div class="pair-content" x-show="import_data?.dates?.deadline">
+
+							<div class="pair-content" x-show="editAllowed() && !!import_data?.dates?.deadline">
 								<div class="pair">
 									<img alt="" width="16" height="16" src="/static/images/icons/filled/calendar.svg">
 									<span class="black" x-text="`Deadline:`"></span>
 									<span class="text" x-text="`${import_data?.dates?.deadline}`"></span>
 								</div>
 							</div>
-							
-							<div class="pair-content" x-show="import_data?.dates?.pay">
+
+							<div class="pair-content" x-show="editAllowed() && !!import_data?.dates?.pay">
 								<div class="pair">
 									<img alt="" width="16" height="16" src="/static/images/icons/filled/calendar.svg">
 									<span class="black" x-text="`Pago:`"></span>
@@ -517,24 +646,23 @@
 										target="_blank"
 										rel="noopener noreferrer"
 										x-text="import_data?.tracking_link"
-										style="color: var(--primary); opacity: 1;"
-									></a>
+										style="color: var(--primary); opacity: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></a>
 								</div>
 							</div>
 						</div>
 
-						<div class="box white"  x-show="import_data?.cargo_details?.qty">
+						<div class="box white" x-show="editAllowed() && (import_data?.cargo_details?.qty || import_data?.cargo_details?.pallets)">
 							<div class="pair-content" style="justify-content: space-between;">
 								<div class="pair">
 									<img alt="" width="16" height="16" src="/static/images/imports/pickup.svg">
 									<span class="black" x-text="`Cantidad:`"></span>
-									<span class="text" x-text="`${import_data?.cargo_details?.qty}`"></span>
+									<span class="text" x-text="`${import_data?.cargo_details?.qty || 0}`"></span>
 								</div>
 
 								<div class="pair">
 									<img alt="" width="16" height="16" src="/static/images/imports/pickup.svg">
 									<span class="black" x-text="`Pallets:`"></span>
-									<span class="text" x-text="`${import_data?.cargo_details?.pallets}`"></span>
+									<span class="text" x-text="`${import_data?.cargo_details?.pallets || 0}`"></span>
 								</div>
 
 								<div class="pair">
@@ -551,7 +679,7 @@
 							</div>
 						</div>
 
-						<div class="box white"  x-show="import_data?.delivery?.date">
+						<div class="box white"  x-show="editAllowed() && import_data?.delivery?.date">
 							<div class="pair-content">
 								<div class="pair">
 									<img alt="" width="16" height="16" src="/static/images/icons/filled/calendar.svg">
@@ -590,7 +718,10 @@
 						</div>
 						
 						<template x-for="section in (import_data?.attachment_sections || [])" :key="section.target">
-							<div class="box white" x-show="section.files && section.files.length">
+							<div
+								class="box white"
+								x-show="section.files && section.files.length && (editAllowed() || section.target === 'product_list')"
+							>
 								<div class="pair-content" style="margin-bottom: .5rem;">
 									<div class="pair">
 										<img alt="" width="14" height="14" src="/static/images/icons/filled/clip.svg">
@@ -1255,52 +1386,7 @@
 						</div>
 					</template>
 
-					<template x-if="selected_import?.status_id == 10">
-						<div class="capture-proof">
-							<span class="name">Facturas</span>
-
-							<div class="bottom thumbnails-grid small-grid" >
-								<template x-for="(f, index) in pendingDocs('invoices')" :key="f.id">
-									<div class="thumb-item" @click="removePendingDocById(f.id)">
-										<div class="thumbnail-wrapper">
-											<div class="delete-button">
-												<img class="delete" alt="delete" width="24" height="24"
-													src="/static/images/icons/delete.svg">
-											</div>
-
-											<template x-if="isImageFile(f)">
-												<img class="thumbnail" :src="f.preview" :alt="f.original_name">
-											</template>
-
-											<template x-if="!isImageFile(f)">
-												<div class="file-card thumbnail">
-													<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
-												</div>
-											</template>
-										</div>
-
-										<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
-									</div>
-								</template>
-
-								<div class="add-button hover-opacity" @click="$refs.invoicesInput.click()">
-									<img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
-								</div>
-
-								<input
-									type="file"
-									class="hidden"
-									multiple
-									x-ref="invoicesInput"
-									data-target="invoices"
-									accept=".pdf,.xml,.txt,.doc,.docx,.xls,.xlsx,image/*"
-									@change="queueDocs($event)"
-									/>
-							</div>
-						</div>
-					</template>
-
-					<template x-if="selected_import?.status_id == 12">
+					<template x-if="selected_import?.status_id == 11">
 						<div class="fields options">
 							<label class="white">
 								<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
@@ -1342,7 +1428,7 @@
 						</div>
 					</template>
 
-					<template x-if="selected_import?.status_id == 12">
+					<template x-if="selected_import?.status_id == 11">
 						<div class="capture-proof">
 							<span class="name">Datos de transportista</span>
 
@@ -1363,6 +1449,51 @@
 									<img alt="" src="/static/images/document.svg" width="16" height="16">
 									<input type="text" placeholder="Placa" x-model="delivery_code">
 								</label>
+							</div>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 12">
+						<div class="capture-proof">
+							<span class="name">Facturas</span>
+
+							<div class="bottom thumbnails-grid small-grid" >
+								<template x-for="(f, index) in pendingDocs('invoices')" :key="f.id">
+									<div class="thumb-item" @click="removePendingDocById(f.id)">
+										<div class="thumbnail-wrapper">
+											<div class="delete-button">
+												<img class="delete" alt="delete" width="24" height="24"
+													src="/static/images/icons/delete.svg">
+											</div>
+
+											<template x-if="isImageFile(f)">
+												<img class="thumbnail" :src="f.preview" :alt="f.original_name">
+											</template>
+
+											<template x-if="!isImageFile(f)">
+												<div class="file-card thumbnail">
+													<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+												</div>
+											</template>
+										</div>
+
+										<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+									</div>
+								</template>
+
+								<div class="add-button hover-opacity" @click="$refs.invoicesInput.click()">
+									<img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
+								</div>
+
+								<input
+									type="file"
+									class="hidden"
+									multiple
+									x-ref="invoicesInput"
+									data-target="invoices"
+									accept=".pdf,.xml,.txt,.doc,.docx,.xls,.xlsx,image/*"
+									@change="queueDocs($event)"
+									/>
 							</div>
 						</div>
 					</template>
@@ -1469,6 +1600,18 @@
 										</div>
 									</div>
 								</div>
+
+								<div class="fields" style="margin-top: .5rem;">
+									<label class="white number">
+										<b style="min-width: 8rem;">Adelanto (%)</b>
+										<input type="number" min="0" max="100" step="0.01" x-model.number="line.advance_payment_percent">
+									</label>
+
+									<label class="white number">
+										<b style="min-width: 8rem;">Saldo (días)</b>
+										<input type="number" min="0" step="1" x-model.number="line.balance_days">
+									</label>
+								</div>
 							</div>
 						</template>
 					</div>
@@ -1510,6 +1653,14 @@
 
 						<label class="white" x-show="isOtherPort(new_import.port_id)">
 							<input type="text" placeholder="Salida" x-model="new_import.custom_port_name">
+						</label>
+
+						<label class="white">
+							<select x-model="new_import.fcl">
+								<template x-for="mode in shipmentLoadOptions()" :key="mode.id">
+									<option :value="mode.id" x-text="mode.name"></option>
+								</template>
+							</select>
 						</label>
 					</div>
 
@@ -1634,12 +1785,11 @@
 			new_import: {
 				business_id: null,
 				type_id: null,
+				fcl: '0',
 				port_id: null,
 				custom_port_name: '',
 				local_agent: '',
 				origin_agent: '',
-				advance_payment_percent: null,
-				balance_days: null,
 				lines: []
 			},
 			provider_preview_cache: {},
@@ -1660,9 +1810,12 @@
 			docs_target: "product_list",
 			pending_docs: [],
 			tracking_link: '',
+			view_simple: false,
 
 			async init() {
 				console.log('Inicializando Imports...');
+
+				this.view_simple = !this.editAllowed();
 
                 const socket = Alpine.store('cache').socket;
 				if (socket) {
@@ -1689,8 +1842,71 @@
 				if (!this.new_import.lines.length) {
 					this.new_import.lines = [this.emptyImportLine()];
 				}
-
+				
 				await Alpine.store('cache').verify();
+			},
+
+			toggleViewMode() {
+				if (!this.editAllowed()) return;
+
+				this.view_simple = !this.view_simple;
+
+				if (Alpine.store('cache').hideMoreMenu) {
+					Alpine.store('cache').hideMoreMenu();
+				}
+			},
+
+			isSimpleView() {
+				return !this.editAllowed() || this.view_simple;
+			},
+
+			simpleDashboard() {
+				const dashboard = Alpine.store('cache').getData('imports_dashboard') || [];
+
+				const groups = [
+					{
+						key: 'preparation',
+						name: 'En preparación',
+						image: '/static/images/imports/prep.svg',
+						imports: [],
+					},
+					{
+						key: 'transit',
+						name: 'En tránsito',
+						image: '/static/images/imports/trans.svg',
+						imports: [],
+					},
+					{
+						key: 'customs',
+						name: 'En aduanas',
+						image: '/static/images/imports/adua.svg',
+						imports: [],
+					},
+					{
+						key: 'available',
+						name: 'Disponible',
+						image: '/static/images/imports/entrega.svg',
+						imports: [],
+					},
+				];
+
+				for (const group of dashboard) {
+					for (const item of (group.imports || [])) {
+						const status = Number(item.status_id);
+
+						if (status < 6) {
+							groups[0].imports.push(item);
+						} else if (status === 6) {
+							groups[1].imports.push(item);
+						} else if (status > 6 && status < 12) {
+							groups[2].imports.push(item);
+						} else if (status >= 12) {
+							groups[3].imports.push(item);
+						}
+					}
+				}
+
+				return groups;
 			},
 
 			async updateBasicImport() {
@@ -1701,13 +1917,13 @@
 					origin_agent: (this.import_data?.origin_agent_name || '').trim(),
 					business_id: this.import_data?.business_id,
 					type_id: this.import_data?.type_id,
+					fcl: Number(this.import_data?.fcl || 0),
 
 					port_id: this.isOtherPort(this.import_data?.port_id) ? null : this.import_data?.port_id,
 					custom_port_name: this.isOtherPort(this.import_data?.port_id)
 						? (this.import_data?.custom_port_name || '').trim()
 						: null,
-					advance_payment_percent: this.import_data?.advance_payment_percent,
-					balance_days: this.import_data?.balance_days,
+
 					lines: (this.import_data?.lines || []).map((x, idx) => ({
 						provider_id: x.provider_id ? Number(x.provider_id) : null,
 						incoterm_id: this.isOtherIncoterm(x.incoterm_id)
@@ -1716,6 +1932,8 @@
 						custom_incoterm_name: this.isOtherIncoterm(x.incoterm_id)
 							? (x.custom_incoterm_name || '').trim()
 							: null,
+						advance_payment_percent: x.advance_payment_percent,
+						balance_days: x.balance_days,
 						position: idx + 1,
 					})),
 				};
@@ -1723,16 +1941,34 @@
 				if (!payload.local_agent) return this.showError('save_draft', 'Ingresa agente local');
 				if (!payload.origin_agent) return this.showError('save_draft', 'Ingresa agente origen');
 				if (!payload.port_id && !payload.custom_port_name) return this.showError('save_draft', 'Ingresa puerto');
-				if (payload.advance_payment_percent === null || payload.advance_payment_percent === '') return this.showError('save_draft', 'Ingresa adelanto');
-				if (Number(payload.advance_payment_percent) < 0 || Number(payload.advance_payment_percent) > 100) return this.showError('save_draft', 'Adelanto 0 a 100');
-				if (payload.balance_days === null || payload.balance_days === '') return this.showError('save_draft', 'Ingresa saldo');
-				if (Number(payload.balance_days) < 0) return this.showError('save_draft', 'Saldo inválido');
 				if (!payload.lines.length) return this.showError('save_draft', 'Agrega línea');
 
 				for (let i = 0; i < payload.lines.length; i++) {
 					const row = payload.lines[i];
-					if (!row.provider_id) return this.showError('save_draft', `Línea ${i + 1}: proveedor`);
-					if (!row.incoterm_id && !row.custom_incoterm_name) return this.showError('save_draft', `Línea ${i + 1}: incoterm`);
+
+					if (!row.provider_id) {
+						return this.showError('save_draft', `Línea ${i + 1}: proveedor`);
+					}
+
+					if (!row.incoterm_id && !row.custom_incoterm_name) {
+						return this.showError('save_draft', `Línea ${i + 1}: incoterm`);
+					}
+
+					// if (row.advance_payment_percent === null || row.advance_payment_percent === '') {
+					// 	return this.showError('save_draft', `Línea ${i + 1}: adelanto`);
+					// }
+
+					// if (Number(row.advance_payment_percent) < 0 || Number(row.advance_payment_percent) > 100) {
+					// 	return this.showError('save_draft', `Línea ${i + 1}: adelanto 0 a 100`);
+					// }
+
+					// if (row.balance_days === null || row.balance_days === '') {
+					// 	return this.showError('save_draft', `Línea ${i + 1}: saldo`);
+					// }
+
+					// if (Number(row.balance_days) < 0) {
+					// 	return this.showError('save_draft', `Línea ${i + 1}: saldo inválido`);
+					// }
 				}
 
 				this.processing = true;
@@ -1800,7 +2036,16 @@
 					incoterm_id: null,
 					provider_preview: null,
 					custom_incoterm_name: '',
+					advance_payment_percent: null,
+        			balance_days: null,
 				};
+			},
+
+			shipmentLoadOptions() {
+				return [
+					{ id: '0', name: 'LCL' },
+					{ id: '1', name: 'FCL' },
+				];
 			},
 
 			addImportLine() {
@@ -1825,11 +2070,10 @@
 					business_id: null,
 					type_id: null,
 					port_id: null,
+					fcl: '0',
 					custom_port_name: '',
 					local_agent: '',
 					origin_agent: '',
-					advance_payment_percent: null,
-					balance_days: null,
 					lines: [this.emptyImportLine()],
 				};
 			},
@@ -2005,6 +2249,7 @@
 
 					const prepared = {
 						...data,
+						fcl: String(data.fcl ?? 0),
 						port_id: data.custom_port_name
 							? '__other__'
 							: (data.port_id != null ? String(data.port_id) : null),
@@ -2016,6 +2261,8 @@
 							incoterm_id: line.custom_incoterm_name
 								? '__other__'
 								: (line.incoterm_id != null ? String(line.incoterm_id) : null),
+							advance_payment_percent: line.advance_payment_percent ?? null,
+							balance_days: line.balance_days ?? null,
 						}))
 					};
 
@@ -2104,14 +2351,13 @@
 				const payload = {
 					business_id: this.new_import.business_id,
 					type_id: this.new_import.type_id,
+					fcl: Number(this.new_import.fcl || 0),
 					port_id: this.isOtherPort(this.new_import.port_id) ? null : this.new_import.port_id,
 					custom_port_name: this.isOtherPort(this.new_import.port_id)
 						? (this.new_import.custom_port_name || '').trim()
 						: null,
 					local_agent: (this.new_import.local_agent || '').trim(),
 					origin_agent: (this.new_import.origin_agent || '').trim(),
-					advance_payment_percent: this.new_import.advance_payment_percent || 0,
-					balance_days: this.new_import.balance_days || 0,
 					lines: (this.new_import.lines || []).map((x, idx) => ({
 						provider_id: x.provider_id ? Number(x.provider_id) : null,
 						incoterm_id: this.isOtherIncoterm(x.incoterm_id)
@@ -2120,6 +2366,8 @@
 						custom_incoterm_name: this.isOtherIncoterm(x.incoterm_id)
 							? (x.custom_incoterm_name || '').trim()
 							: null,
+						advance_payment_percent: x.advance_payment_percent,
+						balance_days: x.balance_days,
 						position: idx + 1,
 					}))
 				};
@@ -2132,28 +2380,35 @@
 				if (!payload.local_agent) return this.showError('add', 'Ingresa agente local');
 				if (!payload.origin_agent) return this.showError('add', 'Ingresa agente origen');
 
-				if (payload.advance_payment_percent === null || payload.advance_payment_percent === '') {
-					return this.showError('add', 'Ingresa adelanto %');
-				}
-				if (Number(payload.advance_payment_percent) < 0 || Number(payload.advance_payment_percent) > 100) {
-					return this.showError('add', 'Adelanto 0 a 100');
-				}
-
-				if (payload.balance_days === null || payload.balance_days === '') {
-					return this.showError('add', 'Ingresa saldo (días)');
-				}
-				if (Number(payload.balance_days) < 0) {
-					return this.showError('add', 'Saldo inválido');
-				}
 
 				if (!payload.lines.length) return this.showError('add', 'Agrega línea');
 
 				for (let i = 0; i < payload.lines.length; i++) {
 					const row = payload.lines[i];
-					if (!row.provider_id) return this.showError('add', `Proveedor ${i+1}: nombre`);
-					if (!row.incoterm_id && !row.custom_incoterm_name) {
-						return this.showError('add', `Proveedor ${i+1}: incoterm`);
+
+					if (!row.provider_id) {
+						return this.showError('add', `Línea ${i + 1}: proveedor`);
 					}
+
+					if (!row.incoterm_id && !row.custom_incoterm_name) {
+						return this.showError('add', `Línea ${i + 1}: incoterm`);
+					}
+
+					// if (row.advance_payment_percent === null || row.advance_payment_percent === '') {
+					// 	return this.showError('add', `Línea ${i + 1}: adelanto`);
+					// }
+
+					// if (Number(row.advance_payment_percent) < 0 || Number(row.advance_payment_percent) > 100) {
+					// 	return this.showError('add', `Línea ${i + 1}: adelanto 0 a 100`);
+					// }
+
+					// if (row.balance_days === null || row.balance_days === '') {
+					// 	return this.showError('add', `Línea ${i + 1}: saldo`);
+					// }
+
+					// if (Number(row.balance_days) < 0) {
+					// 	return this.showError('add', `Línea ${i + 1}: saldo inválido`);
+					// }
 				}
 
 				this.processing = true;
@@ -2229,12 +2484,12 @@
 					return;
 				}
 
-				if (status_id == 12 && delivery_date === null) {
+				if (status_id == 11 && delivery_date === null) {
                     this.showError('move_status', 'Selecciona un fecha de retiro');
 					return;
 				}
 
-				if (status_id == 12 && delivery_time === null) {
+				if (status_id == 11 && delivery_time === null) {
                     this.showError('move_status', 'Selecciona un hora de cita');
 					return;
 				}
@@ -2532,7 +2787,7 @@
 			},
 
 			editAllowed() {
-				return (this.user.department_id == 7 || this.user.department_id == 8 || this.user.id == 23);
+				return (this.user.department_id == 7 || this.user.department_id == 8 || this.user.id == 23 || this.user.id == 1);
 			},
 			
 			isImageFile(f) {
@@ -3120,7 +3375,7 @@
 		}
 		#dashboard .pending-imports .item-card .order-number {
 			font-size: 1rem;
-			font-weight: 700;
+			font-weight: 600;
 			line-height: 1rem;
 		}
 		#dashboard .pending-imports .item-card .title {
@@ -3227,7 +3482,7 @@
 		}
 		#dashboard ul li .order-number {
 			font-size: 1rem;
-			font-weight: 700;
+			font-weight: 600;
 			line-height: 1rem;
 		}
 		#dashboard ul li .passed-days {
@@ -3238,6 +3493,7 @@
 		#dashboard ul li .register-day {
 			font-size: 1rem;
 			font-weight: 700;
+			letter-spacing: -0.5px;
 		}
 		#dashboard ul li .updated-days {
 			background-color: #f0f0f0;
@@ -3309,8 +3565,7 @@
 			margin: 0.25rem;
 		}
 		#dashboard ul li .register-day {
-			color: var(--primary);
-    		opacity: 0.85;
+    		color: var(--secondary);
 		}
 		/***********************************************************************************/
 		.modal .text-area {
@@ -3541,6 +3796,7 @@
 			display: flex;
 			align-items: center;
 			gap: 0.325rem;
+			overflow: hidden;
 		}
 		#modal-view .box .pair-content .pair .text {
 			opacity: 0.5;

@@ -171,10 +171,9 @@ class ImportRepository:
             port_id=data.get("port_id"),
             custom_port_name=data.get("custom_port_name"),
             status_id=1,
+            fcl=int(data.get("fcl") or 0),
             local_agent_name=(data.get("local_agent") or "").strip(),
             origin_agent_name=(data.get("origin_agent") or "").strip(),
-            advance_payment_percent=data.get("advance_payment_percent"),
-            balance_days=int(data.get("balance_days")),
         )
 
         g.db_session.add(new_import)
@@ -186,6 +185,8 @@ class ImportRepository:
                 provider_id=int(line.get("provider_id")),
                 incoterm_id=line.get("incoterm_id"),
                 custom_incoterm_name=line.get("custom_incoterm_name"),
+                advance_payment_percent=line.get("advance_payment_percent"),
+                balance_days=line.get("balance_days"),
                 position=idx,
             )
             g.db_session.add(row)
@@ -362,11 +363,10 @@ class ImportRepository:
         import_shipment.port_id = data.get("port_id")
         import_shipment.business_id = data.get("business_id")
         import_shipment.type_id = data.get("type_id")
+        import_shipment.fcl = int(data.get("fcl") or 0)
         import_shipment.custom_port_name = data.get("custom_port_name")
         import_shipment.local_agent_name = data.get("local_agent_name")
         import_shipment.origin_agent_name = data.get("origin_agent_name")
-        import_shipment.advance_payment_percent = data.get("advance_payment_percent")
-        import_shipment.balance_days = data.get("balance_days")
 
         g.db_session.add(import_shipment)
 
@@ -381,6 +381,8 @@ class ImportRepository:
                     provider_id=row.get("provider_id"),
                     incoterm_id=row.get("incoterm_id"),
                     custom_incoterm_name=row.get("custom_incoterm_name"),
+                    advance_payment_percent=row.get("advance_payment_percent"),
+                    balance_days=row.get("balance_days"),
                     position=row.get("position"),
                 )
             )
