@@ -6,8 +6,10 @@ class WarehouseService:
     def __init__(self):
         self.warehouse_repository = WarehouseRepository()
 
+
     def _location_label(self, block, level, position):
         return f"B{block}-{level}-{position}"
+
 
     def _serialize_row(self, row):
         return {
@@ -31,6 +33,37 @@ class WarehouseService:
             }
         }
 
+
+    def _serialize_location(self, code, rows):
+        location = {
+            "label": self._location_label(code.block, code.level, code.position),
+            "block": code.block,
+            "level": code.level,
+            "position": code.position,
+            "products": [],
+            "products_count": 0,
+            "preview_text": "Sin productos en esta ubicación",
+        }
+
+        for r in rows:
+            location["products"].append(self._serialize_row(r))
+
+        location["products"].sort(key=lambda x: (x.get("stock") or 0))
+        location["products_count"] = len(location["products"])
+
+        if location["products_count"] > 0:
+            top = sorted(
+                location["products"],
+                key=lambda x: (x.get("stock") or 0),
+                reverse=True
+            )[:3]
+
+            location["preview_text"] = " • ".join(
+                [f'{p["brand"]} {p["model"]}' for p in top]
+            ) + (" …" if location["products_count"] > 3 else "")
+
+        return location
+
     @handle_exceptions
     def find_product(self, search):
         rows_products, rows_locations_products, rows_location_codes, pc = \
@@ -41,7 +74,6 @@ class WarehouseService:
 
         products = [self._serialize_row(r) for r in rows_products]
 
-        # Pre-crear TODAS las ubicaciones encontradas, aunque tengan 0 items
         loc_map = {}
         for code in rows_location_codes:
             label = self._location_label(code.block, code.level, code.position)
@@ -55,7 +87,6 @@ class WarehouseService:
                 "preview_text": "Sin productos en esta ubicación",
             }
 
-        # Llenar productos si existen
         for r in rows_locations_products:
             item = self._serialize_row(r)
             label = item["location"]["label"]
@@ -91,6 +122,53 @@ class WarehouseService:
 
             locations.append(loc)
 
-        locations.sort(key=lambda x: x["label"])
+        locations.sort(key=lambda x: (
+            int(x.get("block") or 0),
+            int(x.get("level") or 0),
+            str(x.get("position") or "")
+        ))
 
         return {"products": products, "locations": locations}, 200
+
+
+    @handle_exceptions
+    def get_location(self, label):
+        code, rows, rc = self.warehouse_repository.get_location_detail(label)
+        if rc != 200:
+            return code, rc
+
+        location = self._serialize_location(code, rows)
+        return {"location": location}, 200
+
+
+    @handle_exceptions
+    def remove_stock(self, data):
+        warehouse_stock_id = data.get("warehouse_stock_id")
+        quantity = data.get("quantity")
+
+        try:
+            warehouse_stock_id = int(warehouse_stock_id)
+            quantity = int(quantity)
+        except (TypeError, ValueError):
+            return {"message": "Datos inválidos"}, 400
+
+        if quantity < 1:
+            return {"message": "La cantidad a retirar debe ser mayor a 0"}, 400
+
+        removed_data, rc = self.warehouse_repository.remove_stock(
+            warehouse_stock_id=warehouse_stock_id,
+            quantity=quantity
+        )
+        if rc != 200:
+            return removed_data, rc
+
+        code, rows, rc = self.warehouse_repository.get_location_detail(removed_data["label"])
+        if rc != 200:
+            return code, rc
+
+        location = self._serialize_location(code, rows)
+
+        return {
+            "message": "Stock retirado correctamente",
+            "location": location
+        }, 200

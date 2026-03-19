@@ -14,22 +14,38 @@
 
 			<div class="searchbar glass2">
 				<img alt="" class="ico" width="20" height="20" src="/static/images/icons/find.svg">
-				<input type="text"
+				<input
+					type="text"
 					x-model="product_input"
 					:placeholder="animated_placeholder"
-					@input="findProducts()">
-				<div class="hover-opacity clear" x-show="product_input" title="Limpiar búsqueda" @click="product_input = ''; finded_products = [];" style="display: none;">
-					<img alt="" class="" width="12" height="12" src="/static/images/x.svg">
+					@input="findProducts()"
+				>
+
+				<div
+					class="hover-opacity press clear"
+					x-show="product_input"
+					title="Limpiar búsqueda"
+					@click="product_input = ''; finded_products = []; finded_locations = [];"
+					style="display: none;"
+				>
+					<img alt="" width="12" height="12" src="/static/images/icons/filled/x.svg">
+				</div>
+
+				<div class="hover-opacity press" title="Lector QR" @click="readQR()">
+					<img alt="" width="20" height="20" src="/static/images/icons/qr.svg">
 				</div>
 			</div>
 
-			
-
-			<div x-transition.duration.300ms x-cloak class="finded-products glass2" x-show="finded_locations.length > 0 || finded_products.length > 0">
+			<div
+				x-transition.duration.300ms
+				x-cloak
+				class="finded-products glass2"
+				x-show="finded_locations.length > 0 || finded_products.length > 0"
+			>
 				<template x-if="finded_locations.length > 0">
 					<div class="section-locations">
 						<template x-for="loc in finded_locations" :key="`loc-${loc.label}`">
-							<div class="item" x-data="{ open: false }">
+							<div class="item hover-opacity press" @click="openLocationModal(loc.label)">
 								<div class="location ware">
 									<span class="block">
 										<span class="label">Bloque</span>
@@ -54,7 +70,7 @@
 				</template>
 
 				<template x-for="row in finded_products" :key="row.warehouse_stock_id || `${row.product_id}-${row.location?.label}`">
-					<div class="item">
+					<div class="item hover-opacity press" @click="openLocationModal(row.location?.label)">
 						<div class="white thumb">
 							<img alt="" width="48" height="48" :src="`/static/images/uploads/machines/${row.image}`">
 						</div>
@@ -62,12 +78,12 @@
 						<div class="text">
 							<div class="title">
 								<span class="brand" x-text="`${row.brand} ${row.model}`"></span>
-								<span class="category" x-text="`Impresoras 3D`"></span>
+								<span class="category" x-text="row.category || 'Impresoras 3D'"></span>
 							</div>
 							<span class="stock" x-text="`${row.stock ?? 0} uds.`"></span>
 						</div>
 
-						<div class="location ">
+						<div class="location">
 							<span class="block">
 								<span class="label">Bloque</span>
 								<span class="number" x-text="row.location?.block || '-'"></span>
@@ -82,6 +98,7 @@
 								<span class="label">Nivel</span>
 								<span class="number fix" x-text="row.location?.position || '-'"></span>
 							</span>
+
 							<span class="ubi">
 								<span x-text="row.location?.label || '-'"></span>
 							</span>
@@ -90,16 +107,318 @@
 				</template>
 			</div>
 		</div>
+		
 
+		<!-- Modal lector QR -->
+		<div
+			x-show="$store.cache.isVisibleModal('read')"
+			@mousedown.self="$store.cache.hideModal('read'); stopScan();"
+			class="modal-wrap"
+			id="modal-read"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2" @click.stop>
+				<div id="scannerBox">
+					<video id="cameraFrame"></video>
+					<div class="scannerDots"></div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Modal detalle ubicación -->
+		<div
+			x-show="$store.cache.isVisibleModal('warehouse-location')"
+			@mousedown.self="$store.cache.hideModal('warehouse-location')"
+			class="modal-wrap"
+			id="modal-warehouse-location"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2" @click.stop>
+				<!-- <div class="map">
+					<div class="warehouse-map">
+						<div class="top-title">PISO 1</div>
+
+						<div class="map-body">
+							<div class="left-column">
+							<div class="vertical-label">BLOQUE 5</div>
+
+							<div class="block block-5">
+								<div class="rack">21</div>
+								<div class="rack">22</div>
+								<div class="rack">23</div>
+								<div class="rack">24</div>
+								<div class="rack tall">25</div>
+								<div class="rack tall">26</div>
+								<div class="rack tall">27</div>
+							</div>
+							</div>
+
+							<div class="main-area">
+							<div class="top-row">
+								<div class="block-group">
+								<div class="small-label">BLOQUE 4</div>
+								<div class="block horizontal">
+									<div class="rack">20</div>
+									<div class="rack">19</div>
+									<div class="rack">18</div>
+									<div class="rack">17</div>
+								</div>
+								</div>
+
+								<div class="block-group">
+								<div class="small-label">BLOQUE 3</div>
+								<div class="block horizontal small">
+									<div class="rack">12</div>
+									<div class="rack">11</div>
+								</div>
+								</div>
+
+								<div class="block-group">
+								<div class="small-label">BLOQUE 2</div>
+								<div class="block horizontal small">
+									<div class="rack">8</div>
+									<div class="rack">7</div>
+								</div>
+								</div>
+
+								<div class="block-group">
+								<div class="small-label">BLOQUE 1</div>
+								<div class="block horizontal small">
+									<div class="rack">4</div>
+									<div class="rack">3</div>
+								</div>
+								</div>
+
+								<div class="extras">
+								<div class="box repuestos">REPUESTOS</div>
+								<div class="stairs">ESCALERAS</div>
+								</div>
+							</div>
+
+							<div class="middle-row">
+								<div class="tec-lab">TEC LAB</div>
+								<div class="embalaje">ZONA DE EMBALAJE</div>
+							</div>
+
+							<div class="block-7-row">
+								<div class="block-group block-7-group">
+								<div class="small-label">BLOQUE 7</div>
+								<div class="block block-7">
+									<div class="rack">35</div>
+									<div class="rack">36</div>
+									<div class="rack">37</div>
+									<div class="rack">34</div>
+									<div class="rack">33</div>
+									<div class="rack">32</div>
+								</div>
+								</div>
+							</div>
+
+							<div class="bottom-row">
+								<div class="block-group block-6-group">
+								<div class="small-label">BLOQUE 6</div>
+								<div class="block block-6">
+									<div class="rack">28</div>
+									<div class="rack">29</div>
+									<div class="rack">30</div>
+									<div class="rack">31</div>
+								</div>
+								</div>
+
+								<div class="support-zone">
+								<div class="waiting">ZONA DE ESPERA SOPORTE TÉCNICO</div>
+								<div class="support">ÁREA DE SOPORTE TÉCNICO</div>
+								</div>
+
+								<div class="storage-zones">
+								<div class="bathrooms">
+									<div class="bath small-vertical">BAÑO MUJERES</div>
+									<div class="bath">BAÑO HOMBRES</div>
+								</div>
+								<div class="storage">ALMACENAJE DE REPUESTOS Y ACCESORIOS 1</div>
+								<div class="storage small">ALMACENAJE DE REPUESTOS Y ACCESORIOS 2</div>
+								</div>
+							</div>
+							</div>
+						</div>
+					</div>
+				</div> -->
+
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<template x-if="!location_modal_loading && selected_location">
+					<div class="modal-head">
+						<div class="location full">
+							<span class="block">
+								<span class="label">Bloque</span>
+								<span class="number" x-text="selected_location?.block || '-'"></span>
+							</span>
+
+							<span class="block black">
+								<span class="label">Rack</span>
+								<span class="number" x-text="selected_location?.level || '-'"></span>
+							</span>
+
+							<span class="block black">
+								<span class="label">Nivel</span>
+								<span class="number fix" x-text="selected_location?.position || '-'"></span>
+							</span>
+						</div>
+						
+						<span class="stock" x-text="`${selected_location.products_count || 0} items`"></span>
+					</div>
+				</template>
+				
+				<template x-if="!location_modal_loading && selected_location && selected_location.products?.length > 0">
+					<div class="modal-content bottom">
+						<div class="table-header">
+							<div>Modelo</div>
+							<div>Marca</div>
+							<div>Tipo</div>
+							<div style="text-align: right;">Cantidad</div>
+						</div>
+
+						<div class="table-box">
+							<template x-for="p in selected_location.products" :key="p.warehouse_stock_id">
+								<div class="table-row white hover-opacity" @click="openRemoveStockModal(p)">
+									<div class="model">
+										<img alt="" width="40" height="40" :src="`/static/images/uploads/machines/${p.image}`">
+										<span x-text="p.model"></span>
+									</div>
+
+									<div class="brand">
+										<span x-text="p.brand"></span>
+									</div>
+
+									<div class="">
+										<span x-text="p.category || 'Impresoras 3D'"></span>
+									</div>
+									
+									<div class="qty">
+										<span x-text="`${p.stock ?? 0} uds.`"></span>
+									</div>
+								</div>
+							</template>
+						</div>
+					</div>
+				</template>
+
+				<template x-if="!location_modal_loading && selected_location && !selected_location.products?.length">
+					<div class="center text" style="padding: 1rem 0; text-align: center;">
+						Esta ubicación está vacía.
+					</div>
+				</template>
+			</div>
+		</div>
+
+		<!-- Modal pequeño retirar stock -->
+		<div
+			x-show="$store.cache.isVisibleModal('warehouse-remove-stock')"
+			@mousedown.self="$store.cache.hideModal('warehouse-remove-stock')"
+			class="modal-wrap"
+			id="modal-warehouse-remove-stock"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal little glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="title">
+					<span>Retirar stock</span>
+				</div>
+
+				<div class="modal-content">
+					<div class="selected white">
+						<div class="item">
+							<img alt="" width="48" height="48" :src="`/static/images/uploads/machines/${selected_product.image}`">
+
+							<div class="data">
+								<span class="model" x-text="`${selected_product.brand} ${selected_product.model}`"></span>
+								<span class="category" x-text="selected_product.category || 'Impresoras 3D'"></span>
+								<span class="stock" x-text="`Stock actual: ${selected_product.stock ?? 0} uds.`"></span>
+							</div>
+						</div>
+						<!-- <span class="stock" x-text="`Ubicación: ${selected_product.location?.label || '-'}`"></span> -->
+					</div>
+
+					<div class="remove-box">
+						<div class="number">
+							<div class="action white hover-opacity" @click="decreaseRemoveQty()">
+								<span>-</span>
+							</div>
+
+							<input
+								class="white"
+								type="number"
+								min="1"
+								:max="selected_product.stock || 1"
+								x-model="remove_qty"
+								@input="sanitizeRemoveQty()"
+							>
+
+							<div class="action white hover-opacity" @click="increaseRemoveQty()">
+								<span>+</span>
+							</div>
+						</div>
+
+						<div class="text">
+							<span>Stock resultante</span>
+							<span
+								class="black"
+								x-text="`${Math.max((selected_product.stock || 0) - (Number(remove_qty) || 0), 0)} uds.`"
+							></span>
+						</div>
+					</div>
+				</div>
+
+				<div class="buttons">
+					<button
+						class="button black hover-opacity"
+						@click="$store.cache.hideModal('warehouse-remove-stock')"
+					>
+						Cancelar
+					</button>
+
+					<button
+						class="button hover-opacity"
+						@click="!remove_loading && confirmRemoveStock()"
+					>
+						<span x-text="remove_loading ? 'Retirando...' : 'Retirar stock'"></span>
+					</button>
+				</div>
+			</div>
+		</div>
 	</div>
-
+	
 
 	<script>
-		Alpine.data('warehouse_data',() => ({
-            api: Alpine.store('cache').api,
+		Alpine.data('warehouse_data', () => ({
+			api: Alpine.store('cache').api,
 			buttons: {
-                process: { class: '', text: 'Añadir' },
-            },
+				process: { class: '', text: 'Añadir' },
+			},
+
 			animated_placeholder: '',
 			placeholder_texts: [
 				'Busca por modelo...',
@@ -110,91 +429,74 @@
 			placeholder_char_index: 0,
 			placeholder_deleting: false,
 			placeholder_timer: null,
+
 			product_input: '',
 			finded_products: [],
 			finded_locations: [],
-			
+
+			selected_location: null,
+			location_modal_loading: false,
+
+			selected_product: null,
+			remove_qty: 1,
+			remove_loading: false,
+
+			scannerRunning: false,
+			scannerBusy: false,
+			codeReader: null,
+
 			async init() {
 				console.log('Inicializando Warehouse...');
+				this.codeReader = new ZXingBrowser.BrowserQRCodeReader();
 
 				this.startPlaceholderAnimation();
-				// Socket
-                const socket = Alpine.store('cache').socket;
+
+				const socket = Alpine.store('cache').socket;
 				if (socket) {
 					socket.removeAllListeners();
-					// socket.on("logistics_update_dashboard", async () => {
-					// 	await Alpine.store('cache').refresh(['logistics_dashboard', 'logistics_pendings']);
-					// });
 				}
 
-				// await Alpine.store('cache').fetchData([
-				// 	{ key: 'logistics_dashboard', url: `/logistic/dashboard/week?offset=${this.offset}`, force: true },
-				// 	{ key: 'logistics_pendings', url: '/logistic/pending', force: true },
-				// 	{ key: 'drivers', url: '/general/drivers' },
-				// 	{ key: 'vendors', url: '/general/vendors' },
-				// 	{ key: 'districts', url: '/general/districts' },
-				// 	{ key: 'shipping_method', url: '/general/shipping_types' },
-				// ]);
-				
 				await Alpine.store('cache').verify();
+			},
+
+			_locationLabel(block, level, position) {
+				return `B${block}-${level}-${position}`;
 			},
 
 			_normalizeLocationQuery(q) {
 				return (q || '').trim().toUpperCase().replace(/\s+/g, '');
-				},
+			},
 
-				_isLocationQuery(q) {
-				const n = this._normalizeLocationQuery(q);
-				// B1, B12, B1-1, B1-1-A, etc.
-				return /^[A-Z]\d+/.test(n) || n.includes('-');
-				},
+			normalizeWarehouseLabel(value) {
+				const clean = (value || '')
+					.toString()
+					.trim()
+					.toUpperCase()
+					.replace(/\s+/g, '');
 
-				_groupLocationsFromProducts(products, prefixNormalized) {
-				const map = new Map();
+				const match = clean.match(/^B\d+-\d+-[A-Z0-9]$/);
+				return match ? match[0] : null;
+			},
 
-				for (const row of (products || [])) {
-					const loc = row.location || {};
-					const labelRaw = (loc.label || '').trim();
-					const labelNorm = this._normalizeLocationQuery(labelRaw);
+			extractWarehouseLabelFromQR(text) {
+				const raw = (text || '').toString().trim().toUpperCase();
+				if (!raw) return null;
 
-					if (!labelNorm) continue;
-					if (!labelNorm.startsWith(prefixNormalized)) continue;
+				const compact = raw.replace(/\s+/g, '');
 
-					if (!map.has(labelNorm)) {
-					map.set(labelNorm, {
-						label: labelRaw,
-						block: loc.block,
-						level: loc.level,
-						position: loc.position,
-						products: [],
-						products_count: 0,
-						preview_text: ''
-					});
+				const candidates = [
+					compact,
+					compact.slice(1)
+				];
+
+				for (const candidate of candidates) {
+					const match = candidate.match(/B\d+-\d+-[A-Z0-9]/);
+					if (match) {
+						return this.normalizeWarehouseLabel(match[0]);
 					}
-					map.get(labelNorm).products.push(row);
 				}
 
-				const res = [];
-				for (const g of map.values()) {
-					// orden interno (detalle) por stock asc (igual que tu lista principal)
-					g.products.sort((a, b) => (Number(a.stock) || 0) - (Number(b.stock) || 0));
-
-					g.products_count = g.products.length;
-
-					// preview: 3 “primeros” (para que sea útil, tomo los de mayor stock)
-					const preview = [...g.products]
-					.sort((a, b) => (Number(b.stock) || 0) - (Number(a.stock) || 0))
-					.slice(0, 3)
-					.map(p => `${p.brand} ${p.model}`);
-
-					g.preview_text = preview.join(' • ') + (g.products.length > 3 ? ' …' : '');
-					res.push(g);
-				}
-
-				// ordena ubicaciones por label (con orden numérico)
-				return res.sort((a, b) =>
-					(a.label || '').localeCompare((b.label || ''), 'es', { numeric: true, sensitivity: 'base' })
-				);
+				return null;
 			},
 
 			async findProducts() {
@@ -202,33 +504,216 @@
 
 				try {
 					if (input.length < 2) {
-					this.finded_products = [];
-					this.finded_locations = [];
-					return;
+						this.finded_products = [];
+						this.finded_locations = [];
+						return;
 					}
 
 					const response = await fetch(`${this.api}/warehouse/find/${encodeURIComponent(input)}`, {
-					method: 'GET',
-					headers: { 'Content-Type': 'application/json' },
+						method: 'GET',
+						headers: { 'Content-Type': 'application/json' },
 					});
 
 					const jsonData = await response.json();
-					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+					}
 
 					const data = jsonData.data || {};
 					this.finded_locations = data.locations || [];
-
-					// Solo “items individuales” (nombre) -> stock asc
 					this.finded_products = (data.products || []).sort((a, b) => {
-					return (Number(a.stock) || 0) - (Number(b.stock) || 0);
+						return (Number(a.stock) || 0) - (Number(b.stock) || 0);
 					});
-
 				} catch (error) {
 					console.log('Error al buscar productos:', error);
 					this.finded_products = [];
 					this.finded_locations = [];
 				}
-				},
+			},
+
+			async openLocationModal(label, options = {}) {
+				const fromQr = !!options.fromQr;
+				const normalized = this.normalizeWarehouseLabel(label);
+
+				if (!normalized) return false;
+
+				try {
+					this.location_modal_loading = true;
+					this.selected_location = null;
+
+					const response = await fetch(`${this.api}/warehouse/location/${encodeURIComponent(normalized)}`, {
+						method: 'GET',
+						headers: { 'Content-Type': 'application/json' },
+					});
+
+					const jsonData = await response.json();
+
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || 'No se pudo obtener la ubicación');
+					}
+
+					this.selected_location = jsonData.data.location;
+					this.location_modal_loading = false;
+
+					Alpine.store('cache').showModal('warehouse-location');
+					return true;
+				} catch (error) {
+					this.location_modal_loading = false;
+
+					if (!fromQr) {
+						console.error('Error al abrir ubicación:', error);
+						if (typeof this.showError === 'function') {
+							this.showError('warehouse', error.message);
+						} else {
+							alert(error.message);
+						}
+					}
+
+					return false;
+				}
+			},
+
+			openRemoveStockModal(product) {
+				if (!product) return;
+
+				this.selected_product = JSON.parse(JSON.stringify(product));
+				this.remove_qty = 1;
+
+				Alpine.store('cache').showModal('warehouse-remove-stock');
+			},
+
+			sanitizeRemoveQty() {
+				let qty = Number(this.remove_qty) || 1;
+				const max = Number(this.selected_product?.stock) || 1;
+
+				if (qty < 1) qty = 1;
+				if (qty > max) qty = max;
+
+				this.remove_qty = qty;
+			},
+
+			increaseRemoveQty() {
+				if (!this.selected_product) return;
+
+				const max = Number(this.selected_product.stock) || 1;
+				let qty = Number(this.remove_qty) || 1;
+
+				if (qty < max) qty += 1;
+				this.remove_qty = qty;
+			},
+
+			decreaseRemoveQty() {
+				let qty = Number(this.remove_qty) || 1;
+				if (qty > 1) qty -= 1;
+				this.remove_qty = qty;
+			},
+
+			async confirmRemoveStock() {
+				if (!this.selected_product) return;
+
+				const quantity = Number(this.remove_qty) || 0;
+				if (quantity < 1) return;
+
+				try {
+					this.remove_loading = true;
+
+					const payload = {
+						warehouse_stock_id: this.selected_product.warehouse_stock_id,
+						quantity,
+					};
+
+					const response = await fetch(`${this.api}/warehouse/stock/remove`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(payload),
+					});
+
+					const jsonData = await response.json();
+
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || 'No se pudo retirar el stock');
+					}
+
+					this.selected_location = jsonData.data.location;
+
+					Alpine.store('cache').hideModal('warehouse-remove-stock');
+
+					if ((this.product_input || '').trim().length >= 2) {
+						await this.findProducts();
+					}
+				} catch (error) {
+					console.error('Error retirando stock:', error);
+
+					if (typeof this.showError === 'function') {
+						this.showError('warehouse-remove', error.message);
+					} else {
+						alert(error.message);
+					}
+				} finally {
+					this.remove_loading = false;
+				}
+			},
+
+			readQR() {
+				Alpine.store('cache').showModal('read');
+				this.startScan();
+			},
+
+			async startScan() {
+				try {
+					if (!this.codeReader) {
+						this.codeReader = new ZXingBrowser.BrowserQRCodeReader();
+					}
+
+					this.scannerRunning = true;
+					this.scannerBusy = false;
+
+					await this.codeReader.decodeFromVideoDevice(null, 'cameraFrame', async (result, err, controls) => {
+						if (!this.scannerRunning || this.scannerBusy) return;
+						if (!result) return;
+
+						const label = this.extractWarehouseLabelFromQR(result.text);
+
+						if (!label) return;
+
+						this.scannerBusy = true;
+
+						const opened = await this.openLocationModal(label, { fromQr: true });
+
+						if (opened) {
+							this.stopScan();
+
+							if (controls?.stop) {
+								controls.stop();
+							}
+
+							Alpine.store('cache').hideModal('read');
+							return;
+						}
+
+						this.scannerBusy = false;
+					});
+				} catch (e) {
+					console.error('Error accediendo a la cámara:', e);
+					this.stopScan();
+					Alpine.store('cache').hideModal('read');
+				}
+			},
+
+			stopScan() {
+				this.scannerRunning = false;
+				this.scannerBusy = false;
+
+				if (this.codeReader?.reset) {
+					this.codeReader.reset();
+				}
+
+				const video = document.getElementById('cameraFrame');
+				if (video?.srcObject) {
+					video.srcObject.getTracks().forEach(track => track.stop());
+					video.srcObject = null;
+				}
+			},
 
 			startPlaceholderAnimation() {
 				const tick = () => {
@@ -259,14 +744,448 @@
 						this.placeholder_timer = setTimeout(tick, 45);
 					}
 				};
+
 				tick();
 			},
-			
 		}));
 	</script>
 	
 
 	<style>
+		.map .warehouse-map {
+			width: 100%;
+			max-width: 1300px;
+			margin: 20px auto;
+			padding: 12px;
+			background: #d9d9d9;
+			border: 2px solid #000;
+			font-family: Arial, sans-serif;
+			box-sizing: border-box;
+			}
+
+		.map .top-title {
+			text-align: center;
+			font-weight: bold;
+			font-size: 28px;
+			border: 2px solid #000;
+			background: #f5f5f5;
+			margin-bottom: 20px;
+			padding: 8px;
+			}
+
+		.map .map-body {
+			display: flex;
+			gap: 20px;
+			}
+
+		.map .left-column {
+			display: flex;
+			align-items: stretch;
+			gap: 10px;
+			}
+
+		.map .vertical-label {
+			writing-mode: vertical-rl;
+			transform: rotate(180deg);
+			font-weight: bold;
+			font-size: 28px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			}
+
+		.map .main-area {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			gap: 25px;
+			}
+
+		.map .top-row,
+		.map .middle-row,
+		.map .block-7-row,
+		.map .bottom-row {
+			display: flex;
+			gap: 20px;
+			align-items: flex-start;
+			flex-wrap: wrap;
+			}
+
+		.map .block-group {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 8px;
+			}
+
+		.map .small-label {
+			font-size: 18px;
+			font-weight: bold;
+			}
+
+		.map .block {
+			border: 2px solid #000;
+			background: #fff;
+			display: grid;
+			gap: 0;
+			}
+
+		.map .block.horizontal {
+			grid-template-columns: repeat(4, 90px);
+			}
+
+		.map .block.horizontal.small {
+			grid-template-columns: repeat(2, 90px);
+			}
+
+		.map .block-5 {
+			display: grid;
+			grid-template-columns: 100px;
+			}
+
+		.map .block-6 {
+			grid-template-columns: repeat(4, 120px);
+			}
+
+		.map .block-7 {
+			grid-template-columns: repeat(3, 120px);
+			}
+
+		.map .rack {
+			border: 2px solid #000;
+			background: yellow;
+			min-height: 70px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-weight: bold;
+			box-sizing: border-box;
+			}
+
+		.map .rack.tall {
+			min-height: 95px;
+			}
+
+		.map .tec-lab {
+			width: 180px;
+			height: 130px;
+			border: 2px solid #000;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 18px;
+			font-weight: bold;
+			background: #f3f3f3;
+			}
+
+		.map .embalaje {
+			writing-mode: vertical-rl;
+			transform: rotate(180deg);
+			font-weight: bold;
+			font-size: 18px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			}
+
+		.map .extras {
+			display: flex;
+			gap: 10px;
+			align-items: stretch;
+			}
+
+		.map .box,
+		.map .stairs,
+		.map .storage,
+		.map .support,
+		.map .waiting,
+		.map .bath {
+			border: 2px solid #000;
+			background: #ececec;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			text-align: center;
+			padding: 10px;
+			box-sizing: border-box;
+			}
+
+		.map .repuestos {
+			width: 140px;
+			height: 50px;
+			}
+
+		.map .stairs {
+			width: 90px;
+			min-height: 150px;
+			writing-mode: vertical-rl;
+			transform: rotate(180deg);
+			font-weight: bold;
+			}
+
+		.map .support-zone {
+			display: flex;
+			align-items: stretch;
+			min-height: 140px;
+			}
+
+		.map .waiting {
+			width: 70px;
+			writing-mode: vertical-rl;
+			transform: rotate(180deg);
+			font-size: 14px;
+			}
+
+		.map .support {
+			width: 350px;
+			font-size: 18px;
+			font-weight: bold;
+			}
+
+		.map .storage-zones {
+			display: flex;
+			flex-direction: column;
+			gap: 10px;
+			flex: 1;
+			}
+
+		.map .bathrooms {
+			display: flex;
+			gap: 0;
+			}
+
+		.map .bath.small-vertical {
+			width: 60px;
+			writing-mode: vertical-rl;
+			transform: rotate(180deg);
+			}
+
+		.map .bath {
+			width: 180px;
+			min-height: 70px;
+			}
+
+		.map .storage {
+			min-height: 90px;
+			font-size: 16px;
+			font-weight: bold;
+			}
+
+		.map .storage.small {
+			min-height: 70px;
+			font-size: 14px;
+			}
+
+		.location {
+			display: flex;
+			margin-left: auto;
+			gap: 0.25rem;
+			align-items: center;
+		}
+		.location.ware {
+			margin: 0;
+			width: 100%;
+		}
+		.location.full {
+			margin: 0;
+		}
+		.location.ware .stock {
+			margin-left: auto;
+			font-weight: 500;
+		}
+		.location .block {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			color: var(--white);
+			background-color: #113474;
+			gap: 0.25rem;
+			padding: 0.35rem 0;
+			border-radius: 0.125rem;
+			width: 2.5rem;
+		}
+		.location .block.black {
+			background-color: #252c39;
+		}
+		.location .block .label {
+			font-size: 0.6rem;
+    		line-height: 0.65rem;
+		}
+		.location .block .number {
+			font-size: 1.35rem;
+			font-family: sans-serif;
+			font-weight: 800;
+			line-height: 1.35rem;
+		}
+		.location .block .number.fix {
+			font-weight: 700;
+		}
+		.location .ubi {
+			font-weight: 800;
+			font-size: 1rem;
+			font-family: sans-serif;
+			color: var(--primary);
+			display: none;
+		}
+		#modal-warehouse-location .modal-head {
+			display: flex;
+    		justify-content: space-between;
+			align-items: center;
+		}
+		#modal-warehouse-location .modal-head .stock {
+			display: flex;
+			font-weight: 600;
+			padding: 0.3rem 0.75rem;
+			border-radius: 2rem;
+			font-size: 0.85rem;
+			background-color: #fddbc9;
+			border: 2px solid #f8a87f;
+			margin: -0.5rem 0;
+		}
+		#modal-warehouse-location .table-header {
+			display: grid;
+			grid-template-columns: 1.5fr 1fr 1fr 0.5fr;
+			gap: 1rem;
+			padding: 0rem 1rem 0 1rem;
+			font-weight: 600;
+		}
+		#modal-warehouse-location .table-box {
+			gap: 0.5rem;
+			display: flex;
+			flex-direction: column;
+		}
+		#modal-warehouse-location .table-row {
+			display: grid;
+			grid-template-columns: 1.5fr 1fr 1fr 0.5fr;
+			gap: 1rem;
+			align-items: center;
+			padding: 0.75rem 1rem;
+			cursor: pointer;
+			transition: var(--transition);
+		}
+		#modal-warehouse-location .table-row img {
+			width: 2.5rem;
+			min-width: 2.5rem;
+			height: 2.5rem;
+		}
+		#modal-warehouse-location .table-row .model {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			font-weight: 500;
+		}
+		#modal-warehouse-location .table-row .brand {
+			
+		}
+		#modal-warehouse-location .table-row .qty {
+			text-align: right;
+			font-weight: 600;
+		}
+		#modal-warehouse-remove-stock .selected {
+			padding: 0.75rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+		}
+		#modal-warehouse-remove-stock .selected .item {
+			display: flex;
+			gap: 0.5rem;
+			align-items: center;
+		}
+		#modal-warehouse-remove-stock .selected .item .data {
+			display: flex;
+			flex-direction: column;
+		}
+		#modal-warehouse-remove-stock .selected .item .model {
+			font-size: 0.9rem;
+    		font-weight: 500;
+		}
+		#modal-warehouse-remove-stock .selected .item .category {
+			opacity: 0.5;
+			font-weight: 500;
+			font-size: 0.8rem;
+		}
+		#modal-warehouse-remove-stock .selected .item .stock {
+			color: var(--primary);
+		}
+		#modal-warehouse-remove-stock .remove-box {
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+		}
+		#modal-warehouse-remove-stock .remove-box .text {
+			opacity: 0.75;
+			font-weight: 500;
+			text-align: center;
+		}
+		#modal-warehouse-remove-stock .remove-box .number {
+			display: flex;
+    		gap: 0.75rem;
+		}
+		#modal-warehouse-remove-stock .remove-box .action {
+			width: 4rem;
+			height: 3rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-weight: 800;
+			font-size: 1.4rem;
+			font-family: monospace;
+		}
+		#modal-warehouse-remove-stock .remove-box input {
+			flex: 1;
+			text-align: center;
+			border: none;
+			font-family: var(--font);
+			font-size: 0.9rem;
+			font-weight: 500;
+		}
+		#modal-read {
+			align-items: center;
+		}
+		#modal-read .modal {
+			align-items: center;
+			padding: 0;
+			overflow: hidden;
+			border: none;
+			width: initial;
+			border-radius: 1.5rem;
+		}
+		/************************************************************************/
+		#scannerBox {
+			position: relative;
+			width: 20rem;
+			height: 20rem;
+		}
+		#scannerBox .scannerDots {
+			position: absolute;
+			top: 20%;
+			left: 20%;
+			width: 60%;
+			height: 60%;
+			border: 2px dashed var(--primary);
+			border-radius: 0.75rem;
+		}
+		#cameraFrame {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+		#scanning {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			background-color: rgba(0, 0, 0, 0.5);
+			color: white;
+			padding: 0.5rem 1rem;
+			border-radius: 1rem;
+			display: none;
+			font-size: 0.85rem;
+			opacity: 0.5;
+			font-family: monospace;
+		}
 		.location-products{
 		width: 100%;
 		margin-top: .5rem;
@@ -309,7 +1228,7 @@
 		#warehouse .searchbar {
 			display: flex;
 			align-items: center;
-			padding: 0.25rem 1rem;
+			padding: 0.25rem 0.5rem 0.25rem 0.75rem;
 			border-radius: 0.75rem;
 			position: relative;
 		}
@@ -325,16 +1244,17 @@
 			font-family: inherit;
 			font-size: 1rem;
 			font-weight: 400;
-			min-width: 40dvw;
+		}
+		#warehouse .searchbar .press {
+			display: flex;
+			width: 2rem;
+			height: 2rem;
+			align-items: center;
+			justify-content: center;
 		}
 		#warehouse .searchbar .clear {
 			position: absolute;
-			right: 0.5rem;
-			width: 2rem;
-			height: 2rem;
-			display: flex;
-			justify-content: center;
-			align-items: center;
+			right: 3rem;
 		}
 		#warehouse .finded-products {
 			overflow: auto;
@@ -386,55 +1306,7 @@
 			justify-content: center;
 			align-items: center;
 		}
-		#warehouse .finded-products .location {
-			display: flex;
-			margin-left: auto;
-			gap: 0.25rem;
-			align-items: center;
-		}
-		#warehouse .finded-products .location.ware {
-			margin: 0;
-			width: 100%;
-		}
-		#warehouse .finded-products .location.ware .stock {
-			margin-left: auto;
-			font-weight: 500;
-		}
-		#warehouse .finded-products .location .block {
-			display: flex;
-			flex-direction: column;
-			justify-content: center;
-			align-items: center;
-			color: var(--white);
-			background-color: #113474;
-			gap: 0.25rem;
-			padding: 0.35rem 0;
-			border-radius: 0.125rem;
-			width: 2.5rem;
-		}
-		#warehouse .finded-products .location .block.black {
-			background-color: #252c39;
-		}
-		#warehouse .finded-products .location .block .label {
-			font-size: 0.6rem;
-    		line-height: 0.65rem;
-		}
-		#warehouse .finded-products .location .block .number {
-			font-size: 1.35rem;
-			font-family: sans-serif;
-			font-weight: 800;
-			line-height: 1.35rem;
-		}
-		#warehouse .finded-products .location .block .number.fix {
-			font-weight: 700;
-		}
-		#warehouse .finded-products .location .ubi {
-			font-weight: 800;
-			font-size: 1rem;
-			font-family: sans-serif;
-			color: var(--primary);
-			display: none;
-		}
+		
 		
 		@media only screen and (max-width: 75rem) {
 			
@@ -474,7 +1346,7 @@
 				font-weight: 600;
 				margin: 0;
 			}
-			#warehouse .finded-products .location .block {
+			.location .block {
 				width: 2.25rem;
 			}
 		}
