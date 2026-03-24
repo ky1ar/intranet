@@ -2,6 +2,11 @@
 	<div id="warehouse">
 		<div class="controls">
 			<div class="right frost-dark" style="margin-left: auto;">
+				<div class="item hover-opacity press" @click="openMapModal()">
+					<img class="invert" alt="" width="18" height="18" src="/static/images/icons/map.svg">
+					<span>Mapa</span>
+				</div>
+
 				<div class="item hover-opacity press" @click="$refs.excelInput.click()" :class="{ 'loading': excel_loading }">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
 					<span x-text="excel_loading ? 'Cargando...' : 'Cargar'"></span>
@@ -175,6 +180,10 @@
 						<!-- <span class="stock" x-text="`${selected_location.products_count || 0} items`"></span> -->
 
 						<div class="buttons">
+							<button class="button button-add black hover-opacity" @click="openMapModal(selected_location?.label)">
+								<img alt="" width="14" height="14" src="/static/images/icons/find.svg" style="filter:invert(1)">
+								Ubicar
+							</button>
 							<button class="button button-add hover-opacity" @click="openAddStockModal()">
 								<img alt="" width="16" height="16" src="/static/images/icons/add.svg">
 								Añadir
@@ -244,7 +253,7 @@
 
 				<div class="title">
 					<span>Añadir stock</span>
-					<span class="location-badge" x-text="selected_location?.label || ''"></span>
+					<!-- <span class="location-badge" x-text="selected_location?.label || ''"></span> -->
 				</div>
 
 				<div class="modal-content change-box">
@@ -418,6 +427,198 @@
 		</div>
 
 
+		<!-- Modal mapa del almacén -->
+		<div
+			x-show="$store.cache.isVisibleModal('warehouse-map')"
+			@mousedown.self="$store.cache.hideModal('warehouse-map')"
+			class="modal-wrap"
+			id="modal-warehouse-map"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal initial glass2 extra wmap-modal" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="title">
+					<span class="wmap-title">Plano del almacén — Piso 1</span>
+					<!-- <template x-if="map_highlight_label">
+						<span class="wmap-badge" x-text="map_highlight_label"></span>
+					</template> -->
+				</div>
+
+				<div class="wmap-scroll">
+					<div class="wmap-viewport">
+
+						<!-- ── FILA SUPERIOR: B5 (izq) + B4 B3 B2 B1 ── -->
+						<div class="wmap-row wmap-row-top">
+
+							<!-- Bloque 5 — filas horizontales -->
+							<div class="wmap-section">
+								<div class="wmap-block-label">BLOQUE 5</div>
+								<div class="wmap-h-block vertical">
+									<template x-for="rack in getBlock(5).racks" :key="rack">
+										<div class="wmap-hrow">
+											<span class="wmap-rack-num" x-text="rack"></span>
+
+											<template x-for="pos in (rack >= 25 ? ['A','B','C'] : getBlock(5).positions)" :key="pos">
+												<div
+													class="wmap-cell"
+													:class="{ 'wmap-hl': isMapHighlighted(5, rack, pos) }"
+													:title="`B5-${rack}-${pos}`"
+													@click="selectMapCell(5, rack, pos)"
+												>
+													<span class="wmap-pos-label" x-text="pos"></span>
+												</div>
+											</template>
+
+										</div>
+									</template>
+								</div>
+							</div>
+
+							<div class="wmap-divider-v"></div>
+
+							<!-- Bloques 4 → 1 — columnas verticales -->
+							<template x-for="bd in warehouse_structure.filter(b=>[4,3,2,1].includes(b.block)).sort((a,b)=>b.block-a.block)" :key="bd.block">
+								<div class="wmap-section">
+									<div class="wmap-block-label" x-text="`BLOQUE ${bd.block}`"></div>
+									<div class="wmap-v-block interval">
+										<template x-for="rack in bd.racks" :key="rack">
+											<div class="wmap-hrow">
+												<span class="wmap-rack-num" x-text="rack"></span>
+												<template x-for="pos in bd.positions" :key="pos">
+													<div
+														class="wmap-cell"
+														:class="{ 'wmap-hl': isMapHighlighted(bd.block, rack, pos) }"
+														:title="`B${bd.block}-${rack}-${pos}`"
+														@click="selectMapCell(bd.block, rack, pos)"
+													>
+														<span class="wmap-pos-label" x-text="pos"></span>
+													</div>
+												</template>
+											</div>
+										</template>
+									</div>
+								</div>
+								<div class="wmap-divider-v" x-show="bd.block > 1"></div>
+							</template>
+
+							<!-- Zona especial: Repuestos -->
+							<!-- <div class="wmap-special-zone">
+								<span>Repuestos</span>
+								<span style="opacity:.4;font-size:.6rem">Escaleras →</span>
+							</div> -->
+						</div>
+
+						<!-- ── FILA MEDIA: B7 ── -->
+						<div class="wmap-row b7 wmap-row-mid">
+							<div class="wmap-section">
+								<div class="wmap-block-label">BLOQUE 7</div>
+								<div class="wmap-b7-grid">
+
+									<div class="wmap-b7-header">
+										<span class="wmap-rack-num">35</span>
+										<span class="wmap-rack-num">36</span>
+										<span class="wmap-rack-num">37</span>
+									</div>
+
+									<template x-for="pos in ['A','B','C']" :key="`t7top-${pos}`">
+										<div class="wmap-b7-row">
+											<template x-for="rack in [35,36,37]" :key="`t7top-${rack}-${pos}`">
+												<div
+													class="wmap-cell wmap-cell-h"
+													:class="{ 'wmap-hl': isMapHighlighted(7, rack, pos) }"
+													:title="`B7-${rack}-${pos}`"
+													@click="selectMapCell(7, rack, pos)"
+												>
+													<span class="wmap-pos-label" x-text="pos"></span>
+												</div>
+											</template>
+										</div>
+									</template>
+
+									<div class="wmap-b7-divider"></div>
+
+									<template x-for="pos in ['C','B','A']" :key="`t7bot-${pos}`">
+										<div class="wmap-b7-row">
+											<template x-for="rack in [34,33,32]" :key="`t7bot-${rack}-${pos}`">
+												<div
+													class="wmap-cell wmap-cell-h"
+													:class="{ 'wmap-hl': isMapHighlighted(7, rack, pos) }"
+													:title="`B7-${rack}-${pos}`"
+													@click="selectMapCell(7, rack, pos)"
+												>
+													<span class="wmap-pos-label" x-text="pos"></span>
+												</div>
+											</template>
+										</div>
+									</template>
+
+									<div class="wmap-b7-header">
+										<span class="wmap-rack-num">34</span>
+										<span class="wmap-rack-num">33</span>
+										<span class="wmap-rack-num">32</span>
+									</div>
+
+								</div>
+							</div>
+						</div>
+
+						<!-- ── FILA INFERIOR: B6 ── -->
+						<div class="wmap-row b6 wmap-row-bot">
+							<div class="wmap-section">
+								<div class="wmap-b6-grid">
+									<!-- Números de rack como encabezado de columna -->
+									<div class="wmap-b6-header">
+										<template x-for="rack in getBlock(6).racks" :key="`h6-${rack}`">
+											<span class="wmap-rack-num" x-text="rack"></span>
+										</template>
+									</div>
+
+									<!-- Una fila por posición (A, B, C) -->
+									<template x-for="pos in getBlock(6).positions" :key="`p6-${pos}`">
+										<div class="wmap-b6-row">
+											<template x-for="rack in getBlock(6).racks" :key="`c6-${rack}-${pos}`">
+												<div
+													class="wmap-cell wmap-cell-h"
+													:class="{ 'wmap-hl': isMapHighlighted(6, rack, pos) }"
+													:title="`B6-${rack}-${pos}`"
+													@click="selectMapCell(6, rack, pos)"
+												>
+													<span class="wmap-pos-label" x-text="pos"></span>
+												</div>
+											</template>
+										</div>
+									</template>
+								</div>
+								<div class="wmap-block-label">BLOQUE 6</div>
+
+							</div>
+						</div>
+
+					</div>
+				</div>
+
+				<!-- Leyenda -->
+				<!-- <div class="wmap-legend">
+					<div class="wmap-legend-item">
+						<div class="wmap-cell" style="pointer-events:none;"></div>
+						<span>Ubicación disponible</span>
+					</div>
+					<div class="wmap-legend-item" x-show="map_highlight_label">
+						<div class="wmap-cell wmap-hl" style="pointer-events:none;"></div>
+						<span>Ubicación seleccionada</span>
+					</div>
+				</div> -->
+			</div>
+		</div>
+
+
 		<!-- Modal pequeño retirar stock -->
 		<div
 			x-show="$store.cache.isVisibleModal('warehouse-remove-stock')"
@@ -559,6 +760,17 @@
 			qr_mode: 'location',  // 'location' | 'move'
 			_findAbortController: null,
 
+			map_highlight_label: null,
+			warehouse_structure: [
+				{ block: 1, label: 'Bloque 1', racks: [4,2,3,1],           		positions: ['A','B','C','D','E','F'] },
+				{ block: 2, label: 'Bloque 2', racks: [8,6,7,5],               	positions: ['A','B','C','D','E','F'] },
+				{ block: 3, label: 'Bloque 3', racks: [12,10,11,9],      		positions: ['A','B','C','D','E','F'] },
+				{ block: 4, label: 'Bloque 4', racks: [20,16,19,15,18,14,17,13],positions: ['A','B','C','D','E','F'] },
+				{ block: 5, label: 'Bloque 5', racks: [21,22,23,24,25,26,27],   positions: ['A','B','C','D','E','F'] },
+				{ block: 6, label: 'Bloque 6', racks: [28,29,30,31],            positions: ['A','B','C'] },
+				{ block: 7, label: 'Bloque 7', racks: [32,33,34,35,36,37],      positions: ['A','B','C'] },
+			],
+
 			async init() {
 				console.log('Inicializando Warehouse...');
 				this.codeReader = new ZXingBrowser.BrowserQRCodeReader();
@@ -571,6 +783,24 @@
 				}
 
 				await Alpine.store('cache').verify();
+			},
+
+			getBlock(blockNum) {
+				return this.warehouse_structure.find(b => b.block === blockNum) || { racks: [], positions: [] };
+			},
+
+			openMapModal(highlightLabel = null) {
+				this.map_highlight_label = highlightLabel || null;
+				Alpine.store('cache').showModal('warehouse-map');
+			},
+
+			isMapHighlighted(block, rack, pos) {
+				return this.map_highlight_label === `B${block}-${rack}-${pos}`;
+			},
+
+			async selectMapCell(block, rack, pos) {
+				Alpine.store('cache').hideModal('warehouse-map');
+				await this.openLocationModal(`B${block}-${rack}-${pos}`);
 			},
 
 			async loadExcelFile(event) {
@@ -1058,232 +1288,290 @@
 	
 
 	<style>
-		
-
-		.map .warehouse-map {
-			width: 100%;
-			max-width: 1300px;
-			margin: 20px auto;
-			padding: 12px;
-			background: #d9d9d9;
-			border: 2px solid #000;
-			font-family: Arial, sans-serif;
-			box-sizing: border-box;
-			}
-
-		.map .top-title {
-			text-align: center;
-			font-weight: bold;
-			font-size: 28px;
-			border: 2px solid #000;
-			background: #f5f5f5;
-			margin-bottom: 20px;
-			padding: 8px;
-			}
-
-		.map .map-body {
-			display: flex;
-			gap: 20px;
-			}
-
-		.map .left-column {
-			display: flex;
-			align-items: stretch;
-			gap: 10px;
-			}
-
-		.map .vertical-label {
-			writing-mode: vertical-rl;
-			transform: rotate(180deg);
-			font-weight: bold;
-			font-size: 28px;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			}
-
-		.map .main-area {
+		.modal.initial {
+			max-width: initial;
+    		width: initial;
+		}
+		/* ── MODAL MAPA ──────────────────────────────────── */
+		.wmap-title {
+			font-size: .9rem;
+			font-weight: 600;
+			opacity: .9;
+		}
+		.wmap-badge {
+			font-size: .75rem;
+			font-weight: 700;
+			background: #f59e0b;
+			color: #000;
+			padding: .15rem .6rem;
+			border-radius: 999px;
+			letter-spacing: .05em;
+		}
+		.wmap-scroll {
+			overflow: auto;
 			flex: 1;
+		}
+		.wmap-viewport {
 			display: flex;
 			flex-direction: column;
-			gap: 25px;
-			}
+			position: relative;
+		}
 
-		.map .top-row,
-		.map .middle-row,
-		.map .block-7-row,
-		.map .bottom-row {
+		/* Filas del mapa */
+		.wmap-row {
 			display: flex;
-			gap: 20px;
 			align-items: flex-start;
-			flex-wrap: wrap;
-			}
+			gap: 0.75rem;
+		}
 
-		.map .block-group {
+		.wmap-section {
 			display: flex;
 			flex-direction: column;
-			align-items: center;
-			gap: 8px;
-			}
-
-		.map .small-label {
-			font-size: 18px;
-			font-weight: bold;
-			}
-
-		.map .block {
-			border: 2px solid #000;
-			background: #fff;
+			align-items: flex-start;
+			gap: 0.5rem;
+    		position: relative;
+		}
+		.wmap-block-label {
+			font-size: 0.7rem;
+			font-weight: 700;
+			opacity: 0.5;
+			width: 100%;
+			text-align: center;
+		}
+		/* Bloque horizontal (racks como filas) */
+		.wmap-h-block {
 			display: grid;
-			gap: 0;
-			}
-
-		.map .block.horizontal {
-			grid-template-columns: repeat(4, 90px);
-			}
-
-		.map .block.horizontal.small {
-			grid-template-columns: repeat(2, 90px);
-			}
-
-		.map .block-5 {
+			grid-template-columns: 1fr 1fr;
+			gap: 0.25rem;
+		}
+		.wmap-h-block.vertical {
+			grid-template-columns: 1fr;
+		}
+		.wmap-h-block.vertical .wmap-hrow {
+			flex-direction: row-reverse;
+		}
+		.wmap-v-block {
 			display: grid;
-			grid-template-columns: 100px;
-			}
+			grid-template-columns: 1fr 1fr;
+			gap: 0.25rem;
+		}
+		.wmap-vcol-header {
+			display: flex;
+			flex-direction: row;
+			gap: 2px;
+			align-items: center;
+			margin-bottom: 2px;
+		}
 
-		.map .block-6 {
-			grid-template-columns: repeat(4, 120px);
-			}
+		.wmap-pos-header {
+			width: 18px;
+			text-align: center;
+			font-size: .55rem;
+			opacity: .4;
+			font-weight: 600;
+		}
 
-		.map .block-7 {
-			grid-template-columns: repeat(3, 120px);
-			}
+		/* Fila de rack */
+		.wmap-hrow {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+		}
+		.interval .wmap-hrow:nth-child(odd) {
+			flex-direction: row-reverse;
+		}
+		.wmap-rack-num {
+			font-size: .7rem;
+			opacity: 0.5;
+			font-weight: 600;
+			margin: 0 0.125rem;
+			width: 1rem;
+			text-align: center;
+		}
 
-		.map .rack {
-			border: 2px solid #000;
-			background: yellow;
-			min-height: 70px;
+		/* Celda individual */
+		.wmap-cell {
+			width: 0.8rem;
+    		height: 3.2rem;
+			    background: rgb(255 167 0 / 18%);
+    border: 1px solid rgb(219 165 51 / 30%);
+			border-radius: 0.125rem;
+			cursor: pointer;
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			font-weight: bold;
-			box-sizing: border-box;
-			}
+			transition: background .1s, border-color .1s, transform .1s;
+		}
 
-		.map .rack.tall {
-			min-height: 95px;
-			}
+		.wmap-cell:hover {
+			background: rgb(255 199 0 / 55%);
+    		border-color: rgb(255 194 0 / 80%);
+			/* transform: scale(1.15); */
+			z-index: 1;
+		}
 
-		.map .tec-lab {
-			width: 180px;
-			height: 130px;
-			border: 2px solid #000;
+		.wmap-pos-label {
+			font-size: .5rem;
+			opacity: .5;
+			font-weight: 600;
+			pointer-events: none;
+			line-height: 1;
+		}
+
+		/* Celda destacada */
+		.wmap-cell.wmap-hl {
+			background: #f59e0b !important;
+			border-color: #d97706 !important;
+			box-shadow: 0 0 0 2px rgba(245,158,11,.4), 0 0 10px rgba(245,158,11,.6);
+			animation: wmap-pulse 1.4s ease-in-out infinite;
+			/* transform: scale(1.2); */
+			z-index: 2;
+		}
+
+		.wmap-cell.wmap-hl .wmap-pos-label {
+			opacity: 1;
+			color: #fff;
+		}
+
+		@keyframes wmap-pulse {
+			0%, 100% { box-shadow: 0 0 0 2px rgba(245,158,11,.4), 0 0 8px rgba(245,158,11,.5); }
+			50%       { box-shadow: 0 0 0 3px rgba(245,158,11,.6), 0 0 16px rgba(245,158,11,.9); }
+		}
+
+		/* Divisores */
+		.wmap-divider-v {
+			width: 0.25rem;
+		}
+
+		.wmap-divider-h {
+			height: 1px;
+			background: rgba(255,255,255,.08);
+		}
+
+		/* Spacers para alinear con el plano */
+		.wmap-mid-spacer { width: 7rem; flex-shrink: 0; }
+
+		/* Zonas no interactivas */
+		.wmap-zone-group {
 			display: flex;
-			align-items: center;
-			justify-content: center;
-			font-size: 18px;
-			font-weight: bold;
-			background: #f3f3f3;
-			}
-
-		.map .embalaje {
-			writing-mode: vertical-rl;
-			transform: rotate(180deg);
-			font-weight: bold;
-			font-size: 18px;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			}
-
-		.map .extras {
-			display: flex;
-			gap: 10px;
-			align-items: stretch;
-			}
-
-		.map .box,
-		.map .stairs,
-		.map .storage,
-		.map .support,
-		.map .waiting,
-		.map .bath {
-			border: 2px solid #000;
-			background: #ececec;
+			flex-direction: column;
+			gap: .35rem;
+			align-self: stretch;
+		}
+		.wmap-row.b6 {
+			margin-left: 6.5rem;
+    		margin-top: -0.5rem;
+		}
+		.wmap-row.b7 {
+			position: absolute;
+			bottom: 6rem;
+			left: 8.5rem;
+		}
+		.wmap-row.b7 .wmap-block-label {
+			position: absolute;
+			transform: rotate(-90deg) translate(50px, 95px);
+			bottom: 0;
+		}
+		.wmap-zone-box {
+			flex: 1;
+			min-height: 2.5rem;
+			padding: .3rem .6rem;
+			background: rgba(255,255,255,.04);
+			border: 1px dashed rgba(255,255,255,.12);
+			border-radius: 6px;
+			font-size: .65rem;
+			opacity: .5;
 			display: flex;
 			align-items: center;
 			justify-content: center;
 			text-align: center;
-			padding: 10px;
-			box-sizing: border-box;
-			}
+			line-height: 1.3;
+		}
 
-		.map .repuestos {
-			width: 140px;
-			height: 50px;
-			}
+		.wmap-zone-box.small {
+			flex: 0;
+			min-height: 1.8rem;
+		}
 
-		.map .stairs {
-			width: 90px;
-			min-height: 150px;
-			writing-mode: vertical-rl;
-			transform: rotate(180deg);
-			font-weight: bold;
-			}
-
-		.map .support-zone {
-			display: flex;
-			align-items: stretch;
-			min-height: 140px;
-			}
-
-		.map .waiting {
-			width: 70px;
-			writing-mode: vertical-rl;
-			transform: rotate(180deg);
-			font-size: 14px;
-			}
-
-		.map .support {
-			width: 350px;
-			font-size: 18px;
-			font-weight: bold;
-			}
-
-		.map .storage-zones {
+		.wmap-special-zone {
 			display: flex;
 			flex-direction: column;
-			gap: 10px;
-			flex: 1;
-			}
+			gap: .3rem;
+			align-self: stretch;
+			justify-content: center;
+			padding: .5rem .75rem;
+			background: rgba(255,255,255,.03);
+			border: 1px dashed rgba(255,255,255,.1);
+			border-radius: 6px;
+			font-size: .65rem;
+			opacity: .5;
+			min-width: 5rem;
+		}
 
-		.map .bathrooms {
+		/* Leyenda */
+		.wmap-legend {
 			display: flex;
-			gap: 0;
-			}
+			align-items: center;
+			gap: 1.25rem;
+			padding: .6rem 1.25rem;
+			border-top: 1px solid rgba(255,255,255,.06);
+			font-size: .7rem;
+			opacity: .6;
+		}
 
-		.map .bath.small-vertical {
-			width: 60px;
-			writing-mode: vertical-rl;
-			transform: rotate(180deg);
-			}
+		.wmap-legend-item {
+			display: flex;
+			align-items: center;
+			gap: .4rem;
+		}
+		/* Celda horizontal (B6 y B7) */
+		.wmap-cell-h {
+			width: 3.2rem;
+			height: 0.8rem;
+		}
 
-		.map .bath {
-			width: 180px;
-			min-height: 70px;
-			}
+		/* ── Bloque 6 ── */
+		.wmap-b6-grid {
+			display: flex;
+			flex-direction: column;
+		}
+		.wmap-b6-header {
+			display: flex;
+		}
+		.wmap-b6-row {
+			display: flex;
+			gap: 0.25rem;
+		}
 
-		.map .storage {
-			min-height: 90px;
-			font-size: 16px;
-			font-weight: bold;
-			}
+		/* ── Ajuste Bloque 7 — celdas más anchas como en el plano ── */
+		.wmap-b7-grid {
+			display: flex;
+			flex-direction: column;
+			gap: 1px;
+		}
 
-		.map .storage.small {
-			min-height: 70px;
-			font-size: 14px;
-			}
+		.wmap-b7-row {
+			display: flex;
+			gap: 0.25rem;
+		}
 
+		.wmap-b7-header {
+			display: flex;
+			gap: 1px;
+		}
+
+		.wmap-b7-header .wmap-rack-num {
+			flex: 1;
+		}
+
+		.wmap-b7-divider {
+			height: 0.125rem;
+		}
+
+		/* Ajuste B6 para que las celdas tengan el mismo ancho */
+		.wmap-b6-header .wmap-rack-num {
+			flex: 1;
+		}
 		.location {
 			display: flex;
 			margin-left: auto;
