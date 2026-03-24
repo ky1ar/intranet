@@ -2,10 +2,17 @@
 	<div id="warehouse">
 		<div class="controls">
 			<div class="right frost-dark" style="margin-left: auto;">
-				<div class="item">
-					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/picking.svg">
-					<span>Picking</span>
+				<div class="item hover-opacity press" @click="$refs.excelInput.click()" :class="{ 'loading': excel_loading }">
+					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
+					<span x-text="excel_loading ? 'Cargando...' : 'Cargar'"></span>
 				</div>
+				<input
+					type="file"
+					accept=".xlsx"
+					x-ref="excelInput"
+					style="display: none;"
+					@change="loadExcelFile($event)"
+				>
 			</div>
 		</div>
 		
@@ -42,10 +49,9 @@
 				class="finded-products glass2"
 				x-show="finded_locations.length > 0 || finded_products.length > 0"
 			>
-				<template x-if="finded_locations.length > 0">
-					<div class="section-locations">
-						<template x-for="loc in finded_locations" :key="`loc-${loc.label}`">
-							<div class="item hover-opacity press" @click="openLocationModal(loc.label)">
+					<div class="section-locations" x-show="finded_locations.length > 0">
+						<template x-for="loc in finded_locations" :key="`${loc.id}`">
+							<div class="item hover-opacity" @click="openLocationModal(loc.label)">
 								<div class="location ware">
 									<span class="block">
 										<span class="label">Bloque</span>
@@ -67,23 +73,22 @@
 							</div>
 						</template>
 					</div>
-				</template>
 
-				<template x-for="row in finded_products" :key="row.warehouse_stock_id || `${row.product_id}-${row.location?.label}`">
-					<div class="item hover-opacity press" @click="openLocationModal(row.location?.label)">
-						<div class="white thumb">
-							<img alt="" width="48" height="48" :src="`/static/images/uploads/machines/${row.image}`">
-						</div>
+				<template x-for="row in finded_products.location .block" :key="row.warehouse_stock_id || `${row.product_id}-${row.location?.label}`">
+					<div class="item">
+						<div class="product" @click="openRemoveStockModal(row)">
+							<img class="image" alt="" width="48" height="48" :src="`/static/images/uploads/machines/${row.image}`">
 
-						<div class="text">
-							<div class="title">
-								<span class="brand" x-text="`${row.brand} ${row.model}`"></span>
-								<span class="category" x-text="row.category || 'Impresoras 3D'"></span>
+							<div class="text">
+								<div class="title">
+									<span class="brand" x-text="`${row.brand} ${row.model}`"></span>
+									<span class="category" x-text="row.category"></span>
+								</div>
+								<span class="stock" x-text="`${row.stock ?? 0} uds.`"></span>
 							</div>
-							<span class="stock" x-text="`${row.stock ?? 0} uds.`"></span>
 						</div>
-
-						<div class="location">
+						
+						<div class="location hover-opacity" @click="openLocationModal(row.location?.label)">
 							<span class="block">
 								<span class="label">Bloque</span>
 								<span class="number" x-text="row.location?.block || '-'"></span>
@@ -146,116 +151,6 @@
 			x-cloak
 		>
 			<div class="modal glass2" @click.stop>
-				<!-- <div class="map">
-					<div class="warehouse-map">
-						<div class="top-title">PISO 1</div>
-
-						<div class="map-body">
-							<div class="left-column">
-							<div class="vertical-label">BLOQUE 5</div>
-
-							<div class="block block-5">
-								<div class="rack">21</div>
-								<div class="rack">22</div>
-								<div class="rack">23</div>
-								<div class="rack">24</div>
-								<div class="rack tall">25</div>
-								<div class="rack tall">26</div>
-								<div class="rack tall">27</div>
-							</div>
-							</div>
-
-							<div class="main-area">
-							<div class="top-row">
-								<div class="block-group">
-								<div class="small-label">BLOQUE 4</div>
-								<div class="block horizontal">
-									<div class="rack">20</div>
-									<div class="rack">19</div>
-									<div class="rack">18</div>
-									<div class="rack">17</div>
-								</div>
-								</div>
-
-								<div class="block-group">
-								<div class="small-label">BLOQUE 3</div>
-								<div class="block horizontal small">
-									<div class="rack">12</div>
-									<div class="rack">11</div>
-								</div>
-								</div>
-
-								<div class="block-group">
-								<div class="small-label">BLOQUE 2</div>
-								<div class="block horizontal small">
-									<div class="rack">8</div>
-									<div class="rack">7</div>
-								</div>
-								</div>
-
-								<div class="block-group">
-								<div class="small-label">BLOQUE 1</div>
-								<div class="block horizontal small">
-									<div class="rack">4</div>
-									<div class="rack">3</div>
-								</div>
-								</div>
-
-								<div class="extras">
-								<div class="box repuestos">REPUESTOS</div>
-								<div class="stairs">ESCALERAS</div>
-								</div>
-							</div>
-
-							<div class="middle-row">
-								<div class="tec-lab">TEC LAB</div>
-								<div class="embalaje">ZONA DE EMBALAJE</div>
-							</div>
-
-							<div class="block-7-row">
-								<div class="block-group block-7-group">
-								<div class="small-label">BLOQUE 7</div>
-								<div class="block block-7">
-									<div class="rack">35</div>
-									<div class="rack">36</div>
-									<div class="rack">37</div>
-									<div class="rack">34</div>
-									<div class="rack">33</div>
-									<div class="rack">32</div>
-								</div>
-								</div>
-							</div>
-
-							<div class="bottom-row">
-								<div class="block-group block-6-group">
-								<div class="small-label">BLOQUE 6</div>
-								<div class="block block-6">
-									<div class="rack">28</div>
-									<div class="rack">29</div>
-									<div class="rack">30</div>
-									<div class="rack">31</div>
-								</div>
-								</div>
-
-								<div class="support-zone">
-								<div class="waiting">ZONA DE ESPERA SOPORTE TÉCNICO</div>
-								<div class="support">ÁREA DE SOPORTE TÉCNICO</div>
-								</div>
-
-								<div class="storage-zones">
-								<div class="bathrooms">
-									<div class="bath small-vertical">BAÑO MUJERES</div>
-									<div class="bath">BAÑO HOMBRES</div>
-								</div>
-								<div class="storage">ALMACENAJE DE REPUESTOS Y ACCESORIOS 1</div>
-								<div class="storage small">ALMACENAJE DE REPUESTOS Y ACCESORIOS 2</div>
-								</div>
-							</div>
-							</div>
-						</div>
-					</div>
-				</div> -->
-
 				<div class="modal-grabber">
 					<div class="modal-grabber-bar"></div>
 				</div>
@@ -267,22 +162,27 @@
 								<span class="label">Bloque</span>
 								<span class="number" x-text="selected_location?.block || '-'"></span>
 							</span>
-
 							<span class="block black">
 								<span class="label">Rack</span>
 								<span class="number" x-text="selected_location?.level || '-'"></span>
 							</span>
-
 							<span class="block black">
 								<span class="label">Nivel</span>
 								<span class="number fix" x-text="selected_location?.position || '-'"></span>
 							</span>
 						</div>
-						
-						<span class="stock" x-text="`${selected_location.products_count || 0} items`"></span>
+
+						<!-- <span class="stock" x-text="`${selected_location.products_count || 0} items`"></span> -->
+
+						<div class="buttons">
+							<button class="button button-add hover-opacity" @click="openAddStockModal()">
+								<img alt="" width="16" height="16" src="/static/images/icons/add.svg">
+								Añadir
+							</button>
+						</div>
 					</div>
 				</template>
-				
+
 				<template x-if="!location_modal_loading && selected_location && selected_location.products?.length > 0">
 					<div class="modal-content bottom">
 						<div class="table-header">
@@ -294,22 +194,19 @@
 
 						<div class="table-box">
 							<template x-for="p in selected_location.products" :key="p.warehouse_stock_id">
-								<div class="table-row white hover-opacity" @click="openRemoveStockModal(p)">
-									<div class="model">
+								<div class="table-parent">
+									<div class="table-row hover-opacity white" @click="openRemoveStockModal(p)">
 										<img alt="" width="40" height="40" :src="`/static/images/uploads/machines/${p.image}`">
-										<span x-text="p.model"></span>
-									</div>
-
-									<div class="brand">
-										<span x-text="p.brand"></span>
-									</div>
-
-									<div class="">
-										<span x-text="p.category || 'Impresoras 3D'"></span>
+										<div class="data">
+											<span class="model" x-text="`${p.brand} ${p.model}`"></span>
+											<span class="category" x-text="p.category"></span>
+											<span class="qty" x-text="`${p.stock ?? 0} uds.`"></span>
+										</div>
 									</div>
 									
-									<div class="qty">
-										<span x-text="`${p.stock ?? 0} uds.`"></span>
+									<div class="white hover-opacity press move-btn" @click.stop="openMoveModal(p)" title="Mover stock">
+										<img alt="" width="24" height="24" src="/static/images/icons/move.svg" class="invert">
+										<span>Mover</span>
 									</div>
 								</div>
 							</template>
@@ -324,6 +221,202 @@
 				</template>
 			</div>
 		</div>
+
+
+		<!-- Modal añadir stock -->
+		<div
+			x-show="$store.cache.isVisibleModal('warehouse-add-stock')"
+			@mousedown.self="$store.cache.hideModal('warehouse-add-stock')"
+			class="modal-wrap"
+			id="modal-warehouse-add-stock"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal little glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="title">
+					<span>Añadir stock</span>
+					<span class="location-badge" x-text="selected_location?.label || ''"></span>
+				</div>
+
+				<div class="modal-content change-box">
+					<!-- Buscador de modelo -->
+						<div class="add-search-bar white">
+							<img alt="" width="16" height="16" src="/static/images/icons/find.svg" style="opacity:.5;">
+							<input
+								type="text"
+								placeholder="Buscar modelo..."
+								x-model="add_stock_query"
+								@input="searchMachinesForAdd()"
+								autocomplete="off"
+							>
+							<div
+								x-show="add_stock_query && !add_stock_selected"
+								class="hover-opacity press"
+								style="display:none; width:1.5rem; height:1.5rem; align-items:center; justify-content:center;"
+								@click="add_stock_query = ''; add_stock_results = [];"
+							>
+								<img alt="" width="10" height="10" src="/static/images/icons/filled/x.svg">
+							</div>
+						</div>
+
+						<!-- Resultados -->
+						<div class="add-search-results white" x-show="add_stock_results.length > 0" style="display:none;">
+							<template x-for="m in add_stock_results" :key="m.id">
+								<div class="add-result-row hover-opacity press" @click="selectMachineForAdd(m)">
+									<img alt="" width="32" height="32" :src="`/static/images/uploads/machines/${m.image}`">
+									<div class="add-result-text">
+										<span class="brand" x-text="m.brand"></span>
+										<span class="model" x-text="m.model"></span>
+									</div>
+								</div>
+							</template>
+						</div>
+
+					<!-- Producto seleccionado -->
+					<div class="selected white" x-show="add_stock_selected" style="display:none;">
+						<div class="item">
+							<img alt="" width="48" height="48" :src="`/static/images/uploads/machines/${add_stock_selected?.image}`">
+							<div class="data">
+								<span class="model" x-text="`${add_stock_selected?.brand} ${add_stock_selected?.model}`"></span>
+							</div>
+							<div class="hover-opacity press" style="margin-left:auto; padding:.25rem;" @click="add_stock_selected = null; add_stock_query = ''; add_stock_results = [];">
+								<img alt="" width="12" height="12" src="/static/images/icons/filled/x.svg">
+							</div>
+						</div>
+					</div>
+
+					<!-- Cantidad -->
+					<div class="remove-box" x-show="add_stock_selected" style="display:none;">
+						<div class="number">
+							<div class="action white hover-opacity" @click="if(add_stock_qty > 1) add_stock_qty--">
+								<span>-</span>
+							</div>
+							<input
+								class="white"
+								type="number"
+								min="1"
+								x-model="add_stock_qty"
+								@input="if(add_stock_qty < 1) add_stock_qty = 1"
+							>
+							<div class="action white hover-opacity" @click="add_stock_qty++">
+								<span>+</span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="buttons">
+					<button class="button black hover-opacity" @click="$store.cache.hideModal('warehouse-add-stock')">
+						Cancelar
+					</button>
+					<button
+						class="button hover-opacity"
+						@click="!add_stock_loading && confirmAddStock()"
+					>
+						<span x-text="add_stock_loading ? 'Añadiendo...' : 'Añadir stock'"></span>
+					</button>
+				</div>
+			</div>
+		</div>
+
+
+		<!-- Modal mover stock -->
+		<div
+			x-show="$store.cache.isVisibleModal('warehouse-move-stock')"
+			@mousedown.self="$store.cache.hideModal('warehouse-move-stock')"
+			class="modal-wrap"
+			id="modal-warehouse-move-stock"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal little glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="title">
+					<span>Mover stock</span>
+				</div>
+
+				<div class="modal-content change-box">
+					<!-- Producto origen -->
+					<div class="selected white">
+						<div class="item">
+							<img alt="" width="48" height="48" :src="`/static/images/uploads/machines/${move_product?.image}`">
+							<div class="data">
+								<span class="model" x-text="`${move_product?.brand} ${move_product?.model}`"></span>
+								<span class="category" x-text="move_product?.category || 'Impresoras 3D'"></span>
+								<span class="stock" x-text="`Stock actual: ${move_product?.stock ?? 0} uds.`"></span>
+							</div>
+						</div>
+					</div>
+
+					<!-- Cantidad -->
+					<div class="remove-box">
+						<div class="number">
+							<div class="action white hover-opacity" @click="decreaseMoveQty()">
+								<span>-</span>
+							</div>
+							<input
+								class="white"
+								type="number"
+								min="1"
+								:max="move_product?.stock || 1"
+								x-model="move_qty"
+								@input="sanitizeMoveQty()"
+							>
+							<div class="action white hover-opacity" @click="increaseMoveQty()">
+								<span>+</span>
+							</div>
+						</div>
+					</div>
+
+					<!-- Destino -->
+					<div class="move-destination-wrap">
+						<span class="move-dest-label">Ubicación destino</span>
+						<div class="move-dest-input white">
+							<input
+								type="text"
+								placeholder="Ej: B1-3-A"
+								x-model="move_destination"
+								@input="move_destination = move_destination.toUpperCase()"
+								autocomplete="off"
+							>
+							<div class="hover-opacity press" title="Escanear QR" @click="readQRForMove()">
+								<img alt="" width="20" height="20" src="/static/images/icons/qr.svg">
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="buttons">
+					<button class="button black hover-opacity" @click="$store.cache.hideModal('warehouse-move-stock')">
+						Cancelar
+					</button>
+					<button
+						class="button hover-opacity"
+						@click="!move_loading && confirmMoveStock()"
+					>
+						<span x-text="move_loading ? 'Moviendo...' : 'Mover stock'"></span>
+					</button>
+				</div>
+			</div>
+		</div>
+
 
 		<!-- Modal pequeño retirar stock -->
 		<div
@@ -348,7 +441,7 @@
 					<span>Retirar stock</span>
 				</div>
 
-				<div class="modal-content">
+				<div class="modal-content change-box">
 					<div class="selected white">
 						<div class="item">
 							<img alt="" width="48" height="48" :src="`/static/images/uploads/machines/${selected_product.image}`">
@@ -445,6 +538,27 @@
 			scannerBusy: false,
 			codeReader: null,
 
+			excel_loading: false,
+			excel_result:  null,
+
+			// Add stock
+			add_stock_query: '',
+			add_stock_results: [],
+			add_stock_selected: null,
+			add_stock_qty: 1,
+			add_stock_loading: false,
+			add_stock_search_timer: null,
+
+			// Move stock
+			move_product: null,
+			move_qty: 1,
+			move_destination: '',
+			move_loading: false,
+
+			// QR mode
+			qr_mode: 'location',  // 'location' | 'move'
+			_findAbortController: null,
+
 			async init() {
 				console.log('Inicializando Warehouse...');
 				this.codeReader = new ZXingBrowser.BrowserQRCodeReader();
@@ -457,6 +571,51 @@
 				}
 
 				await Alpine.store('cache').verify();
+			},
+
+			async loadExcelFile(event) {
+				const file = event.target.files?.[0];
+				if (!file) return;
+
+				// reset para poder seleccionar el mismo archivo otra vez
+				event.target.value = '';
+
+				this.excel_loading = true;
+				this.excel_result  = null;
+
+				try {
+					const formData = new FormData();
+					formData.append('file', file);
+
+					const response = await fetch(`${this.api}/warehouse/load`, {
+						method: 'POST',
+						body: formData,
+					});
+
+					const json = await response.json();
+
+					if (!response.ok) {
+						throw new Error(json?.message || 'Error al procesar el archivo');
+					}
+
+					const d = json.data ?? json;
+
+					const lines = [
+						`✅ Procesados: ${d.processed}`,
+						d.skipped   ? `⚠️ Omitidos: ${d.skipped}` : null,
+						d.created_brands?.length     ? `🆕 Marcas nuevas: ${d.created_brands.join(', ')}` : null,
+						d.created_categories?.length ? `🆕 Categorías nuevas: ${d.created_categories.join(', ')}` : null,
+						d.created_machines?.length   ? `🆕 Modelos nuevos: ${d.created_machines.join(', ')}` : null,
+						d.errors?.length             ? `❌ Errores (${d.errors.length}): ${d.errors.slice(0, 3).join(' | ')}${d.errors.length > 3 ? ' ...' : ''}` : null,
+					].filter(Boolean).join('\n');
+
+					// alert(lines);
+
+				} catch (error) {
+					console.error('Error cargando Excel:', error);
+				} finally {
+					this.excel_loading = false;
+				}
 			},
 
 			_locationLabel(block, level, position) {
@@ -502,16 +661,23 @@
 			async findProducts() {
 				const input = (this.product_input || '').trim();
 
-				try {
-					if (input.length < 2) {
-						this.finded_products = [];
-						this.finded_locations = [];
-						return;
-					}
+				if (this._findAbortController) {
+					this._findAbortController.abort();
+				}
 
+				if (input.length < 2) {
+					this.finded_products = [];
+					this.finded_locations = [];
+					return;
+				}
+
+				this._findAbortController = new AbortController();
+
+				try {
 					const response = await fetch(`${this.api}/warehouse/find/${encodeURIComponent(input)}`, {
 						method: 'GET',
 						headers: { 'Content-Type': 'application/json' },
+						signal: this._findAbortController.signal,
 					});
 
 					const jsonData = await response.json();
@@ -525,6 +691,7 @@
 						return (Number(a.stock) || 0) - (Number(b.stock) || 0);
 					});
 				} catch (error) {
+					if (error.name === 'AbortError') return;
 					console.log('Error al buscar productos:', error);
 					this.finded_products = [];
 					this.finded_locations = [];
@@ -565,7 +732,7 @@
 						if (typeof this.showError === 'function') {
 							this.showError('warehouse', error.message);
 						} else {
-							alert(error.message);
+							// alert(error.message);
 						}
 					}
 
@@ -647,7 +814,7 @@
 					if (typeof this.showError === 'function') {
 						this.showError('warehouse-remove', error.message);
 					} else {
-						alert(error.message);
+						// alert(error.message);
 					}
 				} finally {
 					this.remove_loading = false;
@@ -678,15 +845,22 @@
 
 						this.scannerBusy = true;
 
+						// Modo mover: poblar input destino y cerrar
+						if (this.qr_mode === 'move') {
+							this.move_destination = label;
+							this.stopScan();
+							if (controls?.stop) controls.stop();
+							Alpine.store('cache').hideModal('read');
+							this.qr_mode = 'location';
+							return;
+						}
+
+						// Modo normal: abrir modal de ubicación
 						const opened = await this.openLocationModal(label, { fromQr: true });
 
 						if (opened) {
 							this.stopScan();
-
-							if (controls?.stop) {
-								controls.stop();
-							}
-
+							if (controls?.stop) controls.stop();
 							Alpine.store('cache').hideModal('read');
 							return;
 						}
@@ -699,6 +873,138 @@
 					Alpine.store('cache').hideModal('read');
 				}
 			},
+
+			// ── Add Stock ──────────────────────────────────────────────────────────────
+			openAddStockModal() {
+				this.add_stock_query    = '';
+				this.add_stock_results  = [];
+				this.add_stock_selected = null;
+				this.add_stock_qty      = 1;
+				Alpine.store('cache').showModal('warehouse-add-stock');
+			},
+
+			searchMachinesForAdd() {
+				clearTimeout(this.add_stock_search_timer);
+				const q = (this.add_stock_query || '').trim();
+				if (this.add_stock_selected) return;
+				if (q.length < 2) { this.add_stock_results = []; return; }
+				this.add_stock_search_timer = setTimeout(async () => {
+					try {
+						const res  = await fetch(`${this.api}/warehouse/machines/search?q=${encodeURIComponent(q)}`);
+						const json = await res.json();
+						this.add_stock_results = json.data || json || [];
+					} catch (e) {
+						this.add_stock_results = [];
+					}
+				}, 300);
+			},
+
+			selectMachineForAdd(machine) {
+				this.add_stock_selected = machine;
+				this.add_stock_query    = `${machine.brand} ${machine.model}`;
+				this.add_stock_results  = [];
+			},
+
+			async confirmAddStock() {
+				if (!this.add_stock_selected || !this.selected_location) return;
+				const qty = parseInt(this.add_stock_qty);
+				if (qty < 1) return;
+
+				this.add_stock_loading = true;
+				try {
+					const res = await fetch(`${this.api}/warehouse/stock/add`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							product_id:     this.add_stock_selected.id,
+							location_label: this.selected_location.label,
+							quantity:       qty,
+						}),
+					});
+					const json = await res.json();
+					if (!res.ok) throw new Error(json?.data?.message || json?.message || 'Error');
+
+					this.selected_location = json.data?.location || json.location;
+					Alpine.store('cache').hideModal('warehouse-add-stock');
+
+					if ((this.product_input || '').trim().length >= 2) {
+						await this.findProducts();
+					}
+				} catch (e) {
+					// alert('Error: ' + e.message);
+				} finally {
+					this.add_stock_loading = false;
+				}
+			},
+
+			// ── Move Stock ─────────────────────────────────────────────────────────────
+			openMoveModal(product) {
+				if (!product) return;
+				this.move_product     = JSON.parse(JSON.stringify(product));
+				this.move_qty         = 1;
+				this.move_destination = '';
+				Alpine.store('cache').showModal('warehouse-move-stock');
+			},
+
+			sanitizeMoveQty() {
+				let qty = Number(this.move_qty) || 1;
+				const max = Number(this.move_product?.stock) || 1;
+				if (qty < 1) qty = 1;
+				if (qty > max) qty = max;
+				this.move_qty = qty;
+			},
+
+			increaseMoveQty() {
+				const max = Number(this.move_product?.stock) || 1;
+				let qty = Number(this.move_qty) || 1;
+				if (qty < max) qty++;
+				this.move_qty = qty;
+			},
+
+			decreaseMoveQty() {
+				let qty = Number(this.move_qty) || 1;
+				if (qty > 1) qty--;
+				this.move_qty = qty;
+			},
+
+			readQRForMove() {
+				this.qr_mode = 'move';
+				Alpine.store('cache').showModal('read');
+				this.startScan();
+			},
+
+			async confirmMoveStock() {
+				if (!this.move_product || !this.move_destination) return;
+				const qty = parseInt(this.move_qty);
+				if (qty < 1) return;
+
+				this.move_loading = true;
+				try {
+					const res = await fetch(`${this.api}/warehouse/stock/move`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							warehouse_stock_id: this.move_product.warehouse_stock_id,
+							quantity:           qty,
+							destination_label:  this.move_destination,
+						}),
+					});
+					const json = await res.json();
+					if (!res.ok) throw new Error(json?.data?.message || json?.message || 'Error');
+
+					this.selected_location = json.data?.location || json.location;
+					Alpine.store('cache').hideModal('warehouse-move-stock');
+
+					if ((this.product_input || '').trim().length >= 2) {
+						await this.findProducts();
+					}
+				} catch (e) {
+					// alert('Error: ' + e.message);
+				} finally {
+					this.move_loading = false;
+				}
+			},
+
 
 			stopScan() {
 				this.scannerRunning = false;
@@ -752,6 +1058,8 @@
 	
 
 	<style>
+		
+
 		.map .warehouse-map {
 			width: 100%;
 			max-width: 1300px;
@@ -981,6 +1289,7 @@
 			margin-left: auto;
 			gap: 0.25rem;
 			align-items: center;
+			padding: 0.5rem;
 		}
 		.location.ware {
 			margin: 0;
@@ -988,6 +1297,7 @@
 		}
 		.location.full {
 			margin: 0;
+			padding: 0;
 		}
 		.location.ware .stock {
 			margin-left: auto;
@@ -1002,7 +1312,7 @@
 			background-color: #113474;
 			gap: 0.25rem;
 			padding: 0.35rem 0;
-			border-radius: 0.125rem;
+			border-radius: 0.25rem;
 			width: 2.5rem;
 		}
 		.location .block.black {
@@ -1014,8 +1324,8 @@
 		}
 		.location .block .number {
 			font-size: 1.35rem;
-			font-family: sans-serif;
-			font-weight: 800;
+			/* font-family: sans-serif; */
+			font-weight: 600;
 			line-height: 1.35rem;
 		}
 		.location .block .number.fix {
@@ -1043,87 +1353,224 @@
 			border: 2px solid #f8a87f;
 			margin: -0.5rem 0;
 		}
+		#modal-warehouse-location .button-add {
+			display: flex;
+			gap: 0.25rem;
+			justify-content: center;
+			align-items: center;
+			width: initial;
+			padding: 0 1rem;
+			line-height: 2rem;
+			font-size: 0.8rem;
+			font-weight: 400;
+		}
+		#modal-warehouse-location .button-add img {
+				filter: invert(1);
+			}
 		#modal-warehouse-location .table-header {
 			display: grid;
 			grid-template-columns: 1.5fr 1fr 1fr 0.5fr;
 			gap: 1rem;
-			padding: 0rem 1rem 0 1rem;
+			padding: 0rem 3rem 0 1rem;
 			font-weight: 600;
+			display: none;
 		}
 		#modal-warehouse-location .table-box {
 			gap: 0.5rem;
 			display: flex;
 			flex-direction: column;
 		}
+		#modal-warehouse-location .table-parent {
+			display: flex;
+			gap: 0.5rem;
+		}
 		#modal-warehouse-location .table-row {
-			display: grid;
-			grid-template-columns: 1.5fr 1fr 1fr 0.5fr;
-			gap: 1rem;
+			display: flex;
+			gap: 0.5rem;
 			align-items: center;
-			padding: 0.75rem 1rem;
-			cursor: pointer;
-			transition: var(--transition);
+			padding: 0.5rem 0.75rem;
+			flex: 1;
 		}
 		#modal-warehouse-location .table-row img {
 			width: 2.5rem;
 			min-width: 2.5rem;
 			height: 2.5rem;
 		}
-		#modal-warehouse-location .table-row .model {
-			display: flex;
-			align-items: center;
-			gap: 0.5rem;
-			font-weight: 500;
+		#modal-warehouse-location .table-row .data {
+			display: grid;
+			grid-template-columns: 1.5fr 1fr 0.5fr;
+			gap: 1rem;
+			flex: 1;
 		}
-		#modal-warehouse-location .table-row .brand {
-			
+		#modal-warehouse-location .table-row .model {
+			font-weight: 500;
 		}
 		#modal-warehouse-location .table-row .qty {
 			text-align: right;
 			font-weight: 600;
+			color: var(--primary);
 		}
-		#modal-warehouse-remove-stock .selected {
+		/* Modal head add button */
+		#modal-warehouse-location .modal-head-add {
+			display: flex;
+			align-items: center;
+			gap: 0.35rem;
+			padding: 0.3rem 0.75rem;
+			border-radius: 2rem;
+			font-size: 0.85rem;
+			font-weight: 600;
+			background-color: var(--primary);
+			color: var(--white);
+			cursor: pointer;
+			margin: -0.5rem 0;
+		}
+		#modal-warehouse-location .modal-head-add img {
+			opacity: .9;
+		}
+		#modal-warehouse-location .move-btn {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 0.5rem;
+			flex-direction: column;
+			font-size: 0.65rem;
+			font-weight: 600;
+			gap: 0.125rem;
+		}
+		/* Modal add stock */
+		#modal-warehouse-add-stock .title {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		#modal-warehouse-add-stock .title .location-badge {
+			font-size: 0.78rem;
+			font-weight: 700;
+			font-family: sans-serif;
+			color: var(--primary);
+			opacity: 0.8;
+		}
+		.add-search-wrap {
+			position: relative;
+		}
+		.add-search-bar {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.4rem 0.75rem;
+			border-radius: 0.5rem;
+		}
+		.add-search-bar input {
+			flex: 1;
+			background: transparent;
+			border: none;
+			outline: none;
+			font-family: inherit;
+			font-size: 0.9rem;
+		}
+		.add-search-results {
+			border-radius: 0.5rem;
+			z-index: 10;
+			max-height: 20rem;
+			overflow-y: auto;
+			box-shadow: 0 4px 16px rgba(0,0,0,.15);
+		}
+		.add-result-row {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.5rem 0.75rem;
+			cursor: pointer;
+			border-bottom: 1px solid rgba(0,0,0,.06);
+		}
+		.add-result-row:last-child { border-bottom: none; }
+		.add-result-text {
+			display: flex;
+			flex-direction: column;
+			font-size: 0.85rem;
+		}
+		.add-result-text .brand { font-weight: 600; }
+		.add-result-text .model { opacity: .65; font-size: .78rem; }
+		/* Modal move stock */
+		.move-destination-wrap {
+			display: flex;
+			flex-direction: column;
+			gap: 0.4rem;
+		}
+		.move-dest-label {
+			font-size: 0.8rem;
+			font-weight: 600;
+			opacity: 0.6;
+		}
+		.move-dest-input {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.4rem 0.5rem 0.4rem 0.75rem;
+			border-radius: 0.5rem;
+		}
+		.move-dest-input input {
+			flex: 1;
+			background: transparent;
+			border: none;
+			outline: none;
+			font-family: inherit;
+			font-size: 1rem;
+			font-weight: 600;
+			letter-spacing: 0.05em;
+			text-transform: uppercase;
+			padding: 0;
+		}
+		.move-dest-input .press {
+			width: 2rem;
+			height: 2rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			opacity: 0.5;
+		}
+		.change-box .selected {
 			padding: 0.75rem;
 			display: flex;
 			flex-direction: column;
 			gap: 0.25rem;
 		}
-		#modal-warehouse-remove-stock .selected .item {
+		.change-box .selected .item {
 			display: flex;
 			gap: 0.5rem;
 			align-items: center;
 		}
-		#modal-warehouse-remove-stock .selected .item .data {
+		.change-box .selected .item .data {
 			display: flex;
 			flex-direction: column;
 		}
-		#modal-warehouse-remove-stock .selected .item .model {
+		.change-box .selected .item .model {
 			font-size: 0.9rem;
     		font-weight: 500;
 		}
-		#modal-warehouse-remove-stock .selected .item .category {
+		.change-box .selected .item .category {
 			opacity: 0.5;
 			font-weight: 500;
 			font-size: 0.8rem;
 		}
-		#modal-warehouse-remove-stock .selected .item .stock {
+		.change-box .selected .item .stock {
 			color: var(--primary);
 		}
-		#modal-warehouse-remove-stock .remove-box {
+		.change-box .remove-box {
 			display: flex;
 			flex-direction: column;
 			gap: 0.75rem;
 		}
-		#modal-warehouse-remove-stock .remove-box .text {
+		.change-box .remove-box .text {
 			opacity: 0.75;
 			font-weight: 500;
 			text-align: center;
 		}
-		#modal-warehouse-remove-stock .remove-box .number {
+		.change-box .remove-box .number {
 			display: flex;
     		gap: 0.75rem;
 		}
-		#modal-warehouse-remove-stock .remove-box .action {
+		.change-box .remove-box .action {
 			width: 4rem;
 			height: 3rem;
 			display: flex;
@@ -1133,7 +1580,7 @@
 			font-size: 1.4rem;
 			font-family: monospace;
 		}
-		#modal-warehouse-remove-stock .remove-box input {
+		.change-box .remove-box input {
 			flex: 1;
 			text-align: center;
 			border: none;
@@ -1143,6 +1590,7 @@
 		}
 		#modal-read {
 			align-items: center;
+			z-index: 100;
 		}
 		#modal-read .modal {
 			align-items: center;
@@ -1263,14 +1711,27 @@
 			border-radius: 0.75rem;
 		}
 		#warehouse .finded-products .item {
-			padding: 0.5rem;
 			display: flex;
 			align-items: center;
-			gap: 0.5rem;
 			border-bottom: 2px solid #ffffffba;
 		}
 		#warehouse .finded-products .item:last-child {
 			border-bottom: none;
+		}
+		#warehouse .finded-products .item .product {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			flex: 1;
+			transition: var(--transition);
+			cursor: pointer;
+    		padding: 0.5rem;
+		}
+		#warehouse .finded-products .item .product:hover {
+			background-color: #ffffffba;
+		}
+		#warehouse .finded-products .item .product .image {
+			mix-blend-mode: darken;
 		}
 		#warehouse .finded-products .thumb {
 			padding: 0.5rem;
@@ -1336,9 +1797,11 @@
 			#warehouse .finded-products .title .brand {
 				font-size: 0.8rem;
     			font-weight: 600;
+				line-height: 0.9rem;
 			}
 			#warehouse .finded-products .text {
 				flex-direction: column;
+				gap: 0.5rem;
 			}
 			#warehouse .finded-products .text .stock {
 				justify-content: start;
@@ -1347,8 +1810,27 @@
 				font-weight: 600;
 				margin: 0;
 			}
-			.location .block {
+			/* .location .block {
 				width: 2.25rem;
+			} */
+			#modal-warehouse-location .table-row .data {
+				display: flex;
+				flex-direction: column;
+				gap: 0;
+			}
+			#modal-warehouse-location .table-row .model {
+				font-weight: 600;
+			}
+			#modal-warehouse-location .table-row .data .brand {
+				font-size: 0.75rem;
+			}
+			#modal-warehouse-location .table-row .data .category {
+				opacity: 0.5;
+    			font-size: 0.75rem;
+			}
+			#modal-warehouse-location .table-row .data .qty {
+				text-align: initial;
+				margin-top: 0.25rem;
 			}
 		}
 	</style>

@@ -21,3 +21,23 @@ class WarehouseController:
     @handle_logs_and_exceptions
     def warehouse_remove_stock(self, data):
         return self.warehouse.remove_stock(data)
+
+
+    @handle_logs_and_exceptions
+    def warehouse_add_stock(self, data):
+        return self.warehouse.add_stock(data)
+
+
+    @handle_logs_and_exceptions
+    def warehouse_move_stock(self, data):
+        return self.warehouse.move_stock(data)
+
+
+    @handle_logs_and_exceptions
+    def warehouse_search_machines(self, query):
+        return self.warehouse.search_machines(query)
+
+
+    @handle_logs_and_exceptions
+    def warehouse_load_excel(self, data):
+        return self.warehouse.load_excel(data)

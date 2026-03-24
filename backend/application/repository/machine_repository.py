@@ -11,9 +11,10 @@ class MachineRepository:
         full_name = func.concat(Brands.name, ' ', Machines.model).label("full_name")
 
         machines = (
-            g.db_session.query(Machines.id, Machines.image, full_name)
+            g.db_session.query(Machines.id, Machines.image, Machines.category_id, full_name)
             .join(Brands)
             .filter(full_name.ilike(search_term))
+            .filter(Machines.category_id == 1)
             .order_by(full_name)
             .all()
         )

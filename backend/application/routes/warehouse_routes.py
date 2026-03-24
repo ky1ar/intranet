@@ -22,3 +22,30 @@ def get_location(label):
 # @jwt_required()
 def remove_stock():
     return controller.warehouse_remove_stock(request.get_json())
+
+
+@warehouse_bp.route("/stock/add", methods=["POST"])
+# @jwt_required()
+def add_stock():
+    return controller.warehouse_add_stock(request.get_json())
+
+
+@warehouse_bp.route("/stock/move", methods=["POST"])
+# @jwt_required()
+def move_stock():
+    return controller.warehouse_move_stock(request.get_json())
+
+
+@warehouse_bp.route("/machines/search", methods=["GET"])
+# @jwt_required()
+def search_machines():
+    return controller.warehouse_search_machines(request.args.get("q", ""))
+
+
+@warehouse_bp.route("/load", methods=["POST"])
+# @jwt_required()
+def load_excel():
+    file = request.files.get("file")
+    if not file:
+        return "No se recibió ningún archivo", 400
+    return controller.warehouse_load_excel(file.read())
