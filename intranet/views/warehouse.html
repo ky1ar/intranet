@@ -811,6 +811,7 @@
 	<script>
 		Alpine.data('warehouse_data', () => ({
 			api: Alpine.store('cache').api,
+			user: Alpine.store('cache').user,
 			buttons: {
 				process: { class: '', text: 'Añadir' },
 			},
@@ -957,6 +958,9 @@
 
 					const response = await fetch(`${this.api}/warehouse/load`, {
 						method: 'POST',
+						headers: { 
+							'Authorization': `Bearer ${this.user.token}`,
+						},
 						body: formData,
 					});
 
@@ -1159,7 +1163,10 @@
 
 					const response = await fetch(`${this.api}/warehouse/stock/remove`, {
 						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
+						headers: {
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${this.user.token}`,
+						},
 						body: JSON.stringify(payload),
 					});
 
@@ -1283,7 +1290,10 @@
 				try {
 					const res = await fetch(`${this.api}/warehouse/stock/add`, {
 						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
+						headers: {
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${this.user.token}`,
+						},
 						body: JSON.stringify({
 							product_id:     this.add_stock_selected.id,
 							location_label: this.selected_location.label,
@@ -1352,7 +1362,10 @@
 				try {
 					const res = await fetch(`${this.api}/warehouse/stock/move`, {
 						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
+						headers: { 
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${this.user.token}`,
+						},
 						body: JSON.stringify({
 							warehouse_stock_id: this.move_product.warehouse_stock_id,
 							quantity:           qty,

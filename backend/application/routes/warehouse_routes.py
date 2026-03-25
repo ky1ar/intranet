@@ -19,19 +19,19 @@ def get_location(label):
 
 
 @warehouse_bp.route("/stock/remove", methods=["POST"])
-# @jwt_required()
+@jwt_required()
 def remove_stock():
     return controller.warehouse_remove_stock(request.get_json())
 
 
 @warehouse_bp.route("/stock/add", methods=["POST"])
-# @jwt_required()
+@jwt_required()
 def add_stock():
     return controller.warehouse_add_stock(request.get_json())
 
 
 @warehouse_bp.route("/stock/move", methods=["POST"])
-# @jwt_required()
+@jwt_required()
 def move_stock():
     return controller.warehouse_move_stock(request.get_json())
 
@@ -43,7 +43,7 @@ def search_machines():
 
 
 @warehouse_bp.route("/load", methods=["POST"])
-# @jwt_required()
+@jwt_required()
 def load_excel():
     file = request.files.get("file")
     if not file:

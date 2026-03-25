@@ -1,13 +1,25 @@
 import io, openpyxl
 from application.handlers import handle_exceptions
 from application.repository.warehouse_repository import WarehouseRepository
+from application.services.push_service import PushSender
+from application.repository.user_repository import UserRepository
+from flask_jwt_extended import get_jwt_identity
 
 
 class WarehouseService:
     def __init__(self):
         self.warehouse_repository = WarehouseRepository()
+        self.push_service         = PushSender()
+        self.user_repository      = UserRepository()
 
 
+    def _current_user_id(self):
+        try:
+            return int(get_jwt_identity())
+        except Exception:
+            return None
+        
+        
     def _location_label(self, block, level, position):
         return f"B{block}-{level}-{position}"
 
@@ -171,7 +183,7 @@ class WarehouseService:
         location = self._serialize_location(code, rows)
         return {"location": location}, 200
 
-
+            
     @handle_exceptions
     def remove_stock(self, data):
         warehouse_stock_id = data.get("warehouse_stock_id")
@@ -179,29 +191,49 @@ class WarehouseService:
 
         try:
             warehouse_stock_id = int(warehouse_stock_id)
-            quantity = int(quantity)
+            quantity           = int(quantity)
         except (TypeError, ValueError):
-            return {"message": "Datos inválidos"}, 400
+            return "Datos inválidos", 400
 
         if quantity < 1:
-            return {"message": "La cantidad a retirar debe ser mayor a 0"}, 400
+            return "La cantidad a retirar debe ser mayor a 0", 400
 
-        removed_data, rc = self.warehouse_repository.remove_stock(
-            warehouse_stock_id=warehouse_stock_id,
-            quantity=quantity
-        )
+        removed_data, rc = self.warehouse_repository.remove_stock(warehouse_stock_id=warehouse_stock_id, quantity=quantity)
         if rc != 200:
             return removed_data, rc
 
-        code, rows, rc = self.warehouse_repository.get_location_detail(removed_data["label"])
+        user_id    = self._current_user_id()
+        from_label = removed_data["label"]
+        product_id = removed_data.get("product_id") or self.warehouse_repository.resolve_product_id(warehouse_stock_id)
+
+        # ── Traza ──────────────────────────────────────────────────────────────
+        self.warehouse_repository.save_log(
+            action="pick",
+            product_id=product_id,
+            user_id=user_id,
+            quantity=quantity,
+            from_code_id=removed_data.get("code_id"),
+        )
+
+        if product_id:
+            total, _ = self.warehouse_repository.get_total_stock_for_product(product_id)
+            if total < 3:
+                user_ids, _ = self.user_repository.get_all_user_ids()
+                product_name = removed_data.get("product_name", "Producto")
+                self.push_service.send_to_users(
+                    user_ids=user_ids,
+                    title="⚠️ Stock bajo en almacén",
+                    body=f"{product_name} tiene {total} ud{'s' if total != 1 else ''} en total.",
+                    # data={"action": "warehouse_low_stock", "product_id": str(product_id)},
+                )
+
+        code, rows, rc = self.warehouse_repository.get_location_detail(from_label)
         if rc != 200:
             return code, rc
 
-        location = self._serialize_location(code, rows)
-
         return {
             "message": "Stock retirado correctamente",
-            "location": location
+            "location": self._serialize_location(code, rows),
         }, 200
 
 
@@ -239,6 +271,12 @@ class WarehouseService:
                 "qty":      int(qty),
             })
 
+        self.warehouse_repository.save_log(
+            action="load",
+            user_id=self._current_user_id(),
+            quantity=len(rows),
+        )
+                
         return self.warehouse_repository.load_excel_rows(rows)
 
 
@@ -277,7 +315,18 @@ class WarehouseService:
         if rc != 200:
             return code, rc
 
-        return {"message": "Stock añadido correctamente", "location": self._serialize_location(code, rows)}, 200
+        self.warehouse_repository.save_log(
+            action="add",
+            product_id=product_id,
+            user_id=self._current_user_id(),
+            quantity=quantity,
+            to_code_id=result.get("code_id"),
+        )
+                
+        return {
+            "message": "Stock añadido correctamente",
+            "location": self._serialize_location(code, rows)
+        }, 200
 
 
     @handle_exceptions
@@ -307,6 +356,15 @@ class WarehouseService:
         if rc != 200:
             return code, rc
 
+        self.warehouse_repository.save_log(
+            action="move",
+            product_id=self.warehouse_repository.resolve_product_id(warehouse_stock_id),
+            user_id=self._current_user_id(),
+            quantity=quantity,
+            from_code_id=result.get("from_code_id"),
+            to_code_id=result.get("to_code_id"),
+        )
+                
         return {
             "message": "Stock movido correctamente",
             "location": self._serialize_location(code, rows),

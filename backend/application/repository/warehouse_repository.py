@@ -1,6 +1,6 @@
 import re, logging
 from application.handlers import handle_db_exceptions
-from application.db_models.warehouse_model import WarehouseCodes, WarehouseStock
+from application.db_models.warehouse_model import WarehouseCodes, WarehouseStock, WarehouseLog
 from application.models import Brands, Machines, Category
 from sqlalchemy import or_, func, cast, String, not_, exists
 from flask import g
@@ -160,13 +160,13 @@ class WarehouseRepository:
         )
 
         if not stock_row:
-            return {"message": "Registro de stock no encontrado"}, 404
+            return "Registro de stock no encontrado", 404
 
         if quantity < 1:
-            return {"message": "La cantidad debe ser mayor a 0"}, 400
+            return "La cantidad debe ser mayor a 0", 400
 
         if stock_row.stock < quantity:
-            return {"message": "La cantidad excede el stock disponible"}, 400
+            return "La cantidad excede el stock disponible", 400
 
         stock_row.stock = stock_row.stock - quantity
         g.db_session.commit()
@@ -176,8 +176,11 @@ class WarehouseRepository:
 
         return {
             "warehouse_stock_id": stock_row.id,
-            "stock": stock_row.stock,
-            "label": label
+            "product_id":         stock_row.product_id,
+            "product_name":       f"{stock_row.product.brand.name} {stock_row.product.model}",
+            "stock":              stock_row.stock,
+            "label":              label,
+            "code_id":            stock_row.code_id,
         }, 200
 
 
@@ -316,6 +319,42 @@ class WarehouseRepository:
 
 
     @handle_db_exceptions
+    def get_total_stock_for_product(self, product_id):
+        total = (
+            g.db_session.query(func.sum(WarehouseStock.stock))
+            .filter(
+                WarehouseStock.product_id == product_id,
+                WarehouseStock.stock > 0,
+            )
+            .scalar()
+        ) or 0
+        return total, 200
+
+
+    def resolve_product_id(self, warehouse_stock_id):
+        try:
+            row = g.db_session.query(WarehouseStock).filter_by(id=warehouse_stock_id).first()
+            return row.product_id if row else None
+        except Exception:
+            return None
+
+
+    @handle_db_exceptions
+    def save_log(self, action, product_id=None, user_id=None, quantity=None, from_code_id=None, to_code_id=None):
+        log = WarehouseLog(
+            action=action,
+            product_id=product_id,
+            user_id=user_id,
+            quantity=quantity,
+            from_code_id=from_code_id,
+            to_code_id=to_code_id,
+        )
+        g.db_session.add(log)
+        g.db_session.commit()
+        return True, 200
+
+
+    @handle_db_exceptions
     def get_available_locations(self):
 
         codes = (
@@ -410,7 +449,7 @@ class WarehouseRepository:
             g.db_session.add(stock_row)
 
         g.db_session.commit()
-        return {"label": label_norm}, 200
+        return {"label": label_norm, "code_id": code.id}, 200
 
 
     @handle_db_exceptions
@@ -475,4 +514,9 @@ class WarehouseRepository:
         source_label = f"B{source_code.block}-{source_code.level}-{source_code.position}"
 
         g.db_session.commit()
-        return {"source_label": source_label, "dest_label": dest_norm}, 200
+        return {
+            "source_label":   source_label,
+            "dest_label":     dest_norm,
+            "from_code_id":   source_code.id,
+            "to_code_id":     dest_code.id,
+        }, 200
