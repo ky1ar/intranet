@@ -7,7 +7,7 @@
 					<span>Mapa</span>
 				</div>
 
-				<div class="item hover-opacity press" @click="$refs.excelInput.click()" :class="{ 'loading': excel_loading }">
+				<div class="item hover-opacity press" @click="$refs.excelInput.click()" x-show="adminAllowed()" :class="{ 'loading': excel_loading }">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
 					<span x-text="excel_loading ? 'Cargando...' : 'Cargar'"></span>
 				</div>
@@ -81,7 +81,7 @@
 
 				<template x-for="row in finded_products" :key="row.warehouse_stock_id || `${row.product_id}-${row.location?.label}`">
 					<div class="item">
-						<div class="product" @click="openRemoveStockModal(row)">
+						<div class="product" :class="{ 'active': logisticAllowed()}" @click="openRemoveStockModal(row)">
 							<img class="image" alt="" width="48" height="48" :src="`/static/images/uploads/machines/${row.image}`">
 
 							<div class="text">
@@ -184,7 +184,7 @@
 								<img alt="" width="14" height="14" src="/static/images/icons/map.svg" style="filter:invert(1)">
 								Ubicar
 							</button>
-							<button class="button button-add hover-opacity" @click="openAddStockModal()">
+							<button class="button button-add hover-opacity" @click="openAddStockModal()" x-show="adminAllowed()">
 								<img alt="" width="16" height="16" src="/static/images/icons/add.svg">
 								Añadir
 							</button>
@@ -204,7 +204,7 @@
 						<div class="table-box">
 							<template x-for="p in selected_location.products" :key="p.warehouse_stock_id">
 								<div class="table-parent">
-									<div class="table-row hover-opacity white" @click="openRemoveStockModal(p)">
+									<div class="table-row white" :class="{ 'hover-opacity': logisticAllowed()}" @click="openRemoveStockModal(p)">
 										<img alt="" width="40" height="40" :src="`/static/images/uploads/machines/${p.image}`">
 										<div class="data">
 											<span class="model" x-text="`${p.brand} ${p.model}`"></span>
@@ -213,7 +213,7 @@
 										</div>
 									</div>
 									
-									<div class="white hover-opacity press move-btn" @click.stop="openMoveModal(p)" title="Mover stock">
+									<div class="white hover-opacity press move-btn" @click.stop="openMoveModal(p)" x-show="adminAllowed()" title="Mover stock">
 										<img alt="" width="24" height="24" src="/static/images/icons/move.svg" class="invert">
 										<span>Mover</span>
 									</div>
@@ -1115,6 +1115,8 @@
 			openRemoveStockModal(product) {
 				if (!product) return;
 
+				if (!this.logisticAllowed()) return;
+
 				this.selected_product = JSON.parse(JSON.stringify(product));
 				this.remove_qty = 1;
 
@@ -1436,6 +1438,14 @@
 				};
 
 				tick();
+			},
+
+			logisticAllowed() {
+				return (this.user.department_id == 2 || this.user.id == 23 || this.user.department_id == 7 );
+			},
+
+			adminAllowed() {
+				return (this.user.id == 6 || this.user.id == 23 || this.user.id == 8  || this.user.department_id == 7);
 			},
 		}));
 	</script>
@@ -2236,11 +2246,13 @@
 			align-items: center;
 			gap: 0.5rem;
 			flex: 1;
-			transition: var(--transition);
-			cursor: pointer;
     		padding: 0.5rem;
 		}
-		#warehouse .finded-products .item .product:hover {
+		#warehouse .finded-products .item .product.active {
+			transition: var(--transition);
+			cursor: pointer;
+		}
+		#warehouse .finded-products .item .product.active:hover {
 			background-color: #ffffffba;
 		}
 		#warehouse .finded-products .item .product .image {
