@@ -445,7 +445,7 @@
 				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
 
 				<div class="title full">
-					<span class="wmap-title" x-text="`Plano del almacén — Piso ${current_floor}`"></span>
+					<span class="wmap-title" x-text="`Plano Piso ${current_floor}`"></span>
 					<div class="buttons">
 						<button class="button button-add hover-opacity" @click="current_floor = current_floor === 1 ? 2 : 1">
 							<img alt="" width="14" height="14" src="/static/images/icons/floor.svg">
@@ -703,7 +703,7 @@
 				</div>
 
 				<!-- Leyenda -->
-				<div class="wmap-legend glass2">
+				<div class="wmap-legend mobile-hide glass2">
 					<div class="wmap-legend-item">
 						<div class="wmap-cell" style="pointer-events:none;"></div>
 						<span>Vacío</span>
@@ -1963,19 +1963,6 @@
 			font-weight: 600;
 			gap: 0.125rem;
 		}
-		/* Modal add stock */
-		#modal-warehouse-add-stock .title {
-			display: flex;
-			align-items: center;
-			gap: 0.5rem;
-		}
-		#modal-warehouse-add-stock .title .location-badge {
-			font-size: 0.78rem;
-			font-weight: 700;
-			font-family: sans-serif;
-			color: var(--primary);
-			opacity: 0.8;
-		}
 		.add-search-wrap {
 			position: relative;
 		}
@@ -2306,6 +2293,7 @@
 			#content.sidebar {
 				padding-bottom: 0;
 				position: fixed;
+				width: 100%;
 			}
 			#warehouse .main-title {
 				font-size: 1.25rem;
