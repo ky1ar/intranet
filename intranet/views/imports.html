@@ -211,9 +211,9 @@
 												<div class="update-dot"></div>
 											</template>
 
-											<div class="passed-days">
+											<!-- <div class="passed-days">
 												<span class="register-day" x-text="`${item.passed_days} d.`"></span>
-											</div>
+											</div> -->
 										</div>
 
 										<div class="row">
@@ -651,7 +651,7 @@
 							</div>
 						</div>
 
-						<div class="box white" x-show="editAllowed() && (import_data?.cargo_details?.qty || import_data?.cargo_details?.pallets)">
+						<div class="box white" x-show="(import_data?.cargo_details?.qty || import_data?.cargo_details?.pallets)">
 							<div class="pair-content" style="justify-content: space-between;">
 								<div class="pair">
 									<img alt="" width="16" height="16" src="/static/images/imports/pickup.svg">
@@ -679,7 +679,7 @@
 							</div>
 						</div>
 
-						<div class="box white"  x-show="editAllowed() && import_data?.delivery?.date">
+						<div class="box white"  x-show="import_data?.delivery?.date">
 							<div class="pair-content">
 								<div class="pair">
 									<img alt="" width="16" height="16" src="/static/images/icons/filled/calendar.svg">
@@ -1898,9 +1898,9 @@
 							groups[0].imports.push(item);
 						} else if (status === 6) {
 							groups[1].imports.push(item);
-						} else if (status > 6 && status < 12) {
+						} else if (status > 6 && status <= 12) {
 							groups[2].imports.push(item);
-						} else if (status >= 12) {
+						} else if (status > 12) {
 							groups[3].imports.push(item);
 						}
 					}

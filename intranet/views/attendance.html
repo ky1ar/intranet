@@ -984,6 +984,9 @@
 			if (day?.is_vacation) return false;
 			if (day?.is_permit && !day?.expected_start) return false;
 
+			const permitDid = day?.permit?.duration_id ?? day?.permit_duration_id ?? null;
+			if (day?.is_permit && (permitDid === 1 || permitDid === 3)) return false;
+
 			const first = (day?.intervals || [])[0];
 			const start = (first?.start || "").trim();
 			const expected = (day?.expected_start || "").trim();
@@ -1321,26 +1324,27 @@
 
 			const did = permitInfo?.duration_id || null;
 
-			// ===== SLOT MAÑANA =====
-			const morningInterval = makeTimeItem("Mañana", intervalsRaw[0] || null);
-
-			if (did === 1) {                // permiso en la mañana: permiso primero
+			if (did === 1) {
+				// ===== PERMISO MAÑANA: mañana cubierta, índice 0 es la tarde =====
+				// intervalsRaw[0] es la tarde porque la mañana no tiene marcaciones              // permiso en la mañana: permiso primero
 				if (permitInfo?.morning) items.push(makePermitItem("Mañana"));
-				if (morningInterval) items.push(morningInterval);
+				const afternoonForMorningPermit = makeTimeItem("Tarde", intervalsRaw[0] || null);
+				if (afternoonForMorningPermit) items.push(afternoonForMorningPermit);
 			} else {
+				// ===== SLOT MAÑANA (sin permiso de mañana) =====
+				const morningInterval = makeTimeItem("Mañana", intervalsRaw[0] || null);
 				if (morningInterval) items.push(morningInterval);
 				// did=3 (día completo) lo renderizamos después en bloque único
-			}
+				// ===== SLOT TARDE =====
+				const afternoonInterval = makeTimeItem("Tarde", intervalsRaw[1] || null);
 
-			// ===== SLOT TARDE =====
-			const afternoonInterval = makeTimeItem("Tarde", intervalsRaw[1] || null);
-
-			if (did === 2) {                // permiso en la tarde: intervalo primero
-				if (afternoonInterval) items.push(afternoonInterval);
-				if (permitInfo?.afternoon) items.push(makePermitItem("Tarde"));
-			} else {
-				if (afternoonInterval) items.push(afternoonInterval);
-				// did=3 lo renderizamos después en bloque único
+				if (did === 2) {                // permiso en la tarde: intervalo primero
+					if (afternoonInterval) items.push(afternoonInterval);
+					if (permitInfo?.afternoon) items.push(makePermitItem("Tarde"));
+				} else {
+					if (afternoonInterval) items.push(afternoonInterval);
+					// did=3 lo renderizamos después en bloque único
+				}
 			}
 
 			// ===== PERMISO DÍA COMPLETO (una sola vez) =====
