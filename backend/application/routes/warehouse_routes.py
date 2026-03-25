@@ -49,3 +49,8 @@ def load_excel():
     if not file:
         return "No se recibió ningún archivo", 400
     return controller.warehouse_load_excel(file.read())
+
+
+@warehouse_bp.route("/locations/occupied", methods=["GET"])
+def get_occupied_locations():
+    return controller.warehouse_get_occupied_locations()

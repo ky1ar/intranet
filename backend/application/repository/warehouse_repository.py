@@ -2,7 +2,7 @@ import re, logging
 from application.handlers import handle_db_exceptions
 from application.db_models.warehouse_model import WarehouseCodes, WarehouseStock
 from application.models import Brands, Machines, Category
-from sqlalchemy import or_, func, cast, String
+from sqlalchemy import or_, func, cast, String, not_, exists
 from flask import g
 
 
@@ -301,8 +301,22 @@ class WarehouseRepository:
 
 
     @handle_db_exceptions
+    def get_occupied_locations(self):
+        codes = (
+            g.db_session.query(WarehouseCodes)
+            .filter(
+                exists().where(
+                    (WarehouseStock.code_id == WarehouseCodes.id) &
+                    (WarehouseStock.stock > 0)
+                )
+            )
+            .all()
+        )
+        return [f"B{c.block}-{c.level}-{c.position}" for c in codes], 200
+
+
+    @handle_db_exceptions
     def get_available_locations(self):
-        from sqlalchemy import not_, exists
 
         codes = (
             g.db_session.query(WarehouseCodes)

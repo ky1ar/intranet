@@ -60,7 +60,7 @@
 							<div class="location ware">
 								<span class="block">
 									<span class="label">Bloque</span>
-									<span class="number" x-text="loc.block || '-'"></span>
+									<span class="number" x-text="loc.block || '0'"></span>
 								</span>
 
 								<span class="block black">
@@ -96,7 +96,7 @@
 						<div class="location hover-opacity" @click="openLocationModal(row.location?.label)">
 							<span class="block">
 								<span class="label">Bloque</span>
-								<span class="number" x-text="row.location?.block || '-'"></span>
+								<span class="number" x-text="row.location?.block || '0'"></span>
 							</span>
 
 							<span class="block black">
@@ -165,7 +165,7 @@
 						<div class="location full">
 							<span class="block">
 								<span class="label">Bloque</span>
-								<span class="number" x-text="selected_location?.block || '-'"></span>
+								<span class="number" x-text="selected_location?.block || '0'"></span>
 							</span>
 							<span class="block black">
 								<span class="label">Rack</span>
@@ -181,7 +181,7 @@
 
 						<div class="buttons">
 							<button class="button button-add black hover-opacity" @click="openMapModal(selected_location?.label)">
-								<img alt="" width="14" height="14" src="/static/images/icons/find.svg" style="filter:invert(1)">
+								<img alt="" width="14" height="14" src="/static/images/icons/map.svg" style="filter:invert(1)">
 								Ubicar
 							</button>
 							<button class="button button-add hover-opacity" @click="openAddStockModal()">
@@ -444,59 +444,172 @@
 			<div class="modal initial glass2 extra wmap-modal" @click.stop>
 				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
 
-				<div class="title">
-					<span class="wmap-title">Plano del almacén — Piso 1</span>
-					<!-- <template x-if="map_highlight_label">
-						<span class="wmap-badge" x-text="map_highlight_label"></span>
-					</template> -->
+				<div class="title full">
+					<span class="wmap-title" x-text="`Plano del almacén — Piso ${current_floor}`"></span>
+					<div class="buttons">
+						<button class="button button-add hover-opacity" @click="current_floor = current_floor === 1 ? 2 : 1">
+							<img alt="" width="14" height="14" src="/static/images/icons/floor.svg">
+							Cambiar piso
+						</button>
+					</div>
+					
 				</div>
 
 				<div class="wmap-scroll">
-					<div class="wmap-viewport">
+					<!-- ══ PISO 1 ══ -->
+					<div x-show="current_floor === 1">
+						<div class="wmap-viewport">
 
-						<!-- ── FILA SUPERIOR: B5 (izq) + B4 B3 B2 B1 ── -->
-						<div class="wmap-row wmap-row-top">
+							<!-- ── FILA SUPERIOR: B5 (izq) + B4 B3 B2 B1 ── -->
+							<div class="wmap-row wmap-row-top">
 
-							<!-- Bloque 5 — filas horizontales -->
-							<div class="wmap-section">
-								<div class="wmap-block-label">BLOQUE 5</div>
-								<div class="wmap-h-block vertical">
-									<template x-for="rack in getBlock(5).racks" :key="rack">
-										<div class="wmap-hrow">
-											<span class="wmap-rack-num" x-text="rack"></span>
+								<!-- Bloque 5 — filas horizontales -->
+								<div class="wmap-section">
+									<div class="wmap-block-label">BLOQUE 5</div>
+									<div class="wmap-h-block vertical">
+										<template x-for="rack in getBlock(5).racks" :key="rack">
+											<div class="wmap-hrow">
+												<span class="wmap-rack-num" x-text="rack"></span>
 
-											<template x-for="pos in (rack >= 25 ? ['A','B','C'] : getBlock(5).positions)" :key="pos">
-												<div
-													class="wmap-cell"
-													:class="{ 'wmap-hl': isMapHighlighted(5, rack, pos) }"
-													:title="`B5-${rack}-${pos}`"
-													@click="selectMapCell(5, rack, pos)"
-												>
-													<span class="wmap-pos-label" x-text="pos"></span>
+												<template x-for="pos in (rack >= 25 ? ['A','B','C'] : getBlock(5).positions)" :key="pos">
+													<div
+														class="wmap-cell"
+														:class="{
+															'wmap-hl': isMapHighlighted(5, rack, pos),
+															'wmap-has-stock': hasStock(5, rack, pos)
+														}"
+														:title="`B5-${rack}-${pos}`"
+														@click="selectMapCell(5, rack, pos)"
+													>
+														<span class="wmap-pos-label" x-text="pos"></span>
+													</div>
+												</template>
+
+											</div>
+										</template>
+									</div>
+								</div>
+
+								<div class="wmap-divider-v"></div>
+
+								<!-- Bloques 4 → 1 — columnas verticales -->
+								<template x-for="bd in warehouse_structure.filter(b=>[4,3,2,1].includes(b.block)).sort((a,b)=>b.block-a.block)" :key="bd.block">
+									<div class="wmap-section">
+										<div class="wmap-block-label" x-text="`BLOQUE ${bd.block}`"></div>
+										<div class="wmap-v-block interval">
+											<template x-for="rack in bd.racks" :key="rack">
+												<div class="wmap-hrow">
+													<span class="wmap-rack-num" x-text="rack"></span>
+													<template x-for="pos in bd.positions" :key="pos">
+														<div
+															class="wmap-cell"
+															:class="{
+																'wmap-hl': isMapHighlighted(bd.block, rack, pos),
+																'wmap-has-stock': hasStock(bd.block, rack, pos)
+															}"
+															:title="`B${bd.block}-${rack}-${pos}`"
+															@click="selectMapCell(bd.block, rack, pos)"
+														>
+															<span class="wmap-pos-label" x-text="pos"></span>
+														</div>
+													</template>
 												</div>
 											</template>
-
 										</div>
-									</template>
+									</div>
+									<div class="wmap-divider-v" x-show="bd.block > 1"></div>
+								</template>
+
+								<!-- Zona especial: Repuestos -->
+								<!-- <div class="wmap-special-zone">
+									<span>Repuestos</span>
+									<span style="opacity:.4;font-size:.6rem">Escaleras →</span>
+								</div> -->
+							</div>
+
+							<!-- ── FILA MEDIA: B7 ── -->
+							<div class="wmap-row b7 wmap-row-mid">
+								<div class="wmap-section">
+									<div class="wmap-block-label">BLOQUE 7</div>
+									<div class="wmap-b7-grid">
+
+										<div class="wmap-b7-header">
+											<span class="wmap-rack-num">35</span>
+											<span class="wmap-rack-num">36</span>
+											<span class="wmap-rack-num">37</span>
+										</div>
+
+										<template x-for="pos in ['A','B','C']" :key="`t7top-${pos}`">
+											<div class="wmap-b7-row">
+												<template x-for="rack in [35,36,37]" :key="`t7top-${rack}-${pos}`">
+													<div
+														class="wmap-cell wmap-cell-h"
+														:class="{
+															'wmap-hl': isMapHighlighted(7, rack, pos),
+															'wmap-has-stock': hasStock(7, rack, pos)
+														}"
+														:title="`B7-${rack}-${pos}`"
+														@click="selectMapCell(7, rack, pos)"
+													>
+														<span class="wmap-pos-label" x-text="pos"></span>
+													</div>
+												</template>
+											</div>
+										</template>
+
+										<div class="wmap-b7-divider"></div>
+
+										<template x-for="pos in ['C','B','A']" :key="`t7bot-${pos}`">
+											<div class="wmap-b7-row">
+												<template x-for="rack in [34,33,32]" :key="`t7bot-${rack}-${pos}`">
+													<div
+														class="wmap-cell wmap-cell-h"
+														:class="{
+															'wmap-hl': isMapHighlighted(7, rack, pos),
+															'wmap-has-stock': hasStock(7, rack, pos)
+														}"
+														:title="`B7-${rack}-${pos}`"
+														@click="selectMapCell(7, rack, pos)"
+													>
+														<span class="wmap-pos-label" x-text="pos"></span>
+													</div>
+												</template>
+											</div>
+										</template>
+
+										<div class="wmap-b7-header">
+											<span class="wmap-rack-num">34</span>
+											<span class="wmap-rack-num">33</span>
+											<span class="wmap-rack-num">32</span>
+										</div>
+
+									</div>
 								</div>
 							</div>
 
-							<div class="wmap-divider-v"></div>
-
-							<!-- Bloques 4 → 1 — columnas verticales -->
-							<template x-for="bd in warehouse_structure.filter(b=>[4,3,2,1].includes(b.block)).sort((a,b)=>b.block-a.block)" :key="bd.block">
+							<!-- ── FILA INFERIOR: B6 ── -->
+							<div class="wmap-row b6 wmap-row-bot">
 								<div class="wmap-section">
-									<div class="wmap-block-label" x-text="`BLOQUE ${bd.block}`"></div>
-									<div class="wmap-v-block interval">
-										<template x-for="rack in bd.racks" :key="rack">
-											<div class="wmap-hrow">
+									<div class="wmap-b6-grid">
+										<!-- Números de rack como encabezado de columna -->
+										<div class="wmap-b6-header">
+											<template x-for="rack in getBlock(6).racks" :key="`h6-${rack}`">
 												<span class="wmap-rack-num" x-text="rack"></span>
-												<template x-for="pos in bd.positions" :key="pos">
+											</template>
+										</div>
+
+										<!-- Una fila por posición (A, B, C) -->
+										<template x-for="pos in getBlock(6).positions" :key="`p6-${pos}`">
+											<div class="wmap-b6-row">
+												<template x-for="rack in getBlock(6).racks" :key="`c6-${rack}-${pos}`">
 													<div
-														class="wmap-cell"
-														:class="{ 'wmap-hl': isMapHighlighted(bd.block, rack, pos) }"
-														:title="`B${bd.block}-${rack}-${pos}`"
-														@click="selectMapCell(bd.block, rack, pos)"
+														class="wmap-cell wmap-cell-h"
+														:class="{
+															'wmap-hl': isMapHighlighted(6, rack, pos),
+															'wmap-has-stock': hasStock(6, rack, pos)
+														}"
+														:title="`B6-${rack}-${pos}`"
+														@click="selectMapCell(6, rack, pos)"
 													>
 														<span class="wmap-pos-label" x-text="pos"></span>
 													</div>
@@ -504,117 +617,106 @@
 											</div>
 										</template>
 									</div>
-								</div>
-								<div class="wmap-divider-v" x-show="bd.block > 1"></div>
-							</template>
-
-							<!-- Zona especial: Repuestos -->
-							<!-- <div class="wmap-special-zone">
-								<span>Repuestos</span>
-								<span style="opacity:.4;font-size:.6rem">Escaleras →</span>
-							</div> -->
-						</div>
-
-						<!-- ── FILA MEDIA: B7 ── -->
-						<div class="wmap-row b7 wmap-row-mid">
-							<div class="wmap-section">
-								<div class="wmap-block-label">BLOQUE 7</div>
-								<div class="wmap-b7-grid">
-
-									<div class="wmap-b7-header">
-										<span class="wmap-rack-num">35</span>
-										<span class="wmap-rack-num">36</span>
-										<span class="wmap-rack-num">37</span>
-									</div>
-
-									<template x-for="pos in ['A','B','C']" :key="`t7top-${pos}`">
-										<div class="wmap-b7-row">
-											<template x-for="rack in [35,36,37]" :key="`t7top-${rack}-${pos}`">
-												<div
-													class="wmap-cell wmap-cell-h"
-													:class="{ 'wmap-hl': isMapHighlighted(7, rack, pos) }"
-													:title="`B7-${rack}-${pos}`"
-													@click="selectMapCell(7, rack, pos)"
-												>
-													<span class="wmap-pos-label" x-text="pos"></span>
-												</div>
-											</template>
-										</div>
-									</template>
-
-									<div class="wmap-b7-divider"></div>
-
-									<template x-for="pos in ['C','B','A']" :key="`t7bot-${pos}`">
-										<div class="wmap-b7-row">
-											<template x-for="rack in [34,33,32]" :key="`t7bot-${rack}-${pos}`">
-												<div
-													class="wmap-cell wmap-cell-h"
-													:class="{ 'wmap-hl': isMapHighlighted(7, rack, pos) }"
-													:title="`B7-${rack}-${pos}`"
-													@click="selectMapCell(7, rack, pos)"
-												>
-													<span class="wmap-pos-label" x-text="pos"></span>
-												</div>
-											</template>
-										</div>
-									</template>
-
-									<div class="wmap-b7-header">
-										<span class="wmap-rack-num">34</span>
-										<span class="wmap-rack-num">33</span>
-										<span class="wmap-rack-num">32</span>
-									</div>
+									<div class="wmap-block-label">BLOQUE 6</div>
 
 								</div>
 							</div>
-						</div>
 
-						<!-- ── FILA INFERIOR: B6 ── -->
-						<div class="wmap-row b6 wmap-row-bot">
-							<div class="wmap-section">
-								<div class="wmap-b6-grid">
-									<!-- Números de rack como encabezado de columna -->
-									<div class="wmap-b6-header">
-										<template x-for="rack in getBlock(6).racks" :key="`h6-${rack}`">
-											<span class="wmap-rack-num" x-text="rack"></span>
-										</template>
+							<!-- Zona piso 1 -->
+							<div class="wmap-row f1">
+								<div class="wmap-section">
+									<!-- <div class="wmap-block-label">ZONA PISO</div> -->
+									<div class="wmap-hrow">
+										<!-- <span class="wmap-rack-num">1</span> -->
+										<div
+											class="wmap-cell"
+											:class="{
+												'wmap-hl': isMapHighlighted(0, 1, 'A'),
+												'wmap-has-stock': hasStock(0, 1, 'A')
+											}"
+											title="B0-1-A"
+											@click="selectMapCell(0, 1, 'A')"
+										>
+											<span class="wmap-pos-label">Zona Piso 1</span>
+										</div>
 									</div>
+								</div>
+							</div>
 
-									<!-- Una fila por posición (A, B, C) -->
-									<template x-for="pos in getBlock(6).positions" :key="`p6-${pos}`">
-										<div class="wmap-b6-row">
-											<template x-for="rack in getBlock(6).racks" :key="`c6-${rack}-${pos}`">
-												<div
-													class="wmap-cell wmap-cell-h"
-													:class="{ 'wmap-hl': isMapHighlighted(6, rack, pos) }"
-													:title="`B6-${rack}-${pos}`"
-													@click="selectMapCell(6, rack, pos)"
-												>
-													<span class="wmap-pos-label" x-text="pos"></span>
+						</div>
+					</div>
+
+					<!-- ══ PISO 2 ══ -->
+					<div x-show="current_floor === 2">
+						<div class="wmap-viewport">
+							<div class="wmap-row wmap-row-2">
+								<template x-for="bd in warehouse_structure.filter(b=>[8,9,10].includes(b.block)).sort((a,b)=>a.block-b.block)" :key="bd.block">
+									<div class="wmap-section">
+										<div class="wmap-block-label" x-text="`BLOQUE ${bd.block}`"></div>
+										<div class="wmap-v-block">
+											<template x-for="rack in bd.racks" :key="rack">
+												<div class="wmap-hrow">
+													<span class="wmap-rack-num" x-text="rack"></span>
+													<template x-for="pos in bd.positions" :key="pos">
+														<div
+															class="wmap-cell"
+															:class="{
+																'wmap-hl': isMapHighlighted(bd.block, rack, pos),
+																'wmap-has-stock': hasStock(bd.block, rack, pos)
+															}"
+															:title="`B${bd.block}-${rack}-${pos}`"
+															@click="selectMapCell(bd.block, rack, pos)"
+														>
+															<span class="wmap-pos-label" x-text="pos"></span>
+														</div>
+													</template>
 												</div>
 											</template>
 										</div>
-									</template>
-								</div>
-								<div class="wmap-block-label">BLOQUE 6</div>
+									</div>
+									<div class="wmap-divider-v" x-show="bd.block < 10"></div>
+								</template>
 
+								<!-- Zona piso 2 -->
+								<div class="wmap-row f2">
+									<div class="wmap-section">
+										<!-- <div class="wmap-block-label">ZONA PISO</div> -->
+										<div class="wmap-hrow">
+											<!-- <span class="wmap-rack-num">2</span> -->
+											<div
+												class="wmap-cell"
+												:class="{
+													'wmap-hl': isMapHighlighted(0, 2, 'A'),
+													'wmap-has-stock': hasStock(0, 2, 'A')
+												}"
+												title="B0-2-A"
+												@click="selectMapCell(0, 2, 'A')"
+											>
+												<span class="wmap-pos-label">Zona Piso 2</span>
+											</div>
+										</div>
+									</div>
+								</div>
 							</div>
 						</div>
-
 					</div>
 				</div>
 
 				<!-- Leyenda -->
-				<!-- <div class="wmap-legend">
+				<div class="wmap-legend glass2">
 					<div class="wmap-legend-item">
 						<div class="wmap-cell" style="pointer-events:none;"></div>
-						<span>Ubicación disponible</span>
+						<span>Vacío</span>
 					</div>
-					<div class="wmap-legend-item" x-show="map_highlight_label">
+					<div class="wmap-legend-item">
+						<div class="wmap-cell wmap-has-stock" style="pointer-events:none;"></div>
+						<span>Con stock</span>
+					</div>
+					<div class="wmap-legend-item">
 						<div class="wmap-cell wmap-hl" style="pointer-events:none;"></div>
-						<span>Ubicación seleccionada</span>
+						<span>Seleccionado</span>
 					</div>
-				</div> -->
+				</div>
 			</div>
 		</div>
 
@@ -761,7 +863,9 @@
 			_findAbortController: null,
 
 			map_highlight_label: null,
+			current_floor: 1,
 			warehouse_structure: [
+				{ block: 0, label: 'Piso', racks: [1, 2], positions: ['A'] },
 				{ block: 1, label: 'Bloque 1', racks: [4,2,3,1],           		positions: ['A','B','C','D','E','F'] },
 				{ block: 2, label: 'Bloque 2', racks: [8,6,7,5],               	positions: ['A','B','C','D','E','F'] },
 				{ block: 3, label: 'Bloque 3', racks: [12,10,11,9],      		positions: ['A','B','C','D','E','F'] },
@@ -769,7 +873,12 @@
 				{ block: 5, label: 'Bloque 5', racks: [21,22,23,24,25,26,27],   positions: ['A','B','C','D','E','F'] },
 				{ block: 6, label: 'Bloque 6', racks: [28,29,30,31],            positions: ['A','B','C'] },
 				{ block: 7, label: 'Bloque 7', racks: [32,33,34,35,36,37],      positions: ['A','B','C'] },
-			],
+				{ block: 8,  label: 'Bloque 8',  racks: [44,43,42,41,40,39,38], positions: ['A','B','C','D','E'] },
+				{ block: 9,  label: 'Bloque 9',  racks: [49,48,47,46,45],       positions: ['A','B','C','D','E'] },
+				{ block: 10, label: 'Bloque 10', racks: [55,54,53,52,51,50],    positions: ['A','B','C','D','E'] },
+			],	
+
+			locations_with_stock: {},
 
 			async init() {
 				console.log('Inicializando Warehouse...');
@@ -781,8 +890,24 @@
 				if (socket) {
 					socket.removeAllListeners();
 				}
-
+				await this.loadOccupiedLocations();
 				await Alpine.store('cache').verify();
+			},
+
+			async loadOccupiedLocations() {
+				try {
+					const res = await fetch(`${this.api}/warehouse/locations/occupied`);
+					const json = await res.json();
+					const map = {};
+					(json.data?.locations || []).forEach(label => { map[label] = true; });
+					this.locations_with_stock = map;
+				} catch (e) {
+					console.error('Error cargando ubicaciones ocupadas:', e);
+				}
+			},
+
+			hasStock(block, rack, pos) {
+				return !!this.locations_with_stock[`B${block}-${rack}-${pos}`];
 			},
 
 			getBlock(blockNum) {
@@ -791,6 +916,19 @@
 
 			openMapModal(highlightLabel = null) {
 				this.map_highlight_label = highlightLabel || null;
+				if (highlightLabel) {
+					const match = highlightLabel.match(/^B(\d+)-(\d+)-/);
+					if (match) {
+						const block = parseInt(match[1]);
+						const rack  = parseInt(match[2]);
+						// B0-1-A → piso 1, B0-2-A → piso 2, resto por bloque
+						if (block === 0) {
+							this.current_floor = rack === 2 ? 2 : 1;
+						} else {
+							this.current_floor = block >= 8 ? 2 : 1;
+						}
+					}
+				}
 				Alpine.store('cache').showModal('warehouse-map');
 			},
 
@@ -1038,6 +1176,7 @@
 					if ((this.product_input || '').trim().length >= 2) {
 						await this.findProducts();
 					}
+					await this.loadOccupiedLocations();
 				} catch (error) {
 					console.error('Error retirando stock:', error);
 
@@ -1160,6 +1299,7 @@
 					if ((this.product_input || '').trim().length >= 2) {
 						await this.findProducts();
 					}
+					await this.loadOccupiedLocations();
 				} catch (e) {
 					// alert('Error: ' + e.message);
 				} finally {
@@ -1228,6 +1368,7 @@
 					if ((this.product_input || '').trim().length >= 2) {
 						await this.findProducts();
 					}
+					await this.loadOccupiedLocations();
 				} catch (e) {
 					// alert('Error: ' + e.message);
 				} finally {
@@ -1288,6 +1429,10 @@
 	
 
 	<style>
+		.modal .title.full {
+			flex-direction: row;
+    		justify-content: space-between;
+		}
 		.modal.initial {
 			max-width: initial;
     		width: initial;
@@ -1323,7 +1468,7 @@
 			align-items: flex-start;
 			gap: 0.75rem;
 		}
-
+		
 		.wmap-section {
 			display: flex;
 			flex-direction: column;
@@ -1393,8 +1538,8 @@
 		.wmap-cell {
 			width: 1rem;
     		height: 4rem;
-			background: rgb(255 167 0 / 18%);
-    		border: 1px solid rgb(219 165 51 / 30%);
+			background: #f0e8da;
+			border: 1px solid #e8cd95;
 			border-radius: 0.125rem;
 			cursor: pointer;
 			display: flex;
@@ -1402,14 +1547,34 @@
 			justify-content: center;
 			transition: background .1s, border-color .1s, transform .1s;
 		}
-
 		.wmap-cell:hover {
-			background: rgb(255 199 0 / 55%);
-    		border-color: rgb(255 194 0 / 80%);
-			/* transform: scale(1.15); */
-			z-index: 1;
+			background: #ededed;
+			/* border-color: rgb(34 197 94 / 70%); */
+		}
+		.wmap-cell.wmap-has-stock {
+			background: #efdcb8;
+    		/* border: 1px solid #e8cd95; */
+		}
+		.wmap-cell.wmap-has-stock:hover {
+			background: #edc57b;
+    		/* border-color: rgb(255 194 0 / 80%); */
+			
+		}
+		.wmap-floor-btn {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 1.75rem;
+			height: 1.75rem;
+			border-radius: 0.375rem;
+			background: rgba(255,255,255,0.08);
+			flex-shrink: 0;
 		}
 
+		.wmap-floor-btn img {
+			transition: transform .2s ease;
+			pointer-events: none;
+		}
 		.wmap-pos-label {
 			font-size: .5rem;
 			opacity: .5;
@@ -1458,9 +1623,27 @@
 			gap: .35rem;
 			align-self: stretch;
 		}
+		.wmap-row.f1 {
+			position: absolute;
+			left: 25.75rem;
+			top: 12rem;
+		}
+		.wmap-row.f1 .wmap-cell {
+			width: 27.75rem;
+    		height: 6.25rem;
+		}
+		.wmap-row.f1 .wmap-pos-label {
+			font-size: 0.7rem;
+    		text-transform: uppercase;
+		}
+		
+		.wmap-row.f2 .wmap-pos-label {
+			font-size: 0.7rem;
+    		text-transform: uppercase;
+		}
 		.wmap-row.b6 {
 			margin-left: 7.5rem;
-    		margin-top: -0.5rem;
+    		margin-top: 0;
 		}
 		.wmap-row.b7 {
 			position: absolute;
@@ -1508,21 +1691,63 @@
 			min-width: 5rem;
 		}
 
+		.wmap-row.wmap-row-2 {
+			flex-direction: column-reverse;
+			gap: 1.5rem;
+		}
+		.wmap-row.wmap-row-2 .wmap-section {
+			flex-direction: row;
+			align-items: center;
+		}
+		.wmap-row.wmap-row-2 .wmap-section:nth-child(3),
+		.wmap-row.wmap-row-2 .wmap-section:nth-child(4) {
+			margin-left: 8.5rem;
+			margin-right: 5.25rem;
+		}
+		.wmap-row.wmap-row-2 .wmap-block-label {
+			writing-mode: sideways-lr;
+			margin-bottom: 0.75rem;
+		}
+		.wmap-row.wmap-row-2 .wmap-v-block {
+			display: flex;
+		}
+		.wmap-row.wmap-row-2 .wmap-hrow {
+			flex-direction: column-reverse;
+		}
+		.wmap-row.wmap-row-2 .wmap-cell {
+			width: 4rem;
+    		height: 1rem;
+		}
+		.wmap-row.f2 {
+			position: absolute;
+			left: 1.5rem;
+			top: 0;
+		}
+		.wmap-row.f2 .wmap-cell {
+			width: 5.75rem;
+			height: 12.5rem;
+			writing-mode: sideways-lr;
+		}
 		/* Leyenda */
 		.wmap-legend {
 			display: flex;
-			align-items: center;
-			gap: 1.25rem;
-			padding: .6rem 1.25rem;
-			border-top: 1px solid rgba(255,255,255,.06);
-			font-size: .7rem;
-			opacity: .6;
+			font-size: 0.7rem;
+			position: absolute;
+			right: 1.5rem;
+			bottom: 1.5rem;
+			gap: 0.75rem;
+			flex-direction: column;
+			font-weight: 500;
+			padding: 0.75rem;
+			border-radius: 1rem;
 		}
-
 		.wmap-legend-item {
 			display: flex;
 			align-items: center;
-			gap: .4rem;
+			gap: 0.5rem;
+		}
+		.wmap-legend .wmap-cell {
+			height: 1rem;
 		}
 		/* Celda horizontal (B6 y B7) */
 		.wmap-cell-h {
@@ -1547,7 +1772,6 @@
 		.wmap-b7-grid {
 			display: flex;
 			flex-direction: column;
-			gap: 1px;
 		}
 
 		.wmap-b7-row {
@@ -1572,6 +1796,7 @@
 		.wmap-b6-header .wmap-rack-num {
 			flex: 1;
 		}
+		
 		.location {
 			display: flex;
 			margin-left: auto;
@@ -1641,7 +1866,7 @@
 			border: 2px solid #f8a87f;
 			margin: -0.5rem 0;
 		}
-		#modal-warehouse-location .button-add {
+		.modal-wrap .button-add {
 			display: flex;
 			gap: 0.25rem;
 			justify-content: center;
@@ -1652,7 +1877,7 @@
 			font-size: 0.8rem;
 			font-weight: 400;
 		}
-		#modal-warehouse-location .button-add img {
+		.modal-wrap .button-add img {
 				filter: invert(1);
 			}
 		#modal-warehouse-location .table-header {

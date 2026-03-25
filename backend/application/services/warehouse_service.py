@@ -65,6 +65,15 @@ class WarehouseService:
 
         return location
 
+
+    @handle_exceptions
+    def get_occupied_locations(self):
+        labels, rc = self.warehouse_repository.get_occupied_locations()
+        if rc != 200:
+            return labels, rc
+        return {"locations": labels}, 200
+
+        
     @handle_exceptions
     def find_product(self, search):
         # Keyword especial: ubicaciones disponibles (sin stock)

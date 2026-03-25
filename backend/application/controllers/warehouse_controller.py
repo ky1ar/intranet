@@ -41,3 +41,8 @@ class WarehouseController:
     @handle_logs_and_exceptions
     def warehouse_load_excel(self, data):
         return self.warehouse.load_excel(data)
+
+
+    @handle_logs_and_exceptions
+    def warehouse_get_occupied_locations(self):
+        return self.warehouse.get_occupied_locations()
