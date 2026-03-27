@@ -135,11 +135,32 @@
 		>
 			<div class="modal glass2" @click.stop>
 				<div id="scannerBox">
-					<video id="cameraFrame"></video>
+					<video
+						id="cameraFrame"
+						playsinline
+						muted
+						autoplay
+					></video>
 					<div class="scannerDots"></div>
+				</div>
+
+				<!-- Barra de zoom -->
+				<div class="scanner-zoom-bar" x-show="scannerRunning" x-cloak>
+					<button
+						class="scanner-zoom-btn hover-opacity press"
+						@click="zoomOut()"
+						:disabled="zoom_level <= 1"
+					>−</button>
+					<span class="scanner-zoom-label" x-text="`${zoom_level}×`"></span>
+					<button
+						class="scanner-zoom-btn hover-opacity press"
+						@click="zoomIn()"
+						:disabled="zoom_level >= 4"
+					>+</button>
 				</div>
 			</div>
 		</div>
+
 
 		<!-- Modal detalle ubicación -->
 		<div
@@ -740,8 +761,15 @@
 					<div class="modal-grabber-bar"></div>
 				</div>
 
-				<div class="title">
+				<div class="title full">
 					<span>Retirar stock</span>
+
+					<div class="buttons">
+						<button class="button button-add black hover-opacity" @click="openMapModal(selected_product?.location?.label)">
+							<img alt="" width="14" height="14" src="/static/images/icons/map.svg" style="filter:invert(1)">
+							Ubicar
+						</button>
+					</div>
 				</div>
 
 				<div class="modal-content change-box">
@@ -816,6 +844,7 @@
 				process: { class: '', text: 'Añadir' },
 			},
 
+			// ── Placeholder animado ────────────────────────────
 			animated_placeholder: '',
 			placeholder_texts: [
 				'Busca por modelo...',
@@ -827,25 +856,26 @@
 			placeholder_deleting: false,
 			placeholder_timer: null,
 
+			// ── Búsqueda ───────────────────────────────────────
 			product_input: '',
 			finded_products: [],
 			finded_locations: [],
+			_findAbortController: null,
 
+			// ── Modal ubicación ────────────────────────────────
 			selected_location: null,
 			location_modal_loading: false,
 
+			// ── Retirar stock ──────────────────────────────────
 			selected_product: null,
 			remove_qty: 1,
 			remove_loading: false,
 
-			scannerRunning: false,
-			scannerBusy: false,
-			codeReader: null,
-
+			// ── Excel ──────────────────────────────────────────
 			excel_loading: false,
-			excel_result:  null,
+			excel_result: null,
 
-			// Add stock
+			// ── Añadir stock ───────────────────────────────────
 			add_stock_query: '',
 			add_stock_results: [],
 			add_stock_selected: null,
@@ -853,53 +883,63 @@
 			add_stock_loading: false,
 			add_stock_search_timer: null,
 
-			// Move stock
+			// ── Mover stock ────────────────────────────────────
 			move_product: null,
 			move_qty: 1,
 			move_destination: '',
 			move_loading: false,
 
-			// QR mode
-			qr_mode: 'location',  // 'location' | 'move'
-			_findAbortController: null,
+			// ── QR Scanner ────────────────────────────────────
+			qr_mode: 'location',   // 'location' | 'move'
+			scannerRunning: false,
+			scannerBusy: false,
+			scan_stream: null,
+			_barcodeDetector: null,
+			_scanCanvas: null,
+			_scanLoopTimer: null,
+			zoom_level: 1,
 
+			// ── Mapa ───────────────────────────────────────────
 			map_highlight_label: null,
 			current_floor: 1,
-			warehouse_structure: [
-				{ block: 0, label: 'Piso', racks: [1, 2], positions: ['A'] },
-				{ block: 1, label: 'Bloque 1', racks: [4,2,3,1],           		positions: ['A','B','C','D','E','F'] },
-				{ block: 2, label: 'Bloque 2', racks: [8,6,7,5],               	positions: ['A','B','C','D','E','F'] },
-				{ block: 3, label: 'Bloque 3', racks: [12,10,11,9],      		positions: ['A','B','C','D','E','F'] },
-				{ block: 4, label: 'Bloque 4', racks: [20,16,19,15,18,14,17,13],positions: ['A','B','C','D','E','F'] },
-				{ block: 5, label: 'Bloque 5', racks: [21,22,23,24,25,26,27],   positions: ['A','B','C','D','E','F'] },
-				{ block: 6, label: 'Bloque 6', racks: [28,29,30,31],            positions: ['A','B','C'] },
-				{ block: 7, label: 'Bloque 7', racks: [32,33,34,35,36,37],      positions: ['A','B','C'] },
-				{ block: 8,  label: 'Bloque 8',  racks: [44,43,42,41,40,39,38], positions: ['A','B','C','D','E'] },
-				{ block: 9,  label: 'Bloque 9',  racks: [49,48,47,46,45],       positions: ['A','B','C','D','E'] },
-				{ block: 10, label: 'Bloque 10', racks: [55,54,53,52,51,50],    positions: ['A','B','C','D','E'] },
-			],	
-
 			locations_with_stock: {},
 
+			warehouse_structure: [
+				{ block: 0,  label: 'Piso',      racks: [1, 2],                          positions: ['A'] },
+				{ block: 1,  label: 'Bloque 1',  racks: [4,2,3,1],                       positions: ['A','B','C','D','E','F'] },
+				{ block: 2,  label: 'Bloque 2',  racks: [8,6,7,5],                       positions: ['A','B','C','D','E','F'] },
+				{ block: 3,  label: 'Bloque 3',  racks: [12,10,11,9],                    positions: ['A','B','C','D','E','F'] },
+				{ block: 4,  label: 'Bloque 4',  racks: [20,16,19,15,18,14,17,13],       positions: ['A','B','C','D','E','F'] },
+				{ block: 5,  label: 'Bloque 5',  racks: [21,22,23,24,25,26,27],          positions: ['A','B','C','D','E','F'] },
+				{ block: 6,  label: 'Bloque 6',  racks: [28,29,30,31],                   positions: ['A','B','C'] },
+				{ block: 7,  label: 'Bloque 7',  racks: [32,33,34,35,36,37],             positions: ['A','B','C'] },
+				{ block: 8,  label: 'Bloque 8',  racks: [44,43,42,41,40,39,38],          positions: ['A','B','C','D','E'] },
+				{ block: 9,  label: 'Bloque 9',  racks: [49,48,47,46,45],                positions: ['A','B','C','D','E'] },
+				{ block: 10, label: 'Bloque 10', racks: [55,54,53,52,51,50],             positions: ['A','B','C','D','E'] },
+			],
+
+			// ══════════════════════════════════════════════════
+			//  INIT
+			// ══════════════════════════════════════════════════
 			async init() {
 				console.log('Inicializando Warehouse...');
-				this.codeReader = new ZXingBrowser.BrowserQRCodeReader();
-
 				this.startPlaceholderAnimation();
 
 				const socket = Alpine.store('cache').socket;
-				if (socket) {
-					socket.removeAllListeners();
-				}
+				if (socket) socket.removeAllListeners();
+
 				await this.loadOccupiedLocations();
 				await Alpine.store('cache').verify();
 			},
 
+			// ══════════════════════════════════════════════════
+			//  MAPA
+			// ══════════════════════════════════════════════════
 			async loadOccupiedLocations() {
 				try {
-					const res = await fetch(`${this.api}/warehouse/locations/occupied`);
+					const res  = await fetch(`${this.api}/warehouse/locations/occupied`);
 					const json = await res.json();
-					const map = {};
+					const map  = {};
 					(json.data?.locations || []).forEach(label => { map[label] = true; });
 					this.locations_with_stock = map;
 				} catch (e) {
@@ -922,7 +962,6 @@
 					if (match) {
 						const block = parseInt(match[1]);
 						const rack  = parseInt(match[2]);
-						// B0-1-A → piso 1, B0-2-A → piso 2, resto por bloque
 						if (block === 0) {
 							this.current_floor = rack === 2 ? 2 : 1;
 						} else {
@@ -942,54 +981,180 @@
 				await this.openLocationModal(`B${block}-${rack}-${pos}`);
 			},
 
-			async loadExcelFile(event) {
-				const file = event.target.files?.[0];
-				if (!file) return;
+			// ══════════════════════════════════════════════════
+			//  QR SCANNER
+			// ══════════════════════════════════════════════════
+			readQR() {
+				Alpine.store('cache').showModal('read');
+				this.startScan();
+			},
 
-				// reset para poder seleccionar el mismo archivo otra vez
-				event.target.value = '';
-
-				this.excel_loading = true;
-				this.excel_result  = null;
-
+			async startScan() {
 				try {
-					const formData = new FormData();
-					formData.append('file', file);
+					const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
 
-					const response = await fetch(`${this.api}/warehouse/load`, {
-						method: 'POST',
-						headers: { 
-							'Authorization': `Bearer ${this.user.token}`,
+					const stream = await navigator.mediaDevices.getUserMedia({
+						video: {
+							facingMode: { ideal: 'environment' },
+							width:      { ideal: isIOS ? 1280 : 1920 },
+							height:     { ideal: isIOS ? 720  : 1080 },
+							frameRate:  { ideal: 30, min: 15 },
 						},
-						body: formData,
+						audio: false,
 					});
 
-					const json = await response.json();
+					this.scan_stream = stream;
 
-					if (!response.ok) {
-						throw new Error(json?.message || 'Error al procesar el archivo');
+					const video = document.getElementById('cameraFrame');
+					video.srcObject = stream;
+					await video.play();
+
+					// Elegir motor de lectura
+					if ('BarcodeDetector' in window) {
+						// Nativo — iOS 17+ y Android Chrome 83+
+						this._barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
+					} else {
+						// Fallback jsQR (canvas)
+						this._barcodeDetector = null;
+						if (!this._scanCanvas) this._scanCanvas = document.createElement('canvas');
 					}
 
-					const d = json.data ?? json;
+					this.scannerRunning = true;
+					this.scannerBusy   = false;
+					this.zoom_level    = 1;
+					this._applyZoom();
+					this._scanLoop();
 
-					const lines = [
-						`✅ Procesados: ${d.processed}`,
-						d.skipped   ? `⚠️ Omitidos: ${d.skipped}` : null,
-						d.created_brands?.length     ? `🆕 Marcas nuevas: ${d.created_brands.join(', ')}` : null,
-						d.created_categories?.length ? `🆕 Categorías nuevas: ${d.created_categories.join(', ')}` : null,
-						d.created_machines?.length   ? `🆕 Modelos nuevos: ${d.created_machines.join(', ')}` : null,
-						d.errors?.length             ? `❌ Errores (${d.errors.length}): ${d.errors.slice(0, 3).join(' | ')}${d.errors.length > 3 ? ' ...' : ''}` : null,
-					].filter(Boolean).join('\n');
-
-					// alert(lines);
-
-				} catch (error) {
-					console.error('Error cargando Excel:', error);
-				} finally {
-					this.excel_loading = false;
+				} catch (e) {
+					console.error('Error cámara:', e);
+					this.stopScan();
+					Alpine.store('cache').hideModal('read');
 				}
 			},
 
+			async _scanLoop() {
+				if (!this.scannerRunning) return;
+
+				const video = document.getElementById('cameraFrame');
+
+				if (!this.scannerBusy && video?.readyState >= 2 && video.videoWidth > 0) {
+					let rawText = null;
+
+					try {
+						if (this._barcodeDetector) {
+							// ── Motor nativo ──────────────────────────────────
+							const codes = await this._barcodeDetector.detect(video);
+							if (codes.length) rawText = codes[0].rawValue;
+
+						} else if (typeof jsQR !== 'undefined') {
+							// ── Motor jsQR — canvas escalado a 640px ─────────
+							const c     = this._scanCanvas;
+							const scale = Math.min(1, 640 / video.videoWidth);
+							c.width     = Math.floor(video.videoWidth  * scale);
+							c.height    = Math.floor(video.videoHeight * scale);
+							const ctx   = c.getContext('2d', { willReadFrequently: true });
+							ctx.drawImage(video, 0, 0, c.width, c.height);
+							const img   = ctx.getImageData(0, 0, c.width, c.height);
+							const code  = jsQR(img.data, img.width, img.height, {
+								inversionAttempts: 'dontInvert',
+							});
+							if (code) rawText = code.data;
+						}
+					} catch (_) {}
+
+					if (rawText) {
+						const label = this.extractWarehouseLabelFromQR(rawText);
+						if (label) {
+							this.scannerBusy = true;
+							await this._handleQRResult(label);
+							return;
+						}
+					}
+				}
+
+				// Siguiente frame a 80ms
+				this._scanLoopTimer = setTimeout(() => this._scanLoop(), 80);
+			},
+
+			async _handleQRResult(label) {
+				// Modo mover: llena el input destino y cierra
+				if (this.qr_mode === 'move') {
+					this.move_destination = label;
+					this.stopScan();
+					Alpine.store('cache').hideModal('read');
+					this.qr_mode = 'location';
+					return;
+				}
+
+				// Modo normal: abre modal de ubicación
+				const opened = await this.openLocationModal(label, { fromQr: true });
+				if (opened) {
+					this.stopScan();
+					Alpine.store('cache').hideModal('read');
+				} else {
+					// QR válido pero ubicación no encontrada — continuar escaneando
+					this.scannerBusy = false;
+					this._scanLoopTimer = setTimeout(() => this._scanLoop(), 80);
+				}
+			},
+
+			// ── Zoom ───────────────────────────────────────────
+			zoomIn() {
+				this.zoom_level = Math.min(4, +(this.zoom_level + 0.5).toFixed(1));
+				this._applyZoom();
+			},
+
+			zoomOut() {
+				this.zoom_level = Math.max(1, +(this.zoom_level - 0.5).toFixed(1));
+				this._applyZoom();
+			},
+
+			_applyZoom() {
+				// Intentar zoom nativo de hardware (Android Chrome, algunos iOS 17+)
+				if (this.scan_stream) {
+					const track = this.scan_stream.getVideoTracks()[0];
+					const caps  = track?.getCapabilities?.() || {};
+					if (caps.zoom) {
+						const z = Math.min(caps.zoom.max, Math.max(caps.zoom.min, this.zoom_level));
+						track.applyConstraints({ advanced: [{ zoom: z }] }).catch(() => {});
+						return;
+					}
+				}
+				// Fallback: zoom CSS sobre el <video>
+				const video = document.getElementById('cameraFrame');
+				if (video) video.style.transform = `scale(${this.zoom_level})`;
+			},
+
+			stopScan() {
+				this.scannerRunning = false;
+				this.scannerBusy   = false;
+
+				clearTimeout(this._scanLoopTimer);
+				this._scanLoopTimer = null;
+
+				if (this.scan_stream) {
+					this.scan_stream.getTracks().forEach(t => t.stop());
+					this.scan_stream = null;
+				}
+
+				const video = document.getElementById('cameraFrame');
+				if (video) {
+					video.srcObject = null;
+					video.style.transform = '';
+				}
+
+				this.zoom_level = 1;
+			},
+
+			readQRForMove() {
+				this.qr_mode = 'move';
+				Alpine.store('cache').showModal('read');
+				this.startScan();
+			},
+
+			// ══════════════════════════════════════════════════
+			//  HELPERS LABEL
+			// ══════════════════════════════════════════════════
 			_locationLabel(block, level, position) {
 				return `B${block}-${level}-${position}`;
 			},
@@ -1000,45 +1165,32 @@
 
 			normalizeWarehouseLabel(value) {
 				const clean = (value || '')
-					.toString()
-					.trim()
-					.toUpperCase()
-					.replace(/\s+/g, '');
-
+					.toString().trim().toUpperCase().replace(/\s+/g, '');
 				const match = clean.match(/^B\d+-\d+-[A-Z0-9]$/);
 				return match ? match[0] : null;
 			},
 
 			extractWarehouseLabelFromQR(text) {
-				const raw = (text || '').toString().trim().toUpperCase();
+				const raw     = (text || '').toString().trim().toUpperCase();
 				if (!raw) return null;
-
 				const compact = raw.replace(/\s+/g, '');
-
-				const candidates = [
-					compact,
-					compact.slice(1)
-				];
-
-				for (const candidate of candidates) {
+				for (const candidate of [compact, compact.slice(1)]) {
 					const match = candidate.match(/B\d+-\d+-[A-Z0-9]/);
-					if (match) {
-						return this.normalizeWarehouseLabel(match[0]);
-					}
+					if (match) return this.normalizeWarehouseLabel(match[0]);
 				}
-
 				return null;
 			},
 
+			// ══════════════════════════════════════════════════
+			//  BÚSQUEDA
+			// ══════════════════════════════════════════════════
 			async findProducts() {
 				const input = (this.product_input || '').trim();
 
-				if (this._findAbortController) {
-					this._findAbortController.abort();
-				}
+				if (this._findAbortController) this._findAbortController.abort();
 
 				if (input.length < 2) {
-					this.finded_products = [];
+					this.finded_products  = [];
 					this.finded_locations = [];
 					return;
 				}
@@ -1046,213 +1198,120 @@
 				this._findAbortController = new AbortController();
 
 				try {
-					const response = await fetch(`${this.api}/warehouse/find/${encodeURIComponent(input)}`, {
-						method: 'GET',
-						headers: { 'Content-Type': 'application/json' },
-						signal: this._findAbortController.signal,
-					});
-
+					const response = await fetch(
+						`${this.api}/warehouse/find/${encodeURIComponent(input)}`,
+						{ method: 'GET', headers: { 'Content-Type': 'application/json' }, signal: this._findAbortController.signal }
+					);
 					const jsonData = await response.json();
-					if (!response.ok) {
-						throw new Error(jsonData?.data?.message || 'Error en la solicitud');
-					}
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
 
 					const data = jsonData.data || {};
 					this.finded_locations = data.locations || [];
-					this.finded_products = (data.products || []).sort((a, b) => {
-						return (Number(a.stock) || 0) - (Number(b.stock) || 0);
-					});
+					this.finded_products  = (data.products || []).sort((a, b) =>
+						(Number(a.stock) || 0) - (Number(b.stock) || 0)
+					);
 				} catch (error) {
 					if (error.name === 'AbortError') return;
-					console.log('Error al buscar productos:', error);
-					this.finded_products = [];
+					this.finded_products  = [];
 					this.finded_locations = [];
 				}
 			},
 
+			// ══════════════════════════════════════════════════
+			//  MODAL UBICACIÓN
+			// ══════════════════════════════════════════════════
 			async openLocationModal(label, options = {}) {
-				const fromQr = !!options.fromQr;
 				const normalized = this.normalizeWarehouseLabel(label);
-
 				if (!normalized) return false;
 
 				try {
 					this.location_modal_loading = true;
 					this.selected_location = null;
 
-					const response = await fetch(`${this.api}/warehouse/location/${encodeURIComponent(normalized)}`, {
-						method: 'GET',
-						headers: { 'Content-Type': 'application/json' },
-					});
-
+					const response = await fetch(
+						`${this.api}/warehouse/location/${encodeURIComponent(normalized)}`,
+						{ method: 'GET', headers: { 'Content-Type': 'application/json' } }
+					);
 					const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'No se pudo obtener la ubicación');
 
-					if (!response.ok) {
-						throw new Error(jsonData?.data?.message || 'No se pudo obtener la ubicación');
-					}
-
-					this.selected_location = jsonData.data.location;
+					this.selected_location      = jsonData.data.location;
 					this.location_modal_loading = false;
-
 					Alpine.store('cache').showModal('warehouse-location');
 					return true;
 				} catch (error) {
 					this.location_modal_loading = false;
-
-					if (!fromQr) {
-						console.error('Error al abrir ubicación:', error);
-						if (typeof this.showError === 'function') {
-							this.showError('warehouse', error.message);
-						} else {
-							// alert(error.message);
-						}
-					}
-
 					return false;
 				}
 			},
 
+			// ══════════════════════════════════════════════════
+			//  RETIRAR STOCK
+			// ══════════════════════════════════════════════════
 			openRemoveStockModal(product) {
-				if (!product) return;
-
-				if (!this.logisticAllowed()) return;
-
+				if (!product || !this.logisticAllowed()) return;
 				this.selected_product = JSON.parse(JSON.stringify(product));
 				this.remove_qty = 1;
-
 				Alpine.store('cache').showModal('warehouse-remove-stock');
 			},
 
 			sanitizeRemoveQty() {
 				let qty = Number(this.remove_qty) || 1;
 				const max = Number(this.selected_product?.stock) || 1;
-
 				if (qty < 1) qty = 1;
 				if (qty > max) qty = max;
-
 				this.remove_qty = qty;
 			},
 
 			increaseRemoveQty() {
-				if (!this.selected_product) return;
-
-				const max = Number(this.selected_product.stock) || 1;
-				let qty = Number(this.remove_qty) || 1;
-
-				if (qty < max) qty += 1;
+				const max = Number(this.selected_product?.stock) || 1;
+				let qty   = Number(this.remove_qty) || 1;
+				if (qty < max) qty++;
 				this.remove_qty = qty;
 			},
 
 			decreaseRemoveQty() {
 				let qty = Number(this.remove_qty) || 1;
-				if (qty > 1) qty -= 1;
+				if (qty > 1) qty--;
 				this.remove_qty = qty;
 			},
 
 			async confirmRemoveStock() {
 				if (!this.selected_product) return;
-
 				const quantity = Number(this.remove_qty) || 0;
 				if (quantity < 1) return;
 
 				try {
 					this.remove_loading = true;
-
-					const payload = {
-						warehouse_stock_id: this.selected_product.warehouse_stock_id,
-						quantity,
-					};
-
 					const response = await fetch(`${this.api}/warehouse/stock/remove`, {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json',
 							'Authorization': `Bearer ${this.user.token}`,
 						},
-						body: JSON.stringify(payload),
+						body: JSON.stringify({
+							warehouse_stock_id: this.selected_product.warehouse_stock_id,
+							quantity,
+						}),
 					});
-
 					const jsonData = await response.json();
-
-					if (!response.ok) {
-						throw new Error(jsonData?.data?.message || 'No se pudo retirar el stock');
-					}
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'No se pudo retirar el stock');
 
 					this.selected_location = jsonData.data.location;
-
 					Alpine.store('cache').hideModal('warehouse-remove-stock');
 
-					if ((this.product_input || '').trim().length >= 2) {
-						await this.findProducts();
-					}
+					if ((this.product_input || '').trim().length >= 2) await this.findProducts();
 					await this.loadOccupiedLocations();
 				} catch (error) {
 					console.error('Error retirando stock:', error);
-
-					if (typeof this.showError === 'function') {
-						this.showError('warehouse-remove', error.message);
-					} else {
-						// alert(error.message);
-					}
 				} finally {
 					this.remove_loading = false;
 				}
 			},
 
-			readQR() {
-				Alpine.store('cache').showModal('read');
-				this.startScan();
-			},
-
-			async startScan() {
-				try {
-					if (!this.codeReader) {
-						this.codeReader = new ZXingBrowser.BrowserQRCodeReader();
-					}
-
-					this.scannerRunning = true;
-					this.scannerBusy = false;
-
-					await this.codeReader.decodeFromVideoDevice(null, 'cameraFrame', async (result, err, controls) => {
-						if (!this.scannerRunning || this.scannerBusy) return;
-						if (!result) return;
-
-						const label = this.extractWarehouseLabelFromQR(result.text);
-
-						if (!label) return;
-
-						this.scannerBusy = true;
-
-						// Modo mover: poblar input destino y cerrar
-						if (this.qr_mode === 'move') {
-							this.move_destination = label;
-							this.stopScan();
-							if (controls?.stop) controls.stop();
-							Alpine.store('cache').hideModal('read');
-							this.qr_mode = 'location';
-							return;
-						}
-
-						// Modo normal: abrir modal de ubicación
-						const opened = await this.openLocationModal(label, { fromQr: true });
-
-						if (opened) {
-							this.stopScan();
-							if (controls?.stop) controls.stop();
-							Alpine.store('cache').hideModal('read');
-							return;
-						}
-
-						this.scannerBusy = false;
-					});
-				} catch (e) {
-					console.error('Error accediendo a la cámara:', e);
-					this.stopScan();
-					Alpine.store('cache').hideModal('read');
-				}
-			},
-
-			// ── Add Stock ──────────────────────────────────────────────────────────────
+			// ══════════════════════════════════════════════════
+			//  AÑADIR STOCK
+			// ══════════════════════════════════════════════════
 			openAddStockModal() {
 				this.add_stock_query    = '';
 				this.add_stock_results  = [];
@@ -1308,18 +1367,18 @@
 					this.selected_location = json.data?.location || json.location;
 					Alpine.store('cache').hideModal('warehouse-add-stock');
 
-					if ((this.product_input || '').trim().length >= 2) {
-						await this.findProducts();
-					}
+					if ((this.product_input || '').trim().length >= 2) await this.findProducts();
 					await this.loadOccupiedLocations();
 				} catch (e) {
-					// alert('Error: ' + e.message);
+					console.error('Error añadiendo stock:', e);
 				} finally {
 					this.add_stock_loading = false;
 				}
 			},
 
-			// ── Move Stock ─────────────────────────────────────────────────────────────
+			// ══════════════════════════════════════════════════
+			//  MOVER STOCK
+			// ══════════════════════════════════════════════════
 			openMoveModal(product) {
 				if (!product) return;
 				this.move_product     = JSON.parse(JSON.stringify(product));
@@ -1338,7 +1397,7 @@
 
 			increaseMoveQty() {
 				const max = Number(this.move_product?.stock) || 1;
-				let qty = Number(this.move_qty) || 1;
+				let qty   = Number(this.move_qty) || 1;
 				if (qty < max) qty++;
 				this.move_qty = qty;
 			},
@@ -1347,12 +1406,6 @@
 				let qty = Number(this.move_qty) || 1;
 				if (qty > 1) qty--;
 				this.move_qty = qty;
-			},
-
-			readQRForMove() {
-				this.qr_mode = 'move';
-				Alpine.store('cache').showModal('read');
-				this.startScan();
 			},
 
 			async confirmMoveStock() {
@@ -1364,7 +1417,7 @@
 				try {
 					const res = await fetch(`${this.api}/warehouse/stock/move`, {
 						method: 'POST',
-						headers: { 
+						headers: {
 							'Content-Type': 'application/json',
 							'Authorization': `Bearer ${this.user.token}`,
 						},
@@ -1380,33 +1433,58 @@
 					this.selected_location = json.data?.location || json.location;
 					Alpine.store('cache').hideModal('warehouse-move-stock');
 
-					if ((this.product_input || '').trim().length >= 2) {
-						await this.findProducts();
-					}
+					if ((this.product_input || '').trim().length >= 2) await this.findProducts();
 					await this.loadOccupiedLocations();
 				} catch (e) {
-					// alert('Error: ' + e.message);
+					console.error('Error moviendo stock:', e);
 				} finally {
 					this.move_loading = false;
 				}
 			},
 
+			// ══════════════════════════════════════════════════
+			//  EXCEL
+			// ══════════════════════════════════════════════════
+			async loadExcelFile(event) {
+				const file = event.target.files?.[0];
+				if (!file) return;
+				event.target.value = '';
 
-			stopScan() {
-				this.scannerRunning = false;
-				this.scannerBusy = false;
+				this.excel_loading = true;
+				this.excel_result  = null;
 
-				if (this.codeReader?.reset) {
-					this.codeReader.reset();
-				}
+				try {
+					const formData = new FormData();
+					formData.append('file', file);
 
-				const video = document.getElementById('cameraFrame');
-				if (video?.srcObject) {
-					video.srcObject.getTracks().forEach(track => track.stop());
-					video.srcObject = null;
+					const response = await fetch(`${this.api}/warehouse/load`, {
+						method: 'POST',
+						headers: { 'Authorization': `Bearer ${this.user.token}` },
+						body: formData,
+					});
+					const json = await response.json();
+					if (!response.ok) throw new Error(json?.message || 'Error al procesar el archivo');
+				} catch (error) {
+					console.error('Error cargando Excel:', error);
+				} finally {
+					this.excel_loading = false;
 				}
 			},
 
+			// ══════════════════════════════════════════════════
+			//  PERMISOS
+			// ══════════════════════════════════════════════════
+			logisticAllowed() {
+				return (this.user.department_id == 2 || this.user.id == 23 || this.user.department_id == 7);
+			},
+
+			adminAllowed() {
+				return (this.user.id == 6 || this.user.id == 23 || this.user.id == 8 || this.user.department_id == 7);
+			},
+
+			// ══════════════════════════════════════════════════
+			//  PLACEHOLDER ANIMADO
+			// ══════════════════════════════════════════════════
 			startPlaceholderAnimation() {
 				const tick = () => {
 					const currentText = this.placeholder_texts[this.placeholder_index];
@@ -1420,7 +1498,6 @@
 							this.placeholder_timer = setTimeout(tick, 1200);
 							return;
 						}
-
 						this.placeholder_timer = setTimeout(tick, 90);
 					} else {
 						this.placeholder_char_index--;
@@ -1432,29 +1509,23 @@
 							this.placeholder_timer = setTimeout(tick, 250);
 							return;
 						}
-
 						this.placeholder_timer = setTimeout(tick, 45);
 					}
 				};
-
 				tick();
-			},
-
-			logisticAllowed() {
-				return (this.user.department_id == 2 || this.user.id == 23 || this.user.department_id == 7 );
-			},
-
-			adminAllowed() {
-				return (this.user.id == 6 || this.user.id == 23 || this.user.id == 8  || this.user.department_id == 7);
 			},
 		}));
 	</script>
 	
 
 	<style>
+		#modal-warehouse-map {
+			z-index: 30;
+		}
 		.modal .title.full {
 			flex-direction: row;
     		justify-content: space-between;
+			align-items: center;
 		}
 		.modal.initial {
 			max-width: initial;
@@ -2157,6 +2228,55 @@
 			opacity: 0.5;
 			font-family: monospace;
 		}
+		/* ── QR Scanner zoom bar ─────────────────────────────── */
+		.scanner-zoom-bar {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: .75rem;
+			padding: .5rem 1rem;
+			position: absolute;
+    		bottom: 0;
+		}
+
+		.scanner-zoom-btn {
+			width: 2.4rem;
+			height: 2.4rem;
+			border-radius: 50%;
+			background: rgba(255, 255, 255, 0.15);
+			border: 1px solid rgba(255, 255, 255, 0.25);
+			color: #fff;
+			font-size: 1.4rem;
+			line-height: 1;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			transition: background .15s;
+		}
+
+		.scanner-zoom-btn:not(:disabled):active {
+			background: rgba(255, 255, 255, 0.3);
+		}
+
+		.scanner-zoom-btn:disabled {
+			opacity: .3;
+			pointer-events: none;
+		}
+
+		.scanner-zoom-label {
+			color: #fff;
+			font-size: .9rem;
+			min-width: 2.4rem;
+			text-align: center;
+			font-variant-numeric: tabular-nums;
+		}
+
+		#scannerBox video {
+			transform-origin: center center;
+			transition: transform .2s ease;
+		}
+
 		.location-products{
 		width: 100%;
 		margin-top: .5rem;
