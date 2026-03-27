@@ -840,17 +840,11 @@
 		Alpine.data('warehouse_data', () => ({
 			api: Alpine.store('cache').api,
 			user: Alpine.store('cache').user,
-			buttons: {
-				process: { class: '', text: 'Añadir' },
-			},
+			buttons: { process: { class: '', text: 'Añadir' } },
 
 			// ── Placeholder animado ────────────────────────────
 			animated_placeholder: '',
-			placeholder_texts: [
-				'Busca por modelo...',
-				'Buscar por marca...',
-				'Busca por ubicación...'
-			],
+			placeholder_texts: ['Busca por modelo...', 'Buscar por marca...', 'Busca por ubicación...'],
 			placeholder_index: 0,
 			placeholder_char_index: 0,
 			placeholder_deleting: false,
@@ -889,14 +883,15 @@
 			move_destination: '',
 			move_loading: false,
 
-			// ── QR Scanner ────────────────────────────────────
-			qr_mode: 'location',   // 'location' | 'move'
+			// ── QR Scanner ─────────────────────────────────────
+			qr_mode: 'location',
 			scannerRunning: false,
 			scannerBusy: false,
 			scan_stream: null,
 			_barcodeDetector: null,
 			_scanCanvas: null,
-			_scanLoopTimer: null,
+			_scanCanvas2: null,
+			_rafId: null,
 			zoom_level: 1,
 
 			// ── Mapa ───────────────────────────────────────────
@@ -924,10 +919,8 @@
 			async init() {
 				console.log('Inicializando Warehouse...');
 				this.startPlaceholderAnimation();
-
 				const socket = Alpine.store('cache').socket;
 				if (socket) socket.removeAllListeners();
-
 				await this.loadOccupiedLocations();
 				await Alpine.store('cache').verify();
 			},
@@ -982,7 +975,7 @@
 			},
 
 			// ══════════════════════════════════════════════════
-			//  QR SCANNER
+			//  QR SCANNER — MOTOR ULTRA RÁPIDO
 			// ══════════════════════════════════════════════════
 			readQR() {
 				Alpine.store('cache').showModal('read');
@@ -1004,26 +997,28 @@
 					});
 
 					this.scan_stream = stream;
-
 					const video = document.getElementById('cameraFrame');
 					video.srcObject = stream;
 					await video.play();
 
-					// Elegir motor de lectura
+					// Preparar motores
 					if ('BarcodeDetector' in window) {
-						// Nativo — iOS 17+ y Android Chrome 83+
 						this._barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
 					} else {
-						// Fallback jsQR (canvas)
 						this._barcodeDetector = null;
-						if (!this._scanCanvas) this._scanCanvas = document.createElement('canvas');
 					}
+
+					// Dos canvas: uno para full-frame, otro para crop central
+					if (!this._scanCanvas)  this._scanCanvas  = document.createElement('canvas');
+					if (!this._scanCanvas2) this._scanCanvas2 = document.createElement('canvas');
 
 					this.scannerRunning = true;
 					this.scannerBusy   = false;
 					this.zoom_level    = 1;
 					this._applyZoom();
-					this._scanLoop();
+
+					// Arrancar con rAF — 60fps real
+					this._rafId = requestAnimationFrame(() => this._scanLoop());
 
 				} catch (e) {
 					console.error('Error cámara:', e);
@@ -1032,52 +1027,142 @@
 				}
 			},
 
-			async _scanLoop() {
+			// Loop a 60fps con rAF
+			_scanLoop() {
 				if (!this.scannerRunning) return;
 
 				const video = document.getElementById('cameraFrame');
 
 				if (!this.scannerBusy && video?.readyState >= 2 && video.videoWidth > 0) {
-					let rawText = null;
+					this.scannerBusy = true;
 
+					this._decodeFrame(video)
+						.then(async (rawText) => {
+							if (rawText) {
+								const label = this.extractWarehouseLabelFromQR(rawText);
+								if (label) {
+									await this._handleQRResult(label);
+									return; // no schedule next — _handleQRResult decide
+								}
+							}
+							this.scannerBusy = false;
+							if (this.scannerRunning) {
+								this._rafId = requestAnimationFrame(() => this._scanLoop());
+							}
+						})
+						.catch(() => {
+							this.scannerBusy = false;
+							if (this.scannerRunning) {
+								this._rafId = requestAnimationFrame(() => this._scanLoop());
+							}
+						});
+				} else {
+					// Video no listo aún — siguiente frame
+					this._rafId = requestAnimationFrame(() => this._scanLoop());
+				}
+			},
+
+			// ──────────────────────────────────────────────────
+			//  MOTOR MULTI-INTENTO
+			//  Orden: nativo → nativo+contraste → jsQR normal →
+			//         jsQR alto contraste → jsQR crop central
+			// ──────────────────────────────────────────────────
+			async _decodeFrame(video) {
+
+				// ── 1. BarcodeDetector nativo (raw video) ─────
+				if (this._barcodeDetector) {
 					try {
-						if (this._barcodeDetector) {
-							// ── Motor nativo ──────────────────────────────────
-							const codes = await this._barcodeDetector.detect(video);
-							if (codes.length) rawText = codes[0].rawValue;
+						const codes = await this._barcodeDetector.detect(video);
+						if (codes.length) return codes[0].rawValue;
+					} catch(_) {}
 
-						} else if (typeof jsQR !== 'undefined') {
-							// ── Motor jsQR — canvas escalado a 640px ─────────
-							const c     = this._scanCanvas;
-							const scale = Math.min(1, 640 / video.videoWidth);
-							c.width     = Math.floor(video.videoWidth  * scale);
-							c.height    = Math.floor(video.videoHeight * scale);
-							const ctx   = c.getContext('2d', { willReadFrequently: true });
-							ctx.drawImage(video, 0, 0, c.width, c.height);
-							const img   = ctx.getImageData(0, 0, c.width, c.height);
-							const code  = jsQR(img.data, img.width, img.height, {
-								inversionAttempts: 'dontInvert',
-							});
-							if (code) rawText = code.data;
+					// ── 1b. BarcodeDetector con frame preprocesado ─
+					// (ayuda en QRs opacos/con bajo contraste en iOS)
+					try {
+						const bitmap = this._getProcessedBitmap(video, 1280, false, 1.8);
+						if (bitmap) {
+							const codes = await this._barcodeDetector.detect(bitmap);
+							if (codes.length) return codes[0].rawValue;
 						}
-					} catch (_) {}
-
-					if (rawText) {
-						const label = this.extractWarehouseLabelFromQR(rawText);
-						if (label) {
-							this.scannerBusy = true;
-							await this._handleQRResult(label);
-							return;
-						}
-					}
+					} catch(_) {}
 				}
 
-				// Siguiente frame a 80ms
-				this._scanLoopTimer = setTimeout(() => this._scanLoop(), 80);
+				// ── 2. jsQR — múltiples intentos ─────────────
+				if (typeof jsQR !== 'undefined') {
+
+					// 2a. Full frame, sin filtro, ambas inversiones
+					let r = this._jsqrDecode(video, this._scanCanvas, 640, false, 1.0);
+					if (r) return r;
+
+					// 2b. Full frame, contraste alto (QR opaco/lateral)
+					r = this._jsqrDecode(video, this._scanCanvas, 640, false, 1.8);
+					if (r) return r;
+
+					// 2c. Crop centro 70%, contraste alto
+					//     (útil cuando el QR ocupa solo parte del encuadre)
+					r = this._jsqrDecode(video, this._scanCanvas2, 640, true, 1.8);
+					if (r) return r;
+				}
+
+				return null;
+			},
+
+			// Devuelve ImageBitmap procesado (para BarcodeDetector 1b)
+			_getProcessedBitmap(video, maxW, crop, contrast) {
+				const c     = this._scanCanvas;
+				const scale = Math.min(1, maxW / video.videoWidth);
+				let sx = 0, sy = 0, sw = video.videoWidth, sh = video.videoHeight;
+				if (crop) {
+					sw = video.videoWidth  * 0.7;
+					sh = video.videoHeight * 0.7;
+					sx = (video.videoWidth  - sw) / 2;
+					sy = (video.videoHeight - sh) / 2;
+				}
+				c.width  = Math.floor(sw * scale);
+				c.height = Math.floor(sh * scale);
+				const ctx = c.getContext('2d', { willReadFrequently: true });
+				ctx.filter = `contrast(${contrast}) brightness(1.05)`;
+				ctx.drawImage(video, sx, sy, sw, sh, 0, 0, c.width, c.height);
+				ctx.filter = 'none';
+				// createImageBitmap es sync-compatible via canvas normal en este path
+				return c;
+			},
+
+			// Decodifica con jsQR usando el canvas dado
+			_jsqrDecode(video, canvas, maxW, centerCrop, contrast) {
+				const scale = Math.min(1, maxW / video.videoWidth);
+				let sx = 0, sy = 0, sw = video.videoWidth, sh = video.videoHeight;
+
+				if (centerCrop) {
+					sw = video.videoWidth  * 0.7;
+					sh = video.videoHeight * 0.7;
+					sx = (video.videoWidth  - sw) / 2;
+					sy = (video.videoHeight - sh) / 2;
+				}
+
+				canvas.width  = Math.floor(sw * scale);
+				canvas.height = Math.floor(sh * scale);
+
+				const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+				// Filtro CSS directo en canvas — boost de contraste para QRs difíciles
+				if (contrast > 1.0) {
+					ctx.filter = `contrast(${contrast}) brightness(1.05)`;
+				}
+
+				ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+				ctx.filter = 'none';
+
+				const img  = ctx.getImageData(0, 0, canvas.width, canvas.height);
+				const code = jsQR(img.data, img.width, img.height, {
+					// 'attemptBoth' prueba QR normal + invertido (blanco sobre negro)
+					inversionAttempts: 'attemptBoth',
+				});
+
+				return code?.data || null;
 			},
 
 			async _handleQRResult(label) {
-				// Modo mover: llena el input destino y cierra
 				if (this.qr_mode === 'move') {
 					this.move_destination = label;
 					this.stopScan();
@@ -1086,15 +1171,15 @@
 					return;
 				}
 
-				// Modo normal: abre modal de ubicación
 				const opened = await this.openLocationModal(label, { fromQr: true });
 				if (opened) {
 					this.stopScan();
 					Alpine.store('cache').hideModal('read');
 				} else {
-					// QR válido pero ubicación no encontrada — continuar escaneando
 					this.scannerBusy = false;
-					this._scanLoopTimer = setTimeout(() => this._scanLoop(), 80);
+					if (this.scannerRunning) {
+						this._rafId = requestAnimationFrame(() => this._scanLoop());
+					}
 				}
 			},
 
@@ -1110,7 +1195,6 @@
 			},
 
 			_applyZoom() {
-				// Intentar zoom nativo de hardware (Android Chrome, algunos iOS 17+)
 				if (this.scan_stream) {
 					const track = this.scan_stream.getVideoTracks()[0];
 					const caps  = track?.getCapabilities?.() || {};
@@ -1120,7 +1204,6 @@
 						return;
 					}
 				}
-				// Fallback: zoom CSS sobre el <video>
 				const video = document.getElementById('cameraFrame');
 				if (video) video.style.transform = `scale(${this.zoom_level})`;
 			},
@@ -1129,8 +1212,10 @@
 				this.scannerRunning = false;
 				this.scannerBusy   = false;
 
-				clearTimeout(this._scanLoopTimer);
-				this._scanLoopTimer = null;
+				if (this._rafId) {
+					cancelAnimationFrame(this._rafId);
+					this._rafId = null;
+				}
 
 				if (this.scan_stream) {
 					this.scan_stream.getTracks().forEach(t => t.stop());
@@ -1164,8 +1249,7 @@
 			},
 
 			normalizeWarehouseLabel(value) {
-				const clean = (value || '')
-					.toString().trim().toUpperCase().replace(/\s+/g, '');
+				const clean = (value || '').toString().trim().toUpperCase().replace(/\s+/g, '');
 				const match = clean.match(/^B\d+-\d+-[A-Z0-9]$/);
 				return match ? match[0] : null;
 			},
@@ -1186,17 +1270,13 @@
 			// ══════════════════════════════════════════════════
 			async findProducts() {
 				const input = (this.product_input || '').trim();
-
 				if (this._findAbortController) this._findAbortController.abort();
-
 				if (input.length < 2) {
 					this.finded_products  = [];
 					this.finded_locations = [];
 					return;
 				}
-
 				this._findAbortController = new AbortController();
-
 				try {
 					const response = await fetch(
 						`${this.api}/warehouse/find/${encodeURIComponent(input)}`,
@@ -1204,7 +1284,6 @@
 					);
 					const jsonData = await response.json();
 					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
-
 					const data = jsonData.data || {};
 					this.finded_locations = data.locations || [];
 					this.finded_products  = (data.products || []).sort((a, b) =>
@@ -1223,18 +1302,15 @@
 			async openLocationModal(label, options = {}) {
 				const normalized = this.normalizeWarehouseLabel(label);
 				if (!normalized) return false;
-
 				try {
 					this.location_modal_loading = true;
 					this.selected_location = null;
-
 					const response = await fetch(
 						`${this.api}/warehouse/location/${encodeURIComponent(normalized)}`,
 						{ method: 'GET', headers: { 'Content-Type': 'application/json' } }
 					);
 					const jsonData = await response.json();
 					if (!response.ok) throw new Error(jsonData?.data?.message || 'No se pudo obtener la ubicación');
-
 					this.selected_location      = jsonData.data.location;
 					this.location_modal_loading = false;
 					Alpine.store('cache').showModal('warehouse-location');
@@ -1280,26 +1356,17 @@
 				if (!this.selected_product) return;
 				const quantity = Number(this.remove_qty) || 0;
 				if (quantity < 1) return;
-
 				try {
 					this.remove_loading = true;
 					const response = await fetch(`${this.api}/warehouse/stock/remove`, {
 						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-							'Authorization': `Bearer ${this.user.token}`,
-						},
-						body: JSON.stringify({
-							warehouse_stock_id: this.selected_product.warehouse_stock_id,
-							quantity,
-						}),
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.user.token}` },
+						body: JSON.stringify({ warehouse_stock_id: this.selected_product.warehouse_stock_id, quantity }),
 					});
 					const jsonData = await response.json();
 					if (!response.ok) throw new Error(jsonData?.data?.message || 'No se pudo retirar el stock');
-
 					this.selected_location = jsonData.data.location;
 					Alpine.store('cache').hideModal('warehouse-remove-stock');
-
 					if ((this.product_input || '').trim().length >= 2) await this.findProducts();
 					await this.loadOccupiedLocations();
 				} catch (error) {
@@ -1346,27 +1413,17 @@
 				if (!this.add_stock_selected || !this.selected_location) return;
 				const qty = parseInt(this.add_stock_qty);
 				if (qty < 1) return;
-
 				this.add_stock_loading = true;
 				try {
 					const res = await fetch(`${this.api}/warehouse/stock/add`, {
 						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-							'Authorization': `Bearer ${this.user.token}`,
-						},
-						body: JSON.stringify({
-							product_id:     this.add_stock_selected.id,
-							location_label: this.selected_location.label,
-							quantity:       qty,
-						}),
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.user.token}` },
+						body: JSON.stringify({ product_id: this.add_stock_selected.id, location_label: this.selected_location.label, quantity: qty }),
 					});
 					const json = await res.json();
 					if (!res.ok) throw new Error(json?.data?.message || json?.message || 'Error');
-
 					this.selected_location = json.data?.location || json.location;
 					Alpine.store('cache').hideModal('warehouse-add-stock');
-
 					if ((this.product_input || '').trim().length >= 2) await this.findProducts();
 					await this.loadOccupiedLocations();
 				} catch (e) {
@@ -1412,27 +1469,17 @@
 				if (!this.move_product || !this.move_destination) return;
 				const qty = parseInt(this.move_qty);
 				if (qty < 1) return;
-
 				this.move_loading = true;
 				try {
 					const res = await fetch(`${this.api}/warehouse/stock/move`, {
 						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-							'Authorization': `Bearer ${this.user.token}`,
-						},
-						body: JSON.stringify({
-							warehouse_stock_id: this.move_product.warehouse_stock_id,
-							quantity:           qty,
-							destination_label:  this.move_destination,
-						}),
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.user.token}` },
+						body: JSON.stringify({ warehouse_stock_id: this.move_product.warehouse_stock_id, quantity: qty, destination_label: this.move_destination }),
 					});
 					const json = await res.json();
 					if (!res.ok) throw new Error(json?.data?.message || json?.message || 'Error');
-
 					this.selected_location = json.data?.location || json.location;
 					Alpine.store('cache').hideModal('warehouse-move-stock');
-
 					if ((this.product_input || '').trim().length >= 2) await this.findProducts();
 					await this.loadOccupiedLocations();
 				} catch (e) {
@@ -1449,14 +1496,11 @@
 				const file = event.target.files?.[0];
 				if (!file) return;
 				event.target.value = '';
-
 				this.excel_loading = true;
 				this.excel_result  = null;
-
 				try {
 					const formData = new FormData();
 					formData.append('file', file);
-
 					const response = await fetch(`${this.api}/warehouse/load`, {
 						method: 'POST',
 						headers: { 'Authorization': `Bearer ${this.user.token}` },
@@ -1488,11 +1532,9 @@
 			startPlaceholderAnimation() {
 				const tick = () => {
 					const currentText = this.placeholder_texts[this.placeholder_index];
-
 					if (!this.placeholder_deleting) {
 						this.placeholder_char_index++;
 						this.animated_placeholder = currentText.slice(0, this.placeholder_char_index);
-
 						if (this.placeholder_char_index >= currentText.length) {
 							this.placeholder_deleting = true;
 							this.placeholder_timer = setTimeout(tick, 1200);
@@ -1502,7 +1544,6 @@
 					} else {
 						this.placeholder_char_index--;
 						this.animated_placeholder = currentText.slice(0, this.placeholder_char_index);
-
 						if (this.placeholder_char_index <= 0) {
 							this.placeholder_deleting = false;
 							this.placeholder_index = (this.placeholder_index + 1) % this.placeholder_texts.length;
@@ -2243,8 +2284,8 @@
 			width: 2.4rem;
 			height: 2.4rem;
 			border-radius: 50%;
-			background: rgba(255, 255, 255, 0.15);
-			border: 1px solid rgba(255, 255, 255, 0.25);
+			background: rgba(255, 255, 255, 0.25);
+			border: 2px solid rgba(255, 255, 255, 0.35);
 			color: #fff;
 			font-size: 1.4rem;
 			line-height: 1;
