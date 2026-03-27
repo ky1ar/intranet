@@ -37,26 +37,24 @@
     <script src="/static/js/firebase-config.js?v=1.5.0"></script>
     <script src="/static/js/main.js?v=1.5.0"></script>
 
-    <template x-route="/" x-handler="loginVerify" x-template.preload.target.content="/views/login.html"></template>
-    <template x-route="/home" x-template.preload.target.content="/views/home.html"></template>
-    <template x-route="/attendance" x-template.preload.target.content="/views/attendance.html"></template>
-    <template x-route="/schedule" x-template.preload.target.content="/views/schedule.html"></template>
-    <template x-route="/guest" x-template.preload.target.content="/views/guest.html"></template>
-    <template x-route="/training" x-template.preload.target.content="/views/training.html"></template>
-    <template x-route="/board" x-template.preload.target.content="/views/board.html"></template>
-    <template x-route="/support" x-template.preload.target.content="/views/support.html"></template>
-    <template x-route="/tracking" x-template.preload.target.content="/views/tracking.html"></template>
-    <template x-route="/logistics" x-template.preload.target.content="/views/logistics.html"></template>
-    <template x-route="/warehouse" x-template.preload.target.content="/views/warehouse.html"></template>
-    <!--<template x-route="/logistics/:client_order_id" x-handler="logisticsHandler" x-template.preload.target.content="/views/logistics.html"></template>-->
-    <template x-route="/driver" x-template.preload.target.content="/views/driver.html"></template>
-    <template x-route="/clients" x-template.preload.target.content="/views/clients.html"></template>
-    <template x-route="/machines" x-template.preload.target.content="/views/machines.html"></template>
-    <template x-route="/marketing" x-template.preload.target.content="/views/marketing.html"></template>
-    <template x-route="/purchases" x-template.preload.target.content="/views/purchases.html"></template>
-    <template x-route="/complaint" x-template.preload.target.content="/views/complaint.html"></template>
-    <template x-route="/imports" x-template.preload.target.content="/views/imports.html"></template>
-    <template x-route="notfound" x-template.preload.target.content="views/404.html"></template>
+    <template x-route="/" x-template.preload.target.content="/views/login.html"></template>
+    <template x-route="/home"       x-handler="loginVerify" x-template.preload.target.content="/views/home.html"></template>
+    <template x-route="/attendance" x-handler="loginVerify" x-template.preload.target.content="/views/attendance.html"></template>
+    <template x-route="/schedule"   x-handler="loginVerify" x-template.preload.target.content="/views/schedule.html"></template>
+    <template x-route="/guest"      x-handler="loginVerify" x-template.preload.target.content="/views/guest.html"></template>
+    <template x-route="/training"   x-handler="loginVerify" x-template.preload.target.content="/views/training.html"></template>
+    <template x-route="/board"      x-handler="loginVerify" x-template.preload.target.content="/views/board.html"></template>
+    <template x-route="/support"    x-handler="loginVerify" x-template.preload.target.content="/views/support.html"></template>
+    <template x-route="/tracking"   x-handler="loginVerify" x-template.preload.target.content="/views/tracking.html"></template>
+    <template x-route="/logistics"  x-handler="loginVerify" x-template.preload.target.content="/views/logistics.html"></template>
+    <template x-route="/warehouse"  x-handler="loginVerify" x-template.preload.target.content="/views/warehouse.html"></template>
+    <template x-route="/driver"     x-handler="loginVerify" x-template.preload.target.content="/views/driver.html"></template>
+    <template x-route="/clients"    x-handler="loginVerify" x-template.preload.target.content="/views/clients.html"></template>
+    <template x-route="/machines"   x-handler="loginVerify" x-template.preload.target.content="/views/machines.html"></template>
+    <template x-route="/marketing"  x-handler="loginVerify" x-template.preload.target.content="/views/marketing.html"></template>
+    <template x-route="/purchases"  x-handler="loginVerify" x-template.preload.target.content="/views/purchases.html"></template>
+    <template x-route="/complaint"  x-handler="loginVerify" x-template.preload.target.content="/views/complaint.html"></template>
+    <template x-route="/imports"    x-handler="loginVerify" x-template.preload.target.content="/views/imports.html"></template>
 
     <template x-if="$store.cache.user.id">
         <div>

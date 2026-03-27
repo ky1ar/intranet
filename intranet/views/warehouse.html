@@ -892,7 +892,7 @@
 					socket.removeAllListeners();
 				}
 				await this.loadOccupiedLocations();
-				await Alpine.store('cache').verify();
+				// await Alpine.store('cache').verify();
 			},
 
 			async loadOccupiedLocations() {

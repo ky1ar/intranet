@@ -17,11 +17,18 @@ class Response:
         if isinstance(data, str):
             data = {'message': data}
 
+        app_version = None
+        if isinstance(data, dict):
+            app_version = data.pop("app_version", None)
+
         response = {
             "data": data,
             "success": True
-
         }
+
+        if app_version:
+            response["app_version"] = app_version
+
         logging.info(f"{self.GREEN}{response}{self.RESET}")
         return response, 200
     

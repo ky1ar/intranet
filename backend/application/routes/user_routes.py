@@ -35,8 +35,9 @@ def user_login():
 @user_bp.route("/verify", methods=["GET"])
 @jwt_required()
 def user_verify():
+    return controller.user_verify()
     return jsonify({
-        "app_version": "1.5.0"
+        "app_version": "1.5.0d"
     }), 200
 
 

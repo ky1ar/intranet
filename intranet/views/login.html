@@ -247,11 +247,10 @@
             }, 
 
             async login() {
-				console.log('Login...');
+                console.log('Login...');
                 const payload = { 
                     document: this.temp_auth.document,
                     password: this.temp_auth.pin,
-                    //fcm_token: localStorage.getItem("fcm_token")
                 }
 
                 try {
@@ -266,26 +265,25 @@
                         if (response.status === 422) {
                             this.showError('login', jsonData?.data?.message || 'Datos inválidos');
                             localStorage.removeItem('temp_auth'); 
-                            setTimeout(() => {
-                                window.PineconeRouter.context.navigate('/')
-                            }, 1000);
+                            setTimeout(() => window.PineconeRouter.context.navigate('/'), 1000);
                             return;
                         }
                         throw new Error(jsonData?.data?.message || 'Error en la solicitud');
                     }
                     
-                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
-                    
                     const user = jsonData.data;
+                    localStorage.setItem('user_token', user.token); // ✅ Guardar token primero
                     Alpine.store('cache').setUser(user);
+                    Alpine.store('cache').initSocket();              // ✅ Los 3 inits aquí
                     Alpine.store('cache').sidebarOn();
-                    localStorage.setItem('user_data', JSON.stringify(Alpine.store('cache').user));
+                    Alpine.store('cache').initPush();
 
                     window.PineconeRouter.context.navigate(Alpine.store('cache').user.default_page);
+
                 } catch (error) {
                     this.showError('login', error.message);
                 } 
-            },  
+            },
 
             showError(btnKey, errorMsg) {
                 const originalText = this.buttons[btnKey].text;

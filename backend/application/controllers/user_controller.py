@@ -49,7 +49,12 @@ class UserController:
 
         return self.user.login(document, password, fcm_token)
     
-        
+
+    @handle_logs_and_exceptions
+    def user_verify(self):
+        return self.user.verify()
+
+
     @handle_logs_and_exceptions
     def user_logout(self, data):
         if validation_error := validate_request(data, {"fcm_token"}):

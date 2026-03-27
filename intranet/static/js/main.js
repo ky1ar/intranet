@@ -68,37 +68,43 @@ window.addEventListener('beforeunload', () => {
 
 document.addEventListener('alpine:init', () => {
     Alpine.data('data',() => ({
-        init() {
+        async init() {
             Alpine.store('cache').detectPlatform();
-
             console.log('Inicializando Alpine...');
 
-            const token = Alpine.store('cache').user.token;
-            const storedData = localStorage.getItem('user_data');
-            if (!token) {
-                console.log('Ventana reiniciada...');
-                if (storedData) {
-                    console.log('Obteniendo data desde el cache...');
-                    const userData = JSON.parse(storedData);
-                    Alpine.store('cache').setUser(userData);
-                    Alpine.store('cache').initSocket();
-                    Alpine.store('cache').sidebarOn();
-                } else {
-                    console.log('No estás logueado...');
-                    if (window.location.pathname !== '/') {
-                        window.location.href = '/';
-                    }
-                    return false;
-                }
-            } else {
-                console.log('Cambiando de ruta...');
-            }
+            // Alpine.store('cache').initSocket();
+            // Alpine.store('cache').sidebarOn();
+            // Alpine.store('cache').initPush();
+
+            // Alpine.store('cache').verify();
+
+            // const token = Alpine.store('cache').user.token;
+            // // const storedData = localStorage.getItem('user_data');
+            // if (!token) {
+            //     console.log('Ventana reiniciada...');
+            //     // if (storedData) {
+            //     //     console.log('Obteniendo data desde el cache...');
+            //     //     const userData = JSON.parse(storedData);
+            //     //     Alpine.store('cache').setUser(userData);
+
+            //     //     Alpine.store('cache').initSocket();
+            //     //     Alpine.store('cache').sidebarOn();
+            //     // } else {
+            //         console.log('No estás logueado...');
+            //         if (window.location.pathname !== '/') {
+            //             window.location.href = '/';
+            //         }
+            //         return false;
+            //     // }
+            // } else {
+            //     console.log('Cambiando de ruta...');
+            // }
             
         },
     }));
 
     Alpine.store('cache', {
-        api: 'https://api.krear3d.com', //https://devapi.krear3d.com
+        api: 'https://devapi.krear3d.com', //https://devapi.krear3d.com
         user: {},
         active_page: window.location.pathname,
         common_pages: [
@@ -263,6 +269,8 @@ document.addEventListener('alpine:init', () => {
 
 
         async initPush() {
+            console.log("Init Push...");
+
             try {
                 if (!('serviceWorker' in navigator) || !('Notification' in window)) {
                     console.warn('Push no soportado');
@@ -473,6 +481,7 @@ document.addEventListener('alpine:init', () => {
             this.unsetData();
             this.sidebarOff();
             localStorage.removeItem('user_data');
+            localStorage.removeItem('user_token');
             localStorage.removeItem('push_token');
             localStorage.removeItem('push_device_id');
             localStorage.removeItem('device_id');
@@ -540,13 +549,20 @@ document.addEventListener('alpine:init', () => {
             );
 
             if (!toFetch.length) return;
+
+            const token = localStorage.getItem('user_token');
+            if (!token) {
+                console.warn('_fetchEndpoints: sin token, abortando');
+                return;
+            }
+            
             try {
                 const responses = await Promise.all(
                     toFetch.map(ep =>
                         fetch(this.api + ep.url, {
                             headers: {
                                 'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${this.user.token}`,
+                                'Authorization': `Bearer ${token}`,
                             }
                         })
                         .then(res => res.json())
@@ -591,6 +607,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         initSocket() {
+            console.log("Init Socket...");
             if (!this.user?.id) {
                 console.warn("❌ No se puede crear socket sin user.id");
                 return;
@@ -620,16 +637,22 @@ document.addEventListener('alpine:init', () => {
         },
 
         async verify() {
+            console.log("Verify token...");
+
+            const token = localStorage.getItem('user_token');
+            if (!token) {
+                console.log('No estás logueado...');
+                await this.logout();
+                return false;
+            } 
+
             try {
-                const response = await fetch(this.api + '/user/verify', {
+                const response = await fetch(`${this.api}/user/verify`, {
                     method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${this.user.token}`,
-                    },
+                    headers: {'Authorization': `Bearer ${token}`},
                 });
 
                 if (!response.ok) {
-                    console.error('Error en la verificación del usuario', response.statusText);
                     await this.logout();
                     return false;
                 }
@@ -643,6 +666,16 @@ document.addEventListener('alpine:init', () => {
                     window.location.reload();
                     return;
                 } 
+
+                this.setUser(result.data);
+
+                // ✅ Solo en F5: socket no existe aún
+                if (!this.socket) {
+                    this.initSocket();
+                    this.sidebarOn();
+                    this.initPush();
+                }
+
                 return true;
 
             } catch (error) {
@@ -819,78 +852,35 @@ function logisticsHandler({ params }) {
 
 async function loginVerify(context) {
     console.log('Verificando Login...');
-    let token = Alpine.store('cache').user.token;
-    const storedData = localStorage.getItem('user_data');
+
+    const token = Alpine.store('cache').user.token 
+               || localStorage.getItem('user_token');
+
     if (!token) {
-        if (storedData) {
-            console.log('Verificando desde localStorage');
-            const userData = JSON.parse(storedData);
-            token = userData.token;
-        } else {
-            console.log('No estás logueado');
-            if (context.route !== "/") {
-                window.PineconeRouter.context.navigate("/");
-            }
-            return false;
-        }
-    } else {
-        console.log('Verificando desde el router');
-    }
-
-    try {
-        const response = await fetch(Alpine.store('cache').api + '/user/verify', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
-        });
-
-        if (!response.ok) {
-            console.error('Error en la verificación del usuario', response.statusText);
-            await Alpine.store('cache').logout();
-            return false;
-        }
-
-        const result = await response.json();
-        const serverVersion = result.app_version;
-        const localVersion = localStorage.getItem('app_version');
-
-        if (localVersion !== serverVersion) {
-            localStorage.setItem('app_version', serverVersion);
-            window.location.reload();
-            return;
-        } 
-
-        console.log('Usuario logeado');
-        
-        if (storedData && !Alpine.store('cache').user.token) {
-            const userData = JSON.parse(storedData);
-            Alpine.store('cache').setUser(userData);
-        }
-
-        Alpine.store('cache').initSocket();
-        Alpine.store('cache').sidebarOn();
-        Alpine.store('cache').initPush();
-        
-        if (context.route == '/') {
-            console.log('Sesión iniciada. Redirigiendo a default...');
-            window.PineconeRouter.context.navigate(Alpine.store('cache').user.default_page);
-        }
-        return true;
-
-    } catch (error) {
-        console.error('Error en la verificación del usuario:', error);
-
-        await Alpine.store('cache').logout();
+        window.PineconeRouter.context.navigate('/');
         return false;
-
     }
+
+    // ✅ Si ya hay sesión activa (socket existe = ya se inicializó)
+    // renderizar inmediatamente y verificar en segundo plano
+    if (Alpine.store('cache').socket) {
+        Alpine.store('cache').verify(); // sin await — no bloquea
+        return true;                    // render inmediato con data del store
+    }
+
+    // ✅ Solo en F5 (socket null) esperamos verify completo antes de renderizar
+    const ok = await Alpine.store('cache').verify();
+    if (!ok) {
+        window.PineconeRouter.context.navigate('/');
+        return false;
+    }
+
+    return true;
 }
 
-// document.addEventListener('pinecone-start', () => {
-//     NProgress.start();
-// });
+document.addEventListener('pinecone-start', () => {
+    // Alpine.store('cache').verify();
+});
 
 document.addEventListener('pinecone-end', () => {
     Alpine.store('cache').setActivePage(window.location.pathname);

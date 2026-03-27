@@ -108,7 +108,29 @@ class UserService:
         hashed_pin = bcrypt.generate_password_hash(pin).decode("utf-8")
         return self.user_repository.set_user_pin(user, hashed_pin, phone)
     
-    
+
+    @handle_exceptions
+    def verify(self):
+        user_id = int(get_jwt_identity())
+        user, uc = self.user_repository.get_user_by_id(user_id)
+        if uc != 200:
+            return user, uc
+        
+        return {
+            "app_version": "1.5.0nc",
+            "id": user.id,
+            "level_id": user.level_id,
+            "department_id": user.department_id,
+            "department_name": user.department.name,
+            "shipping_app_level": user.shipping_app_level,
+            "document": user.document,
+            "name": self.format_name(user.name),
+            "phone": user.phone[2:],
+            "image": user.image if user.image else 'user_default.jpg',
+            "default_page": user.default_page or "logistics",
+        }, 200
+
+
     @handle_exceptions
     def login(self, document, password, fcm_token):
         user, user_status = self.user_repository.get_user_by_document(document)

@@ -568,7 +568,6 @@
 	Alpine.data('schedule_data', () => ({
 		api: Alpine.store('cache').api,
 		user: Alpine.store('cache').user,
-
 		user_id: Alpine.store('cache').user.id,
 		offset: 0,
 		todayISO: '',
@@ -631,7 +630,7 @@
 				{ key: 'color_options',      url: '/schedule/options/colors' },
 				{ key: 'user_options', url: '/schedule/options/users' },
 				{ key: 'department_options', url: '/schedule/options/departments' },
-			]).then(() => Alpine.store('cache').verify()).catch(() => {});
+			]);
 		},
 
 		composeISO(dateOnly, time) {

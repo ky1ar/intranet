@@ -1,3 +1,5 @@
+import logging
+
 from flask import Blueprint, request, jsonify
 from application.controllers.schedule_controller import ScheduleController
 from flask_jwt_extended import jwt_required
@@ -10,6 +12,7 @@ controller = ScheduleController()
 @schedule_bp.route("/month", methods=["GET"])
 @jwt_required()
 def get_month():
+    logging.info("tes")
     offset = request.args.get('offset', None)
     return controller.schedule_get_month(offset)
 
