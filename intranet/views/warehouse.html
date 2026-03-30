@@ -135,28 +135,23 @@
 		>
 			<div class="modal glass2" @click.stop>
 				<div id="scannerBox">
-					<video
-						id="cameraFrame"
-						playsinline
-						muted
-						autoplay
-					></video>
+					<video id="cameraFrame" playsinline muted autoplay></video>
 					<div class="scannerDots"></div>
 				</div>
 
-				<!-- Barra de zoom -->
+				<!-- DEBUG OVERLAY -->
+				<div class="qr-debug-bar" x-show="scannerRunning" x-cloak>
+					<div class="qr-debug-engine" x-text="dbg_engine || '…buscando…'"></div>
+					<div class="qr-debug-raw"    x-text="dbg_raw    || '-'"></div>
+				</div>
+
+				<!-- Zoom -->
 				<div class="scanner-zoom-bar" x-show="scannerRunning" x-cloak>
-					<button
-						class="scanner-zoom-btn hover-opacity press"
-						@click="zoomOut()"
-						:disabled="zoom_level <= 1"
-					>−</button>
+					<button class="scanner-zoom-btn hover-opacity press"
+							@click="zoomOut()" :disabled="zoom_level <= 1">−</button>
 					<span class="scanner-zoom-label" x-text="`${zoom_level}×`"></span>
-					<button
-						class="scanner-zoom-btn hover-opacity press"
-						@click="zoomIn()"
-						:disabled="zoom_level >= 4"
-					>+</button>
+					<button class="scanner-zoom-btn hover-opacity press"
+							@click="zoomIn()" :disabled="zoom_level >= 4">+</button>
 				</div>
 			</div>
 		</div>
@@ -197,8 +192,6 @@
 								<span class="number fix" x-text="selected_location?.position || '-'"></span>
 							</span>
 						</div>
-
-						<!-- <span class="stock" x-text="`${selected_location.products_count || 0} items`"></span> -->
 
 						<div class="buttons">
 							<button class="button button-add black hover-opacity" @click="openMapModal(selected_location?.label)">
@@ -274,44 +267,40 @@
 
 				<div class="title">
 					<span>Añadir stock</span>
-					<!-- <span class="location-badge" x-text="selected_location?.label || ''"></span> -->
 				</div>
 
 				<div class="modal-content change-box">
-					<!-- Buscador de modelo -->
-						<div class="add-search-bar white">
-							<img alt="" width="16" height="16" src="/static/images/icons/find.svg" style="opacity:.5;">
-							<input
-								type="text"
-								placeholder="Buscar modelo..."
-								x-model="add_stock_query"
-								@input="searchMachinesForAdd()"
-								autocomplete="off"
-							>
-							<div
-								x-show="add_stock_query && !add_stock_selected"
-								class="hover-opacity press"
-								style="display:none; width:1.5rem; height:1.5rem; align-items:center; justify-content:center;"
-								@click="add_stock_query = ''; add_stock_results = [];"
-							>
-								<img alt="" width="10" height="10" src="/static/images/icons/filled/x.svg">
-							</div>
+					<div class="add-search-bar white">
+						<img alt="" width="16" height="16" src="/static/images/icons/find.svg" style="opacity:.5;">
+						<input
+							type="text"
+							placeholder="Buscar modelo..."
+							x-model="add_stock_query"
+							@input="searchMachinesForAdd()"
+							autocomplete="off"
+						>
+						<div
+							x-show="add_stock_query && !add_stock_selected"
+							class="hover-opacity press"
+							style="display:none; width:1.5rem; height:1.5rem; align-items:center; justify-content:center;"
+							@click="add_stock_query = ''; add_stock_results = [];"
+						>
+							<img alt="" width="10" height="10" src="/static/images/icons/filled/x.svg">
 						</div>
+					</div>
 
-						<!-- Resultados -->
-						<div class="add-search-results white" x-show="add_stock_results.length > 0" style="display:none;">
-							<template x-for="m in add_stock_results" :key="m.id">
-								<div class="add-result-row hover-opacity press" @click="selectMachineForAdd(m)">
-									<img alt="" width="32" height="32" :src="`/static/images/uploads/machines/${m.image}`">
-									<div class="add-result-text">
-										<span class="brand" x-text="m.brand"></span>
-										<span class="model" x-text="m.model"></span>
-									</div>
+					<div class="add-search-results white" x-show="add_stock_results.length > 0" style="display:none;">
+						<template x-for="m in add_stock_results" :key="m.id">
+							<div class="add-result-row hover-opacity press" @click="selectMachineForAdd(m)">
+								<img alt="" width="32" height="32" :src="`/static/images/uploads/machines/${m.image}`">
+								<div class="add-result-text">
+									<span class="brand" x-text="m.brand"></span>
+									<span class="model" x-text="m.model"></span>
 								</div>
-							</template>
-						</div>
+							</div>
+						</template>
+					</div>
 
-					<!-- Producto seleccionado -->
 					<div class="selected white" x-show="add_stock_selected" style="display:none;">
 						<div class="item">
 							<img alt="" width="48" height="48" :src="`/static/images/uploads/machines/${add_stock_selected?.image}`">
@@ -324,7 +313,6 @@
 						</div>
 					</div>
 
-					<!-- Cantidad -->
 					<div class="remove-box" x-show="add_stock_selected" style="display:none;">
 						<div class="number">
 							<div class="action white hover-opacity" @click="if(add_stock_qty > 1) add_stock_qty--">
@@ -383,7 +371,6 @@
 				</div>
 
 				<div class="modal-content change-box">
-					<!-- Producto origen -->
 					<div class="selected white">
 						<div class="item">
 							<img alt="" width="48" height="48" :src="`/static/images/uploads/machines/${move_product?.image}`">
@@ -395,7 +382,6 @@
 						</div>
 					</div>
 
-					<!-- Cantidad -->
 					<div class="remove-box">
 						<div class="number">
 							<div class="action white hover-opacity" @click="decreaseMoveQty()">
@@ -415,7 +401,6 @@
 						</div>
 					</div>
 
-					<!-- Destino -->
 					<div class="move-destination-wrap">
 						<span class="move-dest-label">Ubicación destino</span>
 						<div class="move-dest-input white">
@@ -473,47 +458,28 @@
 							Cambiar piso
 						</button>
 					</div>
-					
 				</div>
 
 				<div class="wmap-scroll">
-					<!-- ══ PISO 1 ══ -->
 					<div x-show="current_floor === 1">
 						<div class="wmap-viewport">
-
-							<!-- ── FILA SUPERIOR: B5 (izq) + B4 B3 B2 B1 ── -->
 							<div class="wmap-row wmap-row-top">
-
-								<!-- Bloque 5 — filas horizontales -->
 								<div class="wmap-section">
 									<div class="wmap-block-label">BLOQUE 5</div>
 									<div class="wmap-h-block vertical">
 										<template x-for="rack in getBlock(5).racks" :key="rack">
 											<div class="wmap-hrow">
 												<span class="wmap-rack-num" x-text="rack"></span>
-
 												<template x-for="pos in (rack >= 25 ? ['A','B','C'] : getBlock(5).positions)" :key="pos">
-													<div
-														class="wmap-cell"
-														:class="{
-															'wmap-hl': isMapHighlighted(5, rack, pos),
-															'wmap-has-stock': hasStock(5, rack, pos)
-														}"
-														:title="`B5-${rack}-${pos}`"
-														@click="selectMapCell(5, rack, pos)"
-													>
+													<div class="wmap-cell" :class="{'wmap-hl': isMapHighlighted(5, rack, pos),'wmap-has-stock': hasStock(5, rack, pos)}" :title="`B5-${rack}-${pos}`" @click="selectMapCell(5, rack, pos)">
 														<span class="wmap-pos-label" x-text="pos"></span>
 													</div>
 												</template>
-
 											</div>
 										</template>
 									</div>
 								</div>
-
 								<div class="wmap-divider-v"></div>
-
-								<!-- Bloques 4 → 1 — columnas verticales -->
 								<template x-for="bd in warehouse_structure.filter(b=>[4,3,2,1].includes(b.block)).sort((a,b)=>b.block-a.block)" :key="bd.block">
 									<div class="wmap-section">
 										<div class="wmap-block-label" x-text="`BLOQUE ${bd.block}`"></div>
@@ -522,15 +488,7 @@
 												<div class="wmap-hrow">
 													<span class="wmap-rack-num" x-text="rack"></span>
 													<template x-for="pos in bd.positions" :key="pos">
-														<div
-															class="wmap-cell"
-															:class="{
-																'wmap-hl': isMapHighlighted(bd.block, rack, pos),
-																'wmap-has-stock': hasStock(bd.block, rack, pos)
-															}"
-															:title="`B${bd.block}-${rack}-${pos}`"
-															@click="selectMapCell(bd.block, rack, pos)"
-														>
+														<div class="wmap-cell" :class="{'wmap-hl': isMapHighlighted(bd.block, rack, pos),'wmap-has-stock': hasStock(bd.block, rack, pos)}" :title="`B${bd.block}-${rack}-${pos}`" @click="selectMapCell(bd.block, rack, pos)">
 															<span class="wmap-pos-label" x-text="pos"></span>
 														</div>
 													</template>
@@ -540,98 +498,57 @@
 									</div>
 									<div class="wmap-divider-v" x-show="bd.block > 1"></div>
 								</template>
-
-								<!-- Zona especial: Repuestos -->
-								<!-- <div class="wmap-special-zone">
-									<span>Repuestos</span>
-									<span style="opacity:.4;font-size:.6rem">Escaleras →</span>
-								</div> -->
 							</div>
 
-							<!-- ── FILA MEDIA: B7 ── -->
 							<div class="wmap-row b7 wmap-row-mid">
 								<div class="wmap-section">
 									<div class="wmap-block-label">BLOQUE 7</div>
 									<div class="wmap-b7-grid">
-
 										<div class="wmap-b7-header">
 											<span class="wmap-rack-num">35</span>
 											<span class="wmap-rack-num">36</span>
 											<span class="wmap-rack-num">37</span>
 										</div>
-
 										<template x-for="pos in ['A','B','C']" :key="`t7top-${pos}`">
 											<div class="wmap-b7-row">
 												<template x-for="rack in [35,36,37]" :key="`t7top-${rack}-${pos}`">
-													<div
-														class="wmap-cell wmap-cell-h"
-														:class="{
-															'wmap-hl': isMapHighlighted(7, rack, pos),
-															'wmap-has-stock': hasStock(7, rack, pos)
-														}"
-														:title="`B7-${rack}-${pos}`"
-														@click="selectMapCell(7, rack, pos)"
-													>
+													<div class="wmap-cell wmap-cell-h" :class="{'wmap-hl': isMapHighlighted(7, rack, pos),'wmap-has-stock': hasStock(7, rack, pos)}" :title="`B7-${rack}-${pos}`" @click="selectMapCell(7, rack, pos)">
 														<span class="wmap-pos-label" x-text="pos"></span>
 													</div>
 												</template>
 											</div>
 										</template>
-
 										<div class="wmap-b7-divider"></div>
-
 										<template x-for="pos in ['C','B','A']" :key="`t7bot-${pos}`">
 											<div class="wmap-b7-row">
 												<template x-for="rack in [34,33,32]" :key="`t7bot-${rack}-${pos}`">
-													<div
-														class="wmap-cell wmap-cell-h"
-														:class="{
-															'wmap-hl': isMapHighlighted(7, rack, pos),
-															'wmap-has-stock': hasStock(7, rack, pos)
-														}"
-														:title="`B7-${rack}-${pos}`"
-														@click="selectMapCell(7, rack, pos)"
-													>
+													<div class="wmap-cell wmap-cell-h" :class="{'wmap-hl': isMapHighlighted(7, rack, pos),'wmap-has-stock': hasStock(7, rack, pos)}" :title="`B7-${rack}-${pos}`" @click="selectMapCell(7, rack, pos)">
 														<span class="wmap-pos-label" x-text="pos"></span>
 													</div>
 												</template>
 											</div>
 										</template>
-
 										<div class="wmap-b7-header">
 											<span class="wmap-rack-num">34</span>
 											<span class="wmap-rack-num">33</span>
 											<span class="wmap-rack-num">32</span>
 										</div>
-
 									</div>
 								</div>
 							</div>
 
-							<!-- ── FILA INFERIOR: B6 ── -->
 							<div class="wmap-row b6 wmap-row-bot">
 								<div class="wmap-section">
 									<div class="wmap-b6-grid">
-										<!-- Números de rack como encabezado de columna -->
 										<div class="wmap-b6-header">
 											<template x-for="rack in getBlock(6).racks" :key="`h6-${rack}`">
 												<span class="wmap-rack-num" x-text="rack"></span>
 											</template>
 										</div>
-
-										<!-- Una fila por posición (A, B, C) -->
 										<template x-for="pos in getBlock(6).positions" :key="`p6-${pos}`">
 											<div class="wmap-b6-row">
 												<template x-for="rack in getBlock(6).racks" :key="`c6-${rack}-${pos}`">
-													<div
-														class="wmap-cell wmap-cell-h"
-														:class="{
-															'wmap-hl': isMapHighlighted(6, rack, pos),
-															'wmap-has-stock': hasStock(6, rack, pos)
-														}"
-														:title="`B6-${rack}-${pos}`"
-														@click="selectMapCell(6, rack, pos)"
-													>
+													<div class="wmap-cell wmap-cell-h" :class="{'wmap-hl': isMapHighlighted(6, rack, pos),'wmap-has-stock': hasStock(6, rack, pos)}" :title="`B6-${rack}-${pos}`" @click="selectMapCell(6, rack, pos)">
 														<span class="wmap-pos-label" x-text="pos"></span>
 													</div>
 												</template>
@@ -639,35 +556,21 @@
 										</template>
 									</div>
 									<div class="wmap-block-label">BLOQUE 6</div>
-
 								</div>
 							</div>
 
-							<!-- Zona piso 1 -->
 							<div class="wmap-row f1">
 								<div class="wmap-section">
-									<!-- <div class="wmap-block-label">ZONA PISO</div> -->
 									<div class="wmap-hrow">
-										<!-- <span class="wmap-rack-num">1</span> -->
-										<div
-											class="wmap-cell"
-											:class="{
-												'wmap-hl': isMapHighlighted(0, 1, 'A'),
-												'wmap-has-stock': hasStock(0, 1, 'A')
-											}"
-											title="B0-1-A"
-											@click="selectMapCell(0, 1, 'A')"
-										>
+										<div class="wmap-cell" :class="{'wmap-hl': isMapHighlighted(0, 1, 'A'),'wmap-has-stock': hasStock(0, 1, 'A')}" title="B0-1-A" @click="selectMapCell(0, 1, 'A')">
 											<span class="wmap-pos-label">Zona Piso 1</span>
 										</div>
 									</div>
 								</div>
 							</div>
-
 						</div>
 					</div>
 
-					<!-- ══ PISO 2 ══ -->
 					<div x-show="current_floor === 2">
 						<div class="wmap-viewport">
 							<div class="wmap-row wmap-row-2">
@@ -679,15 +582,7 @@
 												<div class="wmap-hrow">
 													<span class="wmap-rack-num" x-text="rack"></span>
 													<template x-for="pos in bd.positions" :key="pos">
-														<div
-															class="wmap-cell"
-															:class="{
-																'wmap-hl': isMapHighlighted(bd.block, rack, pos),
-																'wmap-has-stock': hasStock(bd.block, rack, pos)
-															}"
-															:title="`B${bd.block}-${rack}-${pos}`"
-															@click="selectMapCell(bd.block, rack, pos)"
-														>
+														<div class="wmap-cell" :class="{'wmap-hl': isMapHighlighted(bd.block, rack, pos),'wmap-has-stock': hasStock(bd.block, rack, pos)}" :title="`B${bd.block}-${rack}-${pos}`" @click="selectMapCell(bd.block, rack, pos)">
 															<span class="wmap-pos-label" x-text="pos"></span>
 														</div>
 													</template>
@@ -697,22 +592,10 @@
 									</div>
 									<div class="wmap-divider-v" x-show="bd.block < 10"></div>
 								</template>
-
-								<!-- Zona piso 2 -->
 								<div class="wmap-row f2">
 									<div class="wmap-section">
-										<!-- <div class="wmap-block-label">ZONA PISO</div> -->
 										<div class="wmap-hrow">
-											<!-- <span class="wmap-rack-num">2</span> -->
-											<div
-												class="wmap-cell"
-												:class="{
-													'wmap-hl': isMapHighlighted(0, 2, 'A'),
-													'wmap-has-stock': hasStock(0, 2, 'A')
-												}"
-												title="B0-2-A"
-												@click="selectMapCell(0, 2, 'A')"
-											>
+											<div class="wmap-cell" :class="{'wmap-hl': isMapHighlighted(0, 2, 'A'),'wmap-has-stock': hasStock(0, 2, 'A')}" title="B0-2-A" @click="selectMapCell(0, 2, 'A')">
 												<span class="wmap-pos-label">Zona Piso 2</span>
 											</div>
 										</div>
@@ -723,26 +606,16 @@
 					</div>
 				</div>
 
-				<!-- Leyenda -->
 				<div class="wmap-legend mobile-hide glass2">
-					<div class="wmap-legend-item">
-						<div class="wmap-cell" style="pointer-events:none;"></div>
-						<span>Vacío</span>
-					</div>
-					<div class="wmap-legend-item">
-						<div class="wmap-cell wmap-has-stock" style="pointer-events:none;"></div>
-						<span>Con stock</span>
-					</div>
-					<div class="wmap-legend-item">
-						<div class="wmap-cell wmap-hl" style="pointer-events:none;"></div>
-						<span>Seleccionado</span>
-					</div>
+					<div class="wmap-legend-item"><div class="wmap-cell" style="pointer-events:none;"></div><span>Vacío</span></div>
+					<div class="wmap-legend-item"><div class="wmap-cell wmap-has-stock" style="pointer-events:none;"></div><span>Con stock</span></div>
+					<div class="wmap-legend-item"><div class="wmap-cell wmap-hl" style="pointer-events:none;"></div><span>Seleccionado</span></div>
 				</div>
 			</div>
 		</div>
 
 
-		<!-- Modal pequeño retirar stock -->
+		<!-- Modal retirar stock -->
 		<div
 			x-show="$store.cache.isVisibleModal('warehouse-remove-stock')"
 			@mousedown.self="$store.cache.hideModal('warehouse-remove-stock')"
@@ -757,13 +630,10 @@
 			x-cloak
 		>
 			<div class="modal little glass2" @click.stop>
-				<div class="modal-grabber">
-					<div class="modal-grabber-bar"></div>
-				</div>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
 
 				<div class="title full">
 					<span>Retirar stock</span>
-
 					<div class="buttons">
 						<button class="button button-add black hover-opacity" @click="openMapModal(selected_product?.location?.label)">
 							<img alt="" width="14" height="14" src="/static/images/icons/map.svg" style="filter:invert(1)">
@@ -776,58 +646,30 @@
 					<div class="selected white">
 						<div class="item">
 							<img alt="" width="48" height="48" :src="`/static/images/uploads/machines/${selected_product?.image}`">
-
 							<div class="data">
 								<span class="model" x-text="`${selected_product?.brand} ${selected_product?.model}`"></span>
 								<span class="category" x-text="selected_product?.category || 'Impresoras 3D'"></span>
 								<span class="stock" x-text="`Stock actual: ${selected_product?.stock ?? 0} uds.`"></span>
 							</div>
 						</div>
-						<!-- <span class="stock" x-text="`Ubicación: ${selected_product?.location?.label || '-'}`"></span> -->
 					</div>
 
 					<div class="remove-box">
 						<div class="number">
-							<div class="action white hover-opacity" @click="decreaseRemoveQty()">
-								<span>-</span>
-							</div>
-
-							<input
-								class="white"
-								type="number"
-								min="1"
-								:max="selected_product?.stock || 1"
-								x-model="remove_qty"
-								@input="sanitizeRemoveQty()"
-							>
-
-							<div class="action white hover-opacity" @click="increaseRemoveQty()">
-								<span>+</span>
-							</div>
+							<div class="action white hover-opacity" @click="decreaseRemoveQty()"><span>-</span></div>
+							<input class="white" type="number" min="1" :max="selected_product?.stock || 1" x-model="remove_qty" @input="sanitizeRemoveQty()">
+							<div class="action white hover-opacity" @click="increaseRemoveQty()"><span>+</span></div>
 						</div>
-
 						<div class="text">
 							<span>Stock resultante</span>
-							<span
-								class="black"
-								x-text="`${Math.max((selected_product?.stock || 0) - (Number(remove_qty) || 0), 0)} uds.`"
-							></span>
+							<span class="black" x-text="`${Math.max((selected_product?.stock || 0) - (Number(remove_qty) || 0), 0)} uds.`"></span>
 						</div>
 					</div>
 				</div>
 
 				<div class="buttons">
-					<button
-						class="button black hover-opacity"
-						@click="$store.cache.hideModal('warehouse-remove-stock')"
-					>
-						Cancelar
-					</button>
-
-					<button
-						class="button hover-opacity"
-						@click="!remove_loading && confirmRemoveStock()"
-					>
+					<button class="button black hover-opacity" @click="$store.cache.hideModal('warehouse-remove-stock')">Cancelar</button>
+					<button class="button hover-opacity" @click="!remove_loading && confirmRemoveStock()">
 						<span x-text="remove_loading ? 'Retirando...' : 'Retirar stock'"></span>
 					</button>
 				</div>
@@ -840,7 +682,6 @@
 		Alpine.data('warehouse_data', () => ({
 			api: Alpine.store('cache').api,
 			user: Alpine.store('cache').user,
-			buttons: { process: { class: '', text: 'Añadir' } },
 
 			// ── Placeholder animado ────────────────────────────
 			animated_placeholder: '',
@@ -867,7 +708,6 @@
 
 			// ── Excel ──────────────────────────────────────────
 			excel_loading: false,
-			excel_result: null,
 
 			// ── Añadir stock ───────────────────────────────────
 			add_stock_query: '',
@@ -884,15 +724,16 @@
 			move_loading: false,
 
 			// ── QR Scanner ─────────────────────────────────────
-			qr_mode: 'location',
-			scannerRunning: false,
-			scannerBusy: false,
-			scan_stream: null,
-			_barcodeDetector: null,
-			_scanCanvas: null,
-			_scanCanvas2: null,
-			_rafId: null,
-			zoom_level: 1,
+			qr_mode:          'location',
+			scannerRunning:   false,
+			_qrScanner:       null,       // nimiq instancia live
+			_QrScannerClass:  null,       // clase nimiq
+			_angleLoopId:     null,       // timer del loop de ángulos
+			_angleCanvas:     null,       // canvas reutilizable
+			_scanFound:       false,      // flag para evitar doble detección
+			zoom_level:       1,
+			dbg_raw:          '',
+			dbg_engine:       '',
 
 			// ── Mapa ───────────────────────────────────────────
 			map_highlight_label: null,
@@ -935,14 +776,10 @@
 					const map  = {};
 					(json.data?.locations || []).forEach(label => { map[label] = true; });
 					this.locations_with_stock = map;
-				} catch (e) {
-					console.error('Error cargando ubicaciones ocupadas:', e);
-				}
+				} catch (e) { console.error('Error cargando ubicaciones ocupadas:', e); }
 			},
 
-			hasStock(block, rack, pos) {
-				return !!this.locations_with_stock[`B${block}-${rack}-${pos}`];
-			},
+			hasStock(block, rack, pos) { return !!this.locations_with_stock[`B${block}-${rack}-${pos}`]; },
 
 			getBlock(blockNum) {
 				return this.warehouse_structure.find(b => b.block === blockNum) || { racks: [], positions: [] };
@@ -955,211 +792,356 @@
 					if (match) {
 						const block = parseInt(match[1]);
 						const rack  = parseInt(match[2]);
-						if (block === 0) {
-							this.current_floor = rack === 2 ? 2 : 1;
-						} else {
-							this.current_floor = block >= 8 ? 2 : 1;
-						}
+						this.current_floor = block === 0 ? (rack === 2 ? 2 : 1) : (block >= 8 ? 2 : 1);
 					}
 				}
 				Alpine.store('cache').showModal('warehouse-map');
 			},
 
-			isMapHighlighted(block, rack, pos) {
-				return this.map_highlight_label === `B${block}-${rack}-${pos}`;
-			},
+			isMapHighlighted(block, rack, pos) { return this.map_highlight_label === `B${block}-${rack}-${pos}`; },
 
 			async selectMapCell(block, rack, pos) {
 				Alpine.store('cache').hideModal('warehouse-map');
 				await this.openLocationModal(`B${block}-${rack}-${pos}`);
 			},
 
-			// ══════════════════════════════════════════════════
-			//  QR SCANNER — MOTOR ULTRA RÁPIDO
-			// ══════════════════════════════════════════════════
+			// ══════════════════════════════════════════════════════════
+			//  QR SCANNER — HÍBRIDO
+			//
+			//  Capa 1: nimiq/qr-scanner en el stream (frontal + leve)
+			//  Capa 2: loop paralelo que graba frames del video,
+			//          aplica transformaciones (stretch H, stretch V,
+			//          perspectiva V, rotaciones) y los pasa a
+			//          QrScanner.scanImage() de nimiq.
+			//
+			//  Así usamos el MEJOR decoder (nimiq, 2-8x mejor que
+			//  ZXing) con nuestras correcciones de ángulo.
+			// ══════════════════════════════════════════════════════════
+
 			readQR() {
+				this.qr_mode = 'location';
+				Alpine.store('cache').showModal('read');
+				this.startScan();
+			},
+
+			readQRForMove() {
+				this.qr_mode = 'move';
 				Alpine.store('cache').showModal('read');
 				this.startScan();
 			},
 
 			async startScan() {
 				try {
-					const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-
-					const stream = await navigator.mediaDevices.getUserMedia({
-						video: {
-							facingMode: { ideal: 'environment' },
-							width:      { ideal: isIOS ? 1280 : 1920 },
-							height:     { ideal: isIOS ? 720  : 1080 },
-							frameRate:  { ideal: 30, min: 15 },
-						},
-						audio: false,
-					});
-
-					this.scan_stream = stream;
-					const video = document.getElementById('cameraFrame');
-					video.srcObject = stream;
-					await video.play();
-
-					// Preparar motores
-					if ('BarcodeDetector' in window) {
-						this._barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
-					} else {
-						this._barcodeDetector = null;
+					// Carga lazy de nimiq
+					if (!this._QrScannerClass) {
+						this.dbg_engine = 'cargando scanner…';
+						const mod = await import('https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.min.js');
+						this._QrScannerClass = mod.default;
 					}
 
-					// Dos canvas: uno para full-frame, otro para crop central
-					if (!this._scanCanvas)  this._scanCanvas  = document.createElement('canvas');
-					if (!this._scanCanvas2) this._scanCanvas2 = document.createElement('canvas');
+					const QrScanner = this._QrScannerClass;
+					const video = document.getElementById('cameraFrame');
+
+					if (this._qrScanner) { this._qrScanner.destroy(); this._qrScanner = null; }
 
 					this.scannerRunning = true;
-					this.scannerBusy   = false;
-					this.zoom_level    = 1;
-					this._applyZoom();
+					this._scanFound     = false;
+					this.dbg_engine     = 'iniciando cámara…';
+					this.dbg_raw        = '';
+					this.zoom_level     = 1;
 
-					// Arrancar con rAF — 60fps real
-					this._rafId = requestAnimationFrame(() => this._scanLoop());
+					// ── Capa 1: nimiq live stream ──────────────────
+					this._qrScanner = new QrScanner(
+						video,
+						(result) => {
+							if (this._scanFound) return;
+							const text = result?.data || result;
+							this._onQRDetected(text, 'nimiq-live');
+						},
+						{
+							returnDetailedScanResult: true,
+							preferredCamera: 'environment',
+							maxScansPerSecond: 15,
+							highlightScanRegion: false,
+							highlightCodeOutline: false,
+							calculateScanRegion: (v) => {
+								const s = Math.round(Math.min(v.videoWidth, v.videoHeight) * 0.9);
+								return {
+									x: Math.round((v.videoWidth - s) / 2),
+									y: Math.round((v.videoHeight - s) / 2),
+									width: s, height: s,
+								};
+							},
+							onDecodeError: () => {
+								if (this.scannerRunning && !this._scanFound) {
+									this.dbg_engine = '🔍 buscando…';
+								}
+							},
+						}
+					);
+
+					await this._qrScanner.start();
+					this.dbg_engine = '🔍 buscando…';
+
+					// ── Capa 2: loop paralelo de ángulos ──────────
+					if (!this._angleCanvas) this._angleCanvas = document.createElement('canvas');
+					this._startAngleLoop(video, QrScanner);
 
 				} catch (e) {
-					console.error('Error cámara:', e);
+					console.error('Error iniciando scanner:', e);
+					this.dbg_engine = 'ERROR: ' + e.message;
 					this.stopScan();
 					Alpine.store('cache').hideModal('read');
 				}
 			},
 
-			// Loop a 60fps con rAF
-			_scanLoop() {
-				if (!this.scannerRunning) return;
-
-				const video = document.getElementById('cameraFrame');
-
-				if (!this.scannerBusy && video?.readyState >= 2 && video.videoWidth > 0) {
-					this.scannerBusy = true;
-
-					this._decodeFrame(video)
-						.then(async (rawText) => {
-							if (rawText) {
-								const label = this.extractWarehouseLabelFromQR(rawText);
-								if (label) {
-									await this._handleQRResult(label);
-									return; // no schedule next — _handleQRResult decide
-								}
-							}
-							this.scannerBusy = false;
-							if (this.scannerRunning) {
-								this._rafId = requestAnimationFrame(() => this._scanLoop());
-							}
-						})
-						.catch(() => {
-							this.scannerBusy = false;
-							if (this.scannerRunning) {
-								this._rafId = requestAnimationFrame(() => this._scanLoop());
-							}
-						});
-				} else {
-					// Video no listo aún — siguiente frame
-					this._rafId = requestAnimationFrame(() => this._scanLoop());
-				}
-			},
-
-			// ──────────────────────────────────────────────────
-			//  MOTOR MULTI-INTENTO
-			//  Orden: nativo → nativo+contraste → jsQR normal →
-			//         jsQR alto contraste → jsQR crop central
-			// ──────────────────────────────────────────────────
-			async _decodeFrame(video) {
-
-				// ── 1. BarcodeDetector nativo (raw video) ─────
-				if (this._barcodeDetector) {
-					try {
-						const codes = await this._barcodeDetector.detect(video);
-						if (codes.length) return codes[0].rawValue;
-					} catch(_) {}
-
-					// ── 1b. BarcodeDetector con frame preprocesado ─
-					// (ayuda en QRs opacos/con bajo contraste en iOS)
-					try {
-						const bitmap = this._getProcessedBitmap(video, 1280, false, 1.8);
-						if (bitmap) {
-							const codes = await this._barcodeDetector.detect(bitmap);
-							if (codes.length) return codes[0].rawValue;
+			// ──────────────────────────────────────────────────────
+			//  CAPA 2: Loop de ángulos
+			//
+			//  Cada ~120ms graba un frame del video, le aplica
+			//  UNA transformación (rota por el pool) y la pasa a
+			//  QrScanner.scanImage() — el decoder de nimiq.
+			//
+			//  Pool de 18 transformaciones:
+			//    0-6:   stretch horizontal (lados) — 1.5x a 6x
+			//    7-11:  stretch vertical (arriba/abajo) — 1.5x a 5x
+			//    12-15: perspectiva vertical (arriba/abajo)
+			//    16-17: rotaciones (phone inclinado)
+			//
+			//  Ciclo completo: 18 × 120ms = ~2.2s
+			// ──────────────────────────────────────────────────────
+			_startAngleLoop(video, QrScanner) {
+				let idx = 0;
+				let busy = false;
+			
+				// ── Todas las transformaciones ──────────────────────
+				const TRANSFORMS = [
+					// ═══ STRETCH HORIZONTAL — SIN CROP (full frame) ═══
+					// El QR de lado puede estar en cualquier parte del frame
+					{ type:'stretchFull', sx:1.5, sy:1.0 },  //  0
+					{ type:'stretchFull', sx:2.0, sy:1.0 },  //  1
+					{ type:'stretchFull', sx:2.5, sy:1.0 },  //  2
+					{ type:'stretchFull', sx:3.0, sy:1.0 },  //  3
+					{ type:'stretchFull', sx:4.0, sy:1.0 },  //  4
+					{ type:'stretchFull', sx:5.0, sy:1.0 },  //  5
+			
+					// ═══ STRETCH VERTICAL — SIN CROP ═══
+					{ type:'stretchFull', sx:1.0, sy:1.5 },  //  6
+					{ type:'stretchFull', sx:1.0, sy:2.0 },  //  7
+					{ type:'stretchFull', sx:1.0, sy:3.0 },  //  8
+					{ type:'stretchFull', sx:1.0, sy:4.0 },  //  9
+			
+					// ═══ PERSPECTIVA HORIZONTAL REAL (trapecio) ═══
+					// Esto NO es stretch uniforme. Redistribuye pixels:
+					// el lado comprimido recibe MÁS espacio en destino.
+					// leftScale < rightScale = visto desde la derecha
+					{ type:'perspH', left:0.50, right:1.00 }, // 10: suave der
+					{ type:'perspH', left:1.00, right:0.50 }, // 11: suave izq
+					{ type:'perspH', left:0.30, right:1.00 }, // 12: fuerte der
+					{ type:'perspH', left:1.00, right:0.30 }, // 13: fuerte izq
+					{ type:'perspH', left:0.15, right:1.00 }, // 14: extremo der
+					{ type:'perspH', left:1.00, right:0.15 }, // 15: extremo izq
+			
+					// ═══ PERSPECTIVA VERTICAL (trapecio arriba/abajo) ═══
+					{ type:'perspV', top:0.40, bot:1.00 },    // 16
+					{ type:'perspV', top:1.00, bot:0.40 },    // 17
+					{ type:'perspV', top:0.20, bot:1.00 },    // 18
+					{ type:'perspV', top:1.00, bot:0.20 },    // 19
+			
+					// ═══ STRETCH CON CROP CENTRO (para QR centrado) ═══
+					{ type:'stretchCrop', sx:2.0, sy:1.0 },   // 20
+					{ type:'stretchCrop', sx:3.0, sy:1.0 },   // 21
+					{ type:'stretchCrop', sx:4.0, sy:1.0 },   // 22
+					{ type:'stretchCrop', sx:1.0, sy:2.0 },   // 23
+					{ type:'stretchCrop', sx:1.0, sy:3.0 },   // 24
+			
+					// ═══ ROTACIONES ═══
+					{ type:'rot', deg: 25 },                    // 25
+					{ type:'rot', deg:-25 },                    // 26
+					{ type:'rot', deg: 45 },                    // 27
+					{ type:'rot', deg:-45 },                    // 28
+					{ type:'rot', deg: 70 },                    // 29
+				];
+			
+				const c = this._angleCanvas;
+			
+				const loop = async () => {
+					if (!this.scannerRunning || this._scanFound || busy) {
+						if (this.scannerRunning && !this._scanFound) {
+							this._angleLoopId = setTimeout(loop, 50);
 						}
-					} catch(_) {}
-				}
-
-				// ── 2. jsQR — múltiples intentos ─────────────
-				if (typeof jsQR !== 'undefined') {
-
-					// 2a. Full frame, sin filtro, ambas inversiones
-					let r = this._jsqrDecode(video, this._scanCanvas, 640, false, 1.0);
-					if (r) return r;
-
-					// 2b. Full frame, contraste alto (QR opaco/lateral)
-					r = this._jsqrDecode(video, this._scanCanvas, 640, false, 1.8);
-					if (r) return r;
-
-					// 2c. Crop centro 70%, contraste alto
-					//     (útil cuando el QR ocupa solo parte del encuadre)
-					r = this._jsqrDecode(video, this._scanCanvas2, 640, true, 1.8);
-					if (r) return r;
-				}
-
-				return null;
+						return;
+					}
+					if (video.readyState < 2 || video.videoWidth === 0) {
+						this._angleLoopId = setTimeout(loop, 100);
+						return;
+					}
+			
+					busy = true;
+					const t  = TRANSFORMS[idx % TRANSFORMS.length];
+					const vw = video.videoWidth;
+					const vh = video.videoHeight;
+			
+					try {
+						switch (t.type) {
+			
+							case 'stretchFull': {
+								// ── STRETCH SIN CROP — usa TODO el frame ──
+								let outW = Math.floor(vw * t.sx);
+								let outH = Math.floor(vh * t.sy);
+								const max = Math.max(outW, outH);
+								if (max > 900) { const r = 900/max; outW = Math.floor(outW*r); outH = Math.floor(outH*r); }
+								c.width  = Math.max(1, outW);
+								c.height = Math.max(1, outH);
+								c.getContext('2d', {willReadFrequently:true})
+									.drawImage(video, 0, 0, vw, vh, 0, 0, c.width, c.height);
+								break;
+							}
+			
+							case 'stretchCrop': {
+								// ── STRETCH CON CROP centro 55% ──
+								const frac = 0.55;
+								const cw = Math.floor(vw * frac);
+								const ch = Math.floor(vh * frac);
+								const sx = Math.floor((vw - cw) / 2);
+								const sy = Math.floor((vh - ch) / 2);
+								let outW = Math.floor(cw * t.sx);
+								let outH = Math.floor(ch * t.sy);
+								const max = Math.max(outW, outH);
+								if (max > 900) { const r = 900/max; outW = Math.floor(outW*r); outH = Math.floor(outH*r); }
+								c.width  = Math.max(1, outW);
+								c.height = Math.max(1, outH);
+								c.getContext('2d', {willReadFrequently:true})
+									.drawImage(video, sx, sy, cw, ch, 0, 0, c.width, c.height);
+								break;
+							}
+			
+							case 'perspH': {
+								// ══ PERSPECTIVA HORIZONTAL REAL ══
+								// Redistribuye el ANCHO por columnas.
+								// El lado comprimido (scale bajo) recibe MÁS
+								// pixels de destino → se "estira".
+								// El lado cercano (scale alto) recibe MENOS
+								// pixels → se "comprime".
+								//
+								// Además ajusta la ALTURA de cada columna
+								// (el lado lejano es más bajo).
+								// Esto simula perspectiva 3D real en 2D.
+								const s = Math.min(1, 700 / vw);
+								const cw2 = Math.floor(vw * s);
+								const ch2 = Math.floor(vh * s);
+								c.width  = cw2;
+								c.height = ch2;
+								const ctx = c.getContext('2d', {willReadFrequently:true});
+								ctx.clearRect(0, 0, cw2, ch2);
+			
+								const N = 40;
+								// Calcular pesos inversos para distribución
+								const weights = [];
+								let totalW = 0;
+								for (let i = 0; i < N; i++) {
+									const pos = (i + 0.5) / N;
+									const sc  = t.left + (t.right - t.left) * pos;
+									const w   = 1 / Math.max(0.1, sc);
+									weights.push({ w, sc });
+									totalW += w;
+								}
+			
+								let dx = 0;
+								for (let i = 0; i < N; i++) {
+									// Source: franja uniforme del video
+									const srcX = Math.floor(vw * i / N);
+									const srcW = Math.max(1, Math.ceil(vw * (i + 1) / N) - srcX);
+			
+									// Dest: ancho proporcional al peso inverso
+									const dw = Math.max(1, Math.round(cw2 * weights[i].w / totalW));
+			
+									// Altura ajustada por perspectiva (más lejos = más bajo)
+									const dh = Math.max(1, Math.round(ch2 * weights[i].sc));
+									const dy = Math.round((ch2 - dh) / 2);
+			
+									ctx.drawImage(video,
+										srcX, 0, srcW, vh,
+										dx, dy, dw, dh
+									);
+									dx += dw;
+								}
+								break;
+							}
+			
+							case 'perspV': {
+								// ── PERSPECTIVA VERTICAL (slicing horizontal) ──
+								const s = Math.min(1, 700 / vw);
+								c.width  = Math.floor(vw * s);
+								c.height = Math.floor(vh * s);
+								const ctx = c.getContext('2d', {willReadFrequently:true});
+								ctx.clearRect(0, 0, c.width, c.height);
+								const N = 40;
+								for (let i = 0; i < N; i++) {
+									const t1 = i/N, t2 = (i+1)/N;
+									const sc = t.top + (t.bot - t.top) * ((t1+t2)/2);
+									const sw = Math.max(1, Math.floor(vw * sc));
+									const sx = Math.floor((vw - sw) / 2);
+									const sy = Math.floor(vh * t1);
+									const sh = Math.max(1, Math.ceil(vh * t2) - sy);
+									const dy = Math.floor(c.height * t1);
+									const dh = Math.max(1, Math.ceil(c.height * t2) - dy);
+									ctx.drawImage(video, sx, sy, sw, sh, 0, dy, c.width, dh);
+								}
+								break;
+							}
+			
+							case 'rot': {
+								const r   = t.deg * Math.PI / 180;
+								const cos = Math.abs(Math.cos(r)), sin = Math.abs(Math.sin(r));
+								const rw  = Math.ceil(vw*cos + vh*sin);
+								const rh  = Math.ceil(vw*sin + vh*cos);
+								const s   = Math.min(1, 700 / Math.max(rw, rh));
+								c.width  = Math.floor(rw * s);
+								c.height = Math.floor(rh * s);
+								const ctx = c.getContext('2d', {willReadFrequently:true});
+								ctx.clearRect(0, 0, c.width, c.height);
+								ctx.save();
+								ctx.translate(c.width/2, c.height/2);
+								ctx.rotate(r);
+								ctx.drawImage(video, -(vw*s)/2, -(vh*s)/2, vw*s, vh*s);
+								ctx.restore();
+								break;
+							}
+						}
+			
+						// Decodificar con nimiq
+						const result = await QrScanner.scanImage(c, { returnDetailedScanResult: true });
+						if (result?.data && !this._scanFound) {
+							this._onQRDetected(result.data, `angle-${idx % TRANSFORMS.length}`);
+						}
+					} catch(_) {
+						// No QR — normal
+					}
+			
+					busy = false;
+					idx++;
+					if (this.scannerRunning && !this._scanFound) {
+						this._angleLoopId = setTimeout(loop, 100);
+					}
+				};
+			
+				this._angleLoopId = setTimeout(loop, 300);
 			},
 
-			// Devuelve ImageBitmap procesado (para BarcodeDetector 1b)
-			_getProcessedBitmap(video, maxW, crop, contrast) {
-				const c     = this._scanCanvas;
-				const scale = Math.min(1, maxW / video.videoWidth);
-				let sx = 0, sy = 0, sw = video.videoWidth, sh = video.videoHeight;
-				if (crop) {
-					sw = video.videoWidth  * 0.7;
-					sh = video.videoHeight * 0.7;
-					sx = (video.videoWidth  - sw) / 2;
-					sy = (video.videoHeight - sh) / 2;
-				}
-				c.width  = Math.floor(sw * scale);
-				c.height = Math.floor(sh * scale);
-				const ctx = c.getContext('2d', { willReadFrequently: true });
-				ctx.filter = `contrast(${contrast}) brightness(1.05)`;
-				ctx.drawImage(video, sx, sy, sw, sh, 0, 0, c.width, c.height);
-				ctx.filter = 'none';
-				// createImageBitmap es sync-compatible via canvas normal en este path
-				return c;
-			},
-
-			// Decodifica con jsQR usando el canvas dado
-			_jsqrDecode(video, canvas, maxW, centerCrop, contrast) {
-				const scale = Math.min(1, maxW / video.videoWidth);
-				let sx = 0, sy = 0, sw = video.videoWidth, sh = video.videoHeight;
-
-				if (centerCrop) {
-					sw = video.videoWidth  * 0.7;
-					sh = video.videoHeight * 0.7;
-					sx = (video.videoWidth  - sw) / 2;
-					sy = (video.videoHeight - sh) / 2;
+			_onQRDetected(text, engine) {
+				if (this._scanFound) return;
+				const label = this.extractWarehouseLabelFromQR(text);
+				if (!label) {
+					this.dbg_raw    = text;
+					this.dbg_engine = '⚠️ ' + engine + ' (QR inválido)';
+					return;
 				}
 
-				canvas.width  = Math.floor(sw * scale);
-				canvas.height = Math.floor(sh * scale);
-
-				const ctx = canvas.getContext('2d', { willReadFrequently: true });
-
-				// Filtro CSS directo en canvas — boost de contraste para QRs difíciles
-				if (contrast > 1.0) {
-					ctx.filter = `contrast(${contrast}) brightness(1.05)`;
-				}
-
-				ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-				ctx.filter = 'none';
-
-				const img  = ctx.getImageData(0, 0, canvas.width, canvas.height);
-				const code = jsQR(img.data, img.width, img.height, {
-					// 'attemptBoth' prueba QR normal + invertido (blanco sobre negro)
-					inversionAttempts: 'attemptBoth',
-				});
-
-				return code?.data || null;
+				this._scanFound = true;
+				this.dbg_raw    = text;
+				this.dbg_engine = '✅ ' + engine;
+				this._handleQRResult(label);
 			},
 
 			async _handleQRResult(label) {
@@ -1176,78 +1158,44 @@
 					this.stopScan();
 					Alpine.store('cache').hideModal('read');
 				} else {
-					this.scannerBusy = false;
-					if (this.scannerRunning) {
-						this._rafId = requestAnimationFrame(() => this._scanLoop());
-					}
+					this.dbg_engine  = '⚠️ ubicación no encontrada';
+					this._scanFound  = false; // permitir reintentar
 				}
-			},
-
-			// ── Zoom ───────────────────────────────────────────
-			zoomIn() {
-				this.zoom_level = Math.min(4, +(this.zoom_level + 0.5).toFixed(1));
-				this._applyZoom();
-			},
-
-			zoomOut() {
-				this.zoom_level = Math.max(1, +(this.zoom_level - 0.5).toFixed(1));
-				this._applyZoom();
-			},
-
-			_applyZoom() {
-				if (this.scan_stream) {
-					const track = this.scan_stream.getVideoTracks()[0];
-					const caps  = track?.getCapabilities?.() || {};
-					if (caps.zoom) {
-						const z = Math.min(caps.zoom.max, Math.max(caps.zoom.min, this.zoom_level));
-						track.applyConstraints({ advanced: [{ zoom: z }] }).catch(() => {});
-						return;
-					}
-				}
-				const video = document.getElementById('cameraFrame');
-				if (video) video.style.transform = `scale(${this.zoom_level})`;
 			},
 
 			stopScan() {
 				this.scannerRunning = false;
-				this.scannerBusy   = false;
+				this._scanFound     = false;
+				this.dbg_raw        = '';
+				this.dbg_engine     = '';
 
-				if (this._rafId) {
-					cancelAnimationFrame(this._rafId);
-					this._rafId = null;
-				}
-
-				if (this.scan_stream) {
-					this.scan_stream.getTracks().forEach(t => t.stop());
-					this.scan_stream = null;
-				}
+				if (this._angleLoopId) { clearTimeout(this._angleLoopId); this._angleLoopId = null; }
+				if (this._qrScanner)   { this._qrScanner.stop(); this._qrScanner.destroy(); this._qrScanner = null; }
 
 				const video = document.getElementById('cameraFrame');
-				if (video) {
-					video.srcObject = null;
-					video.style.transform = '';
-				}
-
+				if (video) { video.srcObject = null; video.style.transform = ''; }
 				this.zoom_level = 1;
 			},
 
-			readQRForMove() {
-				this.qr_mode = 'move';
-				Alpine.store('cache').showModal('read');
-				this.startScan();
+			// ── Zoom ───────────────────────────────────────────
+			zoomIn()  { this.zoom_level = Math.min(4, +(this.zoom_level + 0.5).toFixed(1)); this._applyZoom(); },
+			zoomOut() { this.zoom_level = Math.max(1, +(this.zoom_level - 0.5).toFixed(1)); this._applyZoom(); },
+			_applyZoom() {
+				const video = document.getElementById('cameraFrame');
+				if (!video?.srcObject) return;
+				const track = video.srcObject.getVideoTracks?.()?.[0];
+				const caps  = track?.getCapabilities?.() || {};
+				if (caps.zoom) {
+					const z = Math.min(caps.zoom.max, Math.max(caps.zoom.min, this.zoom_level));
+					track.applyConstraints({ advanced: [{ zoom: z }] }).catch(() => {});
+					return;
+				}
+				video.style.transform = `scale(${this.zoom_level})`;
 			},
 
 			// ══════════════════════════════════════════════════
 			//  HELPERS LABEL
 			// ══════════════════════════════════════════════════
-			_locationLabel(block, level, position) {
-				return `B${block}-${level}-${position}`;
-			},
-
-			_normalizeLocationQuery(q) {
-				return (q || '').trim().toUpperCase().replace(/\s+/g, '');
-			},
-
 			normalizeWarehouseLabel(value) {
 				const clean = (value || '').toString().trim().toUpperCase().replace(/\s+/g, '');
 				const match = clean.match(/^B\d+-\d+-[A-Z0-9]$/);
@@ -1255,7 +1203,7 @@
 			},
 
 			extractWarehouseLabelFromQR(text) {
-				const raw     = (text || '').toString().trim().toUpperCase();
+				const raw = (text || '').toString().trim().toUpperCase();
 				if (!raw) return null;
 				const compact = raw.replace(/\s+/g, '');
 				for (const candidate of [compact, compact.slice(1)]) {
@@ -1271,11 +1219,7 @@
 			async findProducts() {
 				const input = (this.product_input || '').trim();
 				if (this._findAbortController) this._findAbortController.abort();
-				if (input.length < 2) {
-					this.finded_products  = [];
-					this.finded_locations = [];
-					return;
-				}
+				if (input.length < 2) { this.finded_products = []; this.finded_locations = []; return; }
 				this._findAbortController = new AbortController();
 				try {
 					const response = await fetch(
@@ -1283,16 +1227,13 @@
 						{ method: 'GET', headers: { 'Content-Type': 'application/json' }, signal: this._findAbortController.signal }
 					);
 					const jsonData = await response.json();
-					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error');
 					const data = jsonData.data || {};
 					this.finded_locations = data.locations || [];
-					this.finded_products  = (data.products || []).sort((a, b) =>
-						(Number(a.stock) || 0) - (Number(b.stock) || 0)
-					);
+					this.finded_products  = (data.products || []).sort((a, b) => (Number(a.stock)||0) - (Number(b.stock)||0));
 				} catch (error) {
 					if (error.name === 'AbortError') return;
-					this.finded_products  = [];
-					this.finded_locations = [];
+					this.finded_products = []; this.finded_locations = [];
 				}
 			},
 
@@ -1305,20 +1246,14 @@
 				try {
 					this.location_modal_loading = true;
 					this.selected_location = null;
-					const response = await fetch(
-						`${this.api}/warehouse/location/${encodeURIComponent(normalized)}`,
-						{ method: 'GET', headers: { 'Content-Type': 'application/json' } }
-					);
+					const response = await fetch(`${this.api}/warehouse/location/${encodeURIComponent(normalized)}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
 					const jsonData = await response.json();
 					if (!response.ok) throw new Error(jsonData?.data?.message || 'No se pudo obtener la ubicación');
 					this.selected_location      = jsonData.data.location;
 					this.location_modal_loading = false;
 					Alpine.store('cache').showModal('warehouse-location');
 					return true;
-				} catch (error) {
-					this.location_modal_loading = false;
-					return false;
-				}
+				} catch (error) { this.location_modal_loading = false; return false; }
 			},
 
 			// ══════════════════════════════════════════════════
@@ -1331,26 +1266,9 @@
 				Alpine.store('cache').showModal('warehouse-remove-stock');
 			},
 
-			sanitizeRemoveQty() {
-				let qty = Number(this.remove_qty) || 1;
-				const max = Number(this.selected_product?.stock) || 1;
-				if (qty < 1) qty = 1;
-				if (qty > max) qty = max;
-				this.remove_qty = qty;
-			},
-
-			increaseRemoveQty() {
-				const max = Number(this.selected_product?.stock) || 1;
-				let qty   = Number(this.remove_qty) || 1;
-				if (qty < max) qty++;
-				this.remove_qty = qty;
-			},
-
-			decreaseRemoveQty() {
-				let qty = Number(this.remove_qty) || 1;
-				if (qty > 1) qty--;
-				this.remove_qty = qty;
-			},
+			sanitizeRemoveQty() { let q=Number(this.remove_qty)||1; const m=Number(this.selected_product?.stock)||1; if(q<1)q=1; if(q>m)q=m; this.remove_qty=q; },
+			increaseRemoveQty() { const m=Number(this.selected_product?.stock)||1; let q=Number(this.remove_qty)||1; if(q<m)q++; this.remove_qty=q; },
+			decreaseRemoveQty() { let q=Number(this.remove_qty)||1; if(q>1)q--; this.remove_qty=q; },
 
 			async confirmRemoveStock() {
 				if (!this.selected_product) return;
@@ -1369,21 +1287,15 @@
 					Alpine.store('cache').hideModal('warehouse-remove-stock');
 					if ((this.product_input || '').trim().length >= 2) await this.findProducts();
 					await this.loadOccupiedLocations();
-				} catch (error) {
-					console.error('Error retirando stock:', error);
-				} finally {
-					this.remove_loading = false;
-				}
+				} catch (error) { console.error('Error retirando stock:', error); }
+				finally { this.remove_loading = false; }
 			},
 
 			// ══════════════════════════════════════════════════
 			//  AÑADIR STOCK
 			// ══════════════════════════════════════════════════
 			openAddStockModal() {
-				this.add_stock_query    = '';
-				this.add_stock_results  = [];
-				this.add_stock_selected = null;
-				this.add_stock_qty      = 1;
+				this.add_stock_query = ''; this.add_stock_results = []; this.add_stock_selected = null; this.add_stock_qty = 1;
 				Alpine.store('cache').showModal('warehouse-add-stock');
 			},
 
@@ -1394,19 +1306,17 @@
 				if (q.length < 2) { this.add_stock_results = []; return; }
 				this.add_stock_search_timer = setTimeout(async () => {
 					try {
-						const res  = await fetch(`${this.api}/warehouse/machines/search?q=${encodeURIComponent(q)}`);
+						const res = await fetch(`${this.api}/warehouse/machines/search?q=${encodeURIComponent(q)}`);
 						const json = await res.json();
 						this.add_stock_results = json.data || json || [];
-					} catch (e) {
-						this.add_stock_results = [];
-					}
+					} catch (e) { this.add_stock_results = []; }
 				}, 300);
 			},
 
 			selectMachineForAdd(machine) {
 				this.add_stock_selected = machine;
-				this.add_stock_query    = `${machine.brand} ${machine.model}`;
-				this.add_stock_results  = [];
+				this.add_stock_query = `${machine.brand} ${machine.model}`;
+				this.add_stock_results = [];
 			},
 
 			async confirmAddStock() {
@@ -1426,11 +1336,8 @@
 					Alpine.store('cache').hideModal('warehouse-add-stock');
 					if ((this.product_input || '').trim().length >= 2) await this.findProducts();
 					await this.loadOccupiedLocations();
-				} catch (e) {
-					console.error('Error añadiendo stock:', e);
-				} finally {
-					this.add_stock_loading = false;
-				}
+				} catch (e) { console.error('Error añadiendo stock:', e); }
+				finally { this.add_stock_loading = false; }
 			},
 
 			// ══════════════════════════════════════════════════
@@ -1438,32 +1345,14 @@
 			// ══════════════════════════════════════════════════
 			openMoveModal(product) {
 				if (!product) return;
-				this.move_product     = JSON.parse(JSON.stringify(product));
-				this.move_qty         = 1;
-				this.move_destination = '';
+				this.move_product = JSON.parse(JSON.stringify(product));
+				this.move_qty = 1; this.move_destination = '';
 				Alpine.store('cache').showModal('warehouse-move-stock');
 			},
 
-			sanitizeMoveQty() {
-				let qty = Number(this.move_qty) || 1;
-				const max = Number(this.move_product?.stock) || 1;
-				if (qty < 1) qty = 1;
-				if (qty > max) qty = max;
-				this.move_qty = qty;
-			},
-
-			increaseMoveQty() {
-				const max = Number(this.move_product?.stock) || 1;
-				let qty   = Number(this.move_qty) || 1;
-				if (qty < max) qty++;
-				this.move_qty = qty;
-			},
-
-			decreaseMoveQty() {
-				let qty = Number(this.move_qty) || 1;
-				if (qty > 1) qty--;
-				this.move_qty = qty;
-			},
+			sanitizeMoveQty() { let q=Number(this.move_qty)||1; const m=Number(this.move_product?.stock)||1; if(q<1)q=1; if(q>m)q=m; this.move_qty=q; },
+			increaseMoveQty() { const m=Number(this.move_product?.stock)||1; let q=Number(this.move_qty)||1; if(q<m)q++; this.move_qty=q; },
+			decreaseMoveQty() { let q=Number(this.move_qty)||1; if(q>1)q--; this.move_qty=q; },
 
 			async confirmMoveStock() {
 				if (!this.move_product || !this.move_destination) return;
@@ -1482,11 +1371,8 @@
 					Alpine.store('cache').hideModal('warehouse-move-stock');
 					if ((this.product_input || '').trim().length >= 2) await this.findProducts();
 					await this.loadOccupiedLocations();
-				} catch (e) {
-					console.error('Error moviendo stock:', e);
-				} finally {
-					this.move_loading = false;
-				}
+				} catch (e) { console.error('Error moviendo stock:', e); }
+				finally { this.move_loading = false; }
 			},
 
 			// ══════════════════════════════════════════════════
@@ -1497,34 +1383,23 @@
 				if (!file) return;
 				event.target.value = '';
 				this.excel_loading = true;
-				this.excel_result  = null;
 				try {
 					const formData = new FormData();
 					formData.append('file', file);
 					const response = await fetch(`${this.api}/warehouse/load`, {
-						method: 'POST',
-						headers: { 'Authorization': `Bearer ${this.user.token}` },
-						body: formData,
+						method: 'POST', headers: { 'Authorization': `Bearer ${this.user.token}` }, body: formData,
 					});
 					const json = await response.json();
 					if (!response.ok) throw new Error(json?.message || 'Error al procesar el archivo');
-				} catch (error) {
-					console.error('Error cargando Excel:', error);
-				} finally {
-					this.excel_loading = false;
-				}
+				} catch (error) { console.error('Error cargando Excel:', error); }
+				finally { this.excel_loading = false; }
 			},
 
 			// ══════════════════════════════════════════════════
 			//  PERMISOS
 			// ══════════════════════════════════════════════════
-			logisticAllowed() {
-				return (this.user.department_id == 2 || this.user.id == 23 || this.user.department_id == 7);
-			},
-
-			adminAllowed() {
-				return (this.user.id == 6 || this.user.id == 23 || this.user.id == 8 || this.user.department_id == 7);
-			},
+			logisticAllowed() { return (this.user.department_id == 2 || this.user.id == 23 || this.user.department_id == 7); },
+			adminAllowed()    { return (this.user.id == 6 || this.user.id == 23 || this.user.id == 8 || this.user.department_id == 7); },
 
 			// ══════════════════════════════════════════════════
 			//  PLACEHOLDER ANIMADO
@@ -1557,7 +1432,7 @@
 			},
 		}));
 	</script>
-	
+
 
 	<style>
 		#modal-warehouse-map {
@@ -2269,54 +2144,50 @@
 			opacity: 0.5;
 			font-family: monospace;
 		}
-		/* ── QR Scanner zoom bar ─────────────────────────────── */
+		/* ── QR Debug bar ───────────────────────────────── */
+		.qr-debug-bar {
+			padding: .4rem .75rem;
+			background: rgba(0,0,0,.7);
+			display: flex;
+			flex-direction: column;
+			gap: .15rem;
+		}
+		.qr-debug-engine {
+			font-size: .65rem;
+			color: #f07e46;
+			font-weight: 600;
+			text-transform: uppercase;
+			letter-spacing: .04em;
+		}
+		.qr-debug-raw {
+			font-size: .7rem;
+			color: #fff;
+			word-break: break-all;
+			opacity: .85;
+			min-height: 1rem;
+		}
+		/* ── Zoom bar ───────────────────────────────────── */
 		.scanner-zoom-bar {
-			display: flex;
-			align-items: center;
+			display: flex; align-items: center;
 			justify-content: center;
-			gap: .75rem;
-			padding: .5rem 1rem;
-			position: absolute;
-    		bottom: 0;
+			gap: .75rem; padding: .5rem 1rem;
+			background: rgba(0,0,0,.4);
 		}
-
 		.scanner-zoom-btn {
-			width: 2.4rem;
-			height: 2.4rem;
-			border-radius: 50%;
-			background: rgba(255, 255, 255, 0.25);
-			border: 2px solid rgba(255, 255, 255, 0.35);
-			color: #fff;
-			font-size: 1.4rem;
-			line-height: 1;
-			display: flex;
-			align-items: center;
-			justify-content: center;
+			width: 2.4rem; height: 2.4rem; border-radius: 50%;
+			background: rgba(255,255,255,.15);
+			border: 1px solid rgba(255,255,255,.25);
+			color: #fff; font-size: 1.4rem;
+			display: flex; align-items: center; justify-content: center;
 			cursor: pointer;
-			transition: background .15s;
 		}
-
-		.scanner-zoom-btn:not(:disabled):active {
-			background: rgba(255, 255, 255, 0.3);
-		}
-
-		.scanner-zoom-btn:disabled {
-			opacity: .3;
-			pointer-events: none;
-		}
-
+		.scanner-zoom-btn:disabled { opacity: .3; pointer-events: none; }
 		.scanner-zoom-label {
-			color: #fff;
-			font-size: .9rem;
-			min-width: 2.4rem;
-			text-align: center;
+			color: #fff; font-size: .9rem;
+			min-width: 2.4rem; text-align: center;
 			font-variant-numeric: tabular-nums;
 		}
-
-		#scannerBox video {
-			transform-origin: center center;
-			transition: transform .2s ease;
-		}
+		#scannerBox video { transform-origin: center center; transition: transform .2s; }
 
 		.location-products{
 		width: 100%;
