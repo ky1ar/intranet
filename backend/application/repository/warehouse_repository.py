@@ -1,4 +1,5 @@
 import re, logging
+from application.utils import peru_time
 from application.handlers import handle_db_exceptions
 from application.db_models.warehouse_model import WarehouseCodes, WarehouseStock, WarehouseLog
 from application.models import Brands, Machines, Category
@@ -348,6 +349,7 @@ class WarehouseRepository:
             quantity=quantity,
             from_code_id=from_code_id,
             to_code_id=to_code_id,
+            created_at=peru_time(),
         )
         g.db_session.add(log)
         g.db_session.commit()
