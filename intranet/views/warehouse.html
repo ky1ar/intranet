@@ -1,6 +1,19 @@
 <div x-data="warehouse_data">
 	<div id="warehouse">
 		<div class="controls">
+			<div class="toggle-collapse frost" @click="openHistoryModal()" x-show="adminAllowed()">
+				<div class="item">
+					<img alt="" width="24" height="24" src="/static/images/icons/history.svg">
+				</div>
+			</div>
+			
+			<div class="left mobile-hide frost" x-show="adminAllowed()">
+				<div class="item" @click="openHistoryModal()">
+					<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
+					<span>Historial</span>
+				</div>
+			</div>
+			
 			<div class="right frost-dark" style="margin-left: auto;">
 				<div class="item hover-opacity press" @click="openMapModal()">
 					<img class="invert" alt="" width="18" height="18" src="/static/images/icons/map.svg">
@@ -675,6 +688,134 @@
 				</div>
 			</div>
 		</div>
+		<!-- Modal historial de movimientos -->
+		<div
+			x-show="$store.cache.isVisibleModal('warehouse-history')"
+			@mousedown.self="$store.cache.hideModal('warehouse-history')"
+			class="modal-wrap"
+			id="modal-warehouse-history"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal extra glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="title full">
+					<span>Historial</span>
+				</div>
+
+				<div class="modal-content bottom" style="padding: 0;">
+					<template x-if="history_loading">
+						<div style="padding: 2rem; text-align: center; opacity: .5;">Cargando…</div>
+					</template>
+
+					<template x-if="!history_loading && history_logs.length === 0">
+						<div style="padding: 2rem; text-align: center; opacity: .5;">No hay movimientos registrados.</div>
+					</template>
+
+					<template x-if="!history_loading && history_logs.length > 0">
+						<div>
+							<!-- Header desktop -->
+							<div class="wh-table-header mobile-hide">
+								<div>Usuario</div>
+								<div>Equipo</div>
+								<div>Cant.</div>
+								<div>Ubicación</div>
+								<div>Acción</div>
+								<div>Fecha</div>
+							</div>
+
+							<div class="wh-table-box">
+								<template x-for="log in history_logs" :key="log.id">
+									<div>
+										<!-- Desktop row -->
+										<div class="wh-table-row white mobile-hide">
+											<div class="wh-user-cell">
+												<img
+													alt=""
+													width="22" height="22"
+													:src="log.user_image ? `/static/images/uploads/users/${log.user_image}` : '/static/images/icons/user.svg'"
+													class="wh-user-img"
+												>
+												<span x-text="formatShortName(log.user) || '—'"></span>
+											</div>
+
+											<div class="wh-product-cell">
+												<img
+													alt=""
+													width="32" height="32"
+													:src="log.product_image ? `/static/images/uploads/machines/${log.product_image}` : '/static/images/icons/warehouse.svg'"
+													class="wh-product-img"
+												>
+												<span class="wh-product-name" x-text="log.product || 'Carga masiva'"></span>
+											</div>
+											
+											<div class="wh-qty" x-text="log.quantity ? `${log.quantity} uds.` : '—'"></div>
+											<div class="wh-location-cell">
+												<span x-show="log.from_label" x-text="log.from_label"></span>
+												<span x-show="log.from_label && log.to_label" class="wh-arrow">→</span>
+												<span x-show="log.to_label" x-text="log.to_label"></span>
+												<span x-show="!log.from_label && !log.to_label">—</span>
+											</div>
+											<div>
+												<span class="wh-action-badge" :class="log.action" x-text="historyActionLabel(log.action)"></span>
+											</div>
+											<div class="wh-date" x-text="formatLogDate(log.created_at)"></div>
+										</div>
+
+										<!-- Mobile row -->
+										<div class="wh-mobile-row white mobile-show">
+											<div class="wh-mobile-head">
+												<div class="wh-mobile-product">
+													<img
+														alt=""
+														width="28" height="28"
+														:src="log.product_image ? `/static/images/uploads/machines/${log.product_image}` : '/static/images/icons/warehouse.svg'"
+														class="wh-product-img"
+													>
+													<span x-text="log.product || 'Carga masiva'"></span>
+												</div>
+												<span class="wh-action-badge" :class="log.action" x-text="historyActionLabel(log.action)"></span>
+											</div>
+											<div class="wh-mobile-details">
+												<span x-show="log.quantity" x-text="`${log.quantity} uds.`"></span>
+												<span x-show="log.from_label" x-text="`De: ${log.from_label}`"></span>
+												<span x-show="log.to_label" x-text="`A: ${log.to_label}`"></span>
+											</div>
+											<div class="wh-mobile-footer">
+												<div class="wh-user-cell">
+													<img
+														alt=""
+														width="20" height="20"
+														:src="log.user_image ? `/static/images/uploads/users/${log.user_image}` : '/static/images/icons/user.svg'"
+														class="wh-user-img"
+													>
+													<span x-text="formatShortName(log.user) || '—'"></span>
+												</div>
+												<span class="wh-date" x-text="formatLogDate(log.created_at)"></span>
+											</div>
+										</div>
+									</div>
+								</template>
+							</div>
+
+							<div class="wh-pagination" x-show="history_total > history_logs.length">
+								<button class="button black hover-opacity" @click="loadMoreLogs()" :disabled="history_load_more_loading">
+									<span x-text="history_load_more_loading ? 'Cargando...' : 'Cargar más'"></span>
+								</button>
+							</div>
+						</div>
+					</template>
+				</div>
+			</div>
+		</div>
 	</div>
 	
 
@@ -740,6 +881,13 @@
 			map_highlight_label: null,
 			current_floor: 1,
 			locations_with_stock: {},
+
+			// ── Historial ──────────────────────────────────────
+			history_logs: [],
+			history_total: 0,
+			history_page: 1,
+			history_loading: false,
+			history_load_more_loading: false,
 
 			warehouse_structure: [
 				{ block: 0,  label: 'Piso',      racks: [1, 2],                          positions: ['A'] },
@@ -1523,6 +1671,69 @@
 					if (!response.ok) throw new Error(json?.message || 'Error al procesar el archivo');
 				} catch (error) { console.error('Error cargando Excel:', error); }
 				finally { this.excel_loading = false; }
+			},
+
+			// ══════════════════════════════════════════════════
+			//  HISTORIAL
+			// ══════════════════════════════════════════════════
+			async openHistoryModal() {
+				this.history_logs  = [];
+				this.history_total = 0;
+				this.history_page  = 1;
+				this.history_loading = true;
+				Alpine.store('cache').showModal('warehouse-history');
+				await this.fetchLogs(1);
+				this.history_loading = false;
+			},
+
+			async fetchLogs(page) {
+				try {
+					const res  = await fetch(`${this.api}/warehouse/logs?page=${page}`, {
+						headers: { 'Authorization': `Bearer ${this.user.token}` },
+					});
+					const json = await res.json();
+					if (!res.ok) throw new Error(json?.message || 'Error');
+					const data = json.data || json;
+					if (page === 1) {
+						this.history_logs = data.logs || [];
+					} else {
+						this.history_logs = [...this.history_logs, ...(data.logs || [])];
+					}
+					this.history_total = data.total || 0;
+					this.history_page  = page;
+				} catch (e) { console.error('Error cargando historial:', e); }
+			},
+
+			async loadMoreLogs() {
+				this.history_load_more_loading = true;
+				await this.fetchLogs(this.history_page + 1);
+				this.history_load_more_loading = false;
+			},
+
+			historyActionLabel(action) {
+				const map = { pick: 'Picking', add: 'Ingreso', move: 'Mover', load: 'Carga' };
+				return map[action] || action;
+			},
+
+			formatShortName(name) {
+				if (!name) return null;
+				const parts = name.trim().split(/\s+/);
+				if (parts.length <= 2) return name;
+				return `${parts[0]} ${parts[1]}`;
+			},
+
+			formatLogDate(iso) {
+				if (!iso) return '';
+				const d = new Date(iso);
+				const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+				const day = d.getDate();
+				const mon = months[d.getMonth()];
+				const pad = n => String(n).padStart(2, '0');
+				const h = d.getHours();
+				const m = pad(d.getMinutes());
+				const ampm = h >= 12 ? 'pm' : 'am';
+				const h12 = h % 12 || 12;
+				return `${day} ${mon}, ${h12}:${m} ${ampm}`;
 			},
 
 			// ══════════════════════════════════════════════════
@@ -2532,5 +2743,151 @@
 				margin-top: 0.25rem;
 			}
 		}
+
+		/* ── MODAL HISTORIAL ──────────────────────────────── */
+		#modal-warehouse-history .wh-table-header {
+			display: grid;
+			grid-template-columns: 1fr 1.5fr 0.5fr 1fr 0.6fr 0.8fr;
+			gap: 0.75rem;
+			padding: 0 1.25rem 0.75rem ;
+			font-weight: 600;
+			font-size: 0.8rem;
+		}
+		#modal-warehouse-history .wh-table-box {
+			gap: 0.35rem;
+			display: flex;
+			flex-direction: column;
+		}
+		#modal-warehouse-history .wh-table-row {
+			display: grid;
+			grid-template-columns: 1fr 1.5fr 0.5fr 1fr 0.6fr 0.8fr;
+			gap: 0.75rem;
+			align-items: center;
+			padding: 0.6rem 0.75rem;
+			font-size: 0.85rem;
+		}
+		.wh-product-cell {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			min-width: 0;
+		}
+		.wh-product-img {
+			border-radius: 0.35rem;
+			object-fit: cover;
+			mix-blend-mode: darken;
+			flex-shrink: 0;
+		}
+		.wh-product-name {
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			font-weight: 500;
+		}
+		.wh-action-badge {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			padding: 0.25rem 1rem;
+			border-radius: 2rem;
+			font-size: 0.75rem;
+			font-weight: 600;
+		}
+		.wh-action-badge.pick  {
+			background-color: #fee3e1;
+    		border: 2px solid #ffceca;
+		}
+		.wh-action-badge.add   { 
+			background-color: #d0f4ea;
+    		border: 2px solid #abe9d8;
+		}
+		.wh-action-badge.move  {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		.wh-action-badge.load  {
+			background-color: #f0ffde;
+    		border: 2px solid #c0dba0;
+		}
+		.wh-qty {
+			font-weight: 500;
+			font-size: 0.85rem;
+		}
+		.wh-location-cell {
+			display: flex;
+			align-items: center;
+			gap: 0.3rem;
+			font-size: 0.8rem;
+			font-weight: 500;
+		}
+		.wh-arrow {
+			opacity: 0.4;
+		}
+		.wh-user-cell {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			min-width: 0;
+		}
+		.wh-user-cell span {
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			font-size: 0.8rem;
+		}
+		.wh-user-img {
+			border-radius: 50%;
+			object-fit: cover;
+			flex-shrink: 0;
+		}
+		.wh-date {
+			font-size: 0.75rem;
+			opacity: 0.65;
+		}
+		.wh-pagination {
+			display: flex;
+			justify-content: center;
+			padding: 1rem;
+		}
+
+		/* ── Mobile history ─────────────────────────────── */
+		.wh-mobile-row {
+			flex-direction: column;
+			gap: 0.35rem;
+			padding: 0.75rem;
+		}
+		.wh-mobile-head {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 0.5rem;
+		}
+		.wh-mobile-product {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			font-weight: 500;
+			font-size: 0.9rem;
+			min-width: 0;
+		}
+		.wh-mobile-product span {
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		.wh-mobile-details {
+			display: flex;
+			gap: 0.75rem;
+			font-size: 0.8rem;
+			opacity: 0.7;
+			padding-left: 2.4rem;
+		}
+		.wh-mobile-footer {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding-left: 2.4rem;
+		}
+		
 	</style>
 </div>

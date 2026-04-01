@@ -79,6 +79,11 @@ class WarehouseService:
 
 
     @handle_exceptions
+    def get_logs(self, page=1):
+        return self.warehouse_repository.get_logs(page=page)
+
+
+    @handle_exceptions
     def get_occupied_locations(self):
         labels, rc = self.warehouse_repository.get_occupied_locations()
         if rc != 200:

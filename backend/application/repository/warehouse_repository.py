@@ -355,6 +355,42 @@ class WarehouseRepository:
 
 
     @handle_db_exceptions
+    def get_logs(self, page=1, per_page=30):
+        query = (
+            g.db_session.query(WarehouseLog)
+            .order_by(WarehouseLog.created_at.desc())
+        )
+        total = query.count()
+        rows = query.offset((page - 1) * per_page).limit(per_page).all()
+
+        def _code_label(code):
+            if not code:
+                return None
+            return f"B{code.block}-{code.level}-{code.position}"
+
+        logs = []
+        for r in rows:
+            product_image = None
+            if r.product:
+                product_image = r.product.image if r.product.image != "" else "impresoras-varias1.webp"
+
+            logs.append({
+                "id":            r.id,
+                "action":        r.action,
+                "product":       f"{r.product.brand.name} {r.product.model}" if r.product else None,
+                "product_image": product_image,
+                "user":          r.user.name if r.user else None,
+                "user_image":    r.user.image if r.user else None,
+                "quantity":      r.quantity,
+                "from_label":    _code_label(r.from_code),
+                "to_label":      _code_label(r.to_code),
+                "created_at":    r.created_at.isoformat() if r.created_at else None,
+            })
+
+        return {"logs": logs, "total": total, "page": page, "per_page": per_page}, 200
+
+
+    @handle_db_exceptions
     def get_available_locations(self):
 
         codes = (
