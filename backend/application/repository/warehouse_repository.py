@@ -9,12 +9,18 @@ from flask import g
 
 class WarehouseRepository:
     def _build_location_filter(self, search_norm):
-        block_match = re.match(r"^B(\d+)(.*)", search_norm)
+        block_match = re.match(r"^B?(\d+)(.*)", search_norm)
         if not block_match:
             return False, None
 
         block_number = int(block_match.group(1))
         rest = block_match.group(2)  # e.g. "" | "-" | "-01" | "-01-A"
+
+        # Solo tratar como búsqueda de ubicación si:
+        # - empieza con B explícita, o
+        # - tiene formato numérico con guión (ej: 1-3, 2-1-A)
+        if not search_norm.startswith("B") and not rest.startswith("-"):
+            return False, None
 
         normalized_search = f"B{block_number}"
         if rest and rest.startswith("-") and len(rest) > 1:
@@ -112,7 +118,7 @@ class WarehouseRepository:
     def get_location_detail(self, label):
         label_norm = re.sub(r"\s+", "", (label or "")).upper()
 
-        match = re.match(r"^B(\d+)-(\d+)-([A-Z0-9])$", label_norm)
+        match = re.match(r"^B?(\d+)-(\d+)-([A-Z0-9])$", label_norm)
         if not match:
             return {"message": "Formato de ubicación inválido"}, [], 400
 
@@ -448,7 +454,7 @@ class WarehouseRepository:
     @handle_db_exceptions
     def add_stock(self, product_id, location_label, quantity):
         label_norm = re.sub(r"\s+", "", (location_label or "")).upper()
-        match = re.match(r"^B(\d+)-(\d+)-([A-Z0-9])$", label_norm)
+        match = re.match(r"^B?(\d+)-(\d+)-([A-Z0-9])$", label_norm)
         if not match:
             return {"message": "Formato de ubicación inválido"}, 400
 
@@ -493,7 +499,7 @@ class WarehouseRepository:
     @handle_db_exceptions
     def move_stock(self, warehouse_stock_id, quantity, destination_label):
         dest_norm = re.sub(r"\s+", "", (destination_label or "")).upper()
-        match = re.match(r"^B(\d+)-(\d+)-([A-Z0-9])$", dest_norm)
+        match = re.match(r"^B?(\d+)-(\d+)-([A-Z0-9])$", dest_norm)
         if not match:
             return {"message": "Formato de ubicación destino inválido"}, 400
 
