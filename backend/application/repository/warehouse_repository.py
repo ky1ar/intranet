@@ -1,4 +1,5 @@
 import re, logging
+from application.utils import peru_time
 from application.handlers import handle_db_exceptions
 from application.db_models.warehouse_model import WarehouseCodes, WarehouseStock, WarehouseLog
 from application.models import Brands, Machines, Category
@@ -8,12 +9,18 @@ from flask import g
 
 class WarehouseRepository:
     def _build_location_filter(self, search_norm):
-        block_match = re.match(r"^B(\d+)(.*)", search_norm)
+        block_match = re.match(r"^B?(\d+)(.*)", search_norm)
         if not block_match:
             return False, None
 
         block_number = int(block_match.group(1))
         rest = block_match.group(2)  # e.g. "" | "-" | "-01" | "-01-A"
+
+        # Solo tratar como búsqueda de ubicación si:
+        # - empieza con B explícita, o
+        # - tiene formato numérico con guión (ej: 1-3, 2-1-A)
+        if not search_norm.startswith("B") and not rest.startswith("-"):
+            return False, None
 
         normalized_search = f"B{block_number}"
         if rest and rest.startswith("-") and len(rest) > 1:
@@ -111,7 +118,7 @@ class WarehouseRepository:
     def get_location_detail(self, label):
         label_norm = re.sub(r"\s+", "", (label or "")).upper()
 
-        match = re.match(r"^B(\d+)-(\d+)-([A-Z0-9])$", label_norm)
+        match = re.match(r"^B?(\d+)-(\d+)-([A-Z0-9])$", label_norm)
         if not match:
             return {"message": "Formato de ubicación inválido"}, [], 400
 
@@ -348,10 +355,47 @@ class WarehouseRepository:
             quantity=quantity,
             from_code_id=from_code_id,
             to_code_id=to_code_id,
+            created_at=peru_time(),
         )
         g.db_session.add(log)
         g.db_session.commit()
         return True, 200
+
+
+    @handle_db_exceptions
+    def get_logs(self, page=1, per_page=30):
+        query = (
+            g.db_session.query(WarehouseLog)
+            .order_by(WarehouseLog.created_at.desc())
+        )
+        total = query.count()
+        rows = query.offset((page - 1) * per_page).limit(per_page).all()
+
+        def _code_label(code):
+            if not code:
+                return None
+            return f"B{code.block}-{code.level}-{code.position}"
+
+        logs = []
+        for r in rows:
+            product_image = None
+            if r.product:
+                product_image = r.product.image if r.product.image != "" else "impresoras-varias1.webp"
+
+            logs.append({
+                "id":            r.id,
+                "action":        r.action,
+                "product":       f"{r.product.brand.name} {r.product.model}" if r.product else None,
+                "product_image": product_image,
+                "user":          r.user.name if r.user else None,
+                "user_image":    r.user.image if r.user else None,
+                "quantity":      r.quantity,
+                "from_label":    _code_label(r.from_code),
+                "to_label":      _code_label(r.to_code),
+                "created_at":    r.created_at.isoformat() if r.created_at else None,
+            })
+
+        return {"logs": logs, "total": total, "page": page, "per_page": per_page}, 200
 
 
     @handle_db_exceptions
@@ -410,7 +454,7 @@ class WarehouseRepository:
     @handle_db_exceptions
     def add_stock(self, product_id, location_label, quantity):
         label_norm = re.sub(r"\s+", "", (location_label or "")).upper()
-        match = re.match(r"^B(\d+)-(\d+)-([A-Z0-9])$", label_norm)
+        match = re.match(r"^B?(\d+)-(\d+)-([A-Z0-9])$", label_norm)
         if not match:
             return {"message": "Formato de ubicación inválido"}, 400
 
@@ -455,7 +499,7 @@ class WarehouseRepository:
     @handle_db_exceptions
     def move_stock(self, warehouse_stock_id, quantity, destination_label):
         dest_norm = re.sub(r"\s+", "", (destination_label or "")).upper()
-        match = re.match(r"^B(\d+)-(\d+)-([A-Z0-9])$", dest_norm)
+        match = re.match(r"^B?(\d+)-(\d+)-([A-Z0-9])$", dest_norm)
         if not match:
             return {"message": "Formato de ubicación destino inválido"}, 400
 

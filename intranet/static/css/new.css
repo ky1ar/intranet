@@ -217,13 +217,13 @@ body.modal-open {
 .modal-grabber{
     display: none;
     width: 100%;
-    padding: 0.75rem;
+    padding: 1rem;
     justify-content: center;
     touch-action: none;
     margin-bottom: -0.75rem;
 }
 .modal-grabber-bar{
-    width: 3rem;
+    width: 5rem;
     height: 0.25rem;
     border-radius: 2rem;
     background-color: var(--graydarkest);

@@ -51,6 +51,13 @@ def load_excel():
     return controller.warehouse_load_excel(file.read())
 
 
+@warehouse_bp.route("/logs", methods=["GET"])
+@jwt_required()
+def get_logs():
+    page = request.args.get("page", 1, type=int)
+    return controller.warehouse_get_logs(page)
+
+
 @warehouse_bp.route("/locations/occupied", methods=["GET"])
 def get_occupied_locations():
     return controller.warehouse_get_occupied_locations()
