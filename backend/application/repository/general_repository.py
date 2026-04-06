@@ -1,6 +1,6 @@
 from datetime import date, datetime, timezone, timedelta
-from application.handlers import handle_db_exceptions
 from application.models import ServiceStatus, ServiceMethod, Users, TrackingAgencies, ShippingDistricts, ShippingMethod, TrackingStatus, BoardPriority, BoardStatuses, ServiceOrigin
+from application.handlers import handle_db_exceptions
 from flask import g
 
 

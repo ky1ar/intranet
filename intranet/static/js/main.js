@@ -107,23 +107,42 @@ document.addEventListener('alpine:init', () => {
         api: 'https://devapi.krear3d.com', //https://devapi.krear3d.com
         user: {},
         active_page: window.location.pathname,
-        common_pages: [
-            { name: 'attendance', label: 'Asistencia', image: 'attendance', title: 'Krear 3D - Asistencia' },
-            { name: 'schedule', label: 'Agenda', image: 'calendar2', title: 'Krear 3D - Agenda' },
-            { name: 'board', label: 'Actividades', image: 'board', title: 'Krear 3D - Actividades' },
-            { name: 'logistics', label: 'Envíos', image: 'logistics', title: 'Krear 3D - Envíos' },
-            { name: 'warehouse', label: 'Almacén', image: 'warehouse', title: 'Krear 3D - Almacén' },
-            { name: 'tracking', label: 'Tracking', image: 'tracking', title: 'Krear 3D - Trackings' },
-            { name: 'support', label: 'Soporte', image: 'support', title: 'Krear 3D - Soporte' },
-            { name: 'purchases', label: 'Compras', image: 'purchases', title: 'Krear 3D - Compras' },
-            { name: 'imports', label: 'Importaciones', image: 'imports', title: 'Krear 3D - Importaciones' },
-        ],
-        restricted_pages: [
-            { name: 'complaint', label: 'Reclamos', image: 'complaint', title: 'Krear 3D - Reclamos' },
-            { name: 'driver', label: 'Conductor', image: 'driver', title: 'Krear 3D - Conductor' },
-            //{ name: 'marketing', label: 'Marketing', image: 'marketing', title: 'Krear 3D - Marketing' },
-            { name: 'guest', label: 'Fabrix', image: 'fabrix', title: 'Krear 3D - Fabrix' },
-        ],
+         module_ui: {
+            attendance:  { image: 'attendance', label: 'Asistencia',     title: 'Krear 3D - Asistencia' },
+            schedule:    { image: 'calendar2',  label: 'Agenda',         title: 'Krear 3D - Agenda' },
+            board:       { image: 'board',      label: 'Actividades',    title: 'Krear 3D - Actividades' },
+            logistics:   { image: 'logistics',  label: 'Envíos',        title: 'Krear 3D - Envíos' },
+            warehouse:   { image: 'warehouse',  label: 'Almacén',       title: 'Krear 3D - Almacén' },
+            tracking:    { image: 'tracking',   label: 'Tracking',      title: 'Krear 3D - Trackings' },
+            support:     { image: 'support',    label: 'Soporte',       title: 'Krear 3D - Soporte' },
+            purchases:   { image: 'purchases',  label: 'Compras',       title: 'Krear 3D - Compras' },
+            imports:     { image: 'imports',     label: 'Importaciones', title: 'Krear 3D - Importaciones' },
+            complaint:   { image: 'complaint',  label: 'Reclamos',      title: 'Krear 3D - Reclamos' },
+            driver:      { image: 'driver',     label: 'Conductor',     title: 'Krear 3D - Conductor' },
+            guest:       { image: 'fabrix',     label: 'Fabrix',        title: 'Krear 3D - Fabrix' },
+            marketing:   { image: 'marketing',  label: 'Marketing',     title: 'Krear 3D - Marketing' },
+            schedules:   { image: 'schedule',   label: 'Horarios',      title: 'Krear 3D - Horarios' },
+            refunds:     { image: 'pending',    label: 'Extornos',      title: 'Krear 3D - Extornos' },
+            admin:       { image: 'settings',   label: 'Admin',         title: 'Krear 3D - Admin' },
+        },
+
+        // common_pages: [
+        //     { name: 'attendance', label: 'Asistencia', image: 'attendance', title: 'Krear 3D - Asistencia' },
+        //     { name: 'schedule', label: 'Agenda', image: 'calendar2', title: 'Krear 3D - Agenda' },
+        //     { name: 'board', label: 'Actividades', image: 'board', title: 'Krear 3D - Actividades' },
+        //     { name: 'logistics', label: 'Envíos', image: 'logistics', title: 'Krear 3D - Envíos' },
+        //     { name: 'warehouse', label: 'Almacén', image: 'warehouse', title: 'Krear 3D - Almacén' },
+        //     { name: 'tracking', label: 'Tracking', image: 'tracking', title: 'Krear 3D - Trackings' },
+        //     { name: 'support', label: 'Soporte', image: 'support', title: 'Krear 3D - Soporte' },
+        //     { name: 'purchases', label: 'Compras', image: 'purchases', title: 'Krear 3D - Compras' },
+        //     { name: 'imports', label: 'Importaciones', image: 'imports', title: 'Krear 3D - Importaciones' },
+        // ],
+        // restricted_pages: [
+        //     { name: 'complaint', label: 'Reclamos', image: 'complaint', title: 'Krear 3D - Reclamos' },
+        //     { name: 'driver', label: 'Conductor', image: 'driver', title: 'Krear 3D - Conductor' },
+        //     //{ name: 'marketing', label: 'Marketing', image: 'marketing', title: 'Krear 3D - Marketing' },
+        //     { name: 'guest', label: 'Fabrix', image: 'fabrix', title: 'Krear 3D - Fabrix' },
+        // ],
 
         modals: new Set(),
         sidebar: false,
@@ -137,6 +156,7 @@ document.addEventListener('alpine:init', () => {
         cached_keys: new Set(),
         pdf_url: null,
         pdf_title: 'Reglamento',
+        sidebar_expanded: false,
 
         async openPdfModal(url, title = 'Reglamento') {
             this.detectPlatform();
@@ -400,60 +420,66 @@ document.addEventListener('alpine:init', () => {
         setActivePage(path) {
             this.active_page = path;
             const name = path.replace('/', '');
-            const pages = [...this.common_pages, ...this.restricted_pages];
-            const page = pages.find(p => p.name === name);
-            document.title = page?.title || 'Krear 3D - Intranet';
+            const ui = this.module_ui[name];
+            document.title = ui?.title || 'Krear 3D - Intranet';
         },
 
         getPages() {
-            const { department_id, level_id, id: user_id } = this.user;
+            const modules = this.user.modules;
 
-            if (user_id === 21) {
-                return this.getRestricted(['guest']);
-            }
+            // fallback: si no hay módulos del backend, no mostrar nada
+            if (!modules || !modules.length) return [];
 
-            let pages = [...this.common_pages];
-
-            const add = (tags) => {
-                pages = pages.concat(this.getRestricted(tags));
-            };
-
-            const userRules = {
-                19: ['guest'],
-                12: ['guest'],
-                15: ['complaint'],
-            };
-
-            if (userRules[user_id]) {
-                add(userRules[user_id]);
-            }
-
-            const departmentRules = {
-                1: ['complaint'],
-                2: ['driver', 'complaint'],
-                3: ['complaint'],
-                4: ['marketing'],
-                5: ['complaint'],
-            };
-
-            if (departmentRules[department_id]) {
-                add(departmentRules[department_id]);
-            }
-
-            if (level_id === 4) {
-                pages = pages.concat(this.restricted_pages);
-            }
-
-            return pages.filter(
-                (page, index, self) =>
-                    index === self.findIndex(p => p.name === page.name)
-            );
+            return modules
+                .filter(m => m.is_pinned)  // solo los pinned se muestran fijos
+                .sort((a, b) => a.sort_order - b.sort_order)
+                .map(m => {
+                    const ui = this.module_ui[m.slug] || {};
+                    return {
+                        name: m.slug,
+                        label: ui.label || m.name,
+                        image: ui.image || m.slug,
+                        title: ui.title || `Krear 3D - ${m.name}`,
+                    };
+                });
         },
 
-        getRestricted(allowedNames) {
-            return this.restricted_pages.filter(page =>
-                allowedNames.includes(page.name)
-            );
+        // Módulos no pinneados (para el menú expandible)
+        getUnpinnedPages() {
+            const modules = this.user.modules;
+            if (!modules || !modules.length) return [];
+
+            return modules
+                .filter(m => !m.is_pinned)
+                .sort((a, b) => a.sort_order - b.sort_order)
+                .map(m => {
+                    const ui = this.module_ui[m.slug] || {};
+                    return {
+                        name: m.slug,
+                        label: ui.label || m.name,
+                        image: ui.image || m.slug,
+                        title: ui.title || `Krear 3D - ${m.name}`,
+                    };
+                });
+        },
+
+        // Verificar si el usuario tiene un permiso específico
+        hasPermission(moduleSlug, permissionSlug) {
+            const modules = this.user.modules;
+            if (!modules) return false;
+
+            const mod = modules.find(m => m.slug === moduleSlug);
+            if (!mod) return false;
+
+            return mod.permissions[permissionSlug] === true;
+        },
+
+        // Verificar si el usuario tiene acceso a un módulo
+        hasModule(moduleSlug) {
+            const modules = this.user.modules;
+            if (!modules) return false;
+
+            return modules.some(m => m.slug === moduleSlug);
         },
 
         setUser(data) {
@@ -623,6 +649,14 @@ document.addEventListener('alpine:init', () => {
 
                 socket.on("connect_error", (err) => {
                     console.error("Error en la conexión del socket:", err.message);
+                });
+
+                socket.on("modules_updated", (data) => {
+                    if (data.user_id === this.user.id) {
+                        console.log("Permisos actualizados en caliente");
+                        this.user.modules = data.modules;
+                        this.user.default_page = data.default_page;
+                    }
                 });
 
                 this.socket = socket;

@@ -6,6 +6,7 @@ from application import bcrypt
 from application.handlers import handle_exceptions
 from application.repository.user_repository import UserRepository
 from application.repository.push_repository import PushRepository
+from application.services.module_service import ModuleService
 from application.proxy.apiperu import ApiPeru
 from application.proxy.whatsapp import Whatsapp
 from flask_jwt_extended import create_access_token, get_jwt_identity
@@ -15,6 +16,7 @@ class UserService:
     def __init__(self):
         self.user_repository = UserRepository()
         self.push_repository = PushRepository()
+        self.module_service = ModuleService()
         self.apiperu = ApiPeru()
         self.whatsapp = Whatsapp()
         
@@ -116,6 +118,9 @@ class UserService:
         if uc != 200:
             return user, uc
         
+        modules_data, _ = self.module_service.get_user_modules(user.id)
+        default_page, _ = self.module_service.get_default_page(user.id)
+
         return {
             "app_version": "1.5.0nc",
             "id": user.id,
@@ -127,7 +132,8 @@ class UserService:
             "name": self.format_name(user.name),
             "phone": user.phone[2:],
             "image": user.image if user.image else 'user_default.jpg',
-            "default_page": user.default_page or "logistics",
+            "default_page": default_page,
+            "modules": modules_data if isinstance(modules_data, list) else [],
         }, 200
 
 
@@ -149,6 +155,9 @@ class UserService:
             #if stored_token_status == 200:
             #   self.service.set_fcm_token(stored_token, user.id)
             
+            modules_data, _ = self.module_service.get_user_modules(user.id)
+            default_page, _ = self.module_service.get_default_page(user.id)
+
             user_data = {
                 "id": user.id,
                 "level_id": user.level_id,
@@ -159,7 +168,8 @@ class UserService:
                 "name": self.format_name(user.name),
                 "phone": user.phone[2:],
                 "image": user.image if user.image else 'user_default.jpg',
-                "default_page": user.default_page or "logistics",
+                "default_page": default_page,
+                "modules": modules_data if isinstance(modules_data, list) else [],
                 "token": access_token
             }
             return user_data, 200

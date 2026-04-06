@@ -828,6 +828,21 @@ body.modal-open {
     opacity: 1;
     visibility: visible;
 }
+#sidebar ul li.divider {
+    height: 1px;
+    background: rgba(255,255,255,0.15);
+    margin: 6px 8px;
+    padding: 0;
+    pointer-events: none;
+    display: none;
+}
+#sidebar .home-logo {
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+#sidebar .home-logo.expanded {
+    transform: rotate(360deg);
+}
 #sidebar .notification {
     background-color: var(--white);
     width: 2.5rem;

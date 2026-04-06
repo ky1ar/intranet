@@ -36,9 +36,6 @@ def user_login():
 @jwt_required()
 def user_verify():
     return controller.user_verify()
-    return jsonify({
-        "app_version": "1.5.0d"
-    }), 200
 
 
 @user_bp.route("/logout", methods=["POST"])
