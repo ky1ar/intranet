@@ -9,6 +9,34 @@ class ModuleController:
 
 
     @handle_logs_and_exceptions
+    def get_manageable_users(self, editor_user_id):
+        return self.module.get_manageable_users(editor_user_id)
+
+
+    @handle_logs_and_exceptions
+    def get_user_access_map(self, data):
+        editor_user_id = data.get('editor_user_id')
+        target_user_id = data.get('target_user_id')
+
+        if not target_user_id:
+            return "target_user_id requerido", 400
+
+        return self.module.get_user_full_access_map(target_user_id, editor_user_id)
+
+
+    @handle_logs_and_exceptions
+    def save_user_permissions(self, data):
+        editor_user_id = data.get('editor_user_id')
+        target_user_id = data.get('target_user_id')
+        modules_data = data.get('modules', [])
+
+        if not target_user_id or not modules_data:
+            return "target_user_id y modules requeridos", 400
+
+        return self.module.save_user_permissions(editor_user_id, target_user_id, modules_data)
+    
+
+    @handle_logs_and_exceptions
     def get_my_modules(self, user_id):
         return self.module.get_user_modules(user_id)
 

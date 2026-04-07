@@ -8,6 +8,75 @@ from flask import g
 
 class ModuleRepository:
     @handle_db_exceptions
+    def get_user_full_access_map(self, user_id):
+        modules = (
+            g.db_session.query(Module)
+            .filter(Module.is_active == True)
+            .order_by(Module.sort_order)
+            .all()
+        )
+
+        access_map = {}
+        access_rows = (
+            g.db_session.query(UserModuleAccess)
+            .filter(UserModuleAccess.user_id == user_id)
+            .all()
+        )
+        for a in access_rows:
+            access_map[a.module_id] = a
+
+        perm_rows = (
+            g.db_session.query(UserModulePermission)
+            .filter(UserModulePermission.user_id == user_id)
+            .all()
+        )
+        perm_map = {}
+        for p in perm_rows:
+            perm_map[p.module_permission_id] = p.granted
+
+        result = []
+        for m in modules:
+            acc = access_map.get(m.id)
+            perms = []
+            for mp in m.permissions:
+                perms.append({
+                    "id": mp.id,
+                    "slug": mp.slug,
+                    "name": mp.name,
+                    "granted": perm_map.get(mp.id, False),
+                })
+
+            result.append({
+                "module_id": m.id,
+                "slug": m.slug,
+                "name": m.name,
+                "icon": m.icon,
+                "visible": acc.visible if acc else False,
+                "is_pinned": acc.is_pinned if acc else True,
+                "permissions": perms,
+            })
+
+        return result, 200
+
+
+    @handle_db_exceptions
+    def get_manageable_users(self, editor_level_id, editor_id):
+        from application.models import Users
+
+        query = (
+            g.db_session.query(Users)
+            .filter(Users.level_id != 1)
+            .filter(Users.id != editor_id)
+        )
+
+        if editor_level_id == 3:
+            query = query.filter(Users.level_id == 2)
+
+        users = query.order_by(Users.name).all()
+        return users, 200
+
+
+    @handle_db_exceptions
     def get_all_active_modules(self):
         modules = (
             g.db_session.query(Module)

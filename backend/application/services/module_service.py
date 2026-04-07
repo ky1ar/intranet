@@ -31,6 +31,147 @@ class ModuleService:
 
 
     @handle_exceptions
+    def get_user_full_access_map(self, target_user_id, editor_user_id):
+        from application.repository.user_repository import UserRepository
+        user_repo = UserRepository()
+
+        editor, ec = user_repo.get_user_by_id(editor_user_id)
+        if ec != 200:
+            return editor, ec
+
+        if editor.level_id < 3:
+            return "Sin permisos para gestionar usuarios", 403
+
+        target, tc = user_repo.get_user_by_id(target_user_id)
+        if tc != 200:
+            return target, tc
+
+        if editor.level_id == 3 and target.level_id >= 3:
+            return "No puedes gestionar a este usuario", 403
+
+        target_map, rc = self.module_repository.get_user_full_access_map(target_user_id)
+        if rc != 200:
+            return target_map, rc
+
+        # super puede todo
+        if editor.level_id == 4:
+            for mod in target_map:
+                mod["can_edit"] = True
+                for p in mod["permissions"]:
+                    p["can_edit"] = True
+            return target_map, 200
+
+        # admin solo puede dar lo que él tiene
+        editor_modules, _ = self.get_user_modules(editor_user_id)
+        editor_slugs = {}
+        if isinstance(editor_modules, list):
+            for em in editor_modules:
+                editor_slugs[em["slug"]] = em["permissions"]
+
+        for mod in target_map:
+            editor_perms = editor_slugs.get(mod["slug"], {})
+            mod["can_edit"] = mod["slug"] in editor_slugs
+
+            for p in mod["permissions"]:
+                p["can_edit"] = editor_perms.get(p["slug"], False)
+
+        return target_map, 200
+
+
+    @handle_exceptions
+    def get_manageable_users(self, editor_user_id):
+        from application.repository.user_repository import UserRepository
+        user_repo = UserRepository()
+
+        editor, ec = user_repo.get_user_by_id(editor_user_id)
+        if ec != 200:
+            return editor, ec
+
+        if editor.level_id < 3:
+            return "Sin permisos", 403
+
+        users, uc = self.module_repository.get_manageable_users(editor.level_id, editor_user_id)
+        if uc != 200:
+            return users, uc
+
+        result = []
+        for u in users:
+            result.append({
+                "id": u.id,
+                "name": u.name,
+                "image": u.image if u.image else 'user_default.jpg',
+                "level_id": u.level_id,
+                "department_name": u.department.name if u.department else "",
+            })
+
+        return result, 200
+
+
+    @handle_exceptions
+    def save_user_permissions(self, editor_user_id, target_user_id, modules_data):
+        from application.repository.user_repository import UserRepository
+        user_repo = UserRepository()
+
+        editor, ec = user_repo.get_user_by_id(editor_user_id)
+        if ec != 200:
+            return editor, ec
+
+        if editor.level_id < 3:
+            return "Sin permisos", 403
+
+        target, tc = user_repo.get_user_by_id(target_user_id)
+        if tc != 200:
+            return target, tc
+
+        if editor.level_id == 3 and target.level_id >= 3:
+            return "No puedes gestionar a este usuario", 403
+
+        editor_modules_raw, _ = self.get_user_modules(editor_user_id)
+        editor_slugs = {}
+        if isinstance(editor_modules_raw, list):
+            for em in editor_modules_raw:
+                editor_slugs[em["slug"]] = em["permissions"]
+
+        for mod_data in modules_data:
+            slug = mod_data.get("slug")
+            if not slug:
+                continue
+
+            module, mc = self.module_repository.get_module_by_slug(slug)
+            if mc != 200:
+                continue
+
+            # admin solo puede tocar módulos que él tiene
+            if editor.level_id == 3 and slug not in editor_slugs:
+                continue
+
+            self.module_repository.upsert_user_access(
+                user_id=target_user_id,
+                module_id=module.id,
+                visible=mod_data.get("visible", False),
+                is_pinned=mod_data.get("is_pinned", True),
+            )
+
+            perms_dict = mod_data.get("permissions", {})
+            if editor.level_id == 3:
+                editor_perms = editor_slugs.get(slug, {})
+                perms_dict = {
+                    k: v for k, v in perms_dict.items()
+                    if editor_perms.get(k, False)
+                }
+
+            if perms_dict:
+                self.module_repository.bulk_set_user_permissions(
+                    user_id=target_user_id,
+                    module_id=module.id,
+                    permissions_dict=perms_dict,
+                )
+
+        self._emit_permissions_update(target_user_id)
+        return "Permisos guardados", 200
+    
+
+    @handle_exceptions
     def get_user_modules(self, user_id):
         access_list, ac = self.module_repository.get_user_access(user_id)
         if ac != 200:
@@ -57,6 +198,7 @@ class ModuleService:
                 permissions[mp.slug] = granted.get(mp.slug, False)
 
             modules.append({
+                "module_id": m.id,
                 "slug": m.slug,
                 "name": m.name,
                 "icon": m.icon,

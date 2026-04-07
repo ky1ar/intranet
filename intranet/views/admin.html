@@ -1,0 +1,437 @@
+<div x-data="admin_perms_data">
+	<div id="admin-perms">
+		<div class="header">Permisos de Usuarios</div>
+
+		<!-- Lista de usuarios -->
+		<div class="users-list white-frost" x-show="!selected_user">
+			<div class="search-bar">
+				<input type="text" x-model="search" placeholder="Buscar usuario..." class="search-input">
+			</div>
+
+			<template x-for="u in filteredUsers()" :key="u.id">
+				<div class="user-row hover-opacity" @click="selectUser(u)">
+					<img :src="'/static/images/uploads/users/' + u.image" width="40" height="40" alt="">
+					<div class="user-info">
+						<span class="name" x-text="u.name"></span>
+						<span class="dept" x-text="u.department_name"></span>
+					</div>
+					<img src="/static/images/icons/right.svg" width="16" height="16" alt="">
+				</div>
+			</template>
+
+			<div class="empty" x-show="filteredUsers().length === 0">
+				<span>No se encontraron usuarios</span>
+			</div>
+		</div>
+
+		<!-- Editor de permisos -->
+		<div class="perm-editor" x-show="selected_user" x-cloak>
+			<div class="editor-header white-frost">
+				<div class="back hover-opacity" @click="goBack()">
+					<img src="/static/images/icons/back.svg" width="20" height="20" alt="">
+				</div>
+				<img :src="'/static/images/uploads/users/' + (selected_user?.image || 'user_default.jpg')" width="44" height="44" alt="">
+				<div class="user-info">
+					<span class="name" x-text="selected_user?.name"></span>
+					<span class="dept" x-text="selected_user?.department_name"></span>
+				</div>
+				<button class="save-btn hover-opacity" @click="savePermissions()" :disabled="saving">
+					<span x-text="saving ? 'Guardando...' : 'Guardar'"></span>
+				</button>
+			</div>
+
+			<template x-for="mod in access_map" :key="mod.module_id">
+				<div class="module-card white-frost">
+					<div class="module-header" @click="mod._open = !mod._open">
+						<div class="module-left">
+							<div class="module-toggle" 
+								 :class="{'active': mod.visible, 'disabled': !mod.can_edit}"
+								 @click.stop="mod.can_edit && (mod.visible = !mod.visible)">
+								<div class="toggle-dot"></div>
+							</div>
+							<span class="module-name" x-text="mod.name"></span>
+						</div>
+						<div class="module-right">
+							<span class="perm-count" x-text="countGranted(mod) + '/' + mod.permissions.length"></span>
+							<img :class="{'rotated': mod._open}" src="/static/images/icons/right.svg" width="14" height="14" alt="">
+						</div>
+					</div>
+
+					<div class="module-perms" x-show="mod._open" x-transition>
+						<!-- Toggle all -->
+						<div class="perm-row toggle-all" x-show="mod.can_edit">
+							<label class="perm-label">
+								<span>Seleccionar todos</span>
+							</label>
+							<div class="perm-check" 
+								 :class="{'checked': allGranted(mod), 'partial': someGranted(mod)}"
+								 @click="toggleAll(mod)">
+								<svg x-show="allGranted(mod)" width="12" height="12" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" fill="none"/></svg>
+								<svg x-show="someGranted(mod) && !allGranted(mod)" width="12" height="12" viewBox="0 0 12 12"><line x1="3" y1="6" x2="9" y2="6" stroke="white" stroke-width="2"/></svg>
+							</div>
+						</div>
+
+						<template x-for="perm in mod.permissions" :key="perm.id">
+							<div class="perm-row" :class="{'disabled': !perm.can_edit}">
+								<label class="perm-label">
+									<span class="perm-name" x-text="perm.name"></span>
+								</label>
+								<div class="perm-check" 
+									 :class="{'checked': perm.granted, 'disabled': !perm.can_edit}"
+									 @click="perm.can_edit && (perm.granted = !perm.granted)">
+									<svg x-show="perm.granted" width="12" height="12" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" fill="none"/></svg>
+								</div>
+							</div>
+						</template>
+					</div>
+				</div>
+			</template>
+		</div>
+	</div>
+
+	<script>
+		Alpine.data('admin_perms_data', () => ({
+			users: [],
+			search: '',
+			selected_user: null,
+			access_map: [],
+			saving: false,
+
+			async init() {
+				console.log('Inicializando Admin Permisos...');
+				await this.loadUsers();
+			},
+
+			async loadUsers() {
+				try {
+					const token = localStorage.getItem('user_token');
+					const res = await fetch(`${Alpine.store('cache').api}/modules/admin/users`, {
+						headers: { 'Authorization': `Bearer ${token}` },
+					});
+					const data = await res.json();
+					this.users = data.data || [];
+				} catch (e) {
+					console.error('Error cargando usuarios:', e);
+				}
+			},
+
+			filteredUsers() {
+				if (!this.search) return this.users;
+				const q = this.search.toLowerCase();
+				return this.users.filter(u =>
+					u.name.toLowerCase().includes(q) ||
+					u.department_name.toLowerCase().includes(q)
+				);
+			},
+
+			async selectUser(user) {
+				this.selected_user = user;
+				try {
+					const token = localStorage.getItem('user_token');
+					const res = await fetch(`${Alpine.store('cache').api}/modules/admin/user/${user.id}/map`, {
+						headers: { 'Authorization': `Bearer ${token}` },
+					});
+					const data = await res.json();
+					const map = data.data || [];
+					map.forEach(m => m._open = false);
+					this.access_map = map;
+				} catch (e) {
+					console.error('Error cargando mapa:', e);
+				}
+			},
+
+			goBack() {
+				this.selected_user = null;
+				this.access_map = [];
+			},
+
+			countGranted(mod) {
+				return mod.permissions.filter(p => p.granted).length;
+			},
+
+			allGranted(mod) {
+				const editable = mod.permissions.filter(p => p.can_edit);
+				return editable.length > 0 && editable.every(p => p.granted);
+			},
+
+			someGranted(mod) {
+				const editable = mod.permissions.filter(p => p.can_edit);
+				return editable.some(p => p.granted);
+			},
+
+			toggleAll(mod) {
+				const editable = mod.permissions.filter(p => p.can_edit);
+				const allOn = editable.every(p => p.granted);
+				editable.forEach(p => p.granted = !allOn);
+			},
+
+			async savePermissions() {
+				this.saving = true;
+				try {
+					const token = localStorage.getItem('user_token');
+					const modules = this.access_map.map(mod => ({
+						slug: mod.slug,
+						visible: mod.visible,
+						is_pinned: true,
+						permissions: Object.fromEntries(
+							mod.permissions.map(p => [p.slug, p.granted])
+						),
+					}));
+
+					const res = await fetch(`${Alpine.store('cache').api}/modules/admin/user/save`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${token}`,
+						},
+						body: JSON.stringify({
+							target_user_id: this.selected_user.id,
+							modules: modules,
+						}),
+					});
+
+					if (res.ok) {
+						this.goBack();
+					}
+				} catch (e) {
+					console.error('Error guardando:', e);
+				} finally {
+					this.saving = false;
+				}
+			},
+		}));
+	</script>
+
+	<style>
+		#admin-perms {
+			width: 100%;
+			user-select: none;
+			padding: 1rem;
+			min-height: calc(100vh - 6.5rem);
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			margin: 0 auto;
+			max-width: 50rem;
+		}
+		#admin-perms .search-bar {
+			padding: 1rem 1.25rem 0.5rem;
+		}
+		#admin-perms .search-input {
+			width: 100%;
+			border: 2px solid var(--gray);
+			border-radius: 1rem;
+			padding: 0.75rem 1rem;
+			font-family: var(--font);
+			font-size: 0.875rem;
+			outline: none;
+			transition: border-color var(--transition);
+		}
+		#admin-perms .search-input:focus {
+			border-color: var(--primary);
+		}
+		#admin-perms .users-list {
+			overflow: hidden;
+		}
+		#admin-perms .user-row {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			padding: 0.875rem 1.25rem;
+			cursor: pointer;
+			border-bottom: 1px solid var(--gray);
+		}
+		#admin-perms .user-row:last-child {
+			border-bottom: none;
+		}
+		#admin-perms .user-row img:first-child {
+			border-radius: 50%;
+			object-fit: cover;
+			flex-shrink: 0;
+		}
+		#admin-perms .user-info {
+			display: flex;
+			flex-direction: column;
+			flex: 1;
+			min-width: 0;
+		}
+		#admin-perms .user-info .name {
+			font-weight: 600;
+			font-size: 0.9rem;
+		}
+		#admin-perms .user-info .dept {
+			font-size: 0.75rem;
+			opacity: 0.6;
+		}
+		#admin-perms .empty {
+			padding: 2rem;
+			text-align: center;
+			opacity: 0.5;
+		}
+		#admin-perms .editor-header {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			padding: 0.875rem 1.25rem;
+		}
+		#admin-perms .editor-header img:nth-child(2) {
+			border-radius: 50%;
+			object-fit: cover;
+			flex-shrink: 0;
+		}
+		#admin-perms .editor-header .back {
+			cursor: pointer;
+			padding: 0.25rem;
+		}
+		#admin-perms .editor-header .user-info {
+			flex: 1;
+		}
+		#admin-perms .save-btn {
+			background: var(--primary);
+			color: white;
+			border: none;
+			border-radius: 1rem;
+			padding: 0.6rem 1.25rem;
+			font-family: var(--font);
+			font-size: 0.8rem;
+			font-weight: 600;
+			cursor: pointer;
+		}
+		#admin-perms .save-btn:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+		#admin-perms .module-card {
+			overflow: hidden;
+		}
+		#admin-perms .module-header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 1rem 1.25rem;
+			cursor: pointer;
+		}
+		#admin-perms .module-left {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		#admin-perms .module-name {
+			font-weight: 600;
+			font-size: 0.9rem;
+		}
+		#admin-perms .module-right {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		#admin-perms .module-right img {
+			transition: transform var(--transition);
+		}
+		#admin-perms .module-right img.rotated {
+			transform: rotate(90deg);
+		}
+		#admin-perms .perm-count {
+			font-size: 0.75rem;
+			opacity: 0.5;
+			font-weight: 500;
+		}
+		#admin-perms .module-toggle {
+			width: 2.5rem;
+			height: 1.4rem;
+			border-radius: 1rem;
+			background: var(--graydark);
+			position: relative;
+			cursor: pointer;
+			transition: background var(--transition);
+			flex-shrink: 0;
+		}
+		#admin-perms .module-toggle.active {
+			background: var(--primary);
+		}
+		#admin-perms .module-toggle.disabled {
+			opacity: 0.4;
+			cursor: not-allowed;
+		}
+		#admin-perms .module-toggle .toggle-dot {
+			width: 1rem;
+			height: 1rem;
+			border-radius: 50%;
+			background: white;
+			position: absolute;
+			top: 0.2rem;
+			left: 0.2rem;
+			transition: transform var(--transition);
+			box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+		}
+		#admin-perms .module-toggle.active .toggle-dot {
+			transform: translateX(1.1rem);
+		}
+		#admin-perms .module-perms {
+			border-top: 1px solid var(--gray);
+		}
+		#admin-perms .perm-row {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 0.7rem 1.25rem 0.7rem 3.5rem;
+			border-bottom: 1px solid hsl(0deg 0% 0% / 4%);
+		}
+		#admin-perms .perm-row:last-child {
+			border-bottom: none;
+		}
+		#admin-perms .perm-row.toggle-all {
+			padding-left: 1.25rem;
+			background: hsl(0deg 0% 0% / 2%);
+		}
+		#admin-perms .perm-row.toggle-all span {
+			font-weight: 600;
+			font-size: 0.8rem;
+			opacity: 0.7;
+		}
+		#admin-perms .perm-row.disabled {
+			opacity: 0.35;
+            display: none;
+		}
+		#admin-perms .perm-label {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			flex: 1;
+		}
+		#admin-perms .perm-name {
+			font-size: 0.85rem;
+		}
+		#admin-perms .perm-check {
+			width: 1.4rem;
+			height: 1.4rem;
+			border-radius: 0.4rem;
+			border: 2px solid var(--graydarkest);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			transition: all var(--transition);
+			flex-shrink: 0;
+		}
+		#admin-perms .perm-check.checked {
+			background: var(--primary);
+			border-color: var(--primary);
+		}
+		#admin-perms .perm-check.partial {
+			background: var(--graydarkest);
+			border-color: var(--graydarkest);
+		}
+		#admin-perms .perm-check.disabled {
+			cursor: not-allowed;
+		}
+		@media (max-width: 768px) {
+			#admin-perms {
+				padding: 0.75rem;
+			}
+			#admin-perms .perm-row {
+				padding-left: 2.5rem;
+			}
+		}
+	</style>
+</div>

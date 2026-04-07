@@ -55,7 +55,8 @@
     <template x-route="/purchases"  x-handler="loginVerify" x-template.preload.target.content="/views/purchases.html"></template>
     <template x-route="/complaint"  x-handler="loginVerify" x-template.preload.target.content="/views/complaint.html"></template>
     <template x-route="/imports"    x-handler="loginVerify" x-template.preload.target.content="/views/imports.html"></template>
-
+    <template x-route="/admin"      x-handler="loginVerify" x-template.preload.target.content="/views/admin.html"></template>
+    
     <template x-if="$store.cache.user.id">
         <div>
             <div id="sidebar">
@@ -108,9 +109,11 @@
                     </div>
 
                     <div class="controlss">
-                        <!--<div class="image hover-opacity">
+                        <div class="white hover-opacity"
+                            @click="$store.cache.hideSidebarMenu(); $store.cache.openModuleSettings();">
+                            Personalizar
                             <img alt="controls" src="/static/images/settings.svg" width="16" height="16">
-                        </div>-->
+                        </div>
 
                         <div class="white hover-opacity"
                             x-show="!$store.cache.notifications_enabled"
@@ -188,6 +191,90 @@
                 </div>
             </div>
 
+            <div
+                x-show="$store.cache.isVisibleModal('module-settings')"
+                @mousedown.self="$store.cache.hideModal('module-settings')"
+                class="modal-wrap"
+                id="modal-module-settings"
+                x-transition:enter="modal-enter"
+                x-transition:enter-start="modal-enter-start"
+                x-transition:enter-end="modal-enter-end"
+                x-transition:leave="modal-leave"
+                x-transition:leave-start="modal-leave-start"
+                x-transition:leave-end="modal-leave-end"
+                x-cloak
+            >
+                <div class="modal glass2" @click.stop>
+                    <div class="modal-grabber">
+                        <div class="modal-grabber-bar"></div>
+                    </div>
+
+                    <div class="mod-settings">
+                        <span class="title">Personalizar menú</span>
+                        <p class="subtitle">Elige tu página de inicio, fija módulos al sidebar y ordénalos arrastrando.</p>
+
+                        <div class="mod-list">
+                            <template x-for="(mod, idx) in $store.cache._settings_modules" :key="mod.slug">
+                                <div class="mod-item"
+                                     draggable="true"
+                                     @dragstart="$store.cache._dragStart(idx)"
+                                     @dragover.prevent="$store.cache._dragOver(idx)"
+                                     @dragend="$store.cache._dragEnd()"
+                                     :class="{'dragging': $store.cache._drag_idx === idx}">
+
+                                    <div class="mod-drag">
+                                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                            <circle cx="4" cy="3" r="1.2" fill="#999"/>
+                                            <circle cx="10" cy="3" r="1.2" fill="#999"/>
+                                            <circle cx="4" cy="7" r="1.2" fill="#999"/>
+                                            <circle cx="10" cy="7" r="1.2" fill="#999"/>
+                                            <circle cx="4" cy="11" r="1.2" fill="#999"/>
+                                            <circle cx="10" cy="11" r="1.2" fill="#999"/>
+                                        </svg>
+                                    </div>
+
+                                    <img width="20" height="20" 
+                                         :src="'/static/images/icons/' + ($store.cache.module_ui[mod.slug]?.image || mod.slug) + '.svg'" alt="">
+                                    
+                                    <span class="mod-name" x-text="$store.cache.module_ui[mod.slug]?.label || mod.name"></span>
+
+                                    <div class="mod-actions">
+                                        <div class="mod-default hover-opacity" 
+                                             :class="{'active': mod.is_default}"
+                                             @click="$store.cache._setSettingsDefault(mod.slug)"
+                                             title="Página de inicio">
+                                            <svg width="16" height="16" viewBox="0 0 16 16">
+                                                <path d="M8 1.5L1.5 7V14h4.5v-4h4v4h4.5V7L8 1.5z" 
+                                                      :fill="mod.is_default ? 'var(--primary)' : 'none'" 
+                                                      :stroke="mod.is_default ? 'var(--primary)' : '#999'" 
+                                                      stroke-width="1.2"/>
+                                            </svg>
+                                        </div>
+
+                                        <div class="mod-pin hover-opacity"
+                                             :class="{'active': mod.is_pinned}"
+                                             @click="mod.is_pinned = !mod.is_pinned"
+                                             title="Fijar en sidebar">
+                                            <svg width="16" height="16" viewBox="0 0 16 16">
+                                                <path d="M10 1L6 5L2 6L10 14L11 10L15 6L10 1Z" 
+                                                      :fill="mod.is_pinned ? 'var(--primary)' : 'none'" 
+                                                      :stroke="mod.is_pinned ? 'var(--primary)' : '#999'" 
+                                                      stroke-width="1.2"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <button class="save-btn hover-opacity" 
+                                @click="$store.cache.saveModuleSettings()"
+                                :disabled="$store.cache._settings_saving">
+                            <span x-text="$store.cache._settings_saving ? 'Guardando...' : 'Guardar cambios'"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
         
     </template>

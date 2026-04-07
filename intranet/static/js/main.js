@@ -116,14 +116,14 @@ document.addEventListener('alpine:init', () => {
             tracking:    { image: 'tracking',   label: 'Tracking',      title: 'Krear 3D - Trackings' },
             support:     { image: 'support',    label: 'Soporte',       title: 'Krear 3D - Soporte' },
             purchases:   { image: 'purchases',  label: 'Compras',       title: 'Krear 3D - Compras' },
-            imports:     { image: 'imports',     label: 'Importaciones', title: 'Krear 3D - Importaciones' },
+            imports:     { image: 'imports',    label: 'Importaciones', title: 'Krear 3D - Importaciones' },
             complaint:   { image: 'complaint',  label: 'Reclamos',      title: 'Krear 3D - Reclamos' },
             driver:      { image: 'driver',     label: 'Conductor',     title: 'Krear 3D - Conductor' },
             guest:       { image: 'fabrix',     label: 'Fabrix',        title: 'Krear 3D - Fabrix' },
             marketing:   { image: 'marketing',  label: 'Marketing',     title: 'Krear 3D - Marketing' },
             schedules:   { image: 'schedule',   label: 'Horarios',      title: 'Krear 3D - Horarios' },
             refunds:     { image: 'pending',    label: 'Extornos',      title: 'Krear 3D - Extornos' },
-            admin:       { image: 'settings',   label: 'Admin',         title: 'Krear 3D - Admin' },
+            admin:       { image: 'admin',      label: 'Admin',         title: 'Krear 3D - Admin' },
         },
 
         // common_pages: [
@@ -157,7 +157,121 @@ document.addEventListener('alpine:init', () => {
         pdf_url: null,
         pdf_title: 'Reglamento',
         sidebar_expanded: false,
+        _settings_modules: [],
+        _settings_saving: false,
+        _drag_idx: null,
+        _drag_over_idx: null,
 
+        openModuleSettings() {
+            const modules = this.user.modules;
+            if (!modules) return;
+
+            // clonar para editar sin afectar el store hasta guardar
+            this._settings_modules = modules
+                .sort((a, b) => a.sort_order - b.sort_order)
+                .map((m, i) => ({
+                    slug: m.slug,
+                    name: m.name,
+                    is_pinned: m.is_pinned,
+                    is_default: m.is_default,
+                    sort_order: i,
+                }));
+
+            this.showModal('module-settings');
+        },
+
+        _setSettingsDefault(slug) {
+            this._settings_modules.forEach(m => m.is_default = (m.slug === slug));
+        },
+
+        _dragStart(idx) {
+            this._drag_idx = idx;
+        },
+
+        _dragOver(idx) {
+            if (this._drag_idx === null || this._drag_idx === idx) return;
+            const items = this._settings_modules;
+            const dragged = items.splice(this._drag_idx, 1)[0];
+            items.splice(idx, 0, dragged);
+            this._drag_idx = idx;
+        },
+
+        _dragEnd() {
+            this._drag_idx = null;
+        },
+
+        async saveModuleSettings() {
+            this._settings_saving = true;
+            const token = localStorage.getItem('user_token');
+
+            try {
+                // 1. Guardar default
+                const defaultMod = this._settings_modules.find(m => m.is_default);
+                if (defaultMod) {
+                    await fetch(`${this.api}/modules/me/default`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`,
+                            'X-No-Toast': '1',
+                        },
+                        body: JSON.stringify({ module_slug: defaultMod.slug }),
+                    });
+                }
+
+                // 2. Guardar orden
+                const order = this._settings_modules.map((m, i) => ({
+                    module_id: this.user.modules.find(um => um.slug === m.slug)?.module_id || 0,
+                    sort_order: i,
+                })).filter(o => o.module_id);
+
+                if (order.length) {
+                    await fetch(`${this.api}/modules/me/sort`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`,
+                            'X-No-Toast': '1',
+                        },
+                        body: JSON.stringify({ order }),
+                    });
+                }
+
+                // 3. Guardar pins (solo los que cambiaron)
+                for (const sm of this._settings_modules) {
+                    const original = this.user.modules.find(m => m.slug === sm.slug);
+                    if (original && original.is_pinned !== sm.is_pinned) {
+                        await fetch(`${this.api}/modules/me/pin`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`,
+                                'X-No-Toast': '1',
+                            },
+                            body: JSON.stringify({ module_slug: sm.slug }),
+                        });
+                    }
+                }
+
+                // 4. Actualizar store local
+                this._settings_modules.forEach((sm, i) => {
+                    const original = this.user.modules.find(m => m.slug === sm.slug);
+                    if (original) {
+                        original.is_pinned = sm.is_pinned;
+                        original.is_default = sm.is_default;
+                        original.sort_order = i;
+                    }
+                });
+
+                this.user.default_page = defaultMod?.slug || this.user.default_page;
+                this.hideModal('module-settings');
+            } catch (e) {
+                console.error('Error guardando settings:', e);
+            } finally {
+                this._settings_saving = false;
+            }
+        },
+        
         async openPdfModal(url, title = 'Reglamento') {
             this.detectPlatform();
 

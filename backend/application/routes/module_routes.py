@@ -57,3 +57,30 @@ def set_user_access():
 @jwt_required()
 def set_user_permissions():
     return controller.set_user_permissions(request.get_json())
+
+
+# ── Admin: gestión de permisos ─────────────────────────────────────────────
+
+@module_bp.route("/admin/users", methods=["GET"])
+@jwt_required()
+def get_manageable_users():
+    editor_user_id = int(get_jwt_identity())
+    return controller.get_manageable_users(editor_user_id)
+
+
+@module_bp.route("/admin/user/<int:target_user_id>/map", methods=["GET"])
+@jwt_required()
+def get_user_access_map(target_user_id):
+    data = {
+        'editor_user_id': int(get_jwt_identity()),
+        'target_user_id': target_user_id,
+    }
+    return controller.get_user_access_map(data)
+
+
+@module_bp.route("/admin/user/save", methods=["POST"])
+@jwt_required()
+def save_user_permissions():
+    data = request.get_json()
+    data['editor_user_id'] = int(get_jwt_identity())
+    return controller.save_user_permissions(data)
