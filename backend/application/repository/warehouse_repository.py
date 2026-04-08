@@ -206,6 +206,7 @@ class WarehouseRepository:
         }
 
         for row in rows:
+            piso = row["piso"]
             rack_raw = row["rack"]
             nivel    = row["nivel"]
             marca    = row["marca"]
@@ -269,6 +270,7 @@ class WarehouseRepository:
             code = (
                 g.db_session.query(WarehouseCodes)
                 .filter(
+                    WarehouseCodes.block    == piso,
                     WarehouseCodes.level    == rack_int,
                     func.upper(WarehouseCodes.position) == nivel,
                 )

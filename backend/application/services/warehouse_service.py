@@ -249,7 +249,7 @@ class WarehouseService:
 
         headers = [str(cell.value).strip().upper() if cell.value else "" for cell in next(ws.iter_rows(max_row=1))]
 
-        required = {"RACK", "NIVEL", "MARCA", "PRODUCTO", "MODELO", "Q CONTADA"}
+        required = {"PISO", "RACK", "NIVEL", "MARCA", "PRODUCTO", "MODELO", "Q CONTADA"}
         if not required.issubset(set(headers)):
             return f"El Excel no tiene las columnas requeridas: {required - set(headers)}", 400
 
@@ -257,6 +257,7 @@ class WarehouseService:
 
         rows = []
         for row in ws.iter_rows(min_row=2, values_only=True):
+            piso     = row[idx["PISO"]]
             rack     = row[idx["RACK"]]
             nivel    = row[idx["NIVEL"]]
             marca    = row[idx["MARCA"]]
@@ -268,6 +269,7 @@ class WarehouseService:
                 continue
 
             rows.append({
+                "piso":     int(piso),
                 "rack":     str(rack).strip(),
                 "nivel":    str(nivel).strip().upper(),
                 "marca":    str(marca).strip(),
