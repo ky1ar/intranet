@@ -566,6 +566,8 @@
 
 	<script>
 	Alpine.data('schedule_data', () => ({
+		token: localStorage.getItem('user_token'),
+
 		api: Alpine.store('cache').api,
 		user: Alpine.store('cache').user,
 		user_id: Alpine.store('cache').user.id,
@@ -859,7 +861,7 @@
 			const res = await fetch(`${this.api}${file.preview_url}`, {
 				headers: {
 				"Content-Type": "application/json",
-				"Authorization": `Bearer ${this.user.token}`,
+				"Authorization": `Bearer ${this.token}`,
 				}
 			});
 

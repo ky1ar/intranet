@@ -7,6 +7,7 @@ from flask import request, send_file
 from flask_jwt_extended import get_jwt_identity
 from application.handlers import handle_exceptions
 from application.utils import format_time, calculate_passed_days, format_date, size, file_extension, allowed_extension, upload_path, format_name, format_datetime
+from application.services.module_service import ModuleService
 from application.repository.import_repository import ImportRepository
 from application.repository.user_repository import UserRepository
 from application.repository.client_repository import ClientRepository
@@ -22,7 +23,16 @@ class ImportService:
         self.client_repository = ClientRepository()
         self.user_repository = UserRepository()
         self.schedule_repository = ScheduleRepository()
+        self.module_service = ModuleService()
         self.push_service = PushSender()
+
+
+    def _has_perm(self, user_id, perm_slug):
+        """Verifica permiso del módulo imports"""
+        result, code = self.module_service.check_permission(user_id, 'imports', perm_slug)
+        if code != 200:
+            return False
+        return result.get('granted', False) if isinstance(result, dict) else False
 
 
     def _display_port_name(self, shipment):
@@ -572,7 +582,9 @@ class ImportService:
     @handle_exceptions
     def new(self, data):
         user_id = int(get_jwt_identity())
-
+        if not self._has_perm(user_id, 'add'):
+            return "No autorizado", 403
+    
         business_id = data.get("business_id")
         type_id = data.get("type_id")
         local_agent = (data.get("local_agent") or "").strip()
@@ -617,6 +629,8 @@ class ImportService:
     @handle_exceptions
     def move(self, data):
         user_id = int(get_jwt_identity())
+        if not self._has_perm(user_id, 'move'):
+            return "No autorizado", 403
         import_id = data.get("import_id")
         notes = data.get("notes")
         etd_date = data.get("etd_date")
@@ -687,6 +701,9 @@ class ImportService:
     @handle_exceptions
     def down(self, data):
         user_id = int(get_jwt_identity())
+        if not self._has_perm(user_id, 'move'):
+            return "No autorizado", 403
+        
         import_id = data.get("import_id")
         
         import_shipment, isc = self.import_repository.get_import(import_id) 
@@ -917,6 +934,9 @@ class ImportService:
     @handle_exceptions
     def draft_update_agents(self, data):
         user_id = int(get_jwt_identity())
+        if not self._has_perm(user_id, 'edit'):
+            return "No autorizado", 403
+    
         import_id = data.get("import_id")
 
         local_agent = (data.get("local_agent") or "").strip()
@@ -933,9 +953,6 @@ class ImportService:
         if uc != 200:
             return user, uc
         
-        if not (user.department_id in [8, 7] or user.id == 23):
-            return "No autorizado", 403
-
         import_shipment, isc = self.import_repository.get_import(import_id)
         if isc != 200:
             return import_shipment, isc
@@ -958,8 +975,10 @@ class ImportService:
     @handle_exceptions
     def draft_delete(self, data):
         user_id = int(get_jwt_identity())
+        if not self._has_perm(user_id, 'edit'):
+            return "No autorizado", 403
+    
         import_id = data.get("import_id")
-
         if not import_id:
             return "import_id requerido", 400
 
@@ -967,9 +986,6 @@ class ImportService:
         if uc != 200:
             return user, uc
         
-        if not (user.department_id in [8, 7] or user.id == 23):
-            return "No autorizado", 403
-
         import_shipment, isc = self.import_repository.get_import(import_id)
         if isc != 200:
             return import_shipment, isc
@@ -1007,9 +1023,6 @@ class ImportService:
         user, uc = self.user_repository.get_user_by_id(user_id)
         if uc != 200:
             return user, uc
-
-        if not (user.department_id in [8, 7] or user.id == 23):
-            return "No autorizado", 403
 
         import_shipment, isc = self.import_repository.get_import(import_id)
         if isc != 200:
@@ -1059,17 +1072,16 @@ class ImportService:
     @handle_exceptions
     def confirm(self, data):
         user_id = int(get_jwt_identity())
+        if not self._has_perm(user_id, 'edit'):
+            return "No autorizado", 403
+    
         import_id = data.get("import_id")
-
         if not import_id:
             return "import_id requerido", 400
 
         user, uc = self.user_repository.get_user_by_id(user_id)
         if uc != 200:
             return user, uc
-
-        if not (user.department_id in [8, 7] or user.id == 23):
-            return "No autorizado", 403
 
         import_shipment, isc = self.import_repository.get_import(import_id)
         if isc != 200:

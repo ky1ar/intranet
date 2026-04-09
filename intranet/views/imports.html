@@ -48,13 +48,13 @@
 
 			
 			
-			<div class="right frost-dark" x-show="editAllowed()" style="margin-left: auto;">
-				<div class="mobile-hide item" @click="pendings_open = !pendings_open">
+			<div class="right frost-dark" x-show="canAdd() || canEdit()" style="margin-left: auto;">
+				<div class="mobile-hide item" @click="pendings_open = !pendings_open" x-show="canEdit()">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/pending.svg">
 					<span x-text="`Borradores ${$store.cache.getData('imports_pendings')?.length || 0}`"></span>
 				</div>
 				
-				<div class="item" @click="addOrder()">
+				<div class="item" @click="addOrder()" x-show="canAdd()">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
 					<span>Añadir</span>
 				</div>
@@ -128,7 +128,7 @@
 							<template x-if="group.imports.length > 0">
 								<template x-for="item in group.imports" :key="item.id">
 									<li
-										:draggable="editAllowed()"
+										:draggable="canMove()"
 										@dragstart="onDragStart(item)"
 										@click="viewItem(item.id)"
 										class="white"
@@ -267,7 +267,7 @@
 				<div class="top">
 					<span class="title" x-text="`SP-${import_data?.id}`"></span>
 					<span class="text" x-text="import_data?.business_name || '-'" style="margin-right: auto;font-weight: 500;opacity: 0.5;margin-left: 0.5rem;"></span>
-					<div class="button extend hover-opacity" x-show="editAllowed() && import_data?.status_id <= 5"
+					<div class="button extend hover-opacity" x-show="canEdit() && import_data?.status_id <= 5"
 						@click="updateBasicImport()">
 						<img alt="" width="14" height="14" src="/static/images/icons/save.svg">
 						Actualizar
@@ -280,7 +280,7 @@
 						<!-- Líneas: proveedor + incoterm -->
 						<div
 							class="box glass2"
-							x-show="import_data?.lines?.length && !(editAllowed() && import_data?.status_id <= 5)"
+							x-show="import_data?.lines?.length && !(canEdit() && import_data?.status_id <= 5)"
 							style="border-radius: 0.75rem;padding: 0.75rem;">
 							<template x-for="line in (import_data?.lines || [])" :key="line.id">
 								<div class="container white" style="padding:.65rem; border-radius:.8rem;">
@@ -289,12 +289,12 @@
 									<div class="data">
 										<div class="head">
 											<span class="name" x-text="line.provider_name"></span>
-											<span class="line" x-show="editAllowed() && line.provider_contact">|</span>
-											<span class="contact" x-show="editAllowed()" x-text="line.provider_contact"></span>
-											<span class="icon" x-show="editAllowed()" x-text="line.incoterm_code"></span>
+											<span class="line" x-show="canEdit() && line.provider_contact">|</span>
+											<span class="contact" x-show="canEdit()" x-text="line.provider_contact"></span>
+											<span class="icon" x-show="canEdit()" x-text="line.incoterm_code"></span>
 										</div>
 
-										<div class="pair-content" x-show="editAllowed()">
+										<div class="pair-content" x-show="canEdit()">
 											<div x-show="line.provider_email" class="pair">
 												<img alt="" width="14" height="14" src="/static/images/email.svg">
 												<span class="text" x-text="line.provider_email"></span>
@@ -318,7 +318,7 @@
 											</div>
 										</div>
 
-										<div class="pair-content" style="margin-top: .35rem;"  x-show="editAllowed()">
+										<div class="pair-content" style="margin-top: .35rem;"  x-show="canEdit()">
 											<div class="pair">
 												<img alt="" width="14" height="14" src="/static/images/icons/money.svg">
 												<span class="black">Adelanto:</span>
@@ -340,7 +340,7 @@
 						<!-- Resumen de shipment (compartido) -->
 						<div
 							class="box white"
-							x-show="!(editAllowed() && import_data?.status_id <= 5)">
+							x-show="!(canEdit() && import_data?.status_id <= 5)">
 							<div class="container">
 								<div class="data">
 									<div class="pair-content">
@@ -350,7 +350,7 @@
 											<span class="text" x-text="import_data?.port_name || '-'"></span>
 										</div>
 
-										<div class="pair" x-show="editAllowed()">
+										<div class="pair" x-show="canEdit()">
 											<img alt="" width="16" height="16" src="/static/images/icons/board.svg">
 											<span class="black">Carga:</span>
 											<span class="text" x-text="Number(import_data?.fcl) === 1 ? 'FCL' : 'LCL'"></span>
@@ -379,9 +379,9 @@
 							</div>
 						</div>
 						
-						<div class="flexbox" x-show="editAllowed() && import_data?.status_id <= 5">
+						<div class="flexbox" x-show="canEdit() && import_data?.status_id <= 5">
 							<div class="flexbox" style="gap: 0.5rem;">
-								<template x-for="(line, index) in import_data.lines" :key="line._uid">
+								<template x-for="(line, index) in (import_data?.lines || [])" :key="line._uid">
 									<div class="glass2" style="padding:.75rem; border-radius: 0.75rem;">
 										<div class="fields">
 											<label class="white">
@@ -550,7 +550,7 @@
 								</label>
 							</div> -->
 
-							<div class="buttons" x-show="editAllowed() && import_data?.status_id == 1">
+							<div class="buttons" x-show="canEdit() && import_data?.status_id == 1">
 								<button class="button icon hover-opacity black"
 									@click="deleteDraft()"
 									:class="buttons.delete_draft?.class">
@@ -568,7 +568,7 @@
 
 						<div
 							class="box white"
-							x-show="editAllowed() && import_data?.status_id > 5"
+							x-show="canEdit() && import_data?.status_id > 5"
 						>
 							<div class="pair-content">
 								<div class="pair">
@@ -591,11 +591,11 @@
 						<div
 							class="box white"
 							x-show="
-								(editAllowed() && !!import_data?.dates?.booking) ||
-								(!editAllowed() && import_data?.status_id >= 6 && (!!import_data?.dates?.etd || !!import_data?.dates?.eta))
+								(canEdit() && !!import_data?.dates?.booking) ||
+								(!canEdit() && import_data?.status_id >= 6 && (!!import_data?.dates?.etd || !!import_data?.dates?.eta))
 							"
 						>
-							<div class="pair-content" x-show="editAllowed() && !!import_data?.dates?.booking">
+							<div class="pair-content" x-show="canEdit() && !!import_data?.dates?.booking">
 								<div class="pair">
 									<img alt="" width="16" height="16" src="/static/images/icons/filled/calendar.svg">
 									<span class="black" x-text="`Fecha de reserva:`"></span>
@@ -603,7 +603,7 @@
 								</div>
 							</div>
 
-							<div class="pair-content" x-show="!!import_data?.dates?.etd && (editAllowed() || (!editAllowed() && import_data?.status_id >= 6))">
+							<div class="pair-content" x-show="!!import_data?.dates?.etd && (canEdit() || (!canEdit() && import_data?.status_id >= 6))">
 								<div class="pair">
 									<img alt="" width="16" height="16" src="/static/images/icons/filled/calendar.svg">
 									<span class="black" x-text="`Salida estimada:`"></span>
@@ -611,7 +611,7 @@
 								</div>
 							</div>
 
-							<div class="pair-content" x-show="!!import_data?.dates?.eta && (editAllowed() || (!editAllowed() && import_data?.status_id >= 6))">
+							<div class="pair-content" x-show="!!import_data?.dates?.eta && (canEdit() || (!canEdit() && import_data?.status_id >= 6))">
 								<div class="pair">
 									<img alt="" width="16" height="16" src="/static/images/icons/filled/calendar.svg">
 									<span class="black" x-text="`Llegada estimada:`"></span>
@@ -619,7 +619,7 @@
 								</div>
 							</div>
 
-							<div class="pair-content" x-show="editAllowed() && !!import_data?.dates?.deadline">
+							<div class="pair-content" x-show="canEdit() && !!import_data?.dates?.deadline">
 								<div class="pair">
 									<img alt="" width="16" height="16" src="/static/images/icons/filled/calendar.svg">
 									<span class="black" x-text="`Deadline:`"></span>
@@ -627,7 +627,7 @@
 								</div>
 							</div>
 
-							<div class="pair-content" x-show="editAllowed() && !!import_data?.dates?.pay">
+							<div class="pair-content" x-show="canEdit() && !!import_data?.dates?.pay">
 								<div class="pair">
 									<img alt="" width="16" height="16" src="/static/images/icons/filled/calendar.svg">
 									<span class="black" x-text="`Pago:`"></span>
@@ -720,7 +720,7 @@
 						<template x-for="section in (import_data?.attachment_sections || [])" :key="section.target">
 							<div
 								class="box white"
-								x-show="section.files && section.files.length && (editAllowed() || section.target === 'product_list')"
+								x-show="section.files && section.files.length && (canEdit() || section.target === 'product_list')"
 							>
 								<div class="pair-content" style="margin-bottom: .5rem;">
 									<div class="pair">
@@ -786,7 +786,7 @@
 
 				</div>
 
-				<!-- <div class="buttons" x-show="editAllowed() && import_data?.status_id >= 8">
+				<!-- <div class="buttons" x-show="canEdit() && import_data?.status_id >= 8">
 					<button class="button hover-opacity" @click="finish(import_data)"  x-show="import_data?.status_id == 8">Finalizar</button>
 				</div> -->
 			</div>
@@ -1761,6 +1761,8 @@
 
 	<script>
 		Alpine.data('imports_data',() => ({
+			token: localStorage.getItem('user_token'),
+
 			api: Alpine.store('cache').api,
 			user: Alpine.store('cache').user,
 			docs: [],
@@ -1781,7 +1783,7 @@
 			weight: null,
 			volume: null,
 			selected_import: null,
-			import_data: null,
+			import_data: {},
 			new_import: {
 				business_id: null,
 				type_id: null,
@@ -1977,7 +1979,7 @@
 						method: 'PUT',
 						headers: {
 							'Content-Type': 'application/json',
-							'Authorization': `Bearer ${this.user.token}`,
+							'Authorization': `Bearer ${this.token}`,
 						},
 						body: JSON.stringify(payload)
 					});
@@ -2007,7 +2009,7 @@
 					const response = await fetch(`${this.api}/imports/draft/${this.import_data.id}`, {
 						method: 'DELETE',
 						headers: {
-							'Authorization': `Bearer ${this.user.token}`,
+							'Authorization': `Bearer ${this.token}`,
 						}
 					});
 
@@ -2139,7 +2141,7 @@
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json',
-							'Authorization': `Bearer ${this.user.token}`,
+							'Authorization': `Bearer ${this.token}`,
 						},
 						body: JSON.stringify({ import_id: this.import_data.id }),
 					});
@@ -2266,10 +2268,10 @@
 						}))
 					};
 
-					console.log('prepared lines', prepared.lines);
-					console.log('incoterm options', this.incotermOptions());
-					console.log('provider options', this.providerOptions());
-					this.import_data = null;
+					// console.log('prepared lines', prepared.lines);
+					// console.log('incoterm options', this.incotermOptions());
+					// console.log('provider options', this.providerOptions());
+					this.import_data = {};
 					await this.$nextTick();
 
 					this.import_data = prepared;
@@ -2418,7 +2420,7 @@
 						method: 'POST',
 						headers: { 
 							"Content-Type": "application/json",
-							"Authorization": `Bearer ${this.user.token}`,
+							"Authorization": `Bearer ${this.token}`,
 						},
 						body: JSON.stringify(payload),
 					});
@@ -2531,7 +2533,7 @@
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json',
-							"Authorization": `Bearer ${this.user.token}`,
+							"Authorization": `Bearer ${this.token}`,
 						},
 						body: JSON.stringify(payload)
 					});
@@ -2568,7 +2570,7 @@
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json',
-							"Authorization": `Bearer ${this.user.token}`,
+							"Authorization": `Bearer ${this.token}`,
 						},
 						body: JSON.stringify(payload)
 					});
@@ -2609,7 +2611,9 @@
 
 					const res = await fetch(`${this.api}/imports/attachments`, {
 					method: "POST",
-					headers: { "Authorization": `Bearer ${this.user.token}` },
+					headers: {
+						"Authorization": `Bearer ${this.token}`
+					},
 					body: form
 					});
 
@@ -2654,7 +2658,7 @@
 						method: "POST",
 						headers: {
 							"Content-Type": "application/json",
-							"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+							"Authorization": `Bearer ${this.token}`,
 						},
 						body: JSON.stringify({
 							comment: this.message,
@@ -2786,8 +2790,17 @@
 				Alpine.store('cache').showModal('add');
 			},
 
+			canAdd() {
+				return Alpine.store('cache').hasPermission('imports', 'add');
+			},
+			canEdit() {
+				return Alpine.store('cache').hasPermission('imports', 'edit');
+			},
+			canMove() {
+				return Alpine.store('cache').hasPermission('imports', 'move');
+			},
 			editAllowed() {
-				return (this.user.department_id == 7 || this.user.department_id == 8 || this.user.id == 23 || this.user.id == 1);
+				return this.canAdd() || this.canEdit() || this.canMove();
 			},
 			
 			isImageFile(f) {
@@ -2824,7 +2837,7 @@
 				const res = await fetch(`${this.api}${file.preview_url}`, {
 					headers: {
 					"Content-Type": "application/json",
-					"Authorization": `Bearer ${this.user.token}`,
+					"Authorization": `Bearer ${this.token}`,
 					}
 				});
 

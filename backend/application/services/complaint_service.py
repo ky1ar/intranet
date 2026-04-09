@@ -8,6 +8,7 @@ from datetime import  date, datetime
 from application import mail
 from application.handlers import handle_exceptions
 from application.utils import format_name, format_datetime, calculate_passed_days, format_date
+from application.services.module_service import ModuleService
 from application.repository.complaint_repository import ComplaintRepository
 from application.repository.user_repository import UserRepository
 from application.repository.client_repository import ClientRepository
@@ -19,6 +20,7 @@ from config import Config
 
 class ComplaintService:
     def __init__(self):
+        self.module_service = ModuleService()
         self.complaint_repository = ComplaintRepository()
         self.client_repository = ClientRepository()
         self.user_repository = UserRepository()
@@ -28,6 +30,13 @@ class ComplaintService:
         self.admin_lvl = 4
         self.fabrix_id = 21
         self.admin_dep = 1
+
+
+    def _has_perm(self, user_id, perm_slug):
+        result, code = self.module_service.check_permission(user_id, 'complaint', perm_slug)
+        if code != 200:
+            return False
+        return result.get('granted', False) if isinstance(result, dict) else False
 
 
     def _attachments_dir(self, path=Config.UPLOAD_PROPF_FOLDER):
@@ -213,15 +222,10 @@ class ComplaintService:
         if uc != 200:
             return user, uc
         
-        department_id = user.department_id
-        if department_id in [4, 6, 8] and user_id not in [15, 23]:
-            return "Not allowed", 200
-        
-        level_id = user.level_id
-        if level_id == self.worker_lvl and department_id != 1:
-            complaints, cc = self.complaint_repository.get_complaints(user_id) 
+        if self._has_perm(user_id, 'view_all'):
+            complaints, cc = self.complaint_repository.get_complaints()
         else:
-            complaints, cc = self.complaint_repository.get_complaints() 
+            complaints, cc = self.complaint_repository.get_complaints(user_id)
 
         if cc != 200:
             return complaints, cc

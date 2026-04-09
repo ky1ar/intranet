@@ -846,7 +846,9 @@
 
 
 	<script>
-		Alpine.data('attendance_data',() => ({
+	Alpine.data('attendance_data',() => ({
+		token: localStorage.getItem('user_token'),
+
 		api: Alpine.store('cache').api,
 		user: Alpine.store('cache').user,
 		buttons: {
@@ -1000,7 +1002,7 @@
 				const response = await fetch(`${this.api}/attendance/leave/requests`, {
 					headers: { 
 						"Content-Type": "application/json",
-						"Authorization": `Bearer ${this.user.token}`,
+						"Authorization": `Bearer ${this.token}`,
 					}
 				});
 				const data = await response.json();
@@ -1569,7 +1571,7 @@
 					method: "POST",
 					headers: { 
 						"Content-Type": "application/json",
-						"Authorization": `Bearer ${this.user.token}`,
+						"Authorization": `Bearer ${this.token}`,
 					},
 					body: JSON.stringify({
 						user_id,
@@ -1743,7 +1745,7 @@
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",
-						"Authorization": `Bearer ${this.user.token}`,
+						"Authorization": `Bearer ${this.token}`,
 					},
 					body: JSON.stringify({
 						user_id,
@@ -1796,7 +1798,7 @@
 						method: "PUT",
 						headers: {
 							"Content-Type": "application/json",
-							"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+							"Authorization": `Bearer ${this.token}`,
 						},
 						body: JSON.stringify(payload),
 					}
@@ -1828,7 +1830,7 @@
 						method: "PUT",
 						headers: {
 							"Content-Type": "application/json",
-							"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+							"Authorization": `Bearer ${this.token}`,
 						},
 						body: JSON.stringify({ delete: true }),
 					}
@@ -1858,7 +1860,7 @@
 					method: "PUT",
 					headers: {
 						"Content-Type": "application/json",
-						"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+						"Authorization": `Bearer ${this.token}`,
 					},
 					body: JSON.stringify({
 						action: "approve",
@@ -1884,7 +1886,7 @@
 					method: "PUT",
 					headers: {
 						"Content-Type": "application/json",
-						"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+						"Authorization": `Bearer ${this.token}`,
 					},
 					body: JSON.stringify({ action: "reject" }),
 				});
@@ -1906,7 +1908,7 @@
 				const response = await fetch(`${this.api}/attendance/leave/${leave.id}`, {
 					headers: {
 						"Content-Type": "application/json",
-						"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+						"Authorization": `Bearer ${this.token}`,
 					},
 				});
 				const dataJson = await response.json();

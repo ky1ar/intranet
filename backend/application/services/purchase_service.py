@@ -2,6 +2,7 @@ import logging
 from application.handlers import handle_exceptions
 from application.utils import format_name, format_datetime
 from application.services.push_service import PushSender
+from application.services.module_service import ModuleService
 from application.repository.purchase_repository import PurchaseRepository
 from application.repository.user_repository import UserRepository
 from application import socketio
@@ -13,6 +14,7 @@ class PurchaseService:
         self.purchase_repository = PurchaseRepository()
         self.user_repository = UserRepository()
         self.push_service = PushSender()
+        self.module_service = ModuleService()
         self.management_dep = 7
         self.purchases_dep = 8
         self.worker_lvl = 2
@@ -20,82 +22,104 @@ class PurchaseService:
         self.admin_lvl = 4
 
 
+    def _has_perm(self, user_id, perm_slug):
+        result, code = self.module_service.check_permission(user_id, 'purchases', perm_slug)
+        if code != 200:
+            return False
+        return result.get('granted', False) if isinstance(result, dict) else False
+
+
+    def _notify_managers(self, purchase_id):
+        """Notifica a todos los usuarios con permiso 'manage'"""
+        # Opción pragmática: buscar usuarios del dept compras + user_id 1
+        # Opción ideal: query users con permiso manage en module purchases
+        user_ids, duic = self.user_repository.get_user_ids_by_department(department_id=8)
+        if duic == 200:
+            user_ids.append(1)
+            self.push_service.send_to_users(
+                user_ids=list(set(user_ids)),
+                title=f"Solicitud PR-{purchase_id} recibida",
+                body="Hay una nueva solicitud de compra pendiente de gestión.",
+            )
+
+    def _notify_approvers_area(self, purchase_id, creator_user):
+        """Notifica al líder del área del creador"""
+        leader, lc = self.user_repository.get_leader(creator_user.department_id)
+        if lc == 200:
+            self.push_service.send_to_user(
+                user_id=leader.id,
+                title="Aprobación pendiente",
+                body=f"La solicitud PR-{purchase_id} de {format_name(creator_user.name, True)} necesita tu aprobación.",
+            )
+
+    def _notify_approvers_manager(self, purchase_id, user_name):
+        """Notifica a gerencia"""
+        manager, mc = self.user_repository.get_manager()
+        if mc == 200:
+            self.push_service.send_to_user(
+                user_id=manager.id,
+                title="Aprobación pendiente",
+                body=f"La solicitud PR-{purchase_id} de {format_name(user_name, True)} necesita tu aprobación.",
+            )
+
+    def _notify_owner(self, owner_id, purchase_id, message):
+        """Notifica al creador de la solicitud"""
+        self.push_service.send_to_user(
+            user_id=owner_id,
+            title=f"Solicitud PR-{purchase_id}",
+            body=message,
+        )
+        
+
     @handle_exceptions
     def process(self, data):
         user_id = int(get_jwt_identity())
-        logging.info(user_id)
-
         user, uc = self.user_repository.get_user_by_id(user_id)
         if uc != 200:
             return user, uc
 
+        can_approve_area = self._has_perm(user_id, 'approve_area')
+        can_approve_manager = self._has_perm(user_id, 'approve_manager')
+        can_manage = self._has_perm(user_id, 'manage')
+        express = data.get("express")
+
+        # Determinar status inicial
+        if can_approve_manager:
+            # Gerencia: ya pasa a "aprobado por gerencia"
+            initial_status = 3
+        elif can_approve_area:
+            # Líder de área: ya pasa a "aprobado por área"
+            initial_status = 2
+        else:
+            # Worker: queda pendiente
+            initial_status = 1
+
+        data["_initial_status"] = initial_status
+
         new_purchase_id, aec = self.purchase_repository.add_purchase(data, user)
         if aec != 200:
             return new_purchase_id, aec
-        
+
         socketio.emit("purchase_update_dashboard", {})
 
-        level_id = user.level_id
-        department_id = user.department_id
-        logging.info(level_id)
-        logging.info(department_id)
+        # Notificaciones según status y flujo
+        if initial_status == 3:
+            # Gerencia aprobó directo → avisar a compras (manage)
+            self._notify_managers(new_purchase_id)
 
-        express = data.get("express")
-        if department_id == self.management_dep:
-            logging.info("Manager flow")
-            user_ids, duic = self.user_repository.get_user_ids_by_department(department_id=self.purchases_dep)
-            if duic != 200:
-                return user_ids, duic
-            user_ids.append(1) # Added Leslie
-
-            self.push_service.send_to_users(
-                user_ids=user_ids,
-                title=f"Solicitud PR-{new_purchase_id} recibida",
-                body="Hay una nueva solicitud de compra pendiente de gestión.",
-            )
-        
-        elif level_id in [self.leader_lvl, self.admin_lvl]:
-            logging.info("Leaders Flow")
-            if express == 1:
-                logging.info("Is Express")
-
-                if department_id != 8:
-                    department_user_ids, duic = self.user_repository.get_user_ids_by_department(department_id=self.purchases_dep)
-                    if duic != 200:
-                        return department_user_ids, duic
-                    
-                    department_user_ids.append(1)
-                    logging.info(department_user_ids)
-                    self.push_service.send_to_users(
-                        user_ids=department_user_ids,
-                        title=f"Solicitud PR-{new_purchase_id} recibida",
-                        body="Hay una nueva solicitud de compra pendiente de gestión.",
-                    )
+        elif initial_status == 2:
+            if express:
+                # Express + aprobado por área → salta gerencia → avisar compras
+                self._notify_managers(new_purchase_id)
+                self._notify_owner(user_id, new_purchase_id, "Tu solicitud express fue aprobada.")
             else:
-                logging.info("Is classic")
-                manager, mc = self.user_repository.get_manager()
-                if mc != 200:
-                    return manager, mc
-                
-                self.push_service.send_to_user(
-                    user_id=manager.id,
-                    title="Aprobación pendiente",
-                    body=f"La solicitud de compra PR-{new_purchase_id} de {format_name(user.name, True)} necesita tu aprobación.",
-                )
-        else:
-            logging.info("Worker flow")
+                # Estándar → avisar gerencia
+                self._notify_approvers_manager(new_purchase_id, user.name)
 
-            leader, lc = self.user_repository.get_leader(department_id)
-            if lc != 200:
-                return leader, lc
-            logging.info(leader.id)
-            
-            self.push_service.send_to_user(
-                user_id=leader.id,
-                title="Aprobación pendiente",
-                body=f"La solicitud de compra PR-{new_purchase_id} de {format_name(user.name, True)} necesita tu aprobación.",
-            )
-            
+        elif initial_status == 1:
+            # Worker → avisar líder de área
+            self._notify_approvers_area(new_purchase_id, user)
+
         return "Solicitud registrada correctamente", 200
     
 
@@ -109,40 +133,39 @@ class PurchaseService:
         user, uc = self.user_repository.get_user_by_id(user_id)
         if uc != 200:
             return user, uc
-        
-        level_id = user.level_id
-        department_id = user.department_id
 
-        if department_id == self.management_dep:
-            return self._get_manager_request(user, purchase)
-        
-        elif level_id in [self.leader_lvl, self.admin_lvl]:
-            return self._get_leader_request(user, purchase)
-        
-        return self._get_worker_request(user, purchase)
-    
-
-    @handle_exceptions
-    def _get_worker_request(self, user, purchase):
         status_id = purchase.status_id
-        leader = None
-        manager = None
+        is_owner = (user_id == purchase.user_id)
 
-        if status_id > 1:
-            leader, lc = self.user_repository.get_leader(user.department_id)
-            if lc != 200:
-                return leader, lc
-        
-        if status_id > 2:
-            manager, lc = self.user_repository.get_manager()
-            if lc != 200:
-                return manager, lc
-            
-        modal = {
-            1: "edit",
-        }
+        can_approve_area = self._has_perm(user_id, 'approve_area')
+        can_approve_manager = self._has_perm(user_id, 'approve_manager')
+        can_manage = self._has_perm(user_id, 'manage')
+
+        # Determinar modal
+        if status_id == 1:
+            if is_owner:
+                modal = "edit"
+            elif can_approve_area:
+                modal = "approve"
+            elif can_approve_manager:
+                modal = "approve"
+            else:
+                modal = "view"
+
+        elif status_id == 2:
+            if can_approve_manager:
+                modal = "approve"
+            elif can_manage:
+                modal = "delete"   # compras puede eliminar en status 2
+            elif is_owner or can_approve_area:
+                modal = "delete"
+            else:
+                modal = "view"
+        else:
+            modal = "view"
+
         dto = {
-            "modal": modal.get(status_id, "view"),
+            "modal": modal,
             "id": purchase.id,
             "pr": f"PR-{purchase.id}",
             "type_id": purchase.type_id,
@@ -153,134 +176,15 @@ class PurchaseService:
             "status_name": purchase.status.name,
             "status_slug": purchase.status.slug,
             "status_id": status_id,
-            "self_created": True if user.id == purchase.user.id else False,
-            
-            "user_name": format_name(purchase.user.name),
-            "created_at": format_datetime(purchase.created_at),
-
-            "items": [],
-            "chats": [],
-        }
-
-        for item in purchase.items:
-            if item.deleted_at:
-                continue
-            dto["items"].append({
-                "id": item.id,
-                "title": item.title,
-                "description": item.description,
-                "quantity": item.quantity,
-                "price": float(item.price) if item.price is not None else None,
-                "url": item.url,
-                "ruc": item.ruc,
-                "order_number": item.order_number,
-            })
-        
-        for chat in purchase.chats:
-            dto["chats"].append({
-                "id": chat.id,
-                "comment": chat.comment,
-                "commenter_id": chat.commenter_id,
-                "commenter_name": format_name(chat.commenter.name),
-                "commenter_image": chat.commenter.image,
-                "created_at": format_datetime(chat.created_at),
-            })
-
-        return dto, 200
-    
-
-    @handle_exceptions
-    def _get_leader_request(self, user, purchase):
-        status_id = purchase.status_id
-        manager = None
-        
-        if status_id > 2:
-            manager, lc = self.user_repository.get_manager()
-            if lc != 200:
-                return manager, lc
-        
-        modal = {
-            1: "approve",
-            2: "delete",
-        }
-        dto = {
-            "modal": modal.get(status_id, "view"),
-            "id": purchase.id,
-            "pr": f"PR-{purchase.id}",
-            "type_id": purchase.type_id,
-            "urgency_id": purchase.urgency_id,
-            "express": bool(purchase.express),
-            "it_validation": bool(purchase.it_validation),
-            "needed_date": purchase.needed_date.isoformat() if purchase.needed_date else None,
-            "status_name": purchase.status.name,
-            "status_slug": purchase.status.slug,
-            "status_id": status_id,
-            "self_created": True if user.id == purchase.user.id else False,
+            "self_created": is_owner,
 
             "user_name": format_name(purchase.user.name),
             "created_at": format_datetime(purchase.created_at),
 
-            "items": [],
-            "chats": [],
-        }
-
-        for item in purchase.items:
-            if item.deleted_at:
-                continue
-            dto["items"].append({
-                "id": item.id,
-                "title": item.title.title(),
-                "description": item.description,
-                "quantity": item.quantity,
-                "price": float(item.price) if item.price is not None else None,
-                "url": item.url,
-                "ruc": item.ruc,
-                "order_number": item.order_number,
-            })
-
-        for chat in purchase.chats:
-            dto["chats"].append({
-                "id": chat.id,
-                "comment": chat.comment,
-                "commenter_id": chat.commenter_id,
-                "commenter_name": format_name(chat.commenter.name),
-                "commenter_image": chat.commenter.image,
-                "created_at": format_datetime(chat.created_at),
-            })
-
-        return dto, 200
-    
-
-    @handle_exceptions
-    def _get_manager_request(self, user, purchase):
-        status_id = purchase.status_id
-        leader = None
-        
-        if status_id > 1:
-            leader, lc = self.user_repository.get_leader(purchase.user.department_id)
-            if lc != 200:
-                return leader, lc
-            
-        modal = {
-            1: "approve",
-            2: "approve",
-        }
-        dto = {
-            "modal": modal.get(status_id, "view"),
-            "id": purchase.id,
-            "pr": f"PR-{purchase.id}",
-            "type_id": purchase.type_id,
-            "urgency_id": purchase.urgency_id,
-            "express": bool(purchase.express),
-            "it_validation": bool(purchase.it_validation),
-            "needed_date": purchase.needed_date.isoformat() if purchase.needed_date else None,
-            "status_name": purchase.status.name,
-            "status_slug": purchase.status.slug,
-            "status_id": status_id,
-            "self_created": True if user.id == purchase.user.id else False,
-
-            "user_name": format_name(purchase.user.name),
-            "created_at": format_datetime(purchase.created_at),
+            # Flags de permisos para el frontend
+            "can_approve_area": can_approve_area,
+            "can_approve_manager": can_approve_manager,
+            "can_manage": can_manage,
 
             "items": [],
             "chats": [],
@@ -311,8 +215,8 @@ class PurchaseService:
             })
 
         return dto, 200
-
-
+    
+    
     @handle_exceptions
     def update(self, data):
         user_id = int(get_jwt_identity())
@@ -435,99 +339,44 @@ class PurchaseService:
             if upc != 200:
                 return update_purchase, upc
 
-            level_id = user.level_id
-            department_id = user.department_id
-            user_name = user.name
+            can_approve_area = self._has_perm(user_id, 'approve_area')
+            can_approve_manager = self._has_perm(user_id, 'approve_manager')
 
-            status_id = None
-            if department_id == self.management_dep:
-                status_id = 3
-            elif level_id in [self.leader_lvl, self.admin_lvl]:
-                status_id = 2
-            else:
-                return "No autorizado para aprobar", 403
-
-            status, sc = self.purchase_repository.set_status(purchase_id, status_id)
-            if sc != 200:
-                return status, sc
-            
             purchase, pc = self.purchase_repository.get_purchase_by_id(purchase_id)
             if pc != 200:
                 return purchase, pc
 
-            purchase_id = purchase.id
-            creator_id = purchase.user_id
-            creator_name = purchase.user.name
-            creator_department_id = purchase.user.department_id
-            creator_level_id = purchase.user.level_id
             express = purchase.express
+            creator_id = purchase.user_id
 
-            department_user_ids, duic = self.user_repository.get_user_ids_by_department(department_id=self.purchases_dep)
-            if duic != 200:
-                return department_user_ids, duic
-            department_user_ids.append(1)
+            if can_approve_manager:
+                # Gerencia aprueba → status 3 → avisar compras
+                status, sc = self.purchase_repository.set_status(purchase_id, 3)
+                if sc != 200:
+                    return status, sc
 
-            if department_id == self.management_dep:
-                # Avisar area de compras
-                self.push_service.send_to_users(
-                    user_ids=department_user_ids,
-                    title=f"Solicitud PR-{purchase_id} recibida",
-                    body="Hay una nueva solicitud de compra pendiente de gestión.",
-                )
+                self._notify_managers(purchase_id)
+                self._notify_owner(creator_id, purchase_id, 
+                    f"Tu solicitud PR-{purchase_id} ha sido aprobada por Gerencia.")
 
-                # Avisar creador
-                self.push_service.send_to_user(
-                    user_id=creator_id,
-                    title="Solicitud aprobada",
-                    body=f"Tu solicitud de compra PR-{purchase_id} ha sido aprobada por Gerencia.",
-                )
-
-                if creator_level_id != self.leader_lvl:
-                    leader, lc = self.user_repository.get_leader(creator_department_id)
-                    if lc != 200:
-                        return leader, lc
-                    
-                    # Avisar leader
-                    self.push_service.send_to_user(
-                        user_id=leader.id,
-                        title="Solicitud aprobada",
-                        body=f"La solicitud de compra PR-{purchase_id} ha sido aprobada por Gerencia.",
-                    )
-            
-            elif level_id in [self.leader_lvl, self.admin_lvl]:
-                if express == 1:
-                    if department_id != self.purchases_dep:
-                        # Avisar area de compras
-                        self.push_service.send_to_users(
-                            user_ids=department_user_ids,
-                            title=f"Solicitud PR-{purchase_id} recibida",
-                            body="Hay una nueva solicitud de compra pendiente de gestión.",
-                        )
-
-                    # Avisar creador
-                    self.push_service.send_to_user(
-                        user_id=creator_id,
-                        title="Solicitud aprobada",
-                        body=f"Tu solicitud de compra PR-{purchase_id} ha sido aprobada.",
-                    )
+            elif can_approve_area:
+                if express:
+                    # Express → salta gerencia → status 3 → avisar compras
+                    status, sc = self.purchase_repository.set_status(purchase_id, 3)
+                    if sc != 200:
+                        return status, sc
+                    self._notify_managers(purchase_id)
                 else:
-                    # Avisar creador
-                    self.push_service.send_to_user(
-                        user_id=creator_id,
-                        title="Solicitud aprobada",
-                        body=f"{format_name(user_name, True)} aprobó tu solicitud PR-{purchase_id}. En espera de Gerencia.",
-                    )
+                    # Estándar → status 2 → avisar gerencia
+                    status, sc = self.purchase_repository.set_status(purchase_id, 2)
+                    if sc != 200:
+                        return status, sc
+                    self._notify_approvers_manager(purchase_id, user.name)
 
-                    manager, lc = self.user_repository.get_manager()
-                    if lc != 200:
-                        return manager, lc
-                    
-                    # Avisar manager
-                    self.push_service.send_to_user(
-                        user_id=manager.id,
-                        title="Aprobación pendiente",
-                        body=f"La solicitud de compra PR-{purchase_id} de {format_name(creator_name, True)} necesita tu aprobación.",
-                    )
+                self._notify_owner(creator_id, purchase_id,
+                    f"Tu solicitud PR-{purchase_id} ha sido aprobada.")
+            else:
+                return "No autorizado para aprobar", 403
 
         else:
             result, code = self.purchase_repository.update_purchase(data)
@@ -544,17 +393,47 @@ class PurchaseService:
         user, uc = self.user_repository.get_user_by_id(user_id)
         if uc != 200:
             return user, uc
-        
-        level_id = user.level_id
-        department_id = user.department_id
 
-        if department_id in [8, 7] or user_id in [1, 23]:
-            return self._get_manager_request_list(user_id)
-        
-        if level_id == self.leader_lvl:
-            return self._get_leader_request_list(user_id, department_id)
-        
-        return self._get_worker_request_list(user_id)
+        can_view_all = self._has_perm(user_id, 'view_all')
+
+        if can_view_all:
+            # Ve TODAS las solicitudes
+            purchase_requests, prc = self.purchase_repository.get_purchase_requests([])
+            if prc != 200:
+                return purchase_requests, prc
+            return self._format_requests_reponse(purchase_requests, user_id)
+
+        # Construir lista de user_ids visibles según permisos view_*
+        visible_user_ids = set()
+        visible_user_ids.add(user_id)  # siempre ve las propias
+
+        # Obtener permisos del usuario para el módulo purchases
+        modules_data, _ = self.module_service.get_user_modules(user_id)
+        purchases_perms = {}
+        if isinstance(modules_data, list):
+            for m in modules_data:
+                if m['slug'] == 'purchases':
+                    purchases_perms = m.get('permissions', {})
+                    break
+
+        # Buscar permisos view_* activos
+        department_slugs = []
+        for perm_slug, granted in purchases_perms.items():
+            if granted and perm_slug.startswith('view_'):
+                dept_slug = perm_slug.replace('view_', '')
+                department_slugs.append(dept_slug)
+
+        if department_slugs:
+            # Obtener user_ids de esos departamentos
+            area_user_ids, duic = self.user_repository.get_user_ids_by_department_slugs(department_slugs)
+            if duic == 200:
+                visible_user_ids.update(area_user_ids)
+
+        purchase_requests, prc = self.purchase_repository.get_purchase_requests(list(visible_user_ids))
+        if prc != 200:
+            return purchase_requests, prc
+
+        return self._format_requests_reponse(purchase_requests, user_id)
 
 
     @handle_exceptions
@@ -589,7 +468,7 @@ class PurchaseService:
     
 
     @handle_exceptions
-    def _format_requests_reponse(self, purchase_requests, user_id, level):
+    def _format_requests_reponse(self, purchase_requests, user_id):
         return {
             "requests": [
                 {
@@ -604,10 +483,8 @@ class PurchaseService:
                     "status_name": purchase.status.name,
                     "status_slug": purchase.status.slug,
                     "created_at": format_datetime(purchase.created_at),
-
                 } for purchase in purchase_requests
             ],
-            "viewer_level_id": level,
         }, 200
 
 

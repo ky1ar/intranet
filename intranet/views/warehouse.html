@@ -821,6 +821,8 @@
 
 	<script>
 		Alpine.data('warehouse_data', () => ({
+			token: localStorage.getItem('user_token'),
+
 			api: Alpine.store('cache').api,
 			user: Alpine.store('cache').user,
 
@@ -1556,7 +1558,7 @@
 					this.remove_loading = true;
 					const response = await fetch(`${this.api}/warehouse/stock/remove`, {
 						method: 'POST',
-						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.user.token}` },
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
 						body: JSON.stringify({ warehouse_stock_id: this.selected_product.warehouse_stock_id, quantity }),
 					});
 					const jsonData = await response.json();
@@ -1605,7 +1607,7 @@
 				try {
 					const res = await fetch(`${this.api}/warehouse/stock/add`, {
 						method: 'POST',
-						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.user.token}` },
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
 						body: JSON.stringify({ product_id: this.add_stock_selected.id, location_label: this.selected_location.label, quantity: qty }),
 					});
 					const json = await res.json();
@@ -1640,7 +1642,7 @@
 				try {
 					const res = await fetch(`${this.api}/warehouse/stock/move`, {
 						method: 'POST',
-						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.user.token}` },
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
 						body: JSON.stringify({ warehouse_stock_id: this.move_product.warehouse_stock_id, quantity: qty, destination_label: this.move_destination }),
 					});
 					const json = await res.json();
@@ -1665,7 +1667,7 @@
 					const formData = new FormData();
 					formData.append('file', file);
 					const response = await fetch(`${this.api}/warehouse/load`, {
-						method: 'POST', headers: { 'Authorization': `Bearer ${this.user.token}` }, body: formData,
+						method: 'POST', headers: { 'Authorization': `Bearer ${this.token}` }, body: formData,
 					});
 					const json = await response.json();
 					if (!response.ok) throw new Error(json?.message || 'Error al procesar el archivo');
@@ -1689,7 +1691,7 @@
 			async fetchLogs(page) {
 				try {
 					const res  = await fetch(`${this.api}/warehouse/logs?page=${page}`, {
-						headers: { 'Authorization': `Bearer ${this.user.token}` },
+						headers: { 'Authorization': `Bearer ${this.token}` },
 					});
 					const json = await res.json();
 					if (!res.ok) throw new Error(json?.message || 'Error');

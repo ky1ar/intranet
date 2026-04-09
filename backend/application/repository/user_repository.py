@@ -181,6 +181,23 @@ class UserRepository:
 
 
     @handle_db_exceptions
+    def get_user_ids_by_department_slugs(self, department_slugs):
+        """Retorna IDs de usuarios que pertenecen a los departamentos indicados por slug"""
+        from application.models import UserDepartment
+
+        user_ids = (
+            g.db_session.query(Users.id)
+            .join(UserDepartment, Users.department_id == UserDepartment.id)
+            .filter(
+                UserDepartment.slug.in_(department_slugs),
+                Users.level_id != 1,  # excluir inactivos
+            )
+            .all()
+        )
+        return [uid[0] for uid in user_ids], 200
+        
+
+    @handle_db_exceptions
     def get_leader(self, department_id):
         leader =  g.db_session.query(Users).filter(
             Users.department_id == department_id,

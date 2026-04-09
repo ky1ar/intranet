@@ -270,6 +270,8 @@
 
 	<script>
 		Alpine.data('board_data',() => ({
+			token: localStorage.getItem('user_token'),
+
 			board: [],
 			selected_issue: null,
 			selected_user_id: null,
@@ -359,7 +361,7 @@
                         method: 'POST',
                        	headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${Alpine.store('cache').user.token}`,
+                            'Authorization': `Bearer ${this.token}`,
                         },
                         body: JSON.stringify(payload),
                     });
@@ -395,7 +397,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${Alpine.store('cache').user.token}`,
+                            'Authorization': `Bearer ${this.token}`,
                         },
                         body: JSON.stringify(payload),
                     });
@@ -425,7 +427,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${Alpine.store('cache').user.token}`,
+                            'Authorization': `Bearer ${this.token}`,
                         },
                         body: JSON.stringify(payload),
                     });
@@ -515,7 +517,7 @@
 						method: 'POST',
 						headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${Alpine.store('cache').user.token}`,
+                            'Authorization': `Bearer ${this.token}`,
                         },
 						body: JSON.stringify(payload)
 					});

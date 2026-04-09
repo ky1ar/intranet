@@ -34,7 +34,7 @@
 				</div>
 			</div>  -->
 
-			<div class="right frost-dark" x-show="editAllowed()" style="margin-left: auto;">
+			<div class="right frost-dark" x-show="canAdd()" style="margin-left: auto;">
 				<div class="item" @click="addOrder()">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
 					<span>Añadir</span>
@@ -60,7 +60,7 @@
 							<template x-for="complaint in group.complaints" :key="complaint.id">
 								<li
 									:class="complaint.priority"
-									:draggable="editAllowed()"
+									:draggable="canMove()"
 									@dragstart="onDragStart(complaint)"
 									@click="viewComplaint(complaint.id)"
 									class="white"
@@ -335,11 +335,6 @@
 						</div>
 					</div>
 
-				</div>
-
-				<div class="buttons" x-show="editAllowed() && complaint_data?.status_id >= 8">
-					<button class="button hover-opacity" :class="{ 'black': complaint_data && complaint_data.status_id == 8 }" @click="createPDF(complaint_data.order_number)">Descargar Reporte</button>
-					<button class="button hover-opacity" @click="finish(complaint_data)"  x-show="complaint_data?.status_id == 8">Finalizar</button>
 				</div>
 			</div>
 		</div>
@@ -764,6 +759,8 @@
 
 	<script>
 		Alpine.data('complaint_data',() => ({
+			token: localStorage.getItem('user_token'),
+			
 			api: Alpine.store('cache').api,
 			user: Alpine.store('cache').user,
 			owner_id: null,
@@ -960,7 +957,7 @@
 						method: "POST",
 						headers: {
 							"Content-Type": "application/json",
-							"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+							"Authorization": `Bearer ${this.token}`,
 						},
 						body: JSON.stringify({
 							comment: this.complaint_data.message,
@@ -1063,7 +1060,7 @@
 					const response = await fetch(`${this.api}/complaint/view/${complaint_id}`, {
 						headers: { 
 							"Content-Type": "application/json",
-							"Authorization": `Bearer ${this.user.token}`,
+							"Authorization": `Bearer ${this.token}`,
 						}
 					});
 					const payload = await response.json();
@@ -1130,8 +1127,14 @@
 				await this.getHistory();
 			},
 
+			canAdd() {
+				return Alpine.store('cache').hasPermission('complaint', 'add');
+			},
+			canMove() {
+				return Alpine.store('cache').hasPermission('complaint', 'move');
+			},
 			editAllowed() {
-				return (this.user.department_id == 1 || this.user.id == 23);
+				return this.canAdd() || this.canMove();
 			},
 
 			async fetchClientData() {
@@ -1208,7 +1211,7 @@
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json',
-							"Authorization": `Bearer ${this.user.token}`,
+							"Authorization": `Bearer ${this.token}`,
 						},
 						body: JSON.stringify(payload)
 					});
@@ -1243,7 +1246,7 @@
 				const res = await fetch(`${this.api}/complaint/attachments/${complaintId}`, {
 					headers: {
 						"Content-Type": "application/json",
-						"Authorization": `Bearer ${this.user.token}`,
+						"Authorization": `Bearer ${this.token}`,
 					}
 				});
 
@@ -1265,7 +1268,7 @@
 				const res = await fetch(`${this.api}/complaint/attachments/${complaintId}`, {
 					method: "POST",
 					headers: {
-						"Authorization": `Bearer ${this.user.token}`,
+						"Authorization": `Bearer ${this.token}`,
 					},
 					body: form
 				});
@@ -1305,7 +1308,7 @@
 				const res = await fetch(`${this.api}${file.preview_url}`, {
 					headers: {
 						"Content-Type": "application/json",
-						"Authorization": `Bearer ${this.user.token}`,
+						"Authorization": `Bearer ${this.token}`,
 					}
 				});
 				const json = await res.json();
