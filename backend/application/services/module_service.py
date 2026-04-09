@@ -1,13 +1,16 @@
 import logging
 from application.handlers import handle_exceptions
 from application.repository.module_repository import ModuleRepository
-from application import socketio
+from application.repository.user_repository import UserRepository
+from application.utils import format_name
 from flask_jwt_extended import get_jwt_identity
+from application import socketio
 
 
 class ModuleService:
     def __init__(self):
         self.module_repository = ModuleRepository()
+        self.user_repository = UserRepository()
 
 
     def _current_user_id(self):
@@ -32,17 +35,14 @@ class ModuleService:
 
     @handle_exceptions
     def get_user_full_access_map(self, target_user_id, editor_user_id):
-        from application.repository.user_repository import UserRepository
-        user_repo = UserRepository()
-
-        editor, ec = user_repo.get_user_by_id(editor_user_id)
+        editor, ec = self.user_repository.get_user_by_id(editor_user_id)
         if ec != 200:
             return editor, ec
 
         if editor.level_id < 3:
             return "Sin permisos para gestionar usuarios", 403
 
-        target, tc = user_repo.get_user_by_id(target_user_id)
+        target, tc = self.user_repository.get_user_by_id(target_user_id)
         if tc != 200:
             return target, tc
 
@@ -80,10 +80,7 @@ class ModuleService:
 
     @handle_exceptions
     def get_manageable_users(self, editor_user_id):
-        from application.repository.user_repository import UserRepository
-        user_repo = UserRepository()
-
-        editor, ec = user_repo.get_user_by_id(editor_user_id)
+        editor, ec = self.user_repository.get_user_by_id(editor_user_id)
         if ec != 200:
             return editor, ec
 
@@ -98,7 +95,7 @@ class ModuleService:
         for u in users:
             result.append({
                 "id": u.id,
-                "name": u.name,
+                "name": format_name(u.name),
                 "image": u.image if u.image else 'user_default.jpg',
                 "level_id": u.level_id,
                 "department_name": u.department.name if u.department else "",
@@ -109,17 +106,14 @@ class ModuleService:
 
     @handle_exceptions
     def save_user_permissions(self, editor_user_id, target_user_id, modules_data):
-        from application.repository.user_repository import UserRepository
-        user_repo = UserRepository()
-
-        editor, ec = user_repo.get_user_by_id(editor_user_id)
+        editor, ec = self.user_repository.get_user_by_id(editor_user_id)
         if ec != 200:
             return editor, ec
 
         if editor.level_id < 3:
             return "Sin permisos", 403
 
-        target, tc = user_repo.get_user_by_id(target_user_id)
+        target, tc = self.user_repository.get_user_by_id(target_user_id)
         if tc != 200:
             return target, tc
 

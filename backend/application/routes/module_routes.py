@@ -6,8 +6,6 @@ module_bp = Blueprint("modules", __name__, url_prefix="/modules")
 controller = ModuleController()
 
 
-# ── Usuario autenticado ────────────────────────────────────────────────────
-
 @module_bp.route("/me", methods=["GET"])
 @jwt_required()
 def get_my_modules():
@@ -39,8 +37,6 @@ def toggle_pin():
     return controller.toggle_pin(data)
 
 
-# ── Admin ──────────────────────────────────────────────────────────────────
-
 @module_bp.route("/catalog", methods=["GET"])
 @jwt_required()
 def get_all_modules():
@@ -58,8 +54,6 @@ def set_user_access():
 def set_user_permissions():
     return controller.set_user_permissions(request.get_json())
 
-
-# ── Admin: gestión de permisos ─────────────────────────────────────────────
 
 @module_bp.route("/admin/users", methods=["GET"])
 @jwt_required()

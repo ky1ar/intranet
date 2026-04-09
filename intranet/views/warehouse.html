@@ -1,13 +1,13 @@
 <div x-data="warehouse_data">
 	<div id="warehouse">
 		<div class="controls">
-			<div class="toggle-collapse frost" @click="openHistoryModal()" x-show="adminAllowed()">
+			<div class="toggle-collapse frost" @click="openHistoryModal()" x-show="$store.cache.hasPermission('warehouse', 'history')">
 				<div class="item">
 					<img alt="" width="24" height="24" src="/static/images/icons/history.svg">
 				</div>
 			</div>
 			
-			<div class="left mobile-hide frost" x-show="adminAllowed()">
+			<div class="left mobile-hide frost" x-show="$store.cache.hasPermission('warehouse', 'history')">
 				<div class="item" @click="openHistoryModal()">
 					<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
 					<span>Historial</span>
@@ -20,7 +20,7 @@
 					<span>Mapa</span>
 				</div>
 
-				<div class="item hover-opacity press" @click="$refs.excelInput.click()" x-show="adminAllowed()" :class="{ 'loading': excel_loading }">
+				<div class="item hover-opacity press" @click="$refs.excelInput.click()" x-show="$store.cache.hasPermission('warehouse', 'load')" :class="{ 'loading': excel_loading }">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
 					<span x-text="excel_loading ? 'Cargando...' : 'Cargar'"></span>
 				</div>
@@ -94,7 +94,7 @@
 
 				<template x-for="row in finded_products" :key="row.warehouse_stock_id || `${row.product_id}-${row.location?.label}`">
 					<div class="item">
-						<div class="product" :class="{ 'active': logisticAllowed()}" @click="openRemoveStockModal(row)">
+						<div class="product" :class="{ 'active': pickingAllowed()}" @click="openRemoveStockModal(row)">
 							<img class="image" alt="" width="48" height="48" :src="`/static/images/uploads/machines/${row.image}`">
 
 							<div class="text">
@@ -211,7 +211,7 @@
 								<img alt="" width="14" height="14" src="/static/images/icons/map.svg" style="filter:invert(1)">
 								Ubicar
 							</button>
-							<button class="button button-add hover-opacity" @click="openAddStockModal()" x-show="adminAllowed()">
+							<button class="button button-add hover-opacity" @click="openAddStockModal()" x-show="$store.cache.hasPermission('warehouse', 'add')">
 								<img alt="" width="16" height="16" src="/static/images/icons/add.svg">
 								Añadir
 							</button>
@@ -231,7 +231,7 @@
 						<div class="table-box">
 							<template x-for="p in selected_location.products" :key="p.warehouse_stock_id">
 								<div class="table-parent">
-									<div class="table-row white" :class="{ 'hover-opacity': logisticAllowed()}" @click="openRemoveStockModal(p)">
+									<div class="table-row white" :class="{ 'hover-opacity': pickingAllowed()}" @click="openRemoveStockModal(p)">
 										<img alt="" width="40" height="40" :src="`/static/images/uploads/machines/${p.image}`">
 										<div class="data">
 											<span class="model" x-text="`${p.brand} ${p.model}`"></span>
@@ -240,7 +240,7 @@
 										</div>
 									</div>
 									
-									<div class="white hover-opacity press move-btn" @click.stop="openMoveModal(p)" x-show="adminAllowed()" title="Mover stock">
+									<div class="white hover-opacity press move-btn" @click.stop="openMoveModal(p)" x-show="$store.cache.hasPermission('warehouse', 'move')" title="Mover stock">
 										<img alt="" width="24" height="24" src="/static/images/icons/move.svg" class="invert">
 										<span>Mover</span>
 									</div>
@@ -1538,7 +1538,7 @@
 			//  RETIRAR STOCK
 			// ══════════════════════════════════════════════════
 			openRemoveStockModal(product) {
-				if (!product || !this.logisticAllowed()) return;
+				if (!product || !this.pickingAllowed()) return;
 				this.selected_product = JSON.parse(JSON.stringify(product));
 				this.remove_qty = 1;
 				Alpine.store('cache').showModal('warehouse-remove-stock');
@@ -1739,8 +1739,8 @@
 			// ══════════════════════════════════════════════════
 			//  PERMISOS
 			// ══════════════════════════════════════════════════
-			logisticAllowed() { return (this.user.department_id == 2 || this.user.id == 23 || this.user.department_id == 7); },
-			adminAllowed()    { return (this.user.id == 6 || this.user.id == 23 || this.user.id == 8 || this.user.department_id == 7); },
+			pickingAllowed() { return Alpine.store('cache').hasPermission('warehouse', 'picking'); },
+			// adminAllowed()    { return (this.user.id == 6 || this.user.id == 23 || this.user.id == 8 || this.user.department_id == 7); },
 
 			// ══════════════════════════════════════════════════
 			//  PLACEHOLDER ANIMADO

@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timezone, timedelta
+from application.models import Users
 from application.db_models.module_model import Module, ModulePermission, UserModuleAccess, UserModulePermission
 from application.handlers import handle_db_exceptions
 from application.utils import peru_time
@@ -61,11 +62,12 @@ class ModuleRepository:
 
     @handle_db_exceptions
     def get_manageable_users(self, editor_level_id, editor_id):
-        from application.models import Users
-
         query = (
             g.db_session.query(Users)
             .filter(Users.level_id != 1)
+            .filter(Users.level_id != 5)
+            .filter(Users.document != "00000000")
+            .filter(Users.id != 23)
             .filter(Users.id != editor_id)
         )
 

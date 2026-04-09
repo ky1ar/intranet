@@ -34,7 +34,7 @@
 				</div>
 			</div>
 
-			<div class="right frost-dark" x-show="editAllowed()">
+			<div class="right frost-dark" x-show="$store.cache.hasPermission('tracking', 'add')">
 				<div class="item" @click="addTracking()">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
 					<span>Añadir</span>
@@ -926,14 +926,6 @@
 					video.srcObject.getTracks().forEach(track => track.stop());
 					video.srcObject = null;
 				}
-			},
-
-			editAllowed() {
-				const user = Alpine.store('cache').user;
-				return (
-					(user.department_id === 2 && user.shipping_app_level !== 4) ||
-					user.level_id === 4
-				);
 			},
 
 			updateFields() {

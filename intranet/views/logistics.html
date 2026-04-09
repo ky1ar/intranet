@@ -8,13 +8,13 @@
 			</div>
 
 			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
-				<div class="item" @click="openQrModal()">
+				<div class="item" @click="openQrModal()" x-show="$store.cache.hasPermission('logistics', 'qr')">
 					<img alt="" width="20" height="20" src="/static/images/icons/qr.svg">
 				</div>
 				<div class="item" @click="pdfProcess()">
 					<img alt="" width="22" height="22" src="/static/images/icons/pdf.svg">
 				</div>
-				<div class="item" @click="pendings_open = !pendings_open" x-show="editAllowed()">
+				<div class="item" @click="pendings_open = !pendings_open" x-show="$store.cache.hasPermission('logistics', 'pendings')">
 					<img alt="" width="22" height="22" src="/static/images/icons/pending.svg">
 				</div>
 				<div class="item" @click="search()">
@@ -56,7 +56,7 @@
 			</div>
 
 			<div class="right frost-dark">
-				<div class="item" @click="openQrModal()">
+				<div class="item" @click="openQrModal()" x-show="$store.cache.hasPermission('logistics', 'qr')">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/qr.svg">
 					<span>QR</span>
 				</div>
@@ -73,12 +73,12 @@
 					/>
 				</div>
 
-				<div class="mobile-hide item" x-show="editAllowed()" @click="pendings_open = !pendings_open">
+				<div class="mobile-hide item" x-show="$store.cache.hasPermission('logistics', 'pendings')" @click="pendings_open = !pendings_open">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/pending.svg">
 					<span x-text="`Pendientes ${$store.cache.getData('logistics_pendings')?.length || 0}`"></span>
 				</div>
 
-				<div class="item" @click="processShippingModal()" x-show="editAllowed()">
+				<div class="item" @click="processShippingModal()" x-show="$store.cache.hasPermission('logistics', 'add')">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
 					<span>Añadir</span>
 				</div>
@@ -139,7 +139,7 @@
 										<div class="item-card"
 											:style="`background-color: ${shipping.method_background}; border: 2px solid ${shipping.method_border}`"
 											:class="[shipping.method_slug, isFutureOrToday(day.date) ? '' : 'past-date']"
-											:draggable="((editAllowed()) && shipping.status_id != 3 && shipping.status_id != 4)"
+											:draggable="($store.cache.hasPermission('logistics', 'move') && shipping.status_id != 3 && shipping.status_id != 4)"
 											@dragstart="onDragStart(shipping)"
 											@click="processShippingModal(shipping.shipping_order_id)"
 										>
@@ -973,14 +973,6 @@
                 }
             },
 
-			editAllowed() {
-				const user = Alpine.store('cache').user;
-				return (
-					(user.department_id === 2 && user.shipping_app_level !== 4) ||
-					user.level_id === 4
-				);
-			},
-
 			onDragStart(shipping) {
 				console.log('dragging');
 				this.selected_shipping = shipping;
@@ -1288,12 +1280,7 @@
 					const found = await this.getShipping(shipping_order_id);
 					if (!found) return;
 
-					if (
-						this.process_shipping.status_id > 3 ||
-						(Alpine.store('cache').user.department_id != 2 &&
-						Alpine.store('cache').user.level_id != 4) ||
-						Alpine.store('cache').user.shipping_app_level == 4
-					){
+					if (this.process_shipping.status_id > 3 || !Alpine.store('cache').hasPermission('logistics', 'edit')){
 						Alpine.store('cache').showModal('finish');
 					} else {
 						Alpine.store('cache').showModal('process');

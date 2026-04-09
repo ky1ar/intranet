@@ -414,6 +414,8 @@
 
 	<script>
 		Alpine.data('purchases_data', () => ({
+			token: localStorage.getItem('user_token'),
+
 			api: Alpine.store('cache').api,
 			user_id: Alpine.store('cache').user.id,
 			department_id: Alpine.store('cache').user.department_id,
@@ -509,7 +511,7 @@
 							method: "PUT",
 							headers: {
 								"Content-Type": "application/json",
-								"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+								"Authorization": `Bearer ${this.token}`,
 							},
 							body: JSON.stringify({ delete: true }),
 						}
@@ -549,7 +551,7 @@
 							method: "PUT",
 							headers: {
 								"Content-Type": "application/json",
-								"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+								"Authorization": `Bearer ${this.token}`,
 							},
 							body: JSON.stringify({ action: "progress" }),
 						}
@@ -582,7 +584,7 @@
 						method: "PUT",
 						headers: {
 						"Content-Type": "application/json",
-						"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+						"Authorization": `Bearer ${this.token}`,
 						},
 						body: JSON.stringify({ action: "delivered" }),
 					}
@@ -625,7 +627,7 @@
 							method: "PUT",
 							headers: {
 								"Content-Type": "application/json",
-								"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+								"Authorization": `Bearer ${this.token}`,
 							},
 							body: JSON.stringify({
 								action: "payed",
@@ -675,7 +677,7 @@
 							method: "PUT",
 							headers: {
 								"Content-Type": "application/json",
-								"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+								"Authorization": `Bearer ${this.token}`,
 							},
 							body: JSON.stringify({ action: "invoiced" }),
 						}
@@ -733,7 +735,7 @@
 							method: "PUT",
 							headers: {
 								"Content-Type": "application/json",
-								"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+								"Authorization": `Bearer ${this.token}`,
 							},
 							body: JSON.stringify(payload),
 						}
@@ -793,7 +795,7 @@
 						method: "POST",
 						headers: { 
 							"Content-Type": "application/json",
-							'Authorization': `Bearer ${Alpine.store('cache').user.token}`,
+							'Authorization': `Bearer ${this.token}`,
 						},
 						body: JSON.stringify(payload),
 					});
@@ -832,7 +834,7 @@
 						method: "POST",
 						headers: {
 							"Content-Type": "application/json",
-							"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+							"Authorization": `Bearer ${this.token}`,
 						},
 						body: JSON.stringify({
 							comment: this.process_purchase.message,
@@ -892,7 +894,7 @@
 						method: "PUT",
 						headers: {
 							"Content-Type": "application/json",
-							"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+							"Authorization": `Bearer ${this.token}`,
 						},
 						body: JSON.stringify({
 							action: "approve",
@@ -925,7 +927,7 @@
 						method: "PUT",
 						headers: {
 							"Content-Type": "application/json",
-							"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+							"Authorization": `Bearer ${this.token}`,
 						},
 						body: JSON.stringify({ action: "reject" }),
 					});
@@ -953,7 +955,7 @@
 					const response = await fetch(`${this.api}/purchases/${purchase.id}`, {
 						headers: {
 							"Content-Type": "application/json",
-							"Authorization": `Bearer ${Alpine.store('cache').user.token}`,
+							"Authorization": `Bearer ${this.token}`,
 						},
 					});
 					const dataJson = await response.json();

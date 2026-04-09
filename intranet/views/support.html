@@ -34,12 +34,12 @@
 				</div>
 			</div>
 
-			<div class="right frost-dark">
-				<div class="item" @click="viewLinks()">
+			<div class="right frost-dark" x-show="$store.cache.hasPermission('support', 'links') || $store.cache.hasPermission('support', 'add')">
+				<div class="item" @click="viewLinks()" x-show="$store.cache.hasPermission('support', 'links')">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/link.svg">
 					<span>Enlaces</span>
 				</div>
-				<div class="item" @click="addOrder()" x-show="editAllowed()">
+				<div class="item" @click="addOrder()" x-show="$store.cache.hasPermission('support', 'add')">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
 					<span>Añadir</span>
 				</div>
@@ -64,7 +64,7 @@
 							<template x-for="item in group.service_order" :key="item.order_number">
 								<li
 									:class="item.priority"
-									:draggable="editAllowed()"
+									:draggable="$store.cache.hasPermission('support', 'next')"
 									@dragstart="dragService(item)"
 									@click="viewOrder(item.order_number)">
 									<div class="row">
@@ -225,12 +225,11 @@
 					<span class="title" x-text="`${service_order?.method_letter}-${service_order?.order_number}`"></span>
 					<span class="days" :class="service_order?.priority" x-text="`${service_order?.passed_days}`"></span>
 					<div class="top-controls buttons">
-						<template x-if="editAllowed()">
-							<div class="copy-pay button black hover-opacity" title="Copiar link de pago" @click="navigator.clipboard.writeText('https://express.culqi.com/pago/OCMZHYTVEX')">
-								<img alt="" width="16" height="16" src="/static/images/icons/link.svg">
-								Link de pago
-							</div>
-						</template>
+						<div x-show="$store.cache.hasPermission('support', 'pay_link')" class="copy-pay button black hover-opacity" title="Copiar link de pago" @click="navigator.clipboard.writeText('https://express.culqi.com/pago/OCMZHYTVEX')">
+							<img alt="" width="16" height="16" src="/static/images/icons/link.svg">
+							Link de pago
+						</div>
+
 						<div class="copy-pay button  hover-opacity" title="Descargar rótulo" @click="getLinkPDF(service_order.order_number)">
 							<img alt="" alt="icon" src="/static/images/icons/pdf.svg" width="16" height="16">
 							Rótulo
@@ -274,13 +273,7 @@
 						</div>
 					</div>
 
-					<!-- <template x-if="!editAllowed()">
-						<span x-text="service_order.paid == 0 ? 'pendiente' : 'pagado'"></span>
-					</template> -->
-
-					<!--  -->
-					
-					<template x-if="service_order?.status_id > 1 && editAllowed()">
+					<template x-if="service_order?.status_id > 1 && $store.cache.hasPermission('support', 'payment')">
 						<div class="white pay" :class="service_order.paid == 0 ? '' : 'payed'">
 							<div class="pay-box">
 								<div class="btn hover-opacity" @click="updateOrder('paid')" title="Cambiar estado de pago">
@@ -309,14 +302,14 @@
 				
 
 				<div class="modal-content">
-					<template x-if="!editAllowed()">
+					<template x-if="!$store.cache.hasPermission('support', 'edit')">
 						<div class="fields no-edit">
 							<div class="glass2" x-text="service_order.method_name"></div>
 							<div class="glass2" x-text="service_order.origin_name"></div>
 						</div>
 					</template>
 
-					<template x-if="editAllowed()">
+					<template x-if="$store.cache.hasPermission('support', 'edit')">
 						<div class="fields options">
 							<label class="white">
 								<select x-model="service_order.method_id" @change="updateOrder('method_id')">
@@ -364,7 +357,7 @@
 					</div>
 				</div>
 
-				<div class="buttons" x-show="editAllowed() && service_order?.status_id >= 8">
+				<div class="buttons" x-show="$store.cache.hasPermission('support', 'finish') && service_order?.status_id >= 8">
 					<button class="button hover-opacity" :class="{ 'black': service_order && service_order.status_id == 8 }" @click="createPDF(service_order.order_number)">Descargar Reporte</button>
 					<button class="button hover-opacity" @click="finish(service_order)"  x-show="service_order?.status_id == 8">Finalizar</button>
 				</div>
@@ -1696,11 +1689,6 @@
 					return;
 				this.current_page = new_page;
 				await this.getLinkHistory();
-			},
-
-			editAllowed() {
-				const user = Alpine.store('cache').user;
-				return (user.department_id === 5 || user.level_id === 4);
 			},
 
 			async fetchClientData() {

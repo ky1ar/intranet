@@ -1,5 +1,4 @@
-import logging, re, threading, pdfplumber, os, base64, io, uuid
-import qrcode
+import logging, re, threading, pdfplumber, os, base64, io, uuid, qrcode
 from qrcode.constants import ERROR_CORRECT_M
 from io import BytesIO
 from weasyprint import HTML
