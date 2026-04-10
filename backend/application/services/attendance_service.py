@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, date
 from application.handlers import handle_exceptions
 from application.utils import parse_date_iso, parse_time, format_name, format_datetime, format_date
 from application.services.push_service import PushSender
+from application.services.module_service import ModuleService
 from application.repository.attendance_repository import AttendanceRepository
 from application.repository.user_repository import UserRepository
 from application import socketio
@@ -21,10 +22,54 @@ class AttendanceService:
         self.attendance_repository = AttendanceRepository()
         self.user_repository = UserRepository()
         self.push_service = PushSender()
+        self.module_service = ModuleService()
         self.management_dep = 7
         self.worker_lvl = 2
         self.leader_lvl = 3
         self.admin_lvl = 4
+
+
+    def _has_perm(self, user_id, perm_slug):
+        result, code = self.module_service.check_permission(user_id, 'attendance', perm_slug)
+        if code != 200:
+            return False
+        return result.get('granted', False) if isinstance(result, dict) else False
+
+
+    def _can_see_department(self, user_id, department_slug):
+        """Verifica si el usuario puede ver un departamento específico"""
+        if not department_slug:
+            return False
+        if self._has_perm(user_id, 'view_all'):
+            return True
+        return self._has_perm(user_id, f'view_area:{department_slug}')
+
+
+    def _get_visible_user_ids(self, user_id):
+        """Retorna todos los user_ids que este usuario puede ver"""
+        if self._has_perm(user_id, 'view_all'):
+            all_ids, rc = self.user_repository.get_all_user_ids()
+            return all_ids if rc == 200 else [user_id]
+
+        # Leer permisos view_area:* del módulo
+        modules_data, _ = self.module_service.get_user_modules(user_id)
+        dept_slugs = []
+        if isinstance(modules_data, list):
+            for m in modules_data:
+                if m['slug'] == 'attendance':
+                    for perm_slug, granted in m.get('permissions', {}).items():
+                        if granted and perm_slug.startswith('view_area:'):
+                            dept_slugs.append(perm_slug.replace('view_area:', ''))
+                    break
+
+        if dept_slugs:
+            area_ids, rc = self.user_repository.get_user_ids_by_department_slugs(dept_slugs)
+            if rc == 200:
+                visible = set(area_ids)
+                visible.add(user_id)
+                return list(visible)
+
+        return [user_id]
 
 
     def _adj_priority(self, scope):
@@ -383,52 +428,18 @@ class AttendanceService:
         user, uc = self.user_repository.get_user_by_id(user_id)
         if uc != 200:
             return user, uc
-        
-        level_id = user.level_id
-        department_id = user.department_id
 
-        if department_id == self.management_dep or user_id == 23 or user_id == 1 or user_id == 1123:
-            return self._get_manager_request_list(user_id)
-        
-        if level_id == self.leader_lvl:
-            return self._get_leader_request_list(user_id, department_id)
-        
-        return self._get_worker_request_list(user_id)
-    
+        visible_user_ids = self._get_visible_user_ids(user_id)
 
-    @handle_exceptions
-    def _get_worker_request_list(self, user_id):
-        leave_requests, lrc = self.attendance_repository.get_leave_requests([user_id])
+        leave_requests, lrc = self.attendance_repository.get_leave_requests(visible_user_ids)
         if lrc != 200:
             return leave_requests, lrc
-        
-        return self._format_requests_reponse(leave_requests, user_id, self.worker_lvl)
 
-
-    @handle_exceptions
-    def _get_leader_request_list(self, user_id, department_id):
-        department_user_ids, duic = self.user_repository.get_user_ids_by_department(department_id)
-        if duic != 200:
-            return department_user_ids, duic
-    
-        leave_requests, lrc = self.attendance_repository.get_leave_requests(department_user_ids)
-        if lrc != 200:
-            return leave_requests, lrc
-        
-        return self._format_requests_reponse(leave_requests, user_id, self.leader_lvl)
+        return self._format_requests_reponse(leave_requests, user_id)
     
 
     @handle_exceptions
-    def _get_manager_request_list(self, user_id):
-        leave_requests, lrc = self.attendance_repository.get_leave_requests([])
-        if lrc != 200:
-            return leave_requests, lrc
-        
-        return self._format_requests_reponse(leave_requests, user_id, self.leader_lvl)
-    
-
-    @handle_exceptions
-    def _format_requests_reponse(self, leave_requests, user_id, level):
+    def _format_requests_reponse(self, leave_requests, user_id):
         return {
             "requests": [
                 {
@@ -440,7 +451,6 @@ class AttendanceService:
                     "status_slug": leave.status.slug,
                 } for leave in leave_requests
             ],
-            "viewer_level_id": level,
         }, 200
 
 
@@ -970,8 +980,20 @@ class AttendanceService:
         user, uc = self.user_repository.get_user_by_id(user_id)
         if uc != 200:
             return user, uc
-        
-        data["level_id"] = user.level_id
+
+        # Status inicial según permisos del creador
+        if self._has_perm(user_id, 'approve_leave_manager'):
+            # Gerencia: salta todo → aprobado directo
+            data["_initial_status"] = 4
+        elif self._has_perm(user_id, 'approve_leave_rrhh'):
+            # RRHH: salta área y RRHH → espera gerencia
+            data["_initial_status"] = 3
+        elif self._has_perm(user_id, 'approve_leave'):
+            # Líder de área: salta área → espera RRHH
+            data["_initial_status"] = 2
+        else:
+            # Worker: pendiente → espera área
+            data["_initial_status"] = 1
 
         start_date = parse_date_iso(data.get("start_date"))
         data["start_date"] = start_date
@@ -982,6 +1004,12 @@ class AttendanceService:
         res, rc = self.attendance_repository.insert_leave_request(data)
         if rc != 200:
             return res, rc
+
+        leave_id = res.get("id")
+
+        # Notificaciones según status inicial
+        # TODO: notificar al nivel siguiente
+        
         socketio.emit("attendance_update_leaves", {})
         return "Solicitud procesada correctamente.", 200
     
@@ -996,36 +1024,47 @@ class AttendanceService:
         user, uc = self.user_repository.get_user_by_id(user_id)
         if uc != 200:
             return user, uc
-        
-        level_id = user.level_id
-        department_id = user.department_id
 
-        if department_id == self.management_dep:
-            modal = {
-                1: "approve",
-                2: "approve",
-            }
-            return self._format_get_request(modal, user, leave)
-        
-        elif level_id in [self.leader_lvl, self.admin_lvl]:
-            
-            modal = {
-                1: "approve",
-                2: "edit" if leave.user_id == user_id else 'view',
-            }
-            return self._format_get_request(modal, user, leave)
-        modal = {
-            1: "edit",
-        }
-        return self._format_get_request(modal, user, leave)
-
-
-    @handle_exceptions
-    def _format_get_request(self, modal, user, leave):
         status_id = leave.status_id
+        is_owner = (user_id == leave.user_id)
+
+        can_approve      = self._has_perm(user_id, 'approve_leave')
+        can_approve_rrhh = self._has_perm(user_id, 'approve_leave_rrhh')
+        can_approve_mgr  = self._has_perm(user_id, 'approve_leave_manager')
+
+        # ¿Puede ver el área del creador?
+        creator_dept_slug = leave.user.department.slug if leave.user.department else None
+        can_see_creator = self._can_see_department(user_id, creator_dept_slug)
+
+        # Determinar modal
+        if status_id == 1:
+            if can_approve and can_see_creator:
+                modal = "approve"
+            elif is_owner:
+                modal = "edit"
+            else:
+                modal = "view"
+
+        elif status_id == 2:
+            if can_approve_rrhh:
+                modal = "approve"
+            elif is_owner:
+                modal = "view"
+            else:
+                modal = "view"
+
+        elif status_id == 3:
+            if can_approve_mgr:
+                modal = "approve"
+            else:
+                modal = "view"
+
+        else:
+            modal = "view"
+
         dto = {
             "id": leave.id,
-            "modal": modal.get(status_id, "view"),
+            "modal": modal,
             "type": 'permit' if leave.request_type == 'Permiso' else 'vacation',
             "user_name": format_name(leave.user.name),
             "request_type": leave.request_type,
@@ -1046,12 +1085,12 @@ class AttendanceService:
             "recovery_plan": leave.recovery_plan,
             "assigned_name": format_name(leave.assigned.name) if leave.assigned_user_id else None,
             "assigned_id": leave.assigned_user_id,
-            "self_created": True if user.id == leave.user_id else False,
+            "self_created": is_owner,
             "created_at": format_datetime(leave.created_at),
         }
 
         return dto, 200
-    
+
 
     @handle_exceptions
     def leave_update(self, data):
@@ -1062,129 +1101,124 @@ class AttendanceService:
 
         action = data.get("action")
         leave_id = data.get("leave_id")
-        
+        user_name = user.name
+
+        # ── DELETE ─────────────────────────────────────────────────
         if data.get("delete") is True:
             delete, dc = self.attendance_repository.soft_delete(leave_id)
             if dc != 200:
                 return delete, dc
 
+        # ── APPROVE ────────────────────────────────────────────────
         elif action == "approve":
-            level_id = user.level_id
-            department_id = user.department_id
-            user_name = user.name
+            can_approve      = self._has_perm(user_id, 'approve_leave')
+            can_approve_rrhh = self._has_perm(user_id, 'approve_leave_rrhh')
+            can_approve_mgr  = self._has_perm(user_id, 'approve_leave_manager')
 
-            status_id = None
-            if department_id == self.management_dep:
-                status_id = 3
-            elif level_id in [self.leader_lvl, self.admin_lvl]:
-                status_id = 2
-            else:
-                return "No autorizado para aprobar", 403
-
-            status, sc = self.attendance_repository.set_status(leave_id, status_id)
-            if sc != 200:
-                return status, sc
-            
             leave, lc = self.attendance_repository.get_leave_by_id(leave_id)
             if lc != 200:
                 return leave, lc
 
+            current_status = leave.status_id
             creator_id = leave.user_id
             creator_name = leave.user.name
-            creator_department_id = leave.user.department_id
-            creator_level_id = leave.user.level_id
+            creator_dept_slug = leave.user.department.slug if leave.user.department else None
             is_permit = leave.request_type == 'Permiso'
 
-            if department_id == self.management_dep:
+            new_status = None
+
+            if current_status == 1 and can_approve:
+                if not self._can_see_department(user_id, creator_dept_slug):
+                    return "No tienes acceso a esta área", 403
+                new_status = 2
+
+            elif current_status == 2 and can_approve_rrhh:
+                new_status = 3
+
+            elif current_status == 3 and can_approve_mgr:
+                new_status = 4
+
+            else:
+                return "No autorizado para aprobar en este nivel", 403
+
+            status, sc = self.attendance_repository.set_status(leave_id, new_status)
+            if sc != 200:
+                return status, sc
+
+            # ── Notificaciones ─────────────────────────────────────
+            if new_status == 2:
+                self.push_service.send_to_user(
+                    user_id=creator_id,
+                    title="Solicitud validada por área",
+                    body=f"{format_name(user_name, True)} aprobó tu solicitud LI-{leave_id}. En espera de RRHH.",
+                )
+
+            elif new_status == 3:
+                self.push_service.send_to_user(
+                    user_id=creator_id,
+                    title="Solicitud validada por RRHH",
+                    body=f"Tu solicitud LI-{leave_id} fue aprobada por RRHH. En espera de Gerencia.",
+                )
+
+            elif new_status == 4:
                 self.push_service.send_to_user(
                     user_id=creator_id,
                     title="Permiso aprobado" if is_permit else "Vacaciones aprobadas",
-                    body=f"Tu solicitud de licencia LI-{leave_id} ha sido aprobada por Gerencia.",
+                    body=f"Tu solicitud LI-{leave_id} ha sido aprobada.",
                 )
 
-                if creator_level_id != self.leader_lvl:
-                    leader, lc = self.user_repository.get_leader(creator_department_id)
-                    if lc != 200:
-                        return leader, lc
-                    
-                    self.push_service.send_to_user(
-                        user_id=leader.id,
-                        title="La soclicitud se aprobó",
-                        body=f"Gerencia acaba de aprobar la solicitud de licencia de {format_name(creator_name, True)}.",
-                    )
-            
-            elif level_id in [self.leader_lvl, self.admin_lvl]:
-                # Avisar creador
-                self.push_service.send_to_user(
-                    user_id=creator_id,
-                    title="Solicitud validada",
-                    body=f"{format_name(user_name, True)} aprobó tu solicitud de licencia LI-{leave_id}. En espera de Gerencia.",
-                )
-
-                manager, lc = self.user_repository.get_manager()
-                if lc != 200:
-                    return manager, lc
-                
-                # Avisar manager
-                self.push_service.send_to_user(
-                    user_id=manager.id,
-                    title="Licencia pendiente de aprobación",
-                    body=f"La solicitud de licencia de {format_name(creator_name, True)} necesita tu aprobación.",
-                )
-
+        # ── REJECT ─────────────────────────────────────────────────
         elif action == "reject":
-            result, code = self.attendance_repository.set_status(leave_id, status_id=4)
-            if code != 200:
-                return result, code
-
-            level_id = user.level_id
-            department_id = user.department_id
-            user_name = user.name
+            can_approve      = self._has_perm(user_id, 'approve_leave')
+            can_approve_rrhh = self._has_perm(user_id, 'approve_leave_rrhh')
+            can_approve_mgr  = self._has_perm(user_id, 'approve_leave_manager')
 
             leave, lc = self.attendance_repository.get_leave_by_id(leave_id)
             if lc != 200:
                 return leave, lc
 
+            current_status = leave.status_id
             creator_id = leave.user_id
-            creator_level_id = leave.user.level_id
-            creator_name = leave.user.name
-            creator_department_id = leave.user.department_id
+            creator_dept_slug = leave.user.department.slug if leave.user.department else None
             is_permit = leave.request_type == 'Permiso'
 
-            if department_id == self.management_dep:
-                # Avisar creador
-                self.push_service.send_to_user(
-                    user_id=creator_id,
-                    title="Permiso rechazado" if is_permit else "Vacaciones rechazadas",
-                    body=f"Tu solicitud de licencia LI-{leave.id} fue rechazada por Gerencia. Revisa el detalle.",
-                )
+            can_reject = False
+            reject_level = ""
 
-                if creator_level_id != self.leader_lvl:
-                    leader, lc = self.user_repository.get_leader(creator_department_id)
-                    if lc != 200:
-                        return leader, lc
-                    
-                    # Avisar leader
-                    self.push_service.send_to_user(
-                        user_id=leader.id,
-                        title="La soclicitud se rechazó",
-                        body=f"Gerencia rechazó la solicitud de licencia LI-{leave.id} de {format_name(creator_name, True)}. Revisa el detalle.",
-                    )
-            elif level_id in [self.leader_lvl, self.admin_lvl]:
-                # Avisar creador
-                self.push_service.send_to_user(
-                    user_id=creator_id,
-                    title="Solicitud rechazada",
-                    body=f"{format_name(user_name, True)} rechazó tu solicitud de licencia LI-{leave.id}. Revisa el detalle.",
-                )
+            if current_status == 1 and can_approve:
+                if self._can_see_department(user_id, creator_dept_slug):
+                    can_reject = True
+                    reject_level = "área"
 
+            elif current_status == 2 and can_approve_rrhh:
+                can_reject = True
+                reject_level = "RRHH"
+
+            elif current_status == 3 and can_approve_mgr:
+                can_reject = True
+                reject_level = "Gerencia"
+
+            if not can_reject:
+                return "No autorizado para rechazar en este nivel", 403
+
+            result, code = self.attendance_repository.set_status(leave_id, status_id=5)
+            if code != 200:
+                return result, code
+
+            self.push_service.send_to_user(
+                user_id=creator_id,
+                title="Permiso rechazado" if is_permit else "Vacaciones rechazadas",
+                body=f"Tu solicitud LI-{leave.id} fue rechazada por {reject_level}.",
+            )
+
+        # ── EDIT (update fields) ───────────────────────────────────
         else:
             start_date = parse_date_iso(data.get("start_date"))
             data["start_date"] = start_date
 
             end_date = data.get("end_date")
             data["end_date"] = parse_date_iso(end_date) if end_date else start_date
-            
+
             result, code = self.attendance_repository.update_leave(data)
             if code != 200:
                 return result, code

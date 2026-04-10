@@ -1,7 +1,7 @@
 import logging
 from datetime import date, datetime, timezone, timedelta
 from application.handlers import handle_db_exceptions
-from application.models import Users, UserCodes
+from application.models import Users, UserCodes, UserDepartment
 from flask import g
 
 
@@ -30,6 +30,17 @@ class UserRepository:
         )
         return users, 200
     
+
+    @handle_db_exceptions
+    def get_department_ids_by_slugs(self, slugs):
+        """Convierte department slugs a ids"""
+        rows = (
+            g.db_session.query(UserDepartment.id)
+            .filter(UserDepartment.slug.in_(slugs))
+            .all()
+        )
+        return [r[0] for r in rows], 200
+
     
     @handle_db_exceptions
     def get_user_by_id(self, user_id):
@@ -39,6 +50,34 @@ class UserRepository:
 
         return user, 200
     
+
+    @handle_db_exceptions
+    def get_all_team(self):
+        team = (
+            g.db_session.query(Users)
+            .filter(Users.level_id != 1, Users.level_id != 5)
+            .order_by(Users.name)
+            .all()
+        )
+        return team or [], 200
+
+
+    @handle_db_exceptions
+    def get_team_by_department_slugs(self, department_slugs):
+        team = (
+            g.db_session.query(Users)
+            .join(UserDepartment, Users.department_id == UserDepartment.id)
+            .filter(
+                Users.level_id != 1,
+                Users.level_id != 5,
+                UserDepartment.slug.in_(department_slugs),
+            )
+            .order_by(Users.name)
+            .all()
+        )
+        return team or [], 200
+
+
     @handle_db_exceptions
     def get_user_name_by_id(self, user_id):
         user = g.db_session.query(Users).filter_by(id=user_id).first()
@@ -183,8 +222,6 @@ class UserRepository:
     @handle_db_exceptions
     def get_user_ids_by_department_slugs(self, department_slugs):
         """Retorna IDs de usuarios que pertenecen a los departamentos indicados por slug"""
-        from application.models import UserDepartment
-
         user_ids = (
             g.db_session.query(Users.id)
             .join(UserDepartment, Users.department_id == UserDepartment.id)

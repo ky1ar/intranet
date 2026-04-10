@@ -69,8 +69,8 @@
 								:class="dayClass(day)"
 								@mouseenter="setHover(day, true)"
 								@mouseleave="setHover(day, false)"
-								@click="isEditorUser() && hasIncomplete(day) && showEdit(day)"
-								:style="(isEditorUser() && hasIncomplete(day)) ? 'cursor:pointer' : ''"
+								@click="canEditMarks() && hasIncomplete(day) && showEdit(day)"
+								:style="(canEditMarks() && hasIncomplete(day)) ? 'cursor:pointer' : ''"
 							>
 								<img x-show="showLate(day)" class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg" x-transition.opacity.duration.150ms>
 
@@ -131,7 +131,7 @@
 			</div>
 
 			<div class="right">
-				<div class="card glass user" x-show="$store.cache.user.level_id > 2 || user.id == 1123">
+				<div class="card glass user" x-show="canViewOthers()">
 					<span class="litle">
 						<img alt="" width="16" height="16" src="/static/images/icons/user.svg">
 						Usuario
@@ -927,7 +927,7 @@
 			
 			const team = Alpine.store('cache').getData('attendance_team') || [];
 
-			if (this.isEditorUser() && team.length > 0) {
+			if (this.canEditMarks() && team.length > 0) {
 				this.option_user = team[0];
 			} else {
 				this.option_user = {
@@ -979,6 +979,22 @@
 			return Math.max(0, s - e);
 		},
 
+		canViewOthers() {
+			const cache = Alpine.store('cache');
+			if (cache.hasPermission('attendance', 'view_all')) return true;
+
+			const perms = cache.user?.modules?.find(m => m.slug === 'attendance')?.permissions || {};
+			return Object.keys(perms).some(k => k.startsWith('view_') && perms[k]);
+		},
+
+		canEditMarks() {
+			return Alpine.store('cache').hasPermission('attendance', 'edit_marks');
+		},
+
+		canLoadMarks() {
+			return Alpine.store('cache').hasPermission('attendance', 'load_marks');
+		},
+
 		isLateDay(day) {
 			if (!day?.in_period) return false;
 			if (day?.is_summary) return false;
@@ -1012,10 +1028,6 @@
 			} catch (error) {
 				console.error('Error fetching link', error);
 			}
-		},
-		
-		isEditorUser() {
-			return this.user?.id === 23 || this.user?.id === 24;
 		},
 
 		isHover(day) {
@@ -2150,15 +2162,19 @@
 		}
 		.pending {
 			background: var(--newgray);
-    		border: 2px solid #c7c6c6;
+			border: 2px solid #c7c6c6;
 		}
-		.leader_approve {
+		.area_approved {
 			background-color: #fff0de;
-    		border: 2px solid #fcdab1;
+			border: 2px solid #fcdab1;
 		}
-		.manager_approve {
+		.rrhh_approved {
+			background-color: #dff5ff;
+			border: 2px solid #b4e1f2;
+		}
+		.approved {
 			background-color: #d0f4ea;
-    		border: 2px solid #abe9d8;
+			border: 2px solid #abe9d8;
 		}
 		.rejected {
 			background-color: #fee3e1;

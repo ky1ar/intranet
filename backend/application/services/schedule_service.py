@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, date, timezone
 from calendar import monthrange
 from application.handlers import handle_exceptions
 from application.utils import format_name
+from application.services.module_service import ModuleService
 from application.repository.schedule_repository import ScheduleRepository
 from application.repository.user_repository import UserRepository
 from application.services.general_service import GeneralService
@@ -13,10 +14,43 @@ from flask_jwt_extended import get_jwt_identity
 
 class ScheduleService:
     def __init__(self):
+        self.module_service = ModuleService()
         self.schedule_repository = ScheduleRepository()
         self.user_repository = UserRepository()
         self.general_service = GeneralService()
         self.push_sender = PushSender()
+
+
+    def _has_perm(self, user_id, perm_slug):
+        result, code = self.module_service.check_permission(user_id, 'schedule', perm_slug)
+        if code != 200:
+            return False
+        return result.get('granted', False) if isinstance(result, dict) else False
+
+
+    def _get_visible_department_ids(self, user_id):
+        """Retorna set de department_ids que el usuario puede ver en la agenda"""
+        if self._has_perm(user_id, 'view_all'):
+            return None  # None = ve todo
+
+        modules_data, _ = self.module_service.get_user_modules(user_id)
+        dept_slugs = []
+        if isinstance(modules_data, list):
+            for m in modules_data:
+                if m['slug'] == 'schedule':
+                    for perm_slug, granted in m.get('permissions', {}).items():
+                        if granted and perm_slug.startswith('view_area:'):
+                            dept_slugs.append(perm_slug.replace('view_area:', ''))
+                    break
+
+        if not dept_slugs:
+            return set()  # vacío = solo ve su departamento
+
+        # Convertir slugs a department_ids
+        dept_ids, rc = self.user_repository.get_department_ids_by_slugs(dept_slugs)
+        if rc == 200:
+            return set(dept_ids)
+        return set()
 
 
     def _audience_for_visibility(self, visibility_id, creator_id, creator_dept_id):
@@ -197,9 +231,8 @@ class ScheduleService:
         
         viewer_dept_id = viewer.department_id
         viewer_level_id = viewer.level_id
-        logging.info(viewer_dept_id)
-        logging.info(viewer_level_id)
-
+        visible_depts = self._get_visible_department_ids(viewer_id)
+        
         utc_now = datetime.now(timezone.utc)
         now = utc_now - timedelta(hours=5)
         
@@ -244,11 +277,20 @@ class ScheduleService:
                 continue
 
             if vis == 2:
-                if viewer_dept_id == 4 and viewer_level_id == 3 and ev.user.department_id in [3,4]:
+                creator_dept_id = ev.user.department_id
+
+                # Siempre ve eventos de su propio departamento
+                if creator_dept_id == viewer_dept_id:
                     filtered_events.append(ev)
                     continue
 
-                if ev.user.department_id == viewer_dept_id:
+                # Si tiene view_all, ve todo tipo "área"
+                if visible_depts is None:
+                    filtered_events.append(ev)
+                    continue
+
+                # Si tiene view_area:* específicos, verificar
+                if creator_dept_id in visible_depts:
                     filtered_events.append(ev)
                 continue
 

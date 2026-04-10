@@ -52,6 +52,26 @@ class UserService:
         return team_dict, 200
 
 
+    def _has_attendance_perm(self, user_id, perm_slug):
+        result, code = self.module_service.check_permission(user_id, 'attendance', perm_slug)
+        if code != 200:
+            return False
+        return result.get('granted', False) if isinstance(result, dict) else False
+
+
+    def _get_attendance_visible_depts(self, user_id):
+        modules_data, _ = self.module_service.get_user_modules(user_id)
+        if not isinstance(modules_data, list):
+            return []
+        
+        perms = {}
+        for m in modules_data:
+            if m['slug'] == 'attendance':
+                perms = m.get('permissions', {})
+                break
+        return [s.replace('view_', '') for s, g in perms.items() if g and s.startswith('view_')]
+
+        
     @handle_exceptions
     def get_attendance_team(self, user_id):
         user, uc = self.user_repository.get_user_by_id(user_id)
@@ -61,18 +81,28 @@ class UserService:
         if user.level_id == 1:
             return "Usuario sin acceso al sistema", 400
 
-        team, tc = self.user_repository.get_custom_team(user.department_id, user.id)
+        has_view_all = self._has_attendance_perm(user_id, 'view_all')
+
+        if has_view_all:
+            team, tc = self.user_repository.get_all_team()
+        else:
+            dept_slugs = self._get_attendance_visible_depts(user_id)
+            if dept_slugs:
+                team, tc = self.user_repository.get_team_by_department_slugs(dept_slugs)
+            else:
+                return [], 200  # no ve a nadie más
+
         if tc != 200:
             return team, tc
 
         team_dict = [
             {
-                "id": teammate.id,
-                "level_id": teammate.level_id,
-                "name": self.format_name(teammate.name),
-                "department_name": teammate.department.name,
-                "image": teammate.image if teammate.image else 'user_default.jpg',
-            } for teammate in team
+                "id": t.id,
+                "level_id": t.level_id,
+                "name": self.format_name(t.name),
+                "department_name": t.department.name,
+                "image": t.image if t.image else 'user_default.jpg',
+            } for t in team
         ]
 
         return team_dict, 200

@@ -419,7 +419,7 @@ class AttendanceRepository:
         obj = LeaveRequest(
             user_id=data.get("user_id"),
             request_type='Permiso' if data.get("type") == 'permit' else "Vacaciones",
-            status_id=1 if data.get("level_id") == 2 else 2,
+            status_id=data.get("_initial_status", 1),
             start_date=data.get("start_date"),
             end_date=data.get("end_date"),
             duration_id=data.get("duration_id"),
@@ -544,7 +544,7 @@ class AttendanceRepository:
             .filter(LeaveRequest.deleted_at.is_(None))
             .filter(LeaveRequest.user_id == int(user_id))
             .filter(LeaveRequest.request_type == "Vacaciones")
-            .filter(LeaveRequest.status_id == 3)
+            .filter(LeaveRequest.status_id == 4)
             .filter(LeaveRequest.start_date <= end_date)
             .filter((LeaveRequest.end_date.is_(None)) | (LeaveRequest.end_date >= start_date))
             .order_by(LeaveRequest.start_date.asc(), LeaveRequest.id.asc())
@@ -577,7 +577,7 @@ class AttendanceRepository:
             .filter(LeaveRequest.deleted_at.is_(None))
             .filter(LeaveRequest.user_id == int(user_id))
             .filter(LeaveRequest.request_type == "Permiso")
-            .filter(LeaveRequest.status_id == 3)
+            .filter(LeaveRequest.status_id == 4)
             .filter(LeaveRequest.start_date <= end_date)
             .filter((LeaveRequest.end_date.is_(None)) | (LeaveRequest.end_date >= start_date))
             .order_by(LeaveRequest.start_date.asc(), LeaveRequest.id.asc())

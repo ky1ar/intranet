@@ -98,6 +98,10 @@
 			saving: false,
 
 			async init() {
+				if (!Alpine.store('cache').hasModule('admin')) {
+					window.PineconeRouter.context.navigate('/');
+					return;
+				}
 				console.log('Inicializando Admin Permisos...');
 				await this.loadUsers();
 			},
