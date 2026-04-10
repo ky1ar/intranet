@@ -624,11 +624,12 @@ class AttendanceService:
                 wd = dt.weekday()
 
                 if day.get("in_period") and dt < effective_start:
+                    target = self._target_minutes_for_date(profile_map, dt)
                     day["expected_marks"] = 0
                     day["expected_start"] = None
-                    day["target_min"] = 0
+                    day["target_min"] = target
                     day["worked_min"] = 0
-                    day["delta_min"] = 0
+                    day["delta_min"] = 0 - target
                     day["incomplete"] = False
                     day["incomplete_count"] = 0
                     day["has_adjustment"] = False
@@ -637,6 +638,7 @@ class AttendanceService:
                     day["adjustment_items"] = []
                     day["not_started_yet"] = True
                     day["is_summary"] = False
+                    week_target += target
                     continue
 
                 if wd == 6:

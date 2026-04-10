@@ -19,7 +19,7 @@
 				</div>
 			</div>
 
-			<div class="right frost-dark" x-show="[3,1127,23].includes(user.id)">
+			<div class="right frost-dark" x-show="canLoadMarks()">
 				<div class="item" @click="xlsProcess()">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
 					<span>Cargar</span>
@@ -1189,16 +1189,6 @@
 						toleranceAccum += this.lateMinutes(day);
 					}
 				}
-			}
-
-			if (this.option_user.id === 1130 && this.offset == -3) {
-				target = Number(10560);
-			} else if (this.option_user.id === 1133 && this.offset == -2) {
-				target = Number(10560);
-			} else if (this.option_user.id === 1134 && this.offset == -2) {
-				target = Number(11520);
-			} else if (this.option_user.id === 3 && this.offset == -2) {
-				vacations += 1;
 			}
 
 			const tolerancePlanned = Math.round(target * 0.01);

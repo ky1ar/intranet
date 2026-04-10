@@ -64,7 +64,7 @@
 							<template x-for="item in group.service_order" :key="item.order_number">
 								<li
 									:class="item.priority"
-									:draggable="$store.cache.hasPermission('support', 'next')"
+									:draggable="$store.cache.hasPermission('support', 'move')"
 									@dragstart="dragService(item)"
 									@click="viewOrder(item.order_number)">
 									<div class="row">
