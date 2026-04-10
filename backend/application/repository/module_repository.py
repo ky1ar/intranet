@@ -13,6 +13,7 @@ class ModuleRepository:
         modules = (
             g.db_session.query(Module)
             .filter(Module.is_active == True)
+            .filter(Module.slug != 'admin')
             .order_by(Module.sort_order)
             .all()
         )
@@ -67,9 +68,11 @@ class ModuleRepository:
             .filter(Users.level_id != 1)
             .filter(Users.level_id != 5)
             .filter(Users.document != "00000000")
-            .filter(Users.id != 23)
-            .filter(Users.id != editor_id)
         )
+
+        if editor_id != 23:
+            query = query.filter(Users.id != 23)
+            query = query.filter(Users.id != editor_id)
 
         if editor_level_id == 3:
             query = query.filter(Users.level_id == 2)

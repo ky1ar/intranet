@@ -1026,6 +1026,20 @@ async function loginVerify(context) {
     return true;
 }
 
+async function loginRedirect(context) {
+    const token = Alpine.store('cache').user.token || localStorage.getItem('user_token');
+    if (!token) return true; // no hay sesión, mostrar login
+
+    const ok = await Alpine.store('cache').verify();
+    if (ok) {
+        const defaultPage = Alpine.store('cache').user.default_page || '/attendance';
+        window.PineconeRouter.context.navigate(defaultPage);
+        return false; // no renderizar login
+    }
+
+    return true; // token inválido, mostrar login
+}
+
 document.addEventListener('pinecone-start', () => {
     // Alpine.store('cache').verify();
 });

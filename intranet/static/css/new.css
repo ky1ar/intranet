@@ -838,7 +838,7 @@ body.modal-open {
 }
 #sidebar .home-logo {
     cursor: pointer;
-    transition: transform 0.2s ease;
+    transition: transform 0.75s ease;
 }
 #sidebar .home-logo.expanded {
     transform: rotate(360deg);
