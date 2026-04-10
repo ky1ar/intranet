@@ -56,7 +56,7 @@ class GeneralRepository:
     
     @handle_db_exceptions
     def get_drivers(self):
-        drivers = g.db_session.query(Users).filter_by(shipping_app_level=4).all()
+        drivers = g.db_session.query(Users).filter(Users.id.in_([4, 1124])).all()
         if not drivers:
             return 'Drivers not found', 404
         return drivers, 200

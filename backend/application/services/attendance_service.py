@@ -67,6 +67,7 @@ class AttendanceService:
             if rc == 200:
                 visible = set(area_ids)
                 visible.add(user_id)
+                visible.discard(23)
                 return list(visible)
 
         return [user_id]

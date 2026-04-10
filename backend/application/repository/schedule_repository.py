@@ -83,13 +83,14 @@ class ScheduleRepository:
         )
         return [int(r[0]) for r in ids], 200
 
+
     @handle_db_exceptions
     def get_users_minimal(self):
         users = (
             g.db_session.query(Users.id, Users.name, Users.department_id)
             .filter(Users.level_id != 1)
             .filter(Users.level_id != 5)
-            .filter(Users.id != 21)
+            .filter(Users.document != "00000000")
             .order_by(Users.name.asc())
             .all()
         )

@@ -55,7 +55,11 @@ class UserRepository:
     def get_all_team(self):
         team = (
             g.db_session.query(Users)
-            .filter(Users.level_id != 1, Users.level_id != 5)
+            .filter(Users.level_id != 1)
+            .filter(Users.level_id != 5)
+            .filter(Users.department_id != 7)
+            .filter(Users.id != 23)
+            .filter(Users.document != "00000000")
             .order_by(Users.name)
             .all()
         )
@@ -70,6 +74,8 @@ class UserRepository:
             .filter(
                 Users.level_id != 1,
                 Users.level_id != 5,
+                Users.document != "00000000",
+                Users.id != 23,
                 UserDepartment.slug.in_(department_slugs),
             )
             .order_by(Users.name)
@@ -141,7 +147,7 @@ class UserRepository:
             .filter(Users.level_id != 5)
             .filter(Users.department_id != 7)
             .filter(Users.id != 23)
-            .filter(Users.id != 21)
+            .filter(Users.document != "00000000")
         )
 
         if user_id == 15:
