@@ -1,13 +1,14 @@
-import logging, os, re
+import logging, os, re, math
 import pandas as pd
 from io import BytesIO
 from datetime import datetime, timedelta, date
 from application.handlers import handle_exceptions
-from application.utils import parse_date_iso, parse_time, format_name, format_datetime, format_date
+from application.utils import parse_date_iso, parse_time, format_name, format_datetime, format_date, peru_time
 from application.services.push_service import PushSender
 from application.services.module_service import ModuleService
 from application.repository.attendance_repository import AttendanceRepository
 from application.repository.user_repository import UserRepository
+from application.repository.salary_repository import SalaryRepository
 from application import socketio
 from flask_jwt_extended import get_jwt_identity
 
@@ -19,6 +20,7 @@ _RE_DNI = re.compile(r"\d{8}")
 
 class AttendanceService:
     def __init__(self):
+        self.salary_repository = SalaryRepository()
         self.attendance_repository = AttendanceRepository()
         self.user_repository = UserRepository()
         self.push_service = PushSender()
@@ -566,6 +568,7 @@ class AttendanceService:
         if not period:
             return {"period": None, "weeks": []}, 200
 
+        logging.info(f"Periodo: {period.name}, offset calculado: {offset}")
         payload, rc = self.attendance_repository.build_period_summary(user_id, period)
         if rc != 200:
             return payload, rc
@@ -1275,3 +1278,412 @@ class AttendanceService:
 
         remaining_starts = [s for idx, (s, _) in enumerate(shifts_sorted) if idx not in covered]
         day["expected_start"] = self._minutes_to_hhmm(min(remaining_starts)) if remaining_starts else None
+
+
+    @handle_exceptions
+    def salary_calculate_stats(self, period_id, editor_user_id):
+        """Calcula stats para todos los usuarios de un periodo y los guarda.
+        Replica exactamente la lógica de buildMonthStats del frontend."""
+        period, pc = self.salary_repository.get_period_by_id(period_id)
+        if pc != 200 or not period:
+            return "Periodo no encontrado", 404
+
+        users, uc = self.user_repository.get_all_active_users()
+        if uc != 200:
+            return users, uc
+
+        calculated = 0
+        now = peru_time()
+        today_iso = now.date().isoformat()
+
+        # Calcular el offset a partir del period_id
+        today_date = now.date()
+        from calendar import monthrange
+        base_month = date(today_date.year, today_date.month, 1)
+        mid_date = period.start_date + (period.end_date - period.start_date) // 2
+        period_month = mid_date.replace(day=1)
+
+        # Diferencia en meses
+        offset = (period_month.year - base_month.year) * 12 + (period_month.month - base_month.month)
+
+        
+
+        for user in users:
+            if user.level_id in [1, 5]:
+                continue
+            if user.department_id == 7:
+                continue
+            if user.id == 23:
+                continue
+
+            try:
+                # Reusar summary_by_offset que ya construye el grid completo
+                data = {"offset": offset, "user_id": user.id}
+                result, rc = self.summary_by_offset(data)
+                if rc != 200:
+                    continue
+
+                weeks = result.get("weeks", [])
+                if not weeks:
+                    continue
+
+                target = 0
+                worked = 0
+                tolerance_accum = 0
+                tardies = 0
+                vacations = 0
+                incompletes = 0
+
+                for w in weeks:
+                    for day in w.get("days", []):
+                        if not day.get("in_period"):
+                            continue
+                        if day.get("is_summary"):
+                            continue
+
+                        # Target: todo el periodo (incluye futuro)
+                        target += int(day.get("target_min") or 0)
+
+                        # Vacaciones: todo el periodo
+                        if day.get("is_vacation"):
+                            vacations += 1
+
+                        # Worked, tardanzas: solo hasta hoy
+                        day_date = day.get("date", "")
+                        if not day_date or day_date > today_iso:
+                            continue
+
+                        worked += int(day.get("worked_min") or 0)
+
+                        if day.get("incomplete"):
+                            incompletes += 1
+
+                        # Replicar isLateDay del frontend
+                        if self._is_late_day(day):
+                            late_min = self._late_minutes(day)
+                            if late_min > 0:
+                                tardies += 1
+                                tolerance_accum += late_min
+
+                # Fórmula idéntica al frontend
+                tolerance_planned = round(target * 0.01)
+                base_excess = max(0, tolerance_accum - tolerance_planned)
+                calc_excess = round(base_excess * 1.5)
+                calc_obj = target + calc_excess
+                compliance = (worked * 100 / calc_obj) if calc_obj > 0 else 0
+
+                stats_data = {
+                    "user_id": user.id,
+                    "period_id": period_id,
+                    "target_min": target,
+                    "worked_min": worked,
+                    "tolerance_planned_min": tolerance_planned,
+                    "tolerance_accum_min": tolerance_accum,
+                    "base_excess_min": base_excess,
+                    "calc_excess_min": calc_excess,
+                    "calc_obj_min": calc_obj,
+                    "tardiness_count": tardies,
+                    "vacation_days": vacations,
+                    "incomplete_days": incompletes,
+                    "compliance_pct": math.floor(compliance * 100) / 100,
+                    "calculated_at": now,
+                    "calculated_by": editor_user_id,
+                }
+
+                logging.info(f"=== SALARY STATS para user {user.id} ===")
+                logging.info(f"offset: {offset}, period: {period.name}")
+                logging.info(f"result weeks: {len(result.get('weeks', []))}")
+                logging.info(f"target: {target}, worked: {worked}, tardies: {tardies}")
+                logging.info(f"compliance: {compliance}")
+
+                self.salary_repository.upsert_period_stats(stats_data)
+                calculated += 1
+
+            except Exception as ex:
+                logging.warning(f"Error calculando stats para user {user.id}: {ex}")
+                continue
+
+        return {"calculated": calculated, "period_id": period_id}, 200
+
+
+    def _is_late_day(self, day):
+        """Replica isLateDay() del frontend"""
+        if not day.get("in_period"):
+            return False
+        if day.get("is_summary"):
+            return False
+        if day.get("is_holiday"):
+            return False
+        if day.get("is_vacation"):
+            return False
+
+        # Permiso sin expected_start = no cuenta tardanza
+        if day.get("is_permit") and not day.get("expected_start"):
+            return False
+
+        # Permiso con duration_id 1 (todo el día) o 3 (mañana) = no cuenta
+        permit = day.get("permit") or {}
+        duration_id = permit.get("duration_id") or day.get("permit_duration_id")
+        if day.get("is_permit") and duration_id in [1, 3]:
+            return False
+
+        intervals = day.get("intervals") or []
+        if not intervals:
+            return False
+
+        first = intervals[0]
+        start = (first.get("start") or "").strip()
+        expected = (day.get("expected_start") or "").strip()
+
+        if not start or not expected:
+            return False
+
+        return self._late_minutes(day) > 0
+
+
+    def _late_minutes(self, day):
+        """Replica lateMinutes() del frontend"""
+        intervals = day.get("intervals") or []
+        if not intervals:
+            return 0
+
+        first = intervals[0]
+        start = (first.get("start") or "").strip()
+        expected = (day.get("expected_start") or "").strip()
+
+        if not start or not expected:
+            return 0
+
+        s = self._hhmm_to_minutes(start)
+        e = self._hhmm_to_minutes(expected)
+
+        return max(0, s - e)
+
+        
+    @handle_exceptions
+    def salary_calculate(self, period_id, editor_user_id):
+        """Calcula salary para todos los usuarios con stats en el periodo"""
+        period, pc = self.salary_repository.get_period_by_id(period_id)
+        if pc != 200 or not period:
+            return "Periodo no encontrado", 404
+
+        stats_list, sc = self.salary_repository.get_all_stats_by_period(period_id)
+        if sc != 200:
+            return stats_list, sc
+
+        calculated = 0
+
+        for stats in stats_list:
+            config, cc = self.salary_repository.get_salary_config(stats.user_id, period.end_date)
+            if cc != 200 or not config:
+                continue
+
+        
+            base = float(config.base_salary)
+            compliance = float(stats.compliance_pct or 0)
+            compliance = math.floor(compliance * 100) / 100
+            factor = min(compliance / 100, 1.0)
+            factor = math.floor(factor * 10000) / 10000 
+            final = math.floor(base * factor * 100) / 100
+
+            salary_data = {
+                "user_id": stats.user_id,
+                "period_id": period_id,
+                "stats_id": stats.id,
+                "business_id": config.business_id,
+                "base_salary": base,
+                "compliance_pct": compliance,
+                "factor": round(factor, 4),
+                "final_salary": final,
+            }
+
+            self.salary_repository.upsert_salary_period(salary_data)
+            calculated += 1
+
+        return {"calculated": calculated, "period_id": period_id}, 200
+
+
+    @handle_exceptions
+    def salary_get_period(self, period_id):
+        """Obtiene salarios del periodo para mostrar en la tabla"""
+        salaries, sc = self.salary_repository.get_salaries_by_period(period_id)
+        if sc != 200:
+            return salaries, sc
+
+        result = []
+        for s in salaries:
+            result.append({
+                "id": s.id,
+                "user_id": s.user_id,
+                "user_name": format_name(s.user.name) if s.user else "-",
+                "user_image": s.user.image if s.user else "user_default.jpg",
+                "department_name": s.user.department.name if s.user and s.user.department else "-",
+                "business_name": s.business.name if s.business else "-",
+                "base_salary": float(s.base_salary),
+                "compliance_pct": float(s.compliance_pct),
+                "factor": float(s.factor),
+                "final_salary": float(s.final_salary),
+                "status": s.status,
+            })
+
+        return result, 200
+
+
+    @handle_exceptions
+    def salary_get_user(self, data):
+        """Obtiene salary de un usuario específico para el card del frontend"""
+
+        user_id = data.get("user_id")
+        period_id = data.get("period_id")
+
+        salary, sc = self.salary_repository.get_salary_period(user_id, period_id)
+        if sc != 200:
+            return salary, sc
+
+        if not salary:
+            return None, 200
+
+        return {
+            "base_salary": float(salary.base_salary),
+            "compliance_pct": float(salary.compliance_pct),
+            "factor": float(salary.factor),
+            "final_salary": float(salary.final_salary),
+            "business_name": salary.business.name if salary.business else "-",
+            "status": salary.status,
+        }, 200
+
+
+    @handle_exceptions
+    def salary_config_save(self, data):
+        """Guardar/actualizar sueldo base de un usuario"""
+        user_id = data.get("user_id")
+        base_salary = data.get("base_salary")
+        business_id = data.get("business_id")
+        effective_from = data.get("effective_from")
+
+        if not user_id or not base_salary or not business_id or not effective_from:
+            return "Datos incompletos", 400
+
+        from application.utils import parse_date_iso
+        config_data = {
+            "user_id": int(user_id),
+            "business_id": int(business_id),
+            "base_salary": float(base_salary),
+            "effective_from": parse_date_iso(effective_from),
+        }
+
+        result, rc = self.salary_repository.upsert_salary_config(config_data)
+        return "Configuración guardada", rc
+
+
+    @handle_exceptions
+    def salary_config_get(self, user_id):
+        """Obtiene la config de salary vigente de un usuario"""
+        config, cc = self.salary_repository.get_salary_config_by_user(user_id)
+        if cc != 200:
+            return config, cc
+
+        if not config:
+            return None, 200
+
+        return {
+            "user_id": config.user_id,
+            "business_id": config.business_id,
+            "business_name": config.business.name if config.business else "-",
+            "base_salary": float(config.base_salary),
+            "currency": config.currency,
+            "effective_from": config.effective_from.isoformat(),
+            "effective_to": config.effective_to.isoformat() if config.effective_to else None,
+        }, 200
+
+
+    @handle_exceptions
+    def salary_approve(self, salary_id, approved_by):
+        return self.salary_repository.approve_salary(salary_id, approved_by)
+
+
+    @handle_exceptions
+    def salary_generate_telecredito(self, period_id, business_id):
+        """Genera el archivo TXT de Telecrédito BCP para pago de haberes"""
+
+        # Config bancaria de la empresa
+        bank_config, bc = self.salary_repository.get_business_bank_config(business_id)
+        if bc != 200 or not bank_config:
+            return "Configuración bancaria no encontrada para esta empresa", 404
+
+        # Periodo
+        period, pc = self.salary_repository.get_period_by_id(period_id)
+        if pc != 200 or not period:
+            return "Periodo no encontrado", 404
+
+        # Salarios aprobados de esta empresa
+        salaries, sc = self.salary_repository.get_approved_salaries_by_period_and_business(period_id, business_id)
+        if sc != 200:
+            return salaries, sc
+
+        if not salaries:
+            return "No hay salarios aprobados para generar", 422
+
+        # Construir líneas de detalle
+        detail_lines = []
+        total_amount = 0
+
+        for salary in salaries:
+            user = salary.user
+            if not user:
+                continue
+
+            # Cuenta bancaria del trabajador
+            bank_acct, bac = self.salary_repository.get_bank_account(user.id, business_id)
+            if bac != 200 or not bank_acct:
+                continue
+
+            amount = float(salary.final_salary)
+            total_amount += amount
+            doc = (user.document or "").strip()
+            name = (user.name or "").strip()
+
+            # Format detail line (195 chars)
+            line = (
+                "2"                                                 # [0:1]   tipo registro
+                + bank_acct.account_type                            # [1:2]   tipo cuenta abono
+                + bank_acct.account_number.ljust(14)[:14]           # [2:16]  cuenta abono
+                + " " * 6                                           # [16:22] padding
+                + bank_acct.doc_type                                # [22:23] tipo doc
+                + doc.ljust(15)[:15]                                # [23:38] doc numero
+                + name.ljust(75)[:75]                               # [38:113] nombre
+                + f"Referencia Beneficiario {doc}".ljust(40)[:40]   # [113:153] ref beneficiario
+                + f"Ref Emp {doc}".ljust(20)[:20]                   # [153:173] ref empresa
+                + "0001"                                            # [173:177] validación
+                + f"{amount:017.2f}"                                # [177:194] monto (17 chars con punto)
+                + bank_acct.currency                                # [194:195] moneda
+            )
+
+            detail_lines.append(line)
+
+        # Fecha de proceso = último día del periodo
+        fecha = period.end_date.strftime("%Y%m%d")
+        count = len(detail_lines)
+
+        # Format header line (113 chars)
+        header = (
+            "1"                                                     # [0:1]   tipo registro
+            + f"{count:06d}"                                        # [1:7]   cantidad abonos
+            + fecha                                                 # [7:15]  fecha proceso
+            + "X"                                                   # [15:16] subtipo
+            + bank_config.account_type                              # [16:17] tipo cuenta cargo
+            + bank_config.account_number.ljust(20)[:20]             # [17:37] cuenta cargo
+            + f"{total_amount:021.2f}"                              # [37:58] monto total (21 chars con punto)
+            + bank_config.reference.ljust(40)[:40]                  # [58:98] referencia
+            + bank_config.company_code.ljust(15)[:15]               # [98:113] código empresa
+        )
+
+        # Generar contenido
+        content = header + "\n" + "\n".join(detail_lines)
+
+        return {
+            "content": content,
+            "filename": f"telecredito_{salary.business.name}_{period.name.replace(' ', '_')}.txt",
+            "count": count,
+            "total": total_amount,
+        }, 200

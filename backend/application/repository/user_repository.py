@@ -167,6 +167,17 @@ class UserRepository:
 
 
     @handle_db_exceptions
+    def get_all_active_users(self):
+        users = (
+            g.db_session.query(Users)
+            .filter(Users.level_id != 1)
+            .order_by(Users.name)
+            .all()
+        )
+        return users or [], 200
+
+        
+    @handle_db_exceptions
     def get_user_ids_by_department(self, department_id: int):
         rows = (
             g.db_session.query(Users.id)

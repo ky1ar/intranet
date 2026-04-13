@@ -1,6 +1,6 @@
 from flask import Blueprint, request
 from application.controllers.attendance_controller import AttendanceController
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 
 attendance_bp = Blueprint("attendance", __name__, url_prefix="/attendance")
@@ -64,3 +64,63 @@ def update_leave(leave_id):
     data = request.get_json()
     data["leave_id"] = leave_id
     return controller.leave_update(data)
+
+
+# ── Salary ─────────────────────────────────────────────────────
+
+@attendance_bp.route("/salary/stats/calculate", methods=["POST"])
+@jwt_required()
+def salary_calculate_stats():
+    data = request.get_json() or {}
+    data["editor_user_id"] = int(get_jwt_identity())
+    return controller.salary_calculate_stats(data)
+
+
+@attendance_bp.route("/salary/calculate", methods=["POST"])
+@jwt_required()
+def salary_calculate():
+    data = request.get_json() or {}
+    data["editor_user_id"] = int(get_jwt_identity())
+    return controller.salary_calculate(data)
+
+
+@attendance_bp.route("/salary/period/<int:period_id>", methods=["GET"])
+@jwt_required()
+def salary_get_period(period_id):
+    return controller.salary_get_period(period_id)
+
+
+@attendance_bp.route("/salary/user/<int:user_id>/period/<int:period_id>", methods=["GET"])
+@jwt_required()
+def salary_get_user(user_id, period_id):
+    data = {
+        "user_id": user_id,
+        "period_id": period_id
+    }
+    return controller.salary_get_user(data)
+
+
+@attendance_bp.route("/salary/config", methods=["POST"])
+@jwt_required()
+def salary_config_save():
+    return controller.salary_config_save(request.get_json())
+
+
+@attendance_bp.route("/salary/config/<int:user_id>", methods=["GET"])
+@jwt_required()
+def salary_config_get(user_id):
+    return controller.salary_config_get(user_id)
+
+
+@attendance_bp.route("/salary/approve", methods=["POST"])
+@jwt_required()
+def salary_approve():
+    data = request.get_json() or {}
+    data["approved_by"] = int(get_jwt_identity())
+    return controller.salary_approve(data)
+
+
+@attendance_bp.route("/salary/generate", methods=["POST"])
+@jwt_required()
+def salary_generate_file():
+    return controller.salary_generate_file(request.get_json())

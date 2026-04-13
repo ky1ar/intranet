@@ -66,3 +66,55 @@ class AttendanceController:
     @handle_logs_and_exceptions
     def leave_update(self, data):
         return self.attendance_service.leave_update(data)
+
+
+    @handle_logs_and_exceptions
+    def salary_calculate_stats(self, data):
+        return self.attendance_service.salary_calculate_stats(
+            data.get("period_id"),
+            data.get("editor_user_id"),
+        )
+    
+
+    @handle_logs_and_exceptions
+    def salary_calculate(self, data):
+        return self.attendance_service.salary_calculate(
+            data.get("period_id"),
+            data.get("editor_user_id"),
+        )
+
+
+    @handle_logs_and_exceptions
+    def salary_get_period(self, period_id):
+        return self.attendance_service.salary_get_period(period_id)
+
+
+    @handle_logs_and_exceptions
+    def salary_get_user(self, data):
+        return self.attendance_service.salary_get_user(data)
+
+
+    @handle_logs_and_exceptions
+    def salary_config_save(self, data):
+        return self.attendance_service.salary_config_save(data)
+
+
+    @handle_logs_and_exceptions
+    def salary_config_get(self, user_id):
+        return self.attendance_service.salary_config_get(user_id)
+
+
+    @handle_logs_and_exceptions
+    def salary_approve(self, data):
+        return self.attendance_service.salary_approve(
+            data.get("salary_id"),
+            data.get("approved_by"),
+        )
+
+    
+    @handle_logs_and_exceptions
+    def salary_generate_file(self, data):
+        return self.attendance_service.salary_generate_telecredito(
+            data.get("period_id"),
+            data.get("business_id"),
+        )

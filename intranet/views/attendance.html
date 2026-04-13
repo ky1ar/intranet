@@ -6,6 +6,11 @@
 					<img alt="" width="20" height="20" src="/static/images/icons/vacation.svg">
 					<span>Licencias</span>
 				</div>
+
+				<div class="item" @click="openSalaryModal()" x-show="$store.cache.hasPermission('attendance', 'salary')">
+					<img alt="" width="20" height="20" src="/static/images/icons/wallet.svg">
+					<span>Salarios</span>
+				</div>
 			</div>
 
 			<div class="left frost">
@@ -177,42 +182,41 @@
 			
 				</div>
 
-				<!-- <div class="card glass salary">
+				<div class="card glass salary" x-show="$store.cache.hasPermission('attendance', 'salary') && salary_data">
 					<span class="litle">
 						<img alt="" width="16" height="16" src="/static/images/icons/wallet.svg">
 						Sueldo del mes
 					</span>
-					<span class="amount" x-show="show_salary">S/ 3144.00</span>
+					<span class="amount" x-show="show_salary" x-text="`S/ ${salary_data?.final_salary?.toFixed(2) || '0.00'}`"></span>
 					<span class="amount" x-show="!show_salary">S/ ********</span>
 					<div class="white eye hover-opacity" @click="show_salary = !show_salary">
 						<img alt="" width="16" height="16" src="/static/images/icons/eye.svg">
 					</div>
 
-					<div class="final">
+					<div class="final" x-show="show_salary">
+						<div>
+							<span>Empresa</span>
+							<span x-text="salary_data?.business_name || '-'"></span>
+						</div>
 						<div>
 							<span>Sueldo base</span>
-							<span>S/ 3000.00</span>
+							<span x-text="`S/ ${salary_data?.base_salary?.toFixed(2) || '0.00'}`"></span>
 						</div>
 						<div>
-							<span>Porcentaje de asistencias</span>
-							<span>99.8%</span>
+							<span>Cumplimiento</span>
+							<span x-text="`${salary_data?.compliance_pct?.toFixed(2) || '0'}%`"></span>
 						</div>
+						<div>
+							<span>Factor</span>
+							<span x-text="`x ${salary_data?.factor?.toFixed(4) || '0'}`"></span>
+						</div>
+						<div class="spacer"></div>
 						<div>
 							<span>Sueldo neto</span>
-							<span>S/ 2994.00</span>
-						</div>
-						<div>
-							<span>Bonos</span>
-							<span>S/ 150.00</span>
-						</div>
-						<div>
-							<span>Total a pagar</span>
-							<span>S/ 3144.00</span>
+							<span x-text="`S/ ${salary_data?.final_salary?.toFixed(2) || '0.00'}`"></span>
 						</div>
 					</div>
-
-				</div> -->
-
+				</div>
 				<div class="card glass stats">
 					<span class="litle">
 						<img alt="" width="18" height="18" src="/static/images/icons/filled/tag.svg">
@@ -836,11 +840,115 @@
 				</div>
 			</div>
 
+			<div
+				x-show="$store.cache.isVisibleModal('salary')"
+				@mousedown.self="$store.cache.hideLastModal()"
+				class="modal-wrap common-modal"
+				id="modal-salary"
+				x-transition:enter="modal-enter"
+				x-transition:enter-start="modal-enter-start"
+				x-transition:enter-end="modal-enter-end"
+				x-transition:leave="modal-leave"
+				x-transition:leave-start="modal-leave-start"
+				x-transition:leave-end="modal-leave-end"
+				x-cloak
+			>
+				<div class="modal glass2 extrabig" @click.stop>
+					<div class="modal-grabber">
+						<div class="modal-grabber-bar"></div>
+					</div>
+
+					<div class="salary-modal-head">
+						<div class="salary-modal-title">
+							<img alt="" width="20" height="20" src="/static/images/icons/wallet.svg">
+							<span>Gestión de Salarios</span>
+						</div>
+
+						<div class="salary-modal-controls">
+							<div class="salary-period-nav">
+								<div class="hover-opacity" @click="salaryPrevPeriod()">
+									<img class="flip" alt="" src="/static/images/icons/right.svg" width="16" height="16">
+								</div>
+								<span class="salary-period-name" x-text="salary_period_name || 'Seleccionar periodo'"></span>
+								<div class="hover-opacity" @click="salaryNextPeriod()">
+									<img alt="" src="/static/images/icons/right.svg" width="16" height="16">
+								</div>
+							</div>
+
+							<button class="salary-calc-btn hover-opacity" 
+								@click="salaryCalculateAll()"
+								:disabled="salary_calculating">
+								<span x-text="salary_calculating ? 'Calculando...' : 'Calcular'"></span>
+							</button>
+
+							<button class="salary-gen-btn hover-opacity"
+								@click="salaryGenerateFile(1)"
+								title="Generar TXT de Telecrédito para FADIPESA">
+								FADIPESA
+								<img src="/static/images/icons/download.svg" width="14" height="14" alt="">
+							</button>
+
+							<button class="salary-gen-btn hover-opacity"
+								@click="salaryGenerateFile(2)"
+								title="Generar TXT de Telecrédito para KREAR3D"
+								disabled>
+								KREAR3D
+								<img src="/static/images/icons/download.svg" width="14" height="14" alt="">
+							</button>
+						</div>
+					</div>
+
+					<div class="salary-modal-content modal-content overflow">
+						<template x-if="salary_list.length === 0">
+							<div class="salary-empty">
+								No hay datos. Selecciona un periodo y presiona "Calcular".
+							</div>
+						</template>
+
+						<template x-if="salary_list.length > 0">
+							<div class="salary-table">
+								<div class="salary-table-head">
+									<span>Usuario</span>
+									<span>Empresa</span>
+									<span>Base</span>
+									<span>Cumplimiento</span>
+									<span>Factor</span>
+									<span>Sueldo final</span>
+									<span>Estado</span>
+								</div>
+
+								<template x-for="row in salary_list" :key="row.id">
+									<div class="salary-table-row white">
+										<div class="salary-user">
+											<img :src="'/static/images/uploads/users/' + row.user_image" width="28" height="28" alt="">
+											<div>
+												<span class="name" x-text="row.user_name"></span>
+												<span class="dept" x-text="row.department_name"></span>
+											</div>
+										</div>
+										<span x-text="row.business_name"></span>
+										<span x-text="`S/ ${row.base_salary.toFixed(2)}`"></span>
+										<span :class="{'salary-low': row.compliance_pct < 100}" x-text="`${row.compliance_pct.toFixed(2)}%`"></span>
+										<span x-text="`x${row.factor.toFixed(4)}`"></span>
+										<span class="salary-final" x-text="`S/ ${row.final_salary.toFixed(2)}`"></span>
+										<div>
+											<template x-if="row.status === 'draft'">
+												<button class="salary-approve-btn hover-opacity" @click="salaryApprove(row.id)">Aprobar</button>
+											</template>
+											<template x-if="row.status === 'approved'">
+												<span class="salary-approved-badge">Aprobado</span>
+											</template>
+										</div>
+									</div>
+								</template>
+							</div>
+						</template>
+					</div>
+				</div>
+			</div>
+
 		</div>
 	</div>
-
-
-
 
 
 
@@ -899,6 +1007,12 @@
 		available_leave: 0,
 		finish_date: '-',
 		red_flag: false,
+		salary_data: null,
+		salary_list: [],
+		salary_period_id: null,
+		salary_period_name: '',
+		salary_period_offset: 0,
+		salary_calculating: false,
 
 		async init() {
 			console.log('Inicializando attendance...');
@@ -942,6 +1056,125 @@
 			// await Alpine.store('cache').verify();
 		},
 		
+		openSalaryModal() {
+			this.salary_period_offset = this.offset;
+			this.loadSalaryPeriod();
+			Alpine.store('cache').showModal('salary');
+		},
+
+		async loadSalaryPeriod() {
+			const period = Alpine.store('cache').getData('attendance_period');
+			if (!period?.period?.id) return;
+
+			// Usar el periodo actual del attendance
+			this.salary_period_id = period.period.id;
+			this.salary_period_name = period.period.name;
+
+			await this.loadSalaryList();
+		},
+
+		async salaryPrevPeriod() {
+			this.salary_period_offset--;
+			// Fetch period info for the new offset
+			try {
+				const token = localStorage.getItem('user_token');
+				const tempUserId = this.user.id;
+				const res = await fetch(
+					`${this.api}/attendance/period?user_id=${tempUserId}&offset=${this.salary_period_offset}`,
+					{ headers: { 'Authorization': `Bearer ${token}` } }
+				);
+				const data = await res.json();
+				const p = data.data?.period;
+				if (p) {
+					this.salary_period_id = p.id;
+					this.salary_period_name = p.name;
+					await this.loadSalaryList();
+				}
+			} catch (e) {
+				console.error(e);
+			}
+		},
+
+		async salaryNextPeriod() {
+			if (this.salary_period_offset >= 0) return;
+			this.salary_period_offset++;
+			try {
+				const token = localStorage.getItem('user_token');
+				const tempUserId = this.user.id;
+				const res = await fetch(
+					`${this.api}/attendance/period?user_id=${tempUserId}&offset=${this.salary_period_offset}`,
+					{ headers: { 'Authorization': `Bearer ${token}` } }
+				);
+				const data = await res.json();
+				const p = data.data?.period;
+				if (p) {
+					this.salary_period_id = p.id;
+					this.salary_period_name = p.name;
+					await this.loadSalaryList();
+				}
+			} catch (e) {
+				console.error(e);
+			}
+		},
+
+		async loadSalaryList() {
+			if (!this.salary_period_id) return;
+			try {
+				const token = localStorage.getItem('user_token');
+				const res = await fetch(
+					`${this.api}/attendance/salary/period/${this.salary_period_id}`,
+					{ headers: { 'Authorization': `Bearer ${token}` } }
+				);
+				const data = await res.json();
+				this.salary_list = data.data || [];
+			} catch (e) {
+				this.salary_list = [];
+			}
+		},
+
+		async salaryCalculateAll() {
+			if (this.salary_calculating || !this.salary_period_id) return;
+			this.salary_calculating = true;
+			try {
+				const token = localStorage.getItem('user_token');
+
+				// Paso 1: calcular stats
+				await fetch(`${this.api}/attendance/salary/stats/calculate`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+					body: JSON.stringify({ period_id: this.salary_period_id }),
+				});
+
+				// Paso 2: calcular salaries
+				await fetch(`${this.api}/attendance/salary/calculate`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+					body: JSON.stringify({ period_id: this.salary_period_id }),
+				});
+
+				// Paso 3: recargar tabla
+				await this.loadSalaryList();
+			} catch (e) {
+				console.error('Error calculando:', e);
+			} finally {
+				this.salary_calculating = false;
+			}
+		},
+
+		async salaryApprove(salaryId) {
+			try {
+				const token = localStorage.getItem('user_token');
+				await fetch(`${this.api}/attendance/salary/approve`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+					body: JSON.stringify({ salary_id: salaryId }),
+				});
+				await this.loadSalaryList();
+			} catch (e) {
+				console.error('Error aprobando:', e);
+			}
+		},
+
 		truncateDecimals(value, decimals = 2) {
 			const n = Number(value || 0);
 			const factor = 10 ** decimals;
@@ -957,6 +1190,27 @@
 			]);
 			this.hover_day = null;
 			this.buildGrid();
+			if (Alpine.store('cache').hasPermission('attendance', 'salary')) {
+				await this.loadSalary();
+			}
+		},
+
+		async loadSalary() {
+			const uid = this.option_user?.id ?? this.user.id;
+			const period = Alpine.store('cache').getData('attendance_period');
+			if (!period?.period?.id) { this.salary_data = null; return; }
+
+			try {
+				const token = localStorage.getItem('user_token');
+				const res = await fetch(
+					`${this.api}/attendance/salary/user/${uid}/period/${period.period.id}`,
+					{ headers: { 'Authorization': `Bearer ${token}` } }
+				);
+				const json = await res.json();
+				this.salary_data = json.data || null;
+			} catch (e) {
+				this.salary_data = null;
+			}
 		},
 
 		hhmmToMin(hhmm) {
@@ -1954,6 +2208,43 @@
 
 			return Math.max(needed, real);
 		},
+
+		async salaryGenerateFile(businessId) {
+			if (!this.salary_period_id) return;
+
+			try {
+				const token = localStorage.getItem('user_token');
+				const res = await fetch(`${this.api}/attendance/salary/generate`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': `Bearer ${token}`,
+					},
+					body: JSON.stringify({
+						period_id: this.salary_period_id,
+						business_id: businessId,
+					}),
+				});
+
+				const json = await res.json();
+				if (!res.ok) throw new Error(json?.data?.message || 'Error generando archivo');
+
+				const data = json.data;
+
+				// Descargar como TXT
+				const blob = new Blob([data.content], { type: 'text/plain' });
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = data.filename;
+				a.click();
+				URL.revokeObjectURL(url);
+
+			} catch (e) {
+				console.error('Error generando archivo:', e);
+			}
+		},
+
 	}));
 </script>
 
@@ -1966,6 +2257,161 @@
 
 
 	<style>
+		/* Salary modal */
+		.salary-modal-head {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 1rem 1.25rem;
+			gap: 1rem;
+			flex-wrap: wrap;
+		}
+		.salary-modal-title {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			font-weight: 600;
+			font-size: 0.95rem;
+		}
+		.salary-modal-controls {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		.salary-period-nav {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			font-size: 0.8rem;
+			font-weight: 500;
+		}
+		.salary-period-nav div {
+			cursor: pointer;
+			padding: 0.25rem;
+		}
+		.salary-period-name {
+			min-width: 8rem;
+			text-align: center;
+		}
+		.salary-calc-btn {
+			background: var(--primary);
+			color: white;
+			border: none;
+			border-radius: 2rem;
+			padding: 0.45rem 1rem;
+			font-family: var(--font);
+			font-size: 0.75rem;
+			font-weight: 600;
+			cursor: pointer;
+		}
+		.salary-calc-btn:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+		.salary-modal-content {
+			max-height: 70vh;
+		}
+		.salary-empty {
+			padding: 3rem;
+			text-align: center;
+			opacity: 0.4;
+			font-size: 0.85rem;
+		}
+
+		/* Table */
+		.salary-table {
+			display: flex;
+			flex-direction: column;
+		}
+		.salary-table-head {
+			display: grid;
+			grid-template-columns: 2fr 1fr 1fr 1fr 0.8fr 1fr 1fr;
+			gap: 0.5rem;
+			padding: 0.6rem 1.25rem;
+			font-size: 0.7rem;
+			font-weight: 600;
+			opacity: 0.4;
+			text-transform: uppercase;
+			letter-spacing: 0.03em;
+		}
+		.salary-table-row {
+			display: grid;
+			grid-template-columns: 2fr 1fr 1fr 1fr 0.8fr 1fr 1fr;
+			gap: 0.5rem;
+			align-items: center;
+			padding: 0.6rem 1.25rem;
+			font-size: 0.8rem;
+			border-radius: 0.75rem;
+			margin: 0 0.5rem 0.35rem;
+		}
+		.salary-user {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		.salary-user img {
+			border-radius: 50%;
+			object-fit: cover;
+			width: 28px;
+			height: 28px;
+		}
+		.salary-user .name {
+			font-weight: 600;
+			font-size: 0.8rem;
+			display: block;
+		}
+		.salary-user .dept {
+			font-size: 0.65rem;
+			opacity: 0.5;
+		}
+		.salary-final {
+			font-weight: 600;
+		}
+		.salary-low {
+			color: #d35400;
+		}
+		.salary-approve-btn {
+			background: var(--secondary);
+			color: white;
+			border: none;
+			border-radius: 2rem;
+			padding: 0.3rem 0.75rem;
+			font-family: var(--font);
+			font-size: 0.7rem;
+			font-weight: 500;
+			cursor: pointer;
+		}
+		.salary-approved-badge {
+			background: #d0f4ea;
+			color: #0F6E56;
+			border: 1.5px solid #abe9d8;
+			border-radius: 2rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.65rem;
+			font-weight: 600;
+		}
+		.salary-gen-btn {
+			background: var(--secondary);
+			color: white;
+			border: none;
+			border-radius: 2rem;
+			padding: 0.45rem 0.75rem;
+			font-family: var(--font);
+			font-size: 0.7rem;
+			font-weight: 600;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			gap: 0.35rem;
+		}
+		.salary-gen-btn:disabled {
+			opacity: 0.3;
+			cursor: not-allowed;
+		}
+		.salary-gen-btn img {
+			filter: invert(1);
+		}
+
 		#modal-process .view-leave {
 			padding: 1.5rem;
 			display: flex;
@@ -2974,6 +3420,17 @@
 			font-size: 0.8rem;
 			display: none;
 		}
-		
+		@media (max-width: 48rem) {
+			.salary-table-head {
+				display: none;
+			}
+			.salary-table-row {
+				grid-template-columns: 1fr 1fr;
+				gap: 0.25rem;
+			}
+			.salary-user {
+				grid-column: 1 / -1;
+			}
+		}
 	</style>
 </div>
