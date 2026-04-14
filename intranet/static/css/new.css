@@ -769,6 +769,7 @@ body.modal-open {
     opacity: 0;
     transition: var(--transition);
     visibility: hidden;
+    min-width: max-content;
     font-size: 0.75rem;
 }
 #sidebar ul li span:before {

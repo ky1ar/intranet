@@ -123,6 +123,7 @@ document.addEventListener('alpine:init', () => {
             marketing:   { image: 'marketing',  label: 'Marketing',     title: 'Krear 3D - Marketing' },
             schedules:   { image: 'schedule',   label: 'Horarios',      title: 'Krear 3D - Horarios' },
             refunds:     { image: 'pending',    label: 'Extornos',      title: 'Krear 3D - Extornos' },
+            safebuy:     { image: 'safebuy',     label: 'Compra Segura', title: 'Krear 3D - Compra Segura' },
             admin:       { image: 'admin',      label: 'Admin',         title: 'Krear 3D - Admin' },
         },
 

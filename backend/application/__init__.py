@@ -62,6 +62,7 @@ from application.routes.import_routes import import_bp
 from application.routes.common_routes import common_bp
 from application.routes.warehouse_routes import warehouse_bp
 from application.routes.module_routes import module_bp
+from application.routes.safebuy_routes import safebuy_bp
 
 
 app.register_blueprint(dev_bp)
@@ -83,6 +84,7 @@ app.register_blueprint(import_bp)
 app.register_blueprint(common_bp)
 app.register_blueprint(warehouse_bp)
 app.register_blueprint(module_bp)
+app.register_blueprint(safebuy_bp)
 
 
 def api_key_required():

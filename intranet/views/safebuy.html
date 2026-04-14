@@ -1,0 +1,751 @@
+<div x-data="safebuy_data">
+	<div id="safebuy">
+		<div class="controls">
+			<div class="toggle-collapse frost" @click="$store.cache.toogleMoreMenu()" @click.outside="$store.cache.hideMoreMenu()">
+				<div class="item">
+					<img alt="" width="24" height="24" src="/static/images/icons/more.svg">
+				</div>
+			</div>
+
+			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
+				<div class="item" @click="search()">
+					<img alt="" width="18" height="18" src="/static/images/icons/find.svg">
+				</div>
+			</div>
+
+			<div class="left mobile-hide frost">
+				<div class="item" @click="search()">
+					<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
+					<span>Buscar</span>
+				</div>
+			</div>
+		</div>
+
+		<div class="main glass">
+			<template x-for="group in $store.cache.getData('safebuy_dashboard')" :key="group.status_id">
+				<div class="group">
+					<div class="group-head">
+						<img alt="" width="20" height="20"
+							:src="'/static/images/safebuy/' + ($store.cache.getById('safebuy_statuses', group.status_id)?.image || 'default.png')"
+							alt="">
+						<span class="group-name" x-text="$store.cache.getById('safebuy_statuses', group.status_id)?.name || ''"></span>
+						<!-- <span class="group-count" x-text="group.requests.length"></span> -->
+					</div>
+
+					<template x-for="req in group.requests" :key="req.id">
+						<div class="req-card white hover-opacity" @click="openRequest(req.id)">
+							<div class="req-top">
+								<span class="req-client" x-text="req.client_name"></span>
+								<span class="req-date" x-text="req.created_at"></span>
+							</div>
+							<div class="req-product" x-text="`${req.product_brand} ${req.product_model}`"></div>
+							<div class="req-bottom">
+								<span class="req-order" x-text="req.order_number ? `#${req.order_number}` : ''"></span>
+								<div class="req-prices">
+									<span class="req-diff" x-text="`S/ ${req.price_difference.toFixed(2)}`"></span>
+									<template x-if="req.credit_available > 0">
+										<span class="req-credit" x-text="`Crédito: S/ ${req.credit_available.toFixed(2)}`"></span>
+									</template>
+								</div>
+							</div>
+						</div>
+					</template>
+				</div>
+			</template>
+		</div>
+
+		<!-- Modal detalle -->
+		<div
+			x-show="$store.cache.isVisibleModal('safebuy-detail')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap common-modal"
+			id="modal-safebuy-detail"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2 extrabig" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="detail-head">
+					<span class="detail-title" x-text="`Compra Segura #${detail?.id || ''}`"></span>
+					<div class="detail-status" :class="detail?.status_slug" x-text="detail?.status_name"></div>
+				</div>
+
+				<div class="modal-content dual">
+					<div class="dataview overflow percent50">
+						<!-- Cliente -->
+						<div class="detail-section">
+							<div class="section-label">Cliente</div>
+							<div class="detail-grid">
+								<div class="detail-field">
+									<span class="label">Nombre</span>
+									<span x-text="detail?.client_name"></span>
+								</div>
+								<div class="detail-field">
+									<span class="label">Documento</span>
+									<span x-text="detail?.client_document || '-'"></span>
+								</div>
+								<div class="detail-field">
+									<span class="label">Email</span>
+									<span x-text="detail?.client_email || '-'"></span>
+								</div>
+								<div class="detail-field">
+									<span class="label">Teléfono</span>
+									<span x-text="detail?.client_phone || '-'"></span>
+								</div>
+							</div>
+						</div>
+
+						<!-- Producto -->
+						<div class="detail-section">
+							<div class="section-label">Producto</div>
+							<div class="detail-grid">
+								<div class="detail-field full">
+									<span class="label">Producto</span>
+									<span x-text="detail?.product_name"></span>
+								</div>
+								<div class="detail-field">
+									<span class="label">Nro. orden</span>
+									<span x-text="detail?.order_number || '-'"></span>
+								</div>
+								<div class="detail-field">
+									<span class="label">Fecha compra</span>
+									<span x-text="detail?.purchase_date"></span>
+								</div>
+								<div class="detail-field">
+									<span class="label">Canal</span>
+									<span x-text="detail?.purchase_channel"></span>
+								</div>
+							</div>
+						</div>
+
+						<!-- Precios -->
+						<div class="detail-section">
+							<div class="section-label">Precios</div>
+							<div class="detail-grid">
+								<div class="detail-field">
+									<span class="label">Precio pagado</span>
+									<span x-text="`S/ ${detail?.paid_price?.toFixed(2) || '0.00'}`"></span>
+								</div>
+								<div class="detail-field">
+									<span class="label">Precio nuevo</span>
+									<span x-text="`S/ ${detail?.new_price?.toFixed(2) || '0.00'}`"></span>
+								</div>
+								<div class="detail-field highlight">
+									<span class="label">Diferencia</span>
+									<span x-text="`S/ ${detail?.price_difference?.toFixed(2) || '0.00'}`"></span>
+								</div>
+							</div>
+						</div>
+
+						<!-- Crédito -->
+						<div class="detail-section" x-show="detail?.status_id >= 3 && detail?.status_id <= 5">
+							<div class="section-label">Crédito</div>
+							<div class="detail-grid">
+								<div class="detail-field">
+									<span class="label">Total</span>
+									<span x-text="`S/ ${detail?.credit_amount?.toFixed(2) || '0.00'}`"></span>
+								</div>
+								<div class="detail-field">
+									<span class="label">Usado</span>
+									<span x-text="`S/ ${detail?.credit_used?.toFixed(2) || '0.00'}`"></span>
+								</div>
+								<div class="detail-field highlight">
+									<span class="label">Disponible</span>
+									<span x-text="`S/ ${detail?.credit_available?.toFixed(2) || '0.00'}`"></span>
+								</div>
+							</div>
+
+							<!-- Aplicar crédito -->
+							<div class="credit-apply" x-show="detail?.credit_available > 0 && $store.cache.hasPermission('safebuy', 'credit')">
+								<div class="credit-fields">
+									<input type="number" min="0" step="0.01" placeholder="Monto" x-model.number="credit_form.amount">
+									<input type="text" placeholder="Nro. orden nueva" x-model="credit_form.order_number">
+									<input type="number" min="0" step="0.01" placeholder="Total orden" x-model.number="credit_form.order_total">
+								</div>
+								<button class="btn-credit hover-opacity" @click="applyCredit()">Aplicar crédito</button>
+							</div>
+
+							<!-- Historial de uso -->
+							<div class="credit-history" x-show="detail?.credit_usage?.length > 0">
+								<div class="section-label" style="margin-top: 0.5rem;">Historial de uso</div>
+								<template x-for="u in detail?.credit_usage || []" :key="u.id">
+									<div class="usage-row">
+										<span x-text="`-S/ ${u.amount_used.toFixed(2)}`"></span>
+										<span x-text="u.order_number ? `Orden ${u.order_number}` : ''"></span>
+										<span x-text="u.applied_by_name"></span>
+										<span class="usage-date" x-text="u.created_at"></span>
+									</div>
+								</template>
+							</div>
+						</div>
+
+						<!-- Attachments -->
+						<template x-for="section in (detail?.attachment_sections || [])" :key="section.target">
+							<div class="detail-section" x-show="section.files && section.files.length">
+								<div class="section-label-row">
+									<img alt="" width="14" height="14" src="/static/images/icons/filled/clip.svg">
+									<span class="section-label" style="margin-bottom:0;" x-text="section.label"></span>
+									<span class="section-count" x-text="`(${section.files.length})`"></span>
+								</div>
+
+								<div class="thumbnails-grid small-grid">
+									<template x-for="f in section.files" :key="f.id">
+										<div class="thumb-item hover-opacity" @click="openAttachment(f)">
+											<div class="thumbnail-wrapper">
+												<template x-if="isImageFile(f)">
+													<img class="hover-opacity" :src="getInlineUrl(f)" :alt="f.original_name">
+												</template>
+												<template x-if="!isImageFile(f)">
+													<div class="file-card">
+														<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+													</div>
+												</template>
+											</div>
+											<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+										</div>
+									</template>
+								</div>
+							</div>
+						</template>
+
+						<!-- Acciones -->
+						<div class="detail-actions" x-show="detail?.status_id === 1 || detail?.status_id === 2">
+							<div class="action-btns">
+								<button class="btn-review hover-opacity" @click="changeStatus(2)"
+									x-show="detail?.status_id === 1">En revisión</button>
+								<button class="btn-approve hover-opacity" @click="changeStatus(3)"
+									x-show="$store.cache.hasPermission('safebuy', 'approve')">Aprobar</button>
+								<button class="btn-reject hover-opacity" @click="changeStatus(6)"
+									x-show="$store.cache.hasPermission('safebuy', 'approve')">Rechazar</button>
+							</div>
+						</div>
+					</div>
+
+					<!-- Chat -->
+					<div class="comments-container white percent50">
+						<div class="comments-box overflow" x-ref="commentsBox">
+							<template x-if="!detail?.chats || detail?.chats?.length === 0">
+								<div class="no-comments">Nada por aquí</div>
+							</template>
+
+							<template x-for="chat in detail?.chats" :key="chat.id">
+								<div class="user-comment" :class="{'self': chat.commenter_id == user.id}">
+									<img alt="user" :src="'/static/images/uploads/users/' + chat.commenter_image" width="24" height="24">
+									<div class="white bubble">
+										<div class="top">
+											<span x-text="chat.commenter_id == user.id ? 'Tú' : chat.commenter_name"></span>
+											<p x-text="chat.created_at"></p>
+										</div>
+										<p x-text="chat.comment"></p>
+									</div>
+								</div>
+							</template>
+						</div>
+
+						<div class="comments-input white">
+							<label>
+								<textarea x-model="message" placeholder="Ingresa un mensaje..." @keydown.enter="handleEnterSend($event)"></textarea>
+							</label>
+							<div class="send hover-opacity" @click="sendChat()" :class="{'disabled': !message}">
+								<img alt="enviar" width="16" height="16" src="/static/images/icons/send.svg">
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Modal attachment viewer -->
+		<div
+			x-show="$store.cache.isVisibleModal('safebuy-attachment')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-safebuy-attachment"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal small glass2" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="modal-content">
+					<template x-if="viewer_payload?.kind === 'url' && isPdfFile(viewer_file)">
+						<iframe :src="viewer_payload.url" style="width:100%; height:70vh; border:0;"></iframe>
+					</template>
+
+					<template x-if="viewer_payload?.kind === 'url' && isImageFile(viewer_file)">
+						<img style="border-radius: 0.75rem; max-width:100%;" :src="viewer_payload.url">
+					</template>
+
+					<template x-if="viewer_payload?.kind === 'download'">
+						<div style="text-align: center;" x-text="viewer_payload.message"></div>
+					</template>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		Alpine.data('safebuy_data', () => ({
+			token: localStorage.getItem('user_token'),
+			api: Alpine.store('cache').api,
+			user: Alpine.store('cache').user,
+			detail: null,
+			credit_form: { amount: '', order_number: '', order_total: '' },
+			message: '',
+			processing: false,
+			viewer_file: null,
+			viewer_payload: null,
+
+			async init() {
+				const socket = Alpine.store('cache').socket;
+				if (socket) {
+					socket.on("safebuy_update", async () => {
+						await Alpine.store('cache').refresh('safebuy_dashboard');
+					});
+				}
+
+				await Alpine.store('cache').fetchData([
+					{ key: 'safebuy_dashboard', url: '/safebuy/dashboard', force: true },
+					{ key: 'safebuy_statuses', url: '/safebuy/statuses' },
+				]);
+			},
+
+			async refreshDashboard() {
+				await Alpine.store('cache').refresh('safebuy_dashboard');
+			},
+
+			async openRequest(id) {
+				try {
+					const res = await fetch(`${this.api}/safebuy/request/${id}`, {
+						headers: { 'Authorization': `Bearer ${this.token}` },
+					});
+					const json = await res.json();
+					this.detail = json.data;
+					this.credit_form = { amount: '', order_number: '', order_total: '' };
+					this.message = '';
+					Alpine.store('cache').showModal('safebuy-detail');
+					this.$nextTick(() => this.scrollCommentsToBottom('instant'));
+				} catch (e) {
+					console.error(e);
+				}
+			},
+
+			async changeStatus(statusId) {
+				if (!this.detail) return;
+				try {
+					const res = await fetch(`${this.api}/safebuy/request/${this.detail.id}/status`, {
+						method: 'PUT',
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+						body: JSON.stringify({ status_id: statusId }),
+					});
+					if (res.ok) {
+						Alpine.store('cache').hideLastModal();
+						await this.refreshDashboard();
+					}
+				} catch (e) {
+					console.error(e);
+				}
+			},
+
+			async applyCredit() {
+				if (!this.detail || !this.credit_form.amount) return;
+				try {
+					const res = await fetch(`${this.api}/safebuy/request/${this.detail.id}/credit`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+						body: JSON.stringify(this.credit_form),
+					});
+					const json = await res.json();
+					if (!res.ok) {
+						alert(json?.data?.message || 'Error');
+						return;
+					}
+					await this.openRequest(this.detail.id);
+					await this.refreshDashboard();
+				} catch (e) {
+					console.error(e);
+				}
+			},
+
+			// ── Chat ──
+
+			handleEnterSend(e) {
+				if (e.shiftKey) return;
+				e.preventDefault();
+				this.sendChat();
+			},
+
+			scrollCommentsToBottom(behavior = 'smooth') {
+				const box = this.$refs.commentsBox;
+				if (!box) return;
+				box.scrollTo({ top: box.scrollHeight, behavior });
+			},
+
+			async sendChat() {
+				if (!this.message || this.processing || !this.detail?.id) return;
+				this.processing = true;
+
+				try {
+					const res = await fetch(`${this.api}/safebuy/chat/${this.detail.id}`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${this.token}`,
+						},
+						body: JSON.stringify({ comment: this.message }),
+					});
+
+					const json = await res.json();
+					if (!res.ok) throw new Error(json?.data?.message || 'Error enviando mensaje');
+
+					const data = json.data;
+					this.detail.chats.push({
+						id: data.id,
+						comment: data.comment,
+						commenter_id: data.commenter_id,
+						commenter_name: data.commenter_name,
+						commenter_image: data.commenter_image,
+						created_at: data.created_at,
+					});
+
+					this.message = '';
+					this.$nextTick(() => this.scrollCommentsToBottom());
+				} catch (e) {
+					console.error(e);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			// ── Attachments ──
+
+			isImageFile(f) {
+				const ext = (f?.ext || '').toLowerCase();
+				return ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext);
+			},
+
+			isPdfFile(f) {
+				return (f?.ext || '').toLowerCase() === 'pdf';
+			},
+
+			getInlineUrl(f) {
+				return `${this.api}${f.inline_url}`;
+			},
+
+			async openAttachment(file) {
+				this.viewer_file = file;
+				this.viewer_payload = null;
+
+				try {
+					const res = await fetch(`${this.api}${file.preview_url}`, {
+						headers: {
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${this.token}`,
+						},
+					});
+
+					const json = await res.json();
+					const payload = json?.data ?? json;
+
+					if (payload.kind === 'url') payload.url = `${this.api}${payload.url}`;
+					this.viewer_file.download_url = `${this.api}${file.download_url}`;
+
+					this.viewer_payload = payload;
+					Alpine.store('cache').showModal('safebuy-attachment');
+				} catch (e) {
+					console.error(e);
+				}
+			},
+		}));
+	</script>
+
+	<style>
+		#safebuy {
+			display: flex;
+			min-height: calc(100vh - 6.5rem);
+			gap: 1rem;
+			overflow: auto;
+			flex-direction: column;
+		}
+		#safebuy .main {
+			display: flex;
+			overflow-x: auto;
+			/* min-height: calc(100vh - 6.5rem); */
+			flex: 1;
+		}
+		#safebuy .group {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			border-right: 3px solid #ffffff80;
+			gap: 0.75rem;
+			min-width: 16rem;
+			padding: 0.75rem;
+		}
+		#safebuy .group:last-child {
+			border-right: none;
+		}
+		#safebuy .group-head {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.5rem;
+		}
+		#safebuy .group-name {
+			font-weight: 600;
+			font-size: 0.85rem;
+		}
+		#safebuy .group-count {
+			display: none;
+			font-size: 0.7rem;
+			opacity: 0.4;
+			font-weight: 500;
+		}
+		#safebuy .req-card {
+			padding: 0.75rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.35rem;
+		}
+		#safebuy .req-top {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#safebuy .req-client {
+			font-weight: 600;
+			font-size: 0.8rem;
+		}
+		#safebuy .req-date {
+			font-size: 0.65rem;
+			opacity: 0.4;
+		}
+		#safebuy .req-product {
+			font-size: 0.75rem;
+			opacity: 0.7;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		#safebuy .req-bottom {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-top: 0.15rem;
+		}
+		#safebuy .req-order {
+			font-size: 0.7rem;
+			opacity: 0.4;
+		}
+		#safebuy .req-diff {
+			font-weight: 600;
+			font-size: 0.8rem;
+			color: var(--primary);
+		}
+		#safebuy .req-credit {
+			font-size: 0.65rem;
+			opacity: 0.6;
+			margin-left: 0.5rem;
+		}
+
+		/* Modal detail */
+		.detail-head {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 1rem 1.25rem;
+		}
+		.detail-title {
+			font-weight: 700;
+			font-size: 0.95rem;
+		}
+		.detail-status {
+			font-size: 0.7rem;
+			font-weight: 600;
+			padding: 0.25rem 0.75rem;
+			border-radius: 2rem;
+		}
+		.detail-status.requested   { background: var(--newgray); }
+		.detail-status.reviewing   { background: #fff0de; color: #b87514; }
+		.detail-status.approved    { background: #d0f4ea; color: #0F6E56; }
+		.detail-status.partial     { background: #dff5ff; color: #185FA5; }
+		.detail-status.used        { background: #e6e6e6; color: #444; }
+		.detail-status.rejected    { background: #fee3e1; color: #993535; }
+
+		.detail-section {
+			padding: 0.75rem 0;
+			border-top: 1px solid var(--gray);
+		}
+		.section-label {
+			font-size: 0.65rem;
+			font-weight: 600;
+			text-transform: uppercase;
+			letter-spacing: 0.04em;
+			opacity: 0.35;
+			margin-bottom: 0.4rem;
+		}
+		.section-label-row {
+			display: flex;
+			align-items: center;
+			gap: 0.35rem;
+			margin-bottom: 0.5rem;
+		}
+		.section-label-row .section-label {
+			margin-bottom: 0;
+		}
+		.section-count {
+			font-size: 0.65rem;
+			opacity: 0.4;
+		}
+		.detail-grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 0.5rem;
+		}
+		.detail-field {
+			display: flex;
+			flex-direction: column;
+			gap: 0.1rem;
+		}
+		.detail-field.full {
+			grid-column: 1 / -1;
+		}
+		.detail-field .label {
+			font-size: 0.65rem;
+			opacity: 0.4;
+			font-weight: 500;
+		}
+		.detail-field span:last-child {
+			font-size: 0.8rem;
+		}
+		.detail-field.highlight span:last-child {
+			font-weight: 700;
+			color: var(--primary);
+		}
+
+		/* Credit apply */
+		.credit-apply {
+			margin-top: 0.5rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+		.credit-fields {
+			display: grid;
+			grid-template-columns: 1fr 1fr 1fr;
+			gap: 0.4rem;
+		}
+		.credit-fields input {
+			border: 1.5px solid var(--graydark);
+			border-radius: 0.5rem;
+			padding: 0.45rem 0.5rem;
+			font-family: var(--font);
+			font-size: 0.75rem;
+			outline: none;
+		}
+		.credit-fields input:focus {
+			border-color: var(--primary);
+		}
+		.btn-credit {
+			background: var(--secondary);
+			color: white;
+			border: none;
+			border-radius: 0.5rem;
+			padding: 0.45rem;
+			font-family: var(--font);
+			font-size: 0.75rem;
+			font-weight: 600;
+			cursor: pointer;
+		}
+
+		/* Credit history */
+		.usage-row {
+			display: flex;
+			gap: 0.5rem;
+			align-items: center;
+			font-size: 0.75rem;
+			padding: 0.3rem 0;
+			border-bottom: 1px solid hsl(0 0% 0% / 4%);
+		}
+		.usage-row span:first-child {
+			font-weight: 600;
+			color: #d35400;
+		}
+		.usage-date {
+			font-size: 0.65rem;
+			opacity: 0.4;
+			margin-left: auto;
+		}
+
+		/* Actions */
+		.detail-actions {
+			padding: 0.75rem 0;
+			display: flex;
+			gap: 0.5rem;
+			border-top: 1px solid var(--gray);
+		}
+		.action-btns {
+			display: flex;
+			gap: 0.4rem;
+		}
+		.btn-approve {
+			background: #0F6E56;
+			color: white;
+			border: none;
+			border-radius: 2rem;
+			padding: 0.4rem 1rem;
+			font-family: var(--font);
+			font-size: 0.75rem;
+			font-weight: 600;
+			cursor: pointer;
+		}
+		.btn-reject {
+			background: #993535;
+			color: white;
+			border: none;
+			border-radius: 2rem;
+			padding: 0.4rem 1rem;
+			font-family: var(--font);
+			font-size: 0.75rem;
+			font-weight: 600;
+			cursor: pointer;
+		}
+		.btn-review {
+			background: var(--primary);
+			color: white;
+			border: none;
+			border-radius: 2rem;
+			padding: 0.4rem 1rem;
+			font-family: var(--font);
+			font-size: 0.75rem;
+			font-weight: 600;
+			cursor: pointer;
+		}
+
+		@media (max-width: 48rem) {
+			#safebuy .main {
+				flex-direction: column;
+			}
+			#safebuy .group {
+				min-width: 100%;
+			}
+			.detail-grid {
+				grid-template-columns: 1fr;
+			}
+			.credit-fields {
+				grid-template-columns: 1fr;
+			}
+		}
+	</style>
+</div>
