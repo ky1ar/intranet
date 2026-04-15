@@ -8,7 +8,7 @@
 				</div>
 
 				<div class="item" @click="openSalaryModal()" x-show="$store.cache.hasPermission('attendance', 'salary')">
-					<img alt="" width="20" height="20" src="/static/images/icons/wallet.svg">
+					<img alt="" width="20" height="20" src="/static/images/icons/salary.svg">
 					<span>Salarios</span>
 				</div>
 			</div>
@@ -860,35 +860,34 @@
 
 					<div class="salary-modal-head">
 						<div class="salary-modal-title">
-							<img alt="" width="20" height="20" src="/static/images/icons/wallet.svg">
-							<span>Gestión de Salarios</span>
+							<span>Salarios</span>
 						</div>
 
-						<div class="salary-modal-controls">
-							<div class="salary-period-nav">
-								<div class="hover-opacity" @click="salaryPrevPeriod()">
-									<img class="flip" alt="" src="/static/images/icons/right.svg" width="16" height="16">
-								</div>
-								<span class="salary-period-name" x-text="salary_period_name || 'Seleccionar periodo'"></span>
-								<div class="hover-opacity" @click="salaryNextPeriod()">
-									<img alt="" src="/static/images/icons/right.svg" width="16" height="16">
-								</div>
+						<div class="salary-period-nav">
+							<div class="hover-opacity" @click="salaryPrevPeriod()">
+								<img class="flip" alt="" src="/static/images/icons/right.svg" width="16" height="16">
 							</div>
+							<span class="salary-period-name" x-text="salary_period_name || 'Seleccionar periodo'"></span>
+							<div class="hover-opacity" @click="salaryNextPeriod()">
+								<img alt="" src="/static/images/icons/right.svg" width="16" height="16">
+							</div>
+						</div>
 
-							<button class="salary-calc-btn hover-opacity" 
+						<div class="buttons">
+							<button class="button hover-opacity" 
 								@click="salaryCalculateAll()"
 								:disabled="salary_calculating">
 								<span x-text="salary_calculating ? 'Calculando...' : 'Calcular'"></span>
 							</button>
 
-							<button class="salary-gen-btn hover-opacity"
+							<button class="button black hover-opacity"
 								@click="salaryGenerateFile(1)"
 								title="Generar TXT de Telecrédito para FADIPESA">
 								FADIPESA
 								<img src="/static/images/icons/download.svg" width="14" height="14" alt="">
 							</button>
 
-							<button class="salary-gen-btn hover-opacity"
+							<button class="button black hover-opacity"
 								@click="salaryGenerateFile(2)"
 								title="Generar TXT de Telecrédito para KREAR3D"
 								disabled>
@@ -2262,7 +2261,6 @@
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
-			padding: 1rem 1.25rem;
 			gap: 1rem;
 			flex-wrap: wrap;
 		}
