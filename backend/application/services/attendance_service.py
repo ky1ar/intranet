@@ -46,7 +46,7 @@ class AttendanceService:
             return False
         if self._has_perm(user_id, 'view_all'):
             return True
-        return self._has_perm(user_id, f'view_:{department_slug}')
+        return self._has_perm(user_id, f'view_{department_slug}')
 
 
     def _get_visible_user_ids(self, user_id):

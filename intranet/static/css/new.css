@@ -484,6 +484,7 @@ body.modal-open {
     background-color: var(--secondary);
     color: var(--white);
 }
+
 .modal .button.gray {
     background-color: transparent;
     color: var(--black);
@@ -500,6 +501,10 @@ body.modal-open {
 }
 .modal .button.blue {
     background-color: #648fad;
+    color: var(--white);
+}
+.modal .button.hardblue {
+    background-color: #5e8ed7;
     color: var(--white);
 }
 .modal .button.lime {

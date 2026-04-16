@@ -3,7 +3,7 @@
         <div class="controls">
 			<div class="left frost">
 				<div class="item" @click="viewLeaves()">
-					<img alt="" width="20" height="20" src="/static/images/icons/vacation.svg">
+					<img alt="" width="20" height="20" src="/static/images/icons/leave.svg">
 					<span>Licencias</span>
 				</div>
 
@@ -426,17 +426,17 @@
 						<span class="title">Licencias</span>
 
 						<div class="buttons">
-							<button class="button hover-opacity" @click="permitModal()">
-								<img alt="" width="16" height="16" src="/static/images/icons/add.svg">
-								Permiso
-							</button>
-							
-							<button class="button hover-opacity" @click="medicalModal()">
-								<img alt="" width="16" height="16" src="/static/images/icons/add.svg">
+							<button class="button  hardblue hover-opacity" @click="medicalModal()">
+								<img alt="" width="16" height="16" src="/static/images/icons/medical.svg">
 								D. Médico
 							</button>
 
-							<button class="button black hover-opacity" @click="vacationModal()">
+							<button class="button black hover-opacity" @click="permitModal()">
+								<img alt="" width="16" height="16" src="/static/images/icons/leave.svg">
+								Permiso
+							</button>
+
+							<button class="button hover-opacity" @click="vacationModal()">
 								<img alt="" width="16" height="16" src="/static/images/icons/vacation.svg">
 								Vacaciones
 							</button>
@@ -459,7 +459,19 @@
 											<span class="department" x-text="leave.requester_department"></span>
 										</div>
 									</div>
-									<div class="type" x-text="leave.request_type"></div>
+									<div class="type">
+										<div>
+											<img
+												:src="`/static/images/icons/${
+													leave.request_type === 'Vacaciones' ? 'vacation' :
+													leave.request_type === 'Permiso'    ? 'leave' :
+													'medical'
+												}.svg`"
+												width="14" height="14" alt=""
+											>
+											<span x-text="leave.request_type"></span>
+										</div>
+									</div>
 									<div class="statuses">
 										<div :class="leave.status_slug" x-text="leave.status_name"></div>
 									</div>
@@ -2459,10 +2471,9 @@
 					}),
 				});
 
-				this.resetForms();
-				await this.getLeaveRequests();
 				Alpine.store("cache").hideModal("process");
-
+				setTimeout(() => this.resetForms(), 300);
+				await this.getLeaveRequests();
 			} catch (error) {
 				this.showError("approve", error.message);
 			} finally {
@@ -2484,9 +2495,9 @@
 					body: JSON.stringify({ action: "reject" }),
 				});
 
-				this.resetForms();
-				await this.getLeaveRequests();
 				Alpine.store("cache").hideModal("process");
+				setTimeout(() => this.resetForms(), 300);
+				await this.getLeaveRequests();
 
 			} catch (error) {
 				this.showError("reject", error.message);
@@ -3216,7 +3227,7 @@
 		#modal-process .modal label {
     		position: relative;
 		}
-		#modal-leaves .common-modal .top {
+		#modal-leaves .top {
 			align-items: center;
 		}
 		#modal-leaves .table-box .table-row {
@@ -3241,6 +3252,16 @@
 		#modal-leaves .table-box .user .department {
 			font-size: 0.7rem;
     		opacity: 0.5;
+		}
+		#modal-leaves .table-box .type {
+			display: flex;
+		}
+		#modal-leaves .table-box .type div {
+			font-weight: 500;
+			font-size: 0.8rem;
+			gap: 0.25rem;
+			display: flex;
+			align-items: center;
 		}
 		#attendance {
 			user-select: none;
