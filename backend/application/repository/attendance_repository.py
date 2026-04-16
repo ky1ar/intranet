@@ -568,7 +568,112 @@ class AttendanceRepository:
                 d += timedelta(days=1)
 
         return mp, 200
-    
+
+
+    @handle_db_exceptions
+    def count_vacation_days_in_period(self, user_id: int, start_date: date, end_date: date):
+        """Cuenta días de vacaciones según Art. 23 del reglamento:
+        - a) Solicitud de 1 día: cuenta solo ese día (no incluye feriados ni descansos)
+        - b) Solicitud de 2+ días consecutivos: cuenta TODOS los días calendario
+          (incluye sábados, domingos y feriados comprendidos)
+        - c) Solicitudes que rodean feriados/descansos: se fusionan en un solo
+          período vacacional continuo
+
+        Retorna el total de días calendario vacacionales en el rango dado.
+        """
+        rows = (
+            g.db_session.query(LeaveRequest)
+            .filter(LeaveRequest.deleted_at.is_(None))
+            .filter(LeaveRequest.user_id == int(user_id))
+            .filter(LeaveRequest.request_type == "Vacaciones")
+            .filter(LeaveRequest.status_id == 4)
+            .filter(LeaveRequest.start_date <= end_date)
+            .filter((LeaveRequest.end_date.is_(None)) | (LeaveRequest.end_date >= start_date))
+            .order_by(LeaveRequest.start_date.asc(), LeaveRequest.id.asc())
+            .all()
+        )
+
+        if not rows:
+            return 0, 200
+
+        # Obtener feriados del rango para Art. 23.c
+        holidays = (
+            g.db_session.query(Holidays)
+            .filter(Holidays.deleted_at.is_(None))
+            .filter(Holidays.date >= start_date)
+            .filter(Holidays.date <= end_date)
+            .all()
+        )
+        holiday_dates = set(h.date for h in (holidays or []))
+
+        # Construir lista de intervalos (start, end) de cada solicitud
+        intervals = []
+        for r in rows:
+            s = r.start_date
+            e = r.end_date or r.start_date
+            intervals.append((s, e))
+
+        intervals.sort()
+
+        # Art. 23.c: Fusionar solicitudes separadas solo por descansos/feriados
+        def _is_bridge_day(d):
+            """True si el día es sábado, domingo o feriado"""
+            return d.weekday() >= 5 or d in holiday_dates
+
+        merged = []
+        for s, e in intervals:
+            if not merged:
+                merged.append([s, e])
+                continue
+
+            last_s, last_e = merged[-1]
+            gap_start = last_e + timedelta(days=1)
+            gap_end = s - timedelta(days=1)
+
+            # Verificar si el gap entre solicitudes es solo días puente
+            if gap_start > gap_end:
+                # Solapados o consecutivos
+                merged[-1][1] = max(last_e, e)
+            else:
+                all_bridge = True
+                d = gap_start
+                while d <= gap_end:
+                    if not _is_bridge_day(d):
+                        all_bridge = False
+                        break
+                    d += timedelta(days=1)
+
+                if all_bridge:
+                    # Fusionar: incluir los días puente
+                    merged[-1][1] = max(last_e, e)
+                else:
+                    merged.append([s, e])
+
+        # Contar días según reglas
+        counted_days = set()
+        for s, e in merged:
+            duration = (e - s).days + 1
+
+            # Intersección con rango del periodo
+            eff_s = max(s, start_date)
+            eff_e = min(e, end_date)
+
+            if eff_s > eff_e:
+                continue
+
+            if duration == 1:
+                # Art. 23.a: solo cuenta si NO es descanso/feriado
+                if not _is_bridge_day(eff_s):
+                    counted_days.add(eff_s.isoformat())
+            else:
+                # Art. 23.b: cuenta todos los días calendario
+                d = eff_s
+                while d <= eff_e:
+                    counted_days.add(d.isoformat())
+                    d += timedelta(days=1)
+
+        return len(counted_days), 200
+
 
     @handle_db_exceptions
     def get_permits_by_range(self, user_id: int, start_date: date, end_date: date):

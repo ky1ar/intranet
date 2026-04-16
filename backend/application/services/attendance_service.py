@@ -1337,8 +1337,13 @@ class AttendanceService:
                 worked = 0
                 tolerance_accum = 0
                 tardies = 0
-                vacations = 0
                 incompletes = 0
+
+                # Art. 23: Contar días de vacaciones directamente de la BD
+                # para incluir sábados, domingos y feriados dentro del rango
+                vacations, _ = self.attendance_repository.count_vacation_days_in_period(
+                    user.id, period.start_date, period.end_date
+                )
 
                 for w in weeks:
                     for day in w.get("days", []):
@@ -1349,10 +1354,6 @@ class AttendanceService:
 
                         # Target: todo el periodo (incluye futuro)
                         target += int(day.get("target_min") or 0)
-
-                        # Vacaciones: todo el periodo
-                        if day.get("is_vacation"):
-                            vacations += 1
 
                         # Worked, tardanzas: solo hasta hoy
                         day_date = day.get("date", "")
