@@ -84,3 +84,20 @@ class LeaveBalance(BaseModel):
     __table_args__ = (
         db.UniqueConstraint('user_id', 'period_id', name='uq_leave_bal_user_period'),
     )
+
+
+class LeaveAttachment(BaseModel):
+    """Archivos adjuntos a solicitudes de leave (ej: certificados médicos)"""
+    __tablename__ = 'leave_attachment'
+
+    id               = db.Column(db.Integer, autoincrement=True, primary_key=True)
+    leave_request_id = db.Column(db.Integer, db.ForeignKey("leave_request.id"), nullable=False)
+    original_name    = db.Column(db.String(255), nullable=False)
+    stored_name      = db.Column(db.String(255), nullable=False)
+    mime_type        = db.Column(db.String(120))
+    size_bytes       = db.Column(db.Integer, nullable=False, default=0)
+    uploaded_by      = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    uploaded_at      = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
+
+    leave_request = db.relationship("LeaveRequest", foreign_keys=[leave_request_id], lazy="joined")
+    uploader      = db.relationship("Users", foreign_keys=[uploaded_by], lazy="joined")

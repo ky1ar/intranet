@@ -163,3 +163,20 @@ class AttendanceController:
             data.get("manual_adj"),
             data.get("adjusted_by"),
         )
+
+
+    # ── Medical Leave (Descanso Médico) ────────────────────────────────
+
+    @handle_logs_and_exceptions
+    def medical_leave_request(self, req):
+        return self.attendance_service.medical_leave_request(req)
+
+
+    @handle_logs_and_exceptions
+    def get_leave_attachments(self, leave_id):
+        return self.attendance_service.get_leave_attachments(leave_id)
+
+
+    def get_leave_attachment_file(self, attachment_id):
+        """Retorna respuesta de Flask directamente, no usa handle_logs_and_exceptions"""
+        return self.attendance_service.get_leave_attachment_file(attachment_id)

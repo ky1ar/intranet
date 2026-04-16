@@ -5,7 +5,7 @@ from calendar import monthrange
 from application.handlers import handle_db_exceptions
 from application.utils import peru_time
 from application.db_models.attendance_model import AttendanceMark, AttendancePeriod, UserWorkProfile, WorkProfileShift, AttendanceDayAdjustment
-from application.db_models.leave_model import LeaveDuration, LeaveType, LeaveRequest, LeaveAdjustment, LeaveBalance
+from application.db_models.leave_model import LeaveDuration, LeaveType, LeaveRequest, LeaveAdjustment, LeaveBalance, LeaveAttachment
 from application.models import Holidays
 from flask import g
 
@@ -828,3 +828,74 @@ class AttendanceRepository:
             .all()
         )
         return rows or [], 200
+
+
+    # ── Leave Attachments ─────────────────────────────────────────────
+
+    @handle_db_exceptions
+    def add_leave_attachment(self, data):
+        obj = LeaveAttachment(
+            leave_request_id=data["leave_request_id"],
+            original_name=data["original_name"],
+            stored_name=data["stored_name"],
+            mime_type=data.get("mime_type"),
+            size_bytes=data.get("size_bytes", 0),
+            uploaded_by=data["uploaded_by"],
+            uploaded_at=peru_time(),
+        )
+        g.db_session.add(obj)
+        g.db_session.commit()
+        return {"id": obj.id}, 200
+
+
+    @handle_db_exceptions
+    def get_leave_attachments(self, leave_request_id):
+        rows = (
+            g.db_session.query(LeaveAttachment)
+            .filter(LeaveAttachment.leave_request_id == int(leave_request_id))
+            .order_by(LeaveAttachment.uploaded_at.asc())
+            .all()
+        )
+        return rows or [], 200
+
+
+    @handle_db_exceptions
+    def get_leave_attachment_by_id(self, attachment_id):
+        row = g.db_session.query(LeaveAttachment).get(int(attachment_id))
+        if not row:
+            return None, 404
+        return row, 200
+
+
+    # ── Day adjustments (for medical leave) ───────────────────────────
+
+    @handle_db_exceptions
+    def add_day_adjustment(self, data):
+        obj = AttendanceDayAdjustment(
+            date=data["date"],
+            start_time=data["start_time"],
+            end_time=data["end_time"],
+            scope=data.get("scope", "user"),
+            user_id=data.get("user_id"),
+            profile_id=data.get("profile_id"),
+            department_id=data.get("department_id"),
+            description=data.get("description"),
+            is_active=True,
+        )
+        g.db_session.add(obj)
+        g.db_session.commit()
+        return {"id": obj.id}, 200
+
+
+    @handle_db_exceptions
+    def delete_day_adjustments_by_description(self, description_pattern):
+        """Elimina adjustments por patrón de description (ej: para borrar los de un leave rechazado)"""
+        rows = (
+            g.db_session.query(AttendanceDayAdjustment)
+            .filter(AttendanceDayAdjustment.description == description_pattern)
+            .all()
+        )
+        for r in rows:
+            g.db_session.delete(r)
+        g.db_session.commit()
+        return len(rows), 200

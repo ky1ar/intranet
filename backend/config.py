@@ -98,4 +98,5 @@ class Paths:
     MAX_BYTES = 25 * 1024 * 1024
     IMPORTS = os.path.abspath("/shared_uploads/imports/")
     SAFEBUY = os.path.abspath("/shared_uploads/safebuy/")
+    LEAVES = os.path.abspath("/shared_uploads/leaves/")
 

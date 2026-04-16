@@ -166,3 +166,23 @@ def leave_balance_adjust():
     data = request.get_json() or {}
     data["adjusted_by"] = int(get_jwt_identity())
     return controller.leave_balance_adjust(data)
+
+
+# ── Medical Leave (Descanso Médico) ────────────────────────────
+
+@attendance_bp.route("/leave/medical", methods=["POST"])
+@jwt_required()
+def medical_leave_request():
+    return controller.medical_leave_request(request)
+
+
+@attendance_bp.route("/leave/<int:leave_id>/attachments", methods=["GET"])
+@jwt_required()
+def leave_attachments(leave_id):
+    return controller.get_leave_attachments(leave_id)
+
+
+@attendance_bp.route("/leave/attachment/<int:attachment_id>", methods=["GET"])
+@jwt_required()
+def leave_attachment_file(attachment_id):
+    return controller.get_leave_attachment_file(attachment_id)

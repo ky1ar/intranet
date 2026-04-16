@@ -292,53 +292,53 @@
 						</div>
 					</div>
 
-					<div class="sub white">
-						<div class="target">
-							<img alt="" width="16" height="16" src="/static/images/icons/accept.svg">
-							<span>Licencias</span>
-							<template x-if="$store.cache.hasPermission('attendance', 'leave_balance')">
-								<div class="leave-adj-toggle hover-opacity" @click="leave_adj_open = !leave_adj_open"
-									title="Ajustar saldo de vacaciones">
-									<img alt="" width="12" height="12" src="/static/images/icons/edit.svg" style="opacity:0.4">
-								</div>
-							</template>
-						</div>
-						
-						<div class="item">
-							<div class="label">Vacaciones tomadas</div>
-							<div class="data" x-text="stats.vacation_days">0</div>
-						</div>
-						
-						<div class="item">
-							<div class="label">Vacaciones disponibles</div>
-							<div class="data" :class="{'red': available_leave < 0}" x-text="available_leave"></div>
-						</div>
-
-						<div class="item">
-							<div class="label">Fecha de liquidación</div>
-							<div class="data" x-text="finish_date" style="font-size: 0.85rem;">No aplica</div>
-						</div>
-
-						<template x-if="leave_adj_open && $store.cache.hasPermission('attendance', 'leave_balance')">
-							<div class="leave-adj-panel">
-								<div class="leave-adj-row">
-									<span class="leave-adj-label">Ajuste manual</span>
-									<input type="number" step="0.5" class="leave-adj-input"
-										x-model.number="leave_adj_value"
-										placeholder="ej: 6 o -3">
-								</div>
-								<button class="leave-adj-save hover-opacity"
-									@click="saveLeaveAdjustment()"
-									:disabled="leave_adj_saving">
-									<span x-text="leave_adj_saving ? 'Guardando...' : 'Aplicar ajuste'"></span>
-								</button>
-								<div class="leave-adj-hint">
-									Positivo = agregar días, Negativo = restar días.
-									Se aplica al periodo actual.
-								</div>
+				<div class="sub white">
+					<div class="target">
+						<img alt="" width="16" height="16" src="/static/images/icons/accept.svg">
+						<span>Licencias</span>
+						<template x-if="$store.cache.hasPermission('attendance', 'leave_balance')">
+							<div class="leave-adj-toggle hover-opacity" @click="leave_adj_open = !leave_adj_open"
+								title="Ajustar saldo de vacaciones">
+								<img alt="" width="12" height="12" src="/static/images/icons/edit.svg" style="opacity:0.4">
 							</div>
 						</template>
 					</div>
+					
+					<div class="item">
+						<div class="label">Vacaciones tomadas</div>
+						<div class="data" x-text="stats.vacation_days">0</div>
+					</div>
+					
+					<div class="item">
+						<div class="label">Vacaciones disponibles</div>
+						<div class="data" :class="{'red': available_leave < 0}" x-text="available_leave"></div>
+					</div>
+
+					<div class="item">
+						<div class="label">Fecha de liquidación</div>
+						<div class="data" x-text="finish_date" style="font-size: 0.85rem;">No aplica</div>
+					</div>
+
+					<template x-if="leave_adj_open && $store.cache.hasPermission('attendance', 'leave_balance')">
+						<div class="leave-adj-panel">
+							<div class="leave-adj-row">
+								<span class="leave-adj-label">Ajuste manual</span>
+								<input type="number" step="0.5" class="leave-adj-input"
+									x-model.number="leave_adj_value"
+									placeholder="ej: 6 o -3">
+							</div>
+							<button class="leave-adj-save hover-opacity"
+								@click="saveLeaveAdjustment()"
+								:disabled="leave_adj_saving">
+								<span x-text="leave_adj_saving ? 'Guardando...' : 'Aplicar ajuste'"></span>
+							</button>
+							<div class="leave-adj-hint">
+								Positivo = agregar días, Negativo = restar días.
+								Se aplica al periodo actual.
+							</div>
+						</div>
+					</template>
+				</div>
 
 					<div class="sub white">
 						<div class="target">
@@ -433,6 +433,10 @@
 							<button class="button black hover-opacity" @click="vacatinoModal()">
 								<img alt="" width="16" height="16" src="/static/images/icons/add.svg">
 								Vacaciones
+							</button>
+							<button class="button hover-opacity" @click="medicalModal()" style="background: #E85D24; color: white;">
+								<img alt="" width="16" height="16" src="/static/images/icons/add.svg" style="filter: invert(1);">
+								D. Médico
 							</button>
 						</div>
 					</div>
@@ -655,6 +659,77 @@
 								style="max-width: 100%; border: 2px solid white;"
 							></textarea>
 						</div>
+
+						<!-- MEDICAL LEAVE -->
+						<div class="modal-content" x-show="attendance_form.type == 'medical'">
+							<div class="fields">
+								<label class="white">
+									<img alt="" src="/static/images/icons/calendar.svg" width="16" height="16">
+									<span
+										style="cursor: pointer; flex: 1; line-height: 2.5rem;"
+										@click="if ($refs.med_start_date.showPicker) { $refs.med_start_date.showPicker(); } else { $refs.med_start_date.focus(); }"
+										x-text="dateLabel(attendance_form.start_date, 'Inicio del descanso')"
+									></span>
+									<input
+										x-ref="med_start_date"
+										type="date"
+										x-model="attendance_form.start_date"
+										@change="if (attendance_form.end_date && attendance_form.end_date < attendance_form.start_date) attendance_form.end_date = attendance_form.start_date"
+										style="position:absolute; inset:0; opacity:0; pointer-events:none;"
+									>
+								</label>
+
+								<label class="white">
+									<img alt="" src="/static/images/icons/calendar.svg" width="16" height="16">
+									<span
+										style="cursor: pointer; flex: 1; line-height: 2.5rem;"
+										@click="if ($refs.med_end_date.showPicker) { $refs.med_end_date.showPicker(); } else { $refs.med_end_date.focus(); }"
+										x-text="dateLabel(attendance_form.end_date, 'Fin del descanso')"
+									></span>
+									<input
+										x-ref="med_end_date"
+										type="date"
+										x-model="attendance_form.end_date"
+										:min="attendance_form.start_date"
+										style="position:absolute; inset:0; opacity:0; pointer-events:none;"
+									>
+								</label>
+							</div>
+
+							<textarea
+								placeholder="Detalle / observaciones (opcional)"
+								x-model="attendance_form.description"
+								class="text-area"
+								style="max-width: 100%; border: 2px solid white;"
+							></textarea>
+
+							<div class="medical-attachments white">
+								<label class="medical-upload-btn hover-opacity">
+									<img alt="" src="/static/images/icons/add.svg" width="14" height="14">
+									<span>Adjuntar certificado médico (PDF, imágenes)</span>
+									<input type="file"
+										multiple
+										accept=".pdf,.jpg,.jpeg,.png,.webp,.gif"
+										@change="medical_files = [...medical_files, ...Array.from($event.target.files)]; $event.target.value=''"
+										style="display:none;">
+								</label>
+
+								<div class="medical-files-list" x-show="medical_files.length > 0">
+									<template x-for="(f, idx) in medical_files" :key="idx">
+										<div class="medical-file-item">
+											<img alt="" src="/static/images/icons/filled/file.svg" width="14" height="14" onerror="this.style.display='none'">
+											<span class="medical-file-name" x-text="f.name"></span>
+											<span class="medical-file-size" x-text="(f.size / 1024).toFixed(1) + ' KB'"></span>
+											<span class="medical-file-remove hover-opacity" @click="medical_files = medical_files.filter((_, i) => i !== idx)">✕</span>
+										</div>
+									</template>
+								</div>
+
+								<div class="medical-hint" x-show="medical_files.length === 0">
+									Debes adjuntar al menos 1 archivo
+								</div>
+							</div>
+						</div>
 					</div>
 
 					<div x-show="['approve','view'].includes(attendance_form.modal)">
@@ -741,8 +816,59 @@
 								<div class="value" x-text="attendance_form.description"></div>
 							</div>
 						</div>
-					</div>
 
+						<!-- MEDICAL LEAVE view/approve -->
+						<div class="modal-content view-leave white" x-show="attendance_form.type == 'medical'">
+							<div class="row">
+								<div class="label">
+									<img alt="" src="/static/images/icons/filled/calendar.svg" width="16" height="16">
+									<span>Inicio del descanso</span>
+								</div>
+								<div class="value" x-text="attendance_form.start_date_text"></div>
+							</div>
+
+							<div class="row">
+								<div class="label">
+									<img alt="" src="/static/images/icons/filled/calendar.svg" width="16" height="16">
+									<span>Fin del descanso</span>
+								</div>
+								<div class="value" x-text="attendance_form.end_date_text"></div>
+							</div>
+
+							<div class="row" x-show="attendance_form.description">
+								<div class="label">
+									<img alt="" src="/static/images/icons/filled/notes.svg" width="16" height="16">
+									<span>Detalle</span>
+								</div>
+								<div class="value" x-text="attendance_form.description"></div>
+							</div>
+
+							<div class="row" x-show="medical_attachments.length > 0">
+								<div class="label">
+									<img alt="" src="/static/images/icons/filled/file.svg" width="16" height="16" onerror="this.style.display='none'">
+									<span>Certificados adjuntos</span>
+								</div>
+								<div class="value" style="display:flex; flex-direction:column; gap:0.35rem; width:100%;">
+									<template x-for="att in medical_attachments" :key="att.id">
+										<a :href="`${api}/attendance/leave/attachment/${att.id}`"
+										   target="_blank"
+										   class="medical-att-link hover-opacity"
+										   @click.prevent="openAttachment(att.id)">
+											<img alt="" src="/static/images/icons/filled/file.svg" width="14" height="14" onerror="this.style.display='none'">
+											<span x-text="att.original_name"></span>
+											<span class="medical-file-size" x-text="(att.size_bytes / 1024).toFixed(1) + ' KB'"></span>
+										</a>
+									</template>
+								</div>
+							</div>
+
+							<div class="row" x-show="medical_attachments.length === 0 && attendance_form.modal !== 'add'">
+								<div class="label">
+									<span style="opacity:0.4">Sin archivos adjuntos</span>
+								</div>
+							</div>
+						</div>
+					</div>
 					<div class="buttons" x-show="attendance_form.modal === 'add'">
 						<button 
 							class="button icon hover-opacity" 
@@ -1077,6 +1203,8 @@
 		leave_adj_open: false,
 		leave_adj_value: 0,
 		leave_adj_saving: false,
+		medical_files: [],
+		medical_attachments: [],
 		red_flag: false,
 		salary_data: null,
 		salary_list: [],
@@ -2039,6 +2167,13 @@
 			Alpine.store('cache').showModal('process');
 		},
 
+		medicalModal() {
+			this.resetForms();
+			this.attendance_form.type = "medical";
+			this.medical_files = [];
+			Alpine.store('cache').showModal('process');
+		},
+
 		formatShortDate(iso) {
 			if (!iso) return "";
 			const [y, m, d] = iso.split("-").map(Number);
@@ -2145,6 +2280,39 @@
 			if (this.processing) return;
 
 			const user_id = this.user.id;
+
+			// ── MEDICAL LEAVE (multipart form data con archivos) ──────────
+			if (this.attendance_form.type === 'medical') {
+				if (!this.attendance_form.start_date) return this.showError('save', 'Fecha inicio requerida');
+				if (!this.medical_files || this.medical_files.length === 0) return this.showError('save', 'Adjunta al menos 1 archivo');
+
+				this.processing = true;
+				try {
+					const fd = new FormData();
+					fd.append('user_id', user_id);
+					fd.append('start_date', this.attendance_form.start_date);
+					fd.append('end_date', this.attendance_form.end_date || this.attendance_form.start_date);
+					fd.append('description', this.attendance_form.description || '');
+					this.medical_files.forEach(f => fd.append('attachments[]', f));
+
+					const res = await fetch(`${this.api}/attendance/leave/medical`, {
+						method: 'POST',
+						headers: { 'Authorization': `Bearer ${this.token}` },
+						body: fd,
+					});
+					const data = await res.json().catch(() => ({}));
+					if (!res.ok) throw new Error(data?.data?.message || data?.message || 'Error al solicitar');
+
+					this.resetForms();
+					this.medical_files = [];
+					Alpine.store('cache').hideLastModal();
+				} catch (e) {
+					this.showError('save', e.message);
+				} finally {
+					this.processing = false;
+				}
+				return;
+			}
 
 			if (this.attendance_form.type == 'permit'){
 				if (!this.attendance_form.start_date) return this.showError('save', 'Fecha requerida');
@@ -2339,11 +2507,43 @@
 				}
 
 				this.attendance_form = data;
+
+				// Si es medical, cargar attachments
+				if (data.type === 'medical') {
+					try {
+						const attRes = await fetch(
+							`${this.api}/attendance/leave/${leave.id}/attachments`,
+							{ headers: { 'Authorization': `Bearer ${this.token}` } }
+						);
+						const attJson = await attRes.json();
+						this.medical_attachments = attJson.data || [];
+					} catch (e) {
+						this.medical_attachments = [];
+					}
+				} else {
+					this.medical_attachments = [];
+				}
 			
 				Alpine.store("cache").showModal("process");
 			} catch (error) {
 				console.error(error);
 			} 
+		},
+
+		async openAttachment(attachmentId) {
+			try {
+				const res = await fetch(
+					`${this.api}/attendance/leave/attachment/${attachmentId}`,
+					{ headers: { 'Authorization': `Bearer ${this.token}` } }
+				);
+				if (!res.ok) throw new Error('No se pudo descargar');
+				const blob = await res.blob();
+				const url = URL.createObjectURL(blob);
+				window.open(url, '_blank');
+				setTimeout(() => URL.revokeObjectURL(url), 60000);
+			} catch (e) {
+				console.error('Error abriendo archivo:', e);
+			}
 		},
 
 		getAdjustmentMarks(day) {
@@ -2684,6 +2884,84 @@
 			font-size: 0.65rem;
 			opacity: 0.4;
 			line-height: 1.3;
+		}
+
+		/* Medical leave modal */
+		.medical-attachments {
+			padding: 0.75rem;
+			border-radius: 0.75rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+		.medical-upload-btn {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.6rem 0.75rem;
+			background: var(--gray);
+			border-radius: 0.5rem;
+			cursor: pointer;
+			font-size: 0.75rem;
+			font-weight: 500;
+			transition: background var(--transition);
+		}
+		.medical-upload-btn:hover {
+			background: var(--graydark);
+		}
+		.medical-files-list {
+			display: flex;
+			flex-direction: column;
+			gap: 0.35rem;
+		}
+		.medical-file-item {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.4rem 0.6rem;
+			background: var(--gray);
+			border-radius: 0.4rem;
+			font-size: 0.7rem;
+		}
+		.medical-file-name {
+			flex: 1;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			font-weight: 500;
+		}
+		.medical-file-size {
+			opacity: 0.5;
+			font-size: 0.65rem;
+			white-space: nowrap;
+		}
+		.medical-file-remove {
+			cursor: pointer;
+			color: #A32D2D;
+			font-weight: 700;
+			padding: 0 0.3rem;
+		}
+		.medical-hint {
+			font-size: 0.7rem;
+			color: #A32D2D;
+			opacity: 0.8;
+			text-align: center;
+			padding: 0.5rem;
+		}
+		.medical-att-link {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.5rem 0.75rem;
+			background: var(--gray);
+			border-radius: 0.5rem;
+			text-decoration: none;
+			color: inherit;
+			font-size: 0.75rem;
+			cursor: pointer;
+		}
+		.medical-att-link:hover {
+			background: var(--graydark);
 		}
 		.salary-gen-btn {
 			background: var(--secondary);

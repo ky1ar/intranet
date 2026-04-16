@@ -1,15 +1,17 @@
-import logging, os, re, math
+import logging, os, re, math, uuid
 import pandas as pd
 from io import BytesIO
 from datetime import datetime, timedelta, date
+from werkzeug.utils import secure_filename
 from application.handlers import handle_exceptions
-from application.utils import parse_date_iso, parse_time, format_name, format_datetime, format_date, peru_time
+from application.utils import parse_date_iso, parse_time, format_name, format_datetime, format_date, peru_time, upload_path, file_extension, allowed_extension
 from application.services.push_service import PushSender
 from application.services.module_service import ModuleService
 from application.repository.attendance_repository import AttendanceRepository
 from application.repository.user_repository import UserRepository
 from application.repository.salary_repository import SalaryRepository
 from application import socketio
+from config import Paths
 from flask_jwt_extended import get_jwt_identity
 
 
@@ -1077,7 +1079,9 @@ class AttendanceService:
         dto = {
             "id": leave.id,
             "modal": modal,
-            "type": 'permit' if leave.request_type == 'Permiso' else 'vacation',
+            "type": ('permit' if leave.request_type == 'Permiso'
+                     else 'medical' if leave.request_type == 'Descanso Médico'
+                     else 'vacation'),
             "user_name": format_name(leave.user.name),
             "request_type": leave.request_type,
             "status_id": status_id,
@@ -1173,9 +1177,23 @@ class AttendanceService:
                 )
 
             elif new_status == 4:
+                is_medical = leave.request_type == 'Descanso Médico'
+
+                if is_medical:
+                    title = "Descanso médico aprobado"
+                    # Generar los attendance_day_adjustment
+                    try:
+                        self._create_adjustments_for_medical_leave(leave)
+                    except Exception as ex:
+                        logging.exception(f"Error creando adjustments para LI-{leave_id}: {ex}")
+                elif is_permit:
+                    title = "Permiso aprobado"
+                else:
+                    title = "Vacaciones aprobadas"
+
                 self.push_service.send_to_user(
                     user_id=creator_id,
-                    title="Permiso aprobado" if is_permit else "Vacaciones aprobadas",
+                    title=title,
                     body=f"Tu solicitud LI-{leave_id} ha sido aprobada.",
                 )
 
@@ -1217,9 +1235,17 @@ class AttendanceService:
             if code != 200:
                 return result, code
 
+            is_medical = leave.request_type == 'Descanso Médico'
+            if is_medical:
+                title = "Descanso médico rechazado"
+            elif is_permit:
+                title = "Permiso rechazado"
+            else:
+                title = "Vacaciones rechazadas"
+
             self.push_service.send_to_user(
                 user_id=creator_id,
-                title="Permiso rechazado" if is_permit else "Vacaciones rechazadas",
+                title=title,
                 body=f"Tu solicitud LI-{leave.id} fue rechazada por {reject_level}.",
             )
 
@@ -1839,3 +1865,209 @@ class AttendanceService:
             return result, rc
 
         return "Ajuste aplicado", 200
+
+
+    # ── Medical Leave (Descanso Médico) ───────────────────────────────
+
+    @handle_exceptions
+    def medical_leave_request(self, req):
+        """Crea una solicitud de Descanso Médico con archivos adjuntos.
+        Recibe un request de Flask con files + form data (multipart)."""
+        from flask import request as flask_request
+
+        form = req.form
+        files = req.files.getlist("attachments[]")
+
+        user_id_creator = int(get_jwt_identity())
+        target_user_id = int(form.get("user_id") or user_id_creator)
+
+        # Validaciones básicas
+        if not form.get("start_date"):
+            return "Fecha de inicio requerida", 422
+
+        if not files or not any(f and f.filename for f in files):
+            return "Debes adjuntar al menos un archivo", 422
+
+        # Validar extensiones
+        for f in files:
+            if not f or not f.filename:
+                continue
+            if not allowed_extension(f.filename):
+                return f"Tipo de archivo no permitido: {f.filename}", 422
+
+        # Determinar status inicial según permisos del creador
+        if self._has_perm(user_id_creator, 'approve_leave_manager'):
+            initial_status = 4
+        elif self._has_perm(user_id_creator, 'approve_leave_rrhh'):
+            initial_status = 3
+        elif self._has_perm(user_id_creator, 'approve_leave'):
+            initial_status = 2
+        else:
+            initial_status = 1
+
+        start_date = parse_date_iso(form.get("start_date"))
+        end_date_str = form.get("end_date")
+        end_date = parse_date_iso(end_date_str) if end_date_str else start_date
+
+        if end_date < start_date:
+            return "La fecha fin no puede ser menor a la fecha inicio", 422
+
+        # Crear solicitud
+        leave_data = {
+            "user_id": target_user_id,
+            "type": "medical",   # Flag especial
+            "_initial_status": initial_status,
+            "start_date": start_date,
+            "end_date": end_date,
+            "description": form.get("description", ""),
+        }
+
+        # Insertar con request_type especial
+        from application.db_models.leave_model import LeaveRequest
+        from flask import g
+
+        obj = LeaveRequest(
+            user_id=target_user_id,
+            request_type="Descanso Médico",
+            status_id=initial_status,
+            start_date=start_date,
+            end_date=end_date,
+            description=form.get("description", ""),
+            created_at=peru_time(),
+        )
+        g.db_session.add(obj)
+        g.db_session.commit()
+        leave_id = obj.id
+
+        # Guardar archivos
+        saved_files = []
+        try:
+            upload_dir = upload_path(Paths.LEAVES)
+            for f in files:
+                if not f or not f.filename:
+                    continue
+                original = f.filename
+                ext = file_extension(original)
+                safe = secure_filename(original) or f"file.{ext}"
+                stored = f"{uuid.uuid4().hex}_{safe}"
+                full_path = os.path.join(upload_dir, stored)
+                f.save(full_path)
+
+                size_bytes = os.path.getsize(full_path)
+                mime = getattr(f, "mimetype", None)
+
+                self.attendance_repository.add_leave_attachment({
+                    "leave_request_id": leave_id,
+                    "original_name": original,
+                    "stored_name": stored,
+                    "mime_type": mime,
+                    "size_bytes": size_bytes,
+                    "uploaded_by": user_id_creator,
+                })
+                saved_files.append(stored)
+        except Exception as ex:
+            logging.exception(f"Error guardando archivos: {ex}")
+            # Cleanup archivos ya guardados
+            for s in saved_files:
+                try:
+                    os.remove(os.path.join(Paths.LEAVES, s))
+                except Exception:
+                    pass
+            return f"Error guardando archivos: {ex}", 500
+
+        # Si el creador tiene permiso de aprobación total, generar adjustments directo
+        if initial_status == 4:
+            try:
+                self._create_adjustments_for_medical_leave(obj)
+            except Exception as ex:
+                logging.exception(f"Error creando adjustments para LI-{leave_id}: {ex}")
+
+        socketio.emit("attendance_update_leaves", {})
+        return {"id": leave_id, "attachments": len(saved_files)}, 200
+
+
+    def _create_adjustments_for_medical_leave(self, leave):
+        """Genera attendance_day_adjustment por cada shift del profile del usuario,
+        para cada día en el rango [start_date, end_date] del descanso médico.
+        Un adjustment por shift = respeta la hora de refrigerio (no se regala)."""
+        from datetime import timedelta
+
+        user_id = leave.user_id
+        desc_tag = f"Descanso Médico - LI-{leave.id}"
+
+        # Eliminar adjustments previos del mismo leave (por si se reaprueba)
+        self.attendance_repository.delete_day_adjustments_by_description(desc_tag)
+
+        d = leave.start_date
+        end = leave.end_date or leave.start_date
+
+        created = 0
+        while d <= end:
+            # Obtener profile vigente para ese día
+            profile, pc = self.attendance_repository.get_profile_for_user_on_date(user_id, d)
+            if pc != 200 or not profile:
+                d += timedelta(days=1)
+                continue
+
+            shifts, src = self.attendance_repository.get_shifts_for_profile(profile.id)
+            if src != 200:
+                d += timedelta(days=1)
+                continue
+
+            wd = d.weekday()
+            day_shifts = [s for s in shifts if s.weekday == wd]
+
+            for shift in day_shifts:
+                self.attendance_repository.add_day_adjustment({
+                    "date": d,
+                    "start_time": shift.start_time,
+                    "end_time": shift.end_time,
+                    "scope": "user",
+                    "user_id": user_id,
+                    "profile_id": profile.id,
+                    "description": desc_tag,
+                })
+                created += 1
+
+            d += timedelta(days=1)
+
+        logging.info(f"Creados {created} adjustments para LI-{leave.id}")
+        return created
+
+
+    @handle_exceptions
+    def get_leave_attachments(self, leave_id):
+        rows, rc = self.attendance_repository.get_leave_attachments(leave_id)
+        if rc != 200:
+            return rows, rc
+
+        result = [{
+            "id": a.id,
+            "original_name": a.original_name,
+            "mime_type": a.mime_type,
+            "size_bytes": int(a.size_bytes or 0),
+            "uploaded_at": a.uploaded_at.isoformat() if a.uploaded_at else None,
+            "uploader_name": format_name(a.uploader.name) if a.uploader else "-",
+        } for a in rows]
+
+        return result, 200
+
+
+    def get_leave_attachment_file(self, attachment_id):
+        """Retorna (filepath, original_name, mime_type) para descarga"""
+        from flask import send_file, abort
+
+        row, rc = self.attendance_repository.get_leave_attachment_by_id(attachment_id)
+        if rc != 200 or not row:
+            abort(404)
+
+        full_path = os.path.join(Paths.LEAVES, row.stored_name)
+        if not os.path.isfile(full_path):
+            abort(404)
+
+        return send_file(
+            full_path,
+            mimetype=row.mime_type or "application/octet-stream",
+            as_attachment=False,
+            download_name=row.original_name,
+        )
