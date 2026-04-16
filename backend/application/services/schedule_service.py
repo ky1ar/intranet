@@ -39,8 +39,8 @@ class ScheduleService:
             for m in modules_data:
                 if m['slug'] == 'schedule':
                     for perm_slug, granted in m.get('permissions', {}).items():
-                        if granted and perm_slug.startswith('view_area:'):
-                            dept_slugs.append(perm_slug.replace('view_area:', ''))
+                        if granted and perm_slug.startswith('view_'):
+                            dept_slugs.append(perm_slug.replace('view_', ''))
                     break
 
         if not dept_slugs:
@@ -289,7 +289,7 @@ class ScheduleService:
                     filtered_events.append(ev)
                     continue
 
-                # Si tiene view_area:* específicos, verificar
+                # Si tiene view_* específicos, verificar
                 if creator_dept_id in visible_depts:
                     filtered_events.append(ev)
                 continue

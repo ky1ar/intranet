@@ -46,7 +46,7 @@ class AttendanceService:
             return False
         if self._has_perm(user_id, 'view_all'):
             return True
-        return self._has_perm(user_id, f'view_area:{department_slug}')
+        return self._has_perm(user_id, f'view_:{department_slug}')
 
 
     def _get_visible_user_ids(self, user_id):
@@ -55,15 +55,15 @@ class AttendanceService:
             all_ids, rc = self.user_repository.get_all_user_ids()
             return all_ids if rc == 200 else [user_id]
 
-        # Leer permisos view_area:* del módulo
+        # Leer permisos view_* del módulo
         modules_data, _ = self.module_service.get_user_modules(user_id)
         dept_slugs = []
         if isinstance(modules_data, list):
             for m in modules_data:
                 if m['slug'] == 'attendance':
                     for perm_slug, granted in m.get('permissions', {}).items():
-                        if granted and perm_slug.startswith('view_area:'):
-                            dept_slugs.append(perm_slug.replace('view_area:', ''))
+                        if granted and perm_slug.startswith('view_'):
+                            dept_slugs.append(perm_slug.replace('view_', ''))
                     break
 
         if dept_slugs:
