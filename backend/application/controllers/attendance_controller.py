@@ -85,6 +85,14 @@ class AttendanceController:
 
 
     @handle_logs_and_exceptions
+    def salary_recalculate_single(self, data):
+        return self.attendance_service.salary_recalculate_single(
+            data.get("salary_id"),
+            data.get("editor_user_id"),
+        )
+
+
+    @handle_logs_and_exceptions
     def salary_get_period(self, period_id):
         return self.attendance_service.salary_get_period(period_id)
 
@@ -105,13 +113,30 @@ class AttendanceController:
 
 
     @handle_logs_and_exceptions
-    def salary_approve(self, data):
-        return self.attendance_service.salary_approve(
+    def salary_approve_rrhh(self, data):
+        return self.attendance_service.salary_approve_rrhh(
             data.get("salary_id"),
             data.get("approved_by"),
         )
 
-    
+
+    @handle_logs_and_exceptions
+    def salary_approve_mgr(self, data):
+        return self.attendance_service.salary_approve_mgr(
+            data.get("salary_id"),
+            data.get("approved_by"),
+        )
+
+
+    @handle_logs_and_exceptions
+    def salary_set_adjustment(self, data):
+        return self.attendance_service.salary_set_adjustment(
+            data.get("salary_id"),
+            data.get("adjustment"),
+            data.get("adjusted_by"),
+        )
+
+
     @handle_logs_and_exceptions
     def salary_generate_file(self, data):
         return self.attendance_service.salary_generate_telecredito(

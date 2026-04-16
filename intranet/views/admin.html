@@ -286,27 +286,6 @@
 				);
 			},
 
-			async selectUser(user) {
-				this.selected_user = user;
-				try {
-					const token = localStorage.getItem('user_token');
-					const res = await fetch(`${Alpine.store('cache').api}/modules/admin/user/${user.id}/map`, {
-						headers: { 'Authorization': `Bearer ${token}` },
-					});
-					const data = await res.json();
-					const map = data.data || [];
-					map.forEach(m => m._open = false);
-					this.access_map = map;
-				} catch (e) {
-					console.error('Error cargando mapa:', e);
-				}
-			},
-
-			goBack() {
-				this.selected_user = null;
-				this.access_map = [];
-			},
-
 			countGranted(mod) {
 				return mod.permissions.filter(p => p.granted).length;
 			},

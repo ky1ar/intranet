@@ -84,6 +84,16 @@ def salary_calculate():
     return controller.salary_calculate(data)
 
 
+@attendance_bp.route("/salary/recalculate/<int:salary_id>", methods=["POST"])
+@jwt_required()
+def salary_recalculate_single(salary_id):
+    data = {
+        "salary_id": salary_id,
+        "editor_user_id": int(get_jwt_identity()),
+    }
+    return controller.salary_recalculate_single(data)
+
+
 @attendance_bp.route("/salary/period/<int:period_id>", methods=["GET"])
 @jwt_required()
 def salary_get_period(period_id):
@@ -112,12 +122,28 @@ def salary_config_get(user_id):
     return controller.salary_config_get(user_id)
 
 
-@attendance_bp.route("/salary/approve", methods=["POST"])
+@attendance_bp.route("/salary/approve/rrhh", methods=["POST"])
 @jwt_required()
-def salary_approve():
+def salary_approve_rrhh():
     data = request.get_json() or {}
     data["approved_by"] = int(get_jwt_identity())
-    return controller.salary_approve(data)
+    return controller.salary_approve_rrhh(data)
+
+
+@attendance_bp.route("/salary/approve/mgr", methods=["POST"])
+@jwt_required()
+def salary_approve_mgr():
+    data = request.get_json() or {}
+    data["approved_by"] = int(get_jwt_identity())
+    return controller.salary_approve_mgr(data)
+
+
+@attendance_bp.route("/salary/adjustment", methods=["POST"])
+@jwt_required()
+def salary_set_adjustment():
+    data = request.get_json() or {}
+    data["adjusted_by"] = int(get_jwt_identity())
+    return controller.salary_set_adjustment(data)
 
 
 @attendance_bp.route("/salary/generate", methods=["POST"])

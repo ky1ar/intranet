@@ -217,7 +217,7 @@ class SafebuyService:
             return "purchase_date requerido", 400
         # if not data["product_name"]:
         #     return "product_name requerido", 400
-        if not data["original_price"] or not data["paid_price"] or not data["new_price"]:
+        if not data["paid_price"] or not data["new_price"]:
             return "Precios requeridos", 400
 
         result, rc = self.repository.create_request(data)

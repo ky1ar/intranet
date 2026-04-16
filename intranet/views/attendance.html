@@ -7,7 +7,7 @@
 					<span>Licencias</span>
 				</div>
 
-				<div class="item" @click="openSalaryModal()" x-show="$store.cache.hasPermission('attendance', 'salary')">
+				<div class="item" @click="openSalaryModal()" x-show="$store.cache.hasPermission('attendance', 'salary_admin')">
 					<img alt="" width="20" height="20" src="/static/images/icons/salary.svg">
 					<span>Salarios</span>
 				</div>
@@ -182,7 +182,7 @@
 			
 				</div>
 
-				<div class="card glass salary" x-show="$store.cache.hasPermission('attendance', 'salary') && salary_data">
+				<div class="card glass salary" x-show="$store.cache.hasPermission('attendance', 'view_salary') && salary_data">
 					<span class="litle">
 						<img alt="" width="16" height="16" src="/static/images/icons/wallet.svg">
 						Sueldo del mes
@@ -210,6 +210,12 @@
 							<span>Factor</span>
 							<span x-text="`x ${salary_data?.factor?.toFixed(4) || '0'}`"></span>
 						</div>
+						<template x-if="salary_data?.adjustment && salary_data.adjustment != 0">
+							<div>
+								<span>Ajuste</span>
+								<span :class="{'salary-low': salary_data.adjustment < 0}" x-text="`${salary_data.adjustment > 0 ? '+' : ''}S/ ${salary_data.adjustment.toFixed(2)}`"></span>
+							</div>
+						</template>
 						<div class="spacer"></div>
 						<div>
 							<span>Sueldo neto</span>
@@ -858,91 +864,132 @@
 						<div class="modal-grabber-bar"></div>
 					</div>
 
-					<div class="salary-modal-head">
-						<div class="salary-modal-title">
-							<span>Salarios</span>
+				<div class="salary-modal-head">
+					<div class="salary-modal-title">
+						<span>Salarios</span>
+					</div>
+
+					<div class="salary-period-nav">
+						<div class="hover-opacity" @click="salaryPrevPeriod()">
+							<img class="flip" alt="" src="/static/images/icons/right.svg" width="16" height="16">
 						</div>
-
-						<div class="salary-period-nav">
-							<div class="hover-opacity" @click="salaryPrevPeriod()">
-								<img class="flip" alt="" src="/static/images/icons/right.svg" width="16" height="16">
-							</div>
-							<span class="salary-period-name" x-text="salary_period_name || 'Seleccionar periodo'"></span>
-							<div class="hover-opacity" @click="salaryNextPeriod()">
-								<img alt="" src="/static/images/icons/right.svg" width="16" height="16">
-							</div>
-						</div>
-
-						<div class="buttons">
-							<button class="button hover-opacity" 
-								@click="salaryCalculateAll()"
-								:disabled="salary_calculating">
-								<span x-text="salary_calculating ? 'Calculando...' : 'Calcular'"></span>
-							</button>
-
-							<button class="button black hover-opacity"
-								@click="salaryGenerateFile(1)"
-								title="Generar TXT de Telecrédito para FADIPESA">
-								FADIPESA
-								<img src="/static/images/icons/download.svg" width="14" height="14" alt="">
-							</button>
-
-							<button class="button black hover-opacity"
-								@click="salaryGenerateFile(2)"
-								title="Generar TXT de Telecrédito para KREAR3D"
-								disabled>
-								KREAR3D
-								<img src="/static/images/icons/download.svg" width="14" height="14" alt="">
-							</button>
+						<span class="salary-period-name" x-text="salary_period_name || 'Seleccionar periodo'"></span>
+						<div class="hover-opacity" @click="salaryNextPeriod()">
+							<img alt="" src="/static/images/icons/right.svg" width="16" height="16">
 						</div>
 					</div>
 
-					<div class="salary-modal-content modal-content overflow">
-						<template x-if="salary_list.length === 0">
-							<div class="salary-empty">
-								No hay datos. Selecciona un periodo y presiona "Calcular".
+					<div class="buttons">
+						<button class="button hover-opacity" 
+							@click="salaryCalculateAll()"
+							:disabled="salary_calculating">
+							<span x-text="salary_calculating ? 'Calculando...' : 'Calcular'"></span>
+						</button>
+
+						<button class="button black hover-opacity"
+							@click="salaryGenerateFile(1)"
+							title="Generar TXT de Telecrédito para FADIPESA">
+							FADIPESA
+							<img src="/static/images/icons/download.svg" width="14" height="14" alt="">
+						</button>
+
+						<button class="button black hover-opacity"
+							@click="salaryGenerateFile(2)"
+							title="Generar TXT de Telecrédito para KREAR3D"
+							disabled>
+							KREAR3D
+							<img src="/static/images/icons/download.svg" width="14" height="14" alt="">
+						</button>
+					</div>
+				</div>
+
+				<div class="salary-modal-content modal-content overflow">
+					<template x-if="salary_list.length === 0">
+						<div class="salary-empty">
+							No hay datos. Selecciona un periodo y presiona "Calcular".
+						</div>
+					</template>
+
+					<template x-if="salary_list.length > 0">
+						<div class="salary-table">
+							<div class="salary-table-head">
+								<span>Usuario</span>
+								<span>Empresa</span>
+								<span>Base</span>
+								<span>Cumpl.</span>
+								<span>Factor</span>
+								<span>Ajuste</span>
+								<span>Final</span>
+								<span>Estado</span>
+								<span></span>
 							</div>
-						</template>
 
-						<template x-if="salary_list.length > 0">
-							<div class="salary-table">
-								<div class="salary-table-head">
-									<span>Usuario</span>
-									<span>Empresa</span>
-									<span>Base</span>
-									<span>Cumplimiento</span>
-									<span>Factor</span>
-									<span>Sueldo final</span>
-									<span>Estado</span>
-								</div>
-
-								<template x-for="row in salary_list" :key="row.id">
-									<div class="salary-table-row white">
-										<div class="salary-user">
-											<img :src="'/static/images/uploads/users/' + row.user_image" width="28" height="28" alt="">
-											<div>
-												<span class="name" x-text="row.user_name"></span>
-												<span class="dept" x-text="row.department_name"></span>
-											</div>
-										</div>
-										<span x-text="row.business_name"></span>
-										<span x-text="`S/ ${row.base_salary.toFixed(2)}`"></span>
-										<span :class="{'salary-low': row.compliance_pct < 100}" x-text="`${row.compliance_pct.toFixed(2)}%`"></span>
-										<span x-text="`x${row.factor.toFixed(4)}`"></span>
-										<span class="salary-final" x-text="`S/ ${row.final_salary.toFixed(2)}`"></span>
+							<template x-for="row in salary_list" :key="row.id">
+								<div class="salary-table-row white">
+									<div class="salary-user">
+										<img :src="'/static/images/uploads/users/' + row.user_image" width="28" height="28" alt="">
 										<div>
-											<template x-if="row.status === 'draft'">
-												<button class="salary-approve-btn hover-opacity" @click="salaryApprove(row.id)">Aprobar</button>
-											</template>
-											<template x-if="row.status === 'approved'">
-												<span class="salary-approved-badge">Aprobado</span>
-											</template>
+											<span class="name" x-text="row.user_name"></span>
+											<span class="dept" x-text="row.department_name"></span>
 										</div>
 									</div>
-								</template>
-							</div>
-						</template>
-					</div>
+									<span x-text="row.business_name"></span>
+									<span x-text="`S/ ${row.base_salary.toFixed(2)}`"></span>
+									<span :class="{'salary-low': row.compliance_pct < 100}" x-text="`${row.compliance_pct.toFixed(2)}%`"></span>
+									<span x-text="`x${row.factor.toFixed(4)}`"></span>
+
+									<!-- Ajuste: editable si tiene permiso rrhh o mgr y no está approved -->
+									<div class="salary-adj-cell">
+										<template x-if="row.status !== 'approved' && ($store.cache.hasPermission('attendance', 'salary_rrhh') || $store.cache.hasPermission('attendance', 'salary_mgr'))">
+											<div class="salary-adj-input-wrap">
+												<input type="number" step="0.01" class="salary-adj-input"
+													:value="row.adjustment || 0"
+													@change="salarySetAdjustment(row.id, $event.target.value)"
+													title="Ajuste positivo o negativo">
+											</div>
+										</template>
+										<template x-if="row.status === 'approved' || (!$store.cache.hasPermission('attendance', 'salary_rrhh') && !$store.cache.hasPermission('attendance', 'salary_mgr'))">
+											<span :class="{'salary-low': row.adjustment < 0, 'salary-adj-positive': row.adjustment > 0}" x-text="row.adjustment ? `${row.adjustment > 0 ? '+' : ''}${row.adjustment.toFixed(2)}` : '-'"></span>
+										</template>
+									</div>
+
+									<span class="salary-final" x-text="`S/ ${row.final_salary.toFixed(2)}`"></span>
+
+									<!-- Estado con doble aprobación -->
+									<div class="salary-status-cell">
+										<template x-if="row.status === 'draft'">
+											<div class="salary-status-actions">
+												<span class="salary-draft-badge">Borrador</span>
+												<template x-if="$store.cache.hasPermission('attendance', 'salary_rrhh')">
+													<button class="salary-approve-btn hover-opacity" @click="salaryApproveRrhh(row.id)">RRHH</button>
+												</template>
+											</div>
+										</template>
+										<template x-if="row.status === 'rrhh_approved'">
+											<div class="salary-status-actions">
+												<span class="salary-rrhh-badge">RRHH ✓</span>
+												<template x-if="$store.cache.hasPermission('attendance', 'salary_mgr')">
+													<button class="salary-approve-btn-mgr hover-opacity" @click="salaryApproveMgr(row.id)">Gerencia</button>
+												</template>
+											</div>
+										</template>
+										<template x-if="row.status === 'approved'">
+											<span class="salary-approved-badge">Aprobado</span>
+										</template>
+									</div>
+
+									<!-- Recalcular individual -->
+									<div>
+										<button class="salary-recalc-btn hover-opacity"
+											@click="salaryRecalculateSingle(row.id)"
+											title="Recalcular (resetea a borrador)">
+											↻
+										</button>
+									</div>
+								</div>
+							</template>
+						</div>
+					</template>
 				</div>
 			</div>
 
@@ -1160,19 +1207,62 @@
 			}
 		},
 
-		async salaryApprove(salaryId) {
-			try {
-				const token = localStorage.getItem('user_token');
-				await fetch(`${this.api}/attendance/salary/approve`, {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-					body: JSON.stringify({ salary_id: salaryId }),
-				});
-				await this.loadSalaryList();
-			} catch (e) {
-				console.error('Error aprobando:', e);
-			}
-		},
+	async salaryApproveRrhh(salaryId) {
+		try {
+			const token = localStorage.getItem('user_token');
+			await fetch(`${this.api}/attendance/salary/approve/rrhh`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+				body: JSON.stringify({ salary_id: salaryId }),
+			});
+			await this.loadSalaryList();
+		} catch (e) {
+			console.error('Error aprobando RRHH:', e);
+		}
+	},
+
+	async salaryApproveMgr(salaryId) {
+		try {
+			const token = localStorage.getItem('user_token');
+			await fetch(`${this.api}/attendance/salary/approve/mgr`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+				body: JSON.stringify({ salary_id: salaryId }),
+			});
+			await this.loadSalaryList();
+		} catch (e) {
+			console.error('Error aprobando gerencia:', e);
+		}
+	},
+
+	async salarySetAdjustment(salaryId, value) {
+		try {
+			const token = localStorage.getItem('user_token');
+			await fetch(`${this.api}/attendance/salary/adjustment`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+				body: JSON.stringify({ salary_id: salaryId, adjustment: parseFloat(value) || 0 }),
+			});
+			await this.loadSalaryList();
+		} catch (e) {
+			console.error('Error ajustando:', e);
+		}
+	},
+
+	async salaryRecalculateSingle(salaryId) {
+		if (!confirm('¿Recalcular este salario? Se reseteará a borrador.')) return;
+		try {
+			const token = localStorage.getItem('user_token');
+			await fetch(`${this.api}/attendance/salary/recalculate/${salaryId}`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+			});
+			await this.loadSalaryList();
+		} catch (e) {
+			console.error('Error recalculando:', e);
+		}
+	},
+
 
 		truncateDecimals(value, decimals = 2) {
 			const n = Number(value || 0);
@@ -1189,7 +1279,7 @@
 			]);
 			this.hover_day = null;
 			this.buildGrid();
-			if (Alpine.store('cache').hasPermission('attendance', 'salary')) {
+			if (Alpine.store('cache').hasPermission('attendance', 'view_salary')) {
 				await this.loadSalary();
 			}
 		},
@@ -2323,7 +2413,7 @@
 		}
 		.salary-table-head {
 			display: grid;
-			grid-template-columns: 2fr 1fr 1fr 1fr 0.8fr 1fr 1fr;
+			grid-template-columns: 2fr 0.8fr 0.8fr 0.7fr 0.7fr 0.7fr 0.8fr 1.2fr 0.4fr;
 			gap: 0.5rem;
 			padding: 0.6rem 1.25rem;
 			font-size: 0.7rem;
@@ -2334,7 +2424,7 @@
 		}
 		.salary-table-row {
 			display: grid;
-			grid-template-columns: 2fr 1fr 1fr 1fr 0.8fr 1fr 1fr;
+			grid-template-columns: 2fr 0.8fr 0.8fr 0.7fr 0.7fr 0.7fr 0.8fr 1.2fr 0.4fr;
 			gap: 0.5rem;
 			align-items: center;
 			padding: 0.6rem 1.25rem;
@@ -2387,6 +2477,80 @@
 			padding: 0.25rem 0.75rem;
 			font-size: 0.65rem;
 			font-weight: 600;
+		}
+		.salary-draft-badge {
+			background: #f0f0ea;
+			color: #5F5E5A;
+			border-radius: 2rem;
+			padding: 0.2rem 0.5rem;
+			font-size: 0.6rem;
+			font-weight: 600;
+		}
+		.salary-rrhh-badge {
+			background: #E6F1FB;
+			color: #185FA5;
+			border-radius: 2rem;
+			padding: 0.2rem 0.5rem;
+			font-size: 0.6rem;
+			font-weight: 600;
+		}
+		.salary-approve-btn-mgr {
+			background: #BA7517;
+			color: white;
+			border: none;
+			border-radius: 2rem;
+			padding: 0.3rem 0.75rem;
+			font-family: var(--font);
+			font-size: 0.7rem;
+			font-weight: 500;
+			cursor: pointer;
+		}
+		.salary-status-cell {
+			display: flex;
+			align-items: center;
+		}
+		.salary-status-actions {
+			display: flex;
+			align-items: center;
+			gap: 0.35rem;
+		}
+		.salary-adj-cell {
+			display: flex;
+			align-items: center;
+		}
+		.salary-adj-input-wrap {
+			display: flex;
+			align-items: center;
+		}
+		.salary-adj-input {
+			width: 5rem;
+			border: 1.5px solid var(--graydark);
+			border-radius: 0.4rem;
+			padding: 0.25rem 0.4rem;
+			font-family: var(--font);
+			font-size: 0.75rem;
+			text-align: right;
+			outline: none;
+			background: transparent;
+		}
+		.salary-adj-input:focus {
+			border-color: var(--primary);
+		}
+		.salary-adj-positive {
+			color: #0F6E56;
+		}
+		.salary-recalc-btn {
+			background: none;
+			border: 1.5px solid var(--graydark);
+			border-radius: 0.4rem;
+			padding: 0.2rem 0.45rem;
+			font-size: 0.85rem;
+			cursor: pointer;
+			opacity: 0.5;
+			transition: opacity var(--transition);
+		}
+		.salary-recalc-btn:hover {
+			opacity: 1;
 		}
 		.salary-gen-btn {
 			background: var(--secondary);
