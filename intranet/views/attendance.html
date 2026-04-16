@@ -417,7 +417,7 @@
 				x-transition:leave-end="modal-leave-end"
 				x-cloak
 			>
-				<div class="modal small glass2" @click.stop>
+				<div class="modal glass2" @click.stop>
 					<div class="modal-grabber">
 						<div class="modal-grabber-bar"></div>
 					</div>
@@ -430,13 +430,15 @@
 								<img alt="" width="16" height="16" src="/static/images/icons/add.svg">
 								Permiso
 							</button>
-							<button class="button black hover-opacity" @click="vacatinoModal()">
+							
+							<button class="button hover-opacity" @click="medicalModal()">
 								<img alt="" width="16" height="16" src="/static/images/icons/add.svg">
-								Vacaciones
-							</button>
-							<button class="button hover-opacity" @click="medicalModal()" style="background: #E85D24; color: white;">
-								<img alt="" width="16" height="16" src="/static/images/icons/add.svg" style="filter: invert(1);">
 								D. Médico
+							</button>
+
+							<button class="button black hover-opacity" @click="vacationModal()">
+								<img alt="" width="16" height="16" src="/static/images/icons/vacation.svg">
+								Vacaciones
 							</button>
 						</div>
 					</div>
@@ -450,11 +452,14 @@
 							<template x-for="leave in leave_requests" :key="leave.id">
 								<div class="table-row white" @click="getLeave(leave)">
 									<div class="id" x-text="`LI-${leave.id}`"></div>
-									<div>
-										<img alt="user" class="image" :src="'/static/images/uploads/users/' + leave.requester_image" width="24" height="24">
-										<span class="name" x-text="leave.requester_name"></span>
+									<div class="user">
+										<img alt="user" class="image" :src="`/static/images/uploads/users/${leave.requester_image}`" width="24" height="24">
+										<div class="data">
+											<span class="name" x-text="leave.requester_name"></span>
+											<span class="department" x-text="leave.requester_department"></span>
+										</div>
 									</div>
-									<div x-text="leave.request_type"></div>
+									<div class="type" x-text="leave.request_type"></div>
 									<div class="statuses">
 										<div :class="leave.status_slug" x-text="leave.status_name"></div>
 									</div>
@@ -1965,9 +1970,7 @@
 
 		isToday(day) {
 			if (!day?.date) return false;
-			const now = new Date();
-			const iso = now.toISOString().slice(0, 10);
-			return day.date === iso && this.offset === 0;
+			return day.date === this.todayLocalISO() && this.offset === 0;
 		},
 
 		async next() {
@@ -2161,7 +2164,7 @@
 			Alpine.store('cache').showModal('process');
 		},
 
-		vacatinoModal() {
+		vacationModal() {
 			this.resetForms();
 			this.attendance_form.type = "vacation";
 			Alpine.store('cache').showModal('process');
@@ -2397,8 +2400,9 @@
 					throw new Error(json?.message || "Error al actualizar");
 				}
 
-				this.resetForms();
 				Alpine.store("cache").hideModal("process");
+				setTimeout(() => this.resetForms(), 300);
+				await this.getLeaveRequests();
 
 			} catch (e) {
 				this.showError("update", e.message);
@@ -2429,8 +2433,8 @@
 					throw new Error(jsonData?.data?.message || "Error al eliminar");
 				}
 
-				this.resetForms();
 				Alpine.store("cache").hideModal("process");
+				this.resetForms();
 
 			} catch (error) {
 				this.showError("remove", error.message);
@@ -2456,6 +2460,7 @@
 				});
 
 				this.resetForms();
+				await this.getLeaveRequests();
 				Alpine.store("cache").hideModal("process");
 
 			} catch (error) {
@@ -2480,6 +2485,7 @@
 				});
 
 				this.resetForms();
+				await this.getLeaveRequests();
 				Alpine.store("cache").hideModal("process");
 
 			} catch (error) {
@@ -3212,6 +3218,29 @@
 		}
 		#modal-leaves .modal .modal-content {
 			padding: 0.5rem 0;
+		}
+		#modal-leaves .table-box .table-row {
+			grid-template-columns: 0.2fr 0.5fr 0.3fr auto;
+			padding: 0.75rem 1rem;
+			gap: 0.75rem;
+		}
+		#modal-leaves .table-box .id {
+			font-weight: 700;
+		}
+		#modal-leaves .table-box .user .data {
+			display: flex;
+    		flex-direction: column;
+			white-space: nowrap;
+    		overflow: hidden;
+		}
+		#modal-leaves .table-box .user .name {
+			font-weight: 600;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		#modal-leaves .table-box .user .department {
+			font-size: 0.7rem;
+    		opacity: 0.5;
 		}
 		#attendance {
 			user-select: none;

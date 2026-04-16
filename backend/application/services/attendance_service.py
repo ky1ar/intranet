@@ -451,6 +451,7 @@ class AttendanceService:
                     "id": leave.id,
                     "requester_name": format_name(leave.user.name) if user_id != leave.user_id else 'Tú',
                     "requester_image": leave.user.image,
+                    "requester_department": leave.user.department.name,
                     "request_type": leave.request_type,
                     "status_name": leave.status.name,
                     "status_slug": leave.status.slug,
