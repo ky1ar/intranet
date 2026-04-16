@@ -150,3 +150,19 @@ def salary_set_adjustment():
 @jwt_required()
 def salary_generate_file():
     return controller.salary_generate_file(request.get_json())
+
+
+# ── Leave Balance ──────────────────────────────────────────────
+
+@attendance_bp.route("/leave/balance/<int:user_id>/period/<int:period_id>", methods=["GET"])
+@jwt_required()
+def leave_balance_get(user_id, period_id):
+    return controller.leave_balance_get({"user_id": user_id, "period_id": period_id})
+
+
+@attendance_bp.route("/leave/balance/adjust", methods=["POST"])
+@jwt_required()
+def leave_balance_adjust():
+    data = request.get_json() or {}
+    data["adjusted_by"] = int(get_jwt_identity())
+    return controller.leave_balance_adjust(data)

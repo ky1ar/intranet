@@ -5,7 +5,7 @@ from calendar import monthrange
 from application.handlers import handle_db_exceptions
 from application.utils import peru_time
 from application.db_models.attendance_model import AttendanceMark, AttendancePeriod, UserWorkProfile, WorkProfileShift, AttendanceDayAdjustment
-from application.db_models.leave_model import LeaveDuration, LeaveType, LeaveRequest, LeaveAdjustment
+from application.db_models.leave_model import LeaveDuration, LeaveType, LeaveRequest, LeaveAdjustment, LeaveBalance
 from application.models import Holidays
 from flask import g
 
@@ -602,3 +602,124 @@ class AttendanceRepository:
                 d += timedelta(days=1)
 
         return mp, 200
+
+    # ── Leave Balance ──────────────────────────────────────────────────
+
+    @handle_db_exceptions
+    def get_leave_balance(self, user_id, period_id):
+        row = (
+            g.db_session.query(LeaveBalance)
+            .filter(
+                LeaveBalance.user_id == user_id,
+                LeaveBalance.period_id == period_id,
+            )
+            .first()
+        )
+        return row, 200
+
+
+    @handle_db_exceptions
+    def get_leave_balance_prev(self, user_id, period_id):
+        """Obtiene el balance del periodo inmediatamente anterior"""
+        current_period = g.db_session.query(AttendancePeriod).get(period_id)
+        if not current_period:
+            return None, 200
+
+        prev_period = (
+            g.db_session.query(AttendancePeriod)
+            .filter(AttendancePeriod.end_date < current_period.start_date)
+            .order_by(AttendancePeriod.end_date.desc())
+            .first()
+        )
+        if not prev_period:
+            return None, 200
+
+        row = (
+            g.db_session.query(LeaveBalance)
+            .filter(
+                LeaveBalance.user_id == user_id,
+                LeaveBalance.period_id == prev_period.id,
+            )
+            .first()
+        )
+        return row, 200
+
+
+    @handle_db_exceptions
+    def upsert_leave_balance(self, data):
+        existing = (
+            g.db_session.query(LeaveBalance)
+            .filter(
+                LeaveBalance.user_id == data["user_id"],
+                LeaveBalance.period_id == data["period_id"],
+            )
+            .first()
+        )
+
+        if existing:
+            existing.vacation_used = data["vacation_used"]
+            existing.prev_balance = data["prev_balance"]
+            # Mantener manual_adj si ya existe (no resetear al recalcular)
+            balance = float(data["prev_balance"]) - int(data["vacation_used"]) + float(existing.manual_adj)
+            existing.balance = balance
+            g.db_session.commit()
+            return existing, 200
+
+        balance = float(data["prev_balance"]) - int(data["vacation_used"]) + float(data.get("manual_adj", 0))
+        row = LeaveBalance(
+            user_id=data["user_id"],
+            period_id=data["period_id"],
+            vacation_used=data["vacation_used"],
+            prev_balance=data["prev_balance"],
+            manual_adj=data.get("manual_adj", 0),
+            balance=balance,
+        )
+        g.db_session.add(row)
+        g.db_session.commit()
+        return row, 200
+
+
+    @handle_db_exceptions
+    def set_leave_manual_adj(self, user_id, period_id, manual_adj, adjusted_by):
+        from application.utils import peru_time
+
+        existing = (
+            g.db_session.query(LeaveBalance)
+            .filter(
+                LeaveBalance.user_id == user_id,
+                LeaveBalance.period_id == period_id,
+            )
+            .first()
+        )
+
+        if not existing:
+            # Crear registro nuevo
+            existing = LeaveBalance(
+                user_id=user_id,
+                period_id=period_id,
+                vacation_used=0,
+                prev_balance=0,
+                manual_adj=manual_adj,
+                balance=float(manual_adj),
+                adjusted_by=adjusted_by,
+                adjusted_at=peru_time(),
+            )
+            g.db_session.add(existing)
+        else:
+            existing.manual_adj = manual_adj
+            existing.balance = float(existing.prev_balance) - int(existing.vacation_used) + float(manual_adj)
+            existing.adjusted_by = adjusted_by
+            existing.adjusted_at = peru_time()
+
+        g.db_session.commit()
+        return existing, 200
+
+
+    @handle_db_exceptions
+    def get_leave_balances_by_period(self, period_id):
+        rows = (
+            g.db_session.query(LeaveBalance)
+            .filter(LeaveBalance.period_id == period_id)
+            .all()
+        )
+        return rows or [], 200

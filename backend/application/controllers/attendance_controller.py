@@ -143,3 +143,23 @@ class AttendanceController:
             data.get("period_id"),
             data.get("business_id"),
         )
+
+
+    # ── Leave Balance ──────────────────────────────────────────────────
+
+    @handle_logs_and_exceptions
+    def leave_balance_get(self, data):
+        return self.attendance_service.get_leave_balance_for_user(
+            data.get("user_id"),
+            data.get("period_id"),
+        )
+
+
+    @handle_logs_and_exceptions
+    def leave_balance_adjust(self, data):
+        return self.attendance_service.set_leave_manual_adj(
+            data.get("user_id"),
+            data.get("period_id"),
+            data.get("manual_adj"),
+            data.get("adjusted_by"),
+        )

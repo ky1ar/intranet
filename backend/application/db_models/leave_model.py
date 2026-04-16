@@ -52,6 +52,7 @@ class LeaveRequest(BaseModel):
 
 
 class LeaveAdjustment(BaseModel):
+    """Legacy - mantener por compatibilidad"""
     __tablename__ = 'leave_adjustment'
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
@@ -60,3 +61,26 @@ class LeaveAdjustment(BaseModel):
     finish_date = db.Column(db.String(24), nullable=False)
 
     user = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
+
+
+class LeaveBalance(BaseModel):
+    """Saldo de vacaciones acumulativo por usuario por periodo"""
+    __tablename__ = 'leave_balance'
+
+    id             = db.Column(db.Integer, autoincrement=True, primary_key=True)
+    user_id        = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    period_id      = db.Column(db.Integer, db.ForeignKey("attendance_period.id"), nullable=False)
+    vacation_used  = db.Column(db.Integer, nullable=False, default=0)
+    prev_balance   = db.Column(db.Numeric(6, 1), nullable=False, default=0)
+    manual_adj     = db.Column(db.Numeric(6, 1), nullable=False, default=0)
+    balance        = db.Column(db.Numeric(6, 1), nullable=False, default=0)
+    adjusted_by    = db.Column(db.Integer, db.ForeignKey("user.id"))
+    adjusted_at    = db.Column(db.DateTime)
+    created_at     = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
+
+    user     = db.relationship("Users", foreign_keys=[user_id], lazy="joined")
+    period   = db.relationship("AttendancePeriod", lazy="joined")
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'period_id', name='uq_leave_bal_user_period'),
+    )
