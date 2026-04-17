@@ -2019,7 +2019,8 @@ class AttendanceService:
         from datetime import timedelta
 
         user_id = leave.user_id
-        desc_tag = f"Descanso Médico - LI-{leave.id}"
+        desc_tag = f"Descanso Médico"
+        # desc_tag = f"Descanso Médico - LI-{leave.id}"
 
         # Eliminar adjustments previos del mismo leave (por si se reaprueba)
         self.attendance_repository.delete_day_adjustments_by_description(desc_tag)
