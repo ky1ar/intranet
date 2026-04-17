@@ -91,6 +91,8 @@
 											:class="`${item.class || ''} ${item.incomplete ? 'incomplete' : ''} ${item.extra ? 'extra' : ''} ${item.holiday ? 'holiday' : ''} ${item.adjustment ? 'adjustment' : ''} ${item.vacation ? 'vacations' : ''}`"
 											x-show="!item.extra || isHover(day)"
 											x-transition.opacity.duration.150ms
+											@click="item.leave_id && openLeave(item.leave_id)"
+											:style="item.leave_id ? 'cursor:pointer' : ''"
 										>
 											<span class="label" x-text="item.label"></span>
 											<span class="date" x-text="item.value" :class="item.extra ? (String(item.value).includes('+') ? 'green' : 'red') : ''"></span>
@@ -1741,6 +1743,7 @@
 				extra: false,
 				vacation: true,
 				class: "vacations",
+				leave_id: day.vacation?.id || null,
 				}];
 			}
 
@@ -1775,7 +1778,8 @@
 				incomplete: false,
 				extra: false,
 				permit: true,
-				class: `permit-item permit-${(part || "na").toLowerCase()}`, // 👈 clase lista para CSS
+				class: `permit-item permit-${(part || "na").toLowerCase()}`,
+				leave_id: day.permit?.id || null,
 			});
 
 			const items = [];
@@ -1823,6 +1827,7 @@
 				incomplete: false,
 				extra: false,
 				adjustment: true,
+				leave_id: a.leave_id || null,
 				});
 			}
 
@@ -1924,6 +1929,15 @@
 		async viewLeaves() {
 			await this.getLeaveRequests();
 			Alpine.store('cache').showModal('leaves');
+		},
+
+		async openLeave(leaveId) {
+			await this.getLeaveRequests();
+			this.expanded_leave_id = null;
+			Alpine.store('cache').showModal('leaves');
+			await this.$nextTick();
+			const leave = (this.leave_requests || []).find(l => l.id === leaveId);
+			if (leave) await this.toggleLeaveExpand(leave);
 		},
 
 		removeNewAt(index) {

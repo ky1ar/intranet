@@ -546,14 +546,18 @@ class AttendanceService:
         best = [a for a in applicable if self._adj_priority(a.scope) == best_p]
         best.sort(key=lambda x: (x.start_time.hour, x.start_time.minute))
 
+        _re_leave_id = re.compile(r" - LI-(\d+)$")
         items = []
         for a in best:
             s = self._minutes_to_hhmm(self._time_to_minutes(a.start_time))
             e = self._minutes_to_hhmm(self._time_to_minutes(a.end_time))
             label = (a.description or "").strip() or "Ajuste"
+            m = _re_leave_id.search(label)
+            leave_id = int(m.group(1)) if m else None
             items.append({
                 "label": label,
                 "value": f"{s} - {e}",
+                "leave_id": leave_id,
             })
 
         return items
@@ -2019,8 +2023,7 @@ class AttendanceService:
         from datetime import timedelta
 
         user_id = leave.user_id
-        desc_tag = f"Descanso Médico"
-        # desc_tag = f"Descanso Médico - LI-{leave.id}"
+        desc_tag = f"Descanso Médico - LI-{leave.id}"
 
         # Eliminar adjustments previos del mismo leave (por si se reaprueba)
         self.attendance_repository.delete_day_adjustments_by_description(desc_tag)
