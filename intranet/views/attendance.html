@@ -1146,7 +1146,8 @@
 			
 			const team = this.getTeam();
 
-			if (this.canEditMarks() && team.length > 0) {
+			const selfInTeam = team.some(u => u.id === this.user.id);
+			if (team.length > 0 && (this.canEditMarks() || !selfInTeam)) {
 				this.option_user = team[0];
 			} else {
 				this.option_user = {
@@ -1432,11 +1433,7 @@
 		},
 
 		canViewOthers() {
-			const cache = Alpine.store('cache');
-			if (cache.hasPermission('attendance', 'view_all')) return true;
-
-			const perms = cache.user?.modules?.find(m => m.slug === 'attendance')?.permissions || {};
-			return Object.keys(perms).some(k => k.startsWith('view_') && perms[k]);
+			return this.getTeam().length > 0;
 		},
 
 		canEditMarks() {
