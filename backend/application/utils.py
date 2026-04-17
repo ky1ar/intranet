@@ -1,5 +1,9 @@
-import logging, os
+import logging, os, secrets
 from datetime import datetime, timezone, timedelta, timezone, date, time
+
+
+def generate_otp(length=6):
+    return ''.join([str(secrets.randbelow(10)) for _ in range(length)])
 
 
 def upload_path(path):

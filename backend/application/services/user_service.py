@@ -4,6 +4,7 @@ import secrets
 from datetime import date, datetime, timezone, timedelta
 from application import bcrypt
 from application.handlers import handle_exceptions
+from application.utils import format_name, generate_otp
 from application.repository.user_repository import UserRepository
 from application.repository.push_repository import PushRepository
 from application.services.module_service import ModuleService
@@ -41,7 +42,7 @@ class UserService:
             {
                 "id": teammate.id,
                 "level_id": teammate.level_id,
-                "name": self.format_name(teammate.name),
+                "name": format_name(teammate.name),
                 "department_name": teammate.department.name,
                 "image": teammate.image if teammate.image else 'user_default.jpg',
             } for teammate in team
@@ -99,7 +100,7 @@ class UserService:
             {
                 "id": t.id,
                 "level_id": t.level_id,
-                "name": self.format_name(t.name),
+                "name": format_name(t.name),
                 "department_name": t.department.name,
                 "image": t.image if t.image else 'user_default.jpg',
             } for t in team
@@ -117,7 +118,7 @@ class UserService:
         if user.level_id == 1:
             return "No cuentas con acceso al sistema", 400
         
-        name = self.format_name(user.name).split()
+        name = format_name(user.name).split()
         response = {
             "id": user.id,
             "image": user.image if user.image else 'user_default.jpg',
@@ -159,7 +160,7 @@ class UserService:
             "department_name": user.department.name,
             # "shipping_app_level": user.shipping_app_level,
             "document": user.document,
-            "name": self.format_name(user.name),
+            "name": format_name(user.name),
             "phone": user.phone[2:],
             "image": user.image if user.image else 'user_default.jpg',
             "default_page": default_page,
@@ -195,7 +196,7 @@ class UserService:
                 "department_name": user.department.name,
                 # "shipping_app_level": user.shipping_app_level,
                 "document": user.document,
-                "name": self.format_name(user.name),
+                "name": format_name(user.name),
                 "phone": user.phone[2:],
                 "image": user.image if user.image else 'user_default.jpg',
                 "default_page": default_page,
@@ -206,27 +207,6 @@ class UserService:
         
         return "Clave incorrecta", 400
     
-    
-    @handle_exceptions
-    def format_name(self, full_name):
-        words = full_name.strip().split()
-
-        if len(words) == 1:
-            return f"{words[0]}"
-        if len(words) == 2:
-            return f"{words[0]} {words[1]}"
-        if len(words) == 3:
-            return f"{words[0]} {words[1]}"
-        elif len(words) == 4:
-            return f"{words[0]} {words[2]}"
-        elif len(words) == 5:
-            return f"{words[0]} {words[3]}"
-        return "Texto no válido"
-        
-
-    def generate_otp(self, length=6):
-        return ''.join([str(secrets.randbelow(10)) for _ in range(length)])
-
 
     @handle_exceptions
     def send_otp(self, user_id, phone):
@@ -237,7 +217,7 @@ class UserService:
         if user.level_id == 1:
             return "No cuentas con acceso al sistema", 400
         
-        otp_code = self.generate_otp()
+        otp_code = generate_otp()
         add_otp, add_otp_status = self.user_repository.add_otp(user_id, phone, otp_code)
         if add_otp_status != 200:
             return add_otp, add_otp_status

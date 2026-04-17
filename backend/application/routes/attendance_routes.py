@@ -22,6 +22,11 @@ def leave():
     return controller.attendance_leave()
 
 
+@attendance_bp.route("/options/department_team/<user_id>", methods=["GET"])
+def department_team(user_id):
+    return controller.attendance_department_team(user_id)
+
+
 @attendance_bp.route("/period", methods=["GET"])
 @jwt_required()
 def period():

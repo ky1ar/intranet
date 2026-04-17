@@ -200,6 +200,7 @@ class UserRepository:
             g.db_session.query(Users)
             .filter(Users.department_id == department_id)
             .filter(Users.level_id != 1)
+            .filter(Users.level_id != 5)
             .all()
         )
         return users or [], 200

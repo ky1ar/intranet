@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
-/*@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600&display=swap');*/
 
+/*@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600&display=swap');*/
 
 :root {
     --primary: #ea7134;
@@ -500,11 +500,11 @@ body.modal-open {
     background-color: #c75661 !important;
 }
 .modal .button.blue {
-    background-color: #648fad;
+    background-color: #75a5b3;
     color: var(--white);
 }
 .modal .button.hardblue {
-    background-color: #5e8ed7;
+    background-color: #75a2b3;
     color: var(--white);
 }
 .modal .button.lime {

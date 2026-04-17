@@ -756,6 +756,31 @@ class AttendanceService:
         return payload, 200
 
 
+    @handle_exceptions
+    def get_department_team(self, user_id):
+        user, uc = self.user_repository.get_user_by_id(user_id)
+        if uc != 200:
+            return user, uc
+
+        if user.level_id == 1:
+            return "Usuario sin acceso al sistema", 400
+
+        team, tc = self.user_repository.get_users_by_department(user.department_id)
+        if tc != 200:
+            return team, tc
+
+        team_dict = [
+            {
+                "id": t.id,
+                "level_id": t.level_id,
+                "name": format_name(t.name),
+                "department_name": t.department.name,
+                "image": t.image if t.image else 'user_default.jpg',
+            } for t in team
+        ]
+
+        return team_dict, 200
+    
 
     def _adjustment_bonus_minutes_for_date(self, profile_map, d, user, profile, adjustments_map):
         default_target = self._target_minutes_for_date(profile_map, d)

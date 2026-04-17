@@ -33,6 +33,11 @@ class AttendanceController:
 
 
     @handle_logs_and_exceptions
+    def attendance_department_team(self, user_id):
+        return self.attendance_service.get_department_team(user_id)
+
+
+    @handle_logs_and_exceptions
     def attendance_get_leave(self, purchase_id):
         return self.attendance_service.get_leave(purchase_id)
     
