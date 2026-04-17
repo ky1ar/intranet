@@ -187,7 +187,25 @@ def leave_attachments(leave_id):
     return controller.get_leave_attachments(leave_id)
 
 
-@attendance_bp.route("/leave/attachment/<int:attachment_id>", methods=["GET"])
+@attendance_bp.route("/leave/<int:leave_id>/attachments", methods=["POST"])
 @jwt_required()
+def add_leave_attachments(leave_id):
+    return controller.add_leave_attachments(request)
+
+
+@attendance_bp.route("/leave/attachment/<int:attachment_id>", methods=["GET"])
 def leave_attachment_file(attachment_id):
-    return controller.get_leave_attachment_file(attachment_id)
+    disposition = request.args.get("disposition", "inline")
+    return controller.get_leave_attachment_file(attachment_id, disposition)
+
+
+@attendance_bp.route("/leave/attachment/<int:attachment_id>/preview", methods=["GET"])
+@jwt_required()
+def leave_attachment_preview(attachment_id):
+    return controller.attachment_preview(attachment_id)
+
+
+@attendance_bp.route("/leave/attachment/<int:attachment_id>", methods=["DELETE"])
+@jwt_required()
+def delete_leave_attachment(attachment_id):
+    return controller.delete_leave_attachment(attachment_id)

@@ -513,14 +513,28 @@
 											<div class="row"><div class="label"><img alt="" src="/static/images/icons/filled/calendar.svg" width="16" height="16"><span>Fin</span></div><div class="value" x-text="attendance_form.end_date_text"></div></div>
 											<div class="row" x-show="attendance_form.description"><div class="label"><img alt="" src="/static/images/icons/filled/notes.svg" width="16" height="16"><span>Detalle</span></div><div class="value" x-text="attendance_form.description"></div></div>
 											<div class="row" x-show="medical_attachments.length > 0">
-												<div class="label"><img alt="" src="/static/images/icons/filled/file.svg" width="16" height="16" onerror="this.style.display='none'"><span>Certificados</span></div>
-												<div class="value" style="display:flex;flex-direction:column;gap:0.35rem;width:100%;">
+												<div class="pair-content" style="margin-bottom:.5rem;">
+													<div class="pair">
+														<img alt="" width="14" height="14" src="/static/images/icons/filled/clip.svg">
+														<span class="black">Certificados</span>
+														<span class="text" x-text="`(${medical_attachments.length})`"></span>
+													</div>
+												</div>
+												<div class="modal-content bottom thumbnails-grid small-grid">
 													<template x-for="att in medical_attachments" :key="att.id">
-														<a :href="`${api}/attendance/leave/attachment/${att.id}`" target="_blank" class="medical-att-link hover-opacity" @click.prevent="openAttachment(att.id)">
-															<img alt="" src="/static/images/icons/filled/file.svg" width="14" height="14" onerror="this.style.display='none'">
-															<span x-text="att.original_name"></span>
-															<!-- <span class="medical-file-size" x-text="(att.size_bytes/1024).toFixed(1)+' KB'"></span> -->
-														</a>
+														<div class="thumb-item hover-opacity" @click="openAttachment(att)">
+															<div class="thumbnail-wrapper">
+																<template x-if="isImageFile(att)">
+																	<img class="hover-opacity" :src="getInlineUrl(att)" :alt="att.original_name">
+																</template>
+																<template x-if="!isImageFile(att)">
+																	<div class="file-card">
+																		<div class="file-ext" x-text="(att.ext || '').toUpperCase()"></div>
+																	</div>
+																</template>
+															</div>
+															<div class="thumb-caption" x-text="att.original_name" :title="att.original_name"></div>
+														</div>
 													</template>
 												</div>
 											</div>
@@ -587,6 +601,31 @@
 												<label class=""><img alt="" src="/static/images/icons/calendar.svg" width="16" height="16"><span style="white-space:nowrap">Fin</span><input type="date" x-model="attendance_form.end_date" :min="attendance_form.start_date" style="flex:1;background:none;border:none;outline:none;"></label>
 											</div>
 											<textarea placeholder="Notas (opcional)" x-model="attendance_form.description" class="text-area"></textarea>
+											<div class="medical-attachments">
+												<label class="medical-upload-btn white hover-opacity">
+													<img alt="" src="/static/images/icons/add.svg" width="14" height="14">
+													<span>Adjuntar certificado médico (PDF, imágenes)</span>
+													<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.gif" @change="medical_files=[...medical_files,...Array.from($event.target.files)];$event.target.value=''" style="display:none;">
+												</label>
+												<div class="medical-files-list" x-show="medical_attachments.length > 0 || medical_files.length > 0">
+													<template x-for="att in medical_attachments" :key="`existing-${att.id}`">
+														<div class="medical-file-item glass2">
+															<img alt="" src="/static/images/icons/filled/clip.svg" width="14" height="14" onerror="this.style.display='none'">
+															<span class="medical-file-name" x-text="att.original_name"></span>
+															<span class="medical-file-size" x-text="(att.size_bytes/1024).toFixed(1)+' KB'"></span>
+															<span class="medical-file-remove hover-opacity" @click="deleteLeaveAttachment(att.id)">✕</span>
+														</div>
+													</template>
+													<template x-for="(f, idx) in medical_files" :key="`new-${idx}`">
+														<div class="medical-file-item glass2">
+															<img alt="" src="/static/images/icons/filled/clip.svg" width="14" height="14" onerror="this.style.display='none'">
+															<span class="medical-file-name" x-text="f.name"></span>
+															<span class="medical-file-size" x-text="(f.size/1024).toFixed(1)+' KB'"></span>
+															<span class="medical-file-remove hover-opacity" @click="medical_files=medical_files.filter((_,i)=>i!==idx)">✕</span>
+														</div>
+													</template>
+												</div>
+											</div>
 										</div>
 
 
@@ -616,6 +655,42 @@
 				</div>
 			</div>
             
+
+			<div
+				x-show="$store.cache.isVisibleModal('attachment')"
+				@mousedown.self="$store.cache.hideLastModal()"
+				class="modal-wrap"
+				id="modal-attachment-leaves"
+				x-transition:enter="modal-enter"
+				x-transition:enter-start="modal-enter-start"
+				x-transition:enter-end="modal-enter-end"
+				x-transition:leave="modal-leave"
+				x-transition:leave-start="modal-leave-start"
+				x-transition:leave-end="modal-leave-end"
+				x-cloak
+			>
+				<div class="modal small glass2" @click.stop>
+					<div class="modal-grabber">
+						<div class="modal-grabber-bar"></div>
+					</div>
+
+					<div class="modal-content">
+						<template x-if="viewer_payload?.kind === 'url' && isPdfFile(viewer_file)">
+							<iframe :src="viewer_payload.url" style="width:100%;height:70vh;border:0;"></iframe>
+						</template>
+						<template x-if="viewer_payload?.kind === 'url' && isImageFile(viewer_file)">
+							<img style="border-radius:.75rem;" :src="viewer_payload.url">
+						</template>
+						<template x-if="viewer_payload?.kind === 'text'">
+							<div class="white" style="white-space:pre-wrap;padding:1rem;" x-text="viewer_payload.text"></div>
+						</template>
+						<template x-if="viewer_payload?.kind === 'download'">
+							<div style="text-align:center;" x-text="viewer_payload.message"></div>
+						</template>
+					</div>
+				</div>
+			</div>
+
 
 			<div
 				x-show="$store.cache.isVisibleModal('process')"
@@ -716,8 +791,8 @@
 							</label>
 							<div class="medical-files-list" x-show="medical_files.length > 0">
 								<template x-for="(f, idx) in medical_files" :key="idx">
-									<div class="medical-file-item glass2">
-										<img alt="" src="/static/images/icons/filled/file.svg" width="14" height="14" onerror="this.style.display='none'">
+									<div class="medical-file-item">
+										<img alt="" src="/static/images/icons/filled/clip.svg" width="14" height="14" onerror="this.style.display='none'">
 										<span class="medical-file-name" x-text="f.name"></span>
 										<span class="medical-file-size" x-text="(f.size/1024).toFixed(1)+' KB'"></span>
 										<span class="medical-file-remove hover-opacity" @click="medical_files=medical_files.filter((_,i)=>i!==idx)">✕</span>
@@ -1031,6 +1106,8 @@
 		leave_adj_saving: false,
 		medical_files: [],
 		medical_attachments: [],
+		viewer_file: null,
+		viewer_payload: null,
 		red_flag: false,
 		salary_data: null,
 		salary_list: [],
@@ -2226,6 +2303,17 @@
 					throw new Error(json?.message || "Error al actualizar");
 				}
 
+				if (this.medical_files.length > 0) {
+					const fd = new FormData();
+					this.medical_files.forEach(f => fd.append('attachments[]', f));
+					await fetch(`${this.api}/attendance/leave/${this.attendance_form.id}/attachments`, {
+						method: 'POST',
+						headers: { 'Authorization': `Bearer ${this.token}` },
+						body: fd,
+					});
+					this.medical_files = [];
+				}
+
 				this.expanded_leave_id = null;
 				this.resetForms();
 				await this.getLeaveRequests();
@@ -2372,19 +2460,42 @@
 			}
 		},
 
-		async openAttachment(attachmentId) {
-			try {
-				const res = await fetch(
-					`${this.api}/attendance/leave/attachment/${attachmentId}`,
-					{ headers: { 'Authorization': `Bearer ${this.token}` } }
-				);
-				if (!res.ok) throw new Error('No se pudo descargar');
-				const blob = await res.blob();
-				const url = URL.createObjectURL(blob);
-				window.open(url, '_blank');
-				setTimeout(() => URL.revokeObjectURL(url), 60000);
-			} catch (e) {
-				console.error('Error abriendo archivo:', e);
+		isImageFile(f) {
+			const ext = (f?.ext || '').toLowerCase();
+			return ['png','jpg','jpeg','webp','gif'].includes(ext);
+		},
+
+		isPdfFile(f) {
+			return (f?.ext || '').toLowerCase() === 'pdf';
+		},
+
+		getInlineUrl(f) {
+			return `${this.api}${f.inline_url}`;
+		},
+
+		async openAttachment(file) {
+			this.viewer_file = file;
+			this.viewer_payload = null;
+			const res = await fetch(`${this.api}${file.preview_url}`, {
+				headers: { 'Authorization': `Bearer ${this.token}` },
+			});
+			const json = await res.json();
+			const payload = json?.data ?? json;
+			if (payload.kind === 'url') {
+				payload.url = `${this.api}${payload.url}`;
+			}
+			this.viewer_file.download_url = `${this.api}${file.download_url}`;
+			this.viewer_payload = payload;
+			Alpine.store('cache').showModal('attachment');
+		},
+
+		async deleteLeaveAttachment(id) {
+			const res = await fetch(`${this.api}/attendance/leave/attachment/${id}`, {
+				method: 'DELETE',
+				headers: { 'Authorization': `Bearer ${this.token}` },
+			});
+			if (res.ok) {
+				this.medical_attachments = this.medical_attachments.filter(a => a.id !== id);
 			}
 		},
 
@@ -3008,6 +3119,59 @@
 		}
 		#modal-leaves .top {
 			align-items: center;
+		}
+		#modal-attachment-leaves {
+			z-index: 60;
+		}
+		#modal-leaves .box.white {
+			padding: 0.75rem;
+			border-radius: 0.75rem;
+			margin-top: 0.25rem;
+		}
+		#modal-leaves .pair-content {
+			display: flex;
+			align-items: start;
+		}
+		#modal-leaves .pair {
+			display: flex;
+			align-items: center;
+			gap: 0.4rem;
+			font-size: 0.85rem;
+		}
+		#modal-leaves .medical-attachments {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+		#modal-leaves .medical-upload-btn {
+			border: 1px solid var(--graydark);
+			border-radius: 0.75rem;
+			padding: 0.75rem;
+		}
+		#modal-leaves .medical-files-list {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+		#modal-leaves .medical-file-item {
+			border: 1px solid var(--graydark);
+			border-radius: 0.75rem;
+			padding: 0.25rem 0.75rem;
+			display: flex;
+			background-color: var(--graydark);
+			gap: 0.5rem;
+			font-size: 0.75rem;
+			align-items: center;
+		}
+		#modal-leaves .medical-file-size {
+			margin-left: auto;
+			font-weight: 600;
+    		opacity: 0.5;
+		}
+		#modal-leaves .medical-file-remove {
+			padding: 0.5rem;
+			font-weight: 700;
+			color: var(--primary);
 		}
 		.table-box {
 			gap: 0.5rem;

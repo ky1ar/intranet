@@ -866,6 +866,15 @@ class AttendanceRepository:
             return None, 404
         return row, 200
 
+    @handle_db_exceptions
+    def delete_leave_attachment(self, attachment_id):
+        row = g.db_session.query(LeaveAttachment).get(int(attachment_id))
+        if not row:
+            return None, 404
+        g.db_session.delete(row)
+        g.db_session.commit()
+        return {"deleted": attachment_id}, 200
+
 
     # ── Day adjustments (for medical leave) ───────────────────────────
 

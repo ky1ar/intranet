@@ -2062,38 +2062,125 @@ class AttendanceService:
 
 
     @handle_exceptions
+    def add_leave_attachments(self, request):
+        leave_id = request.view_args.get("leave_id")
+        user_id = int(get_jwt_identity())
+        files = request.files.getlist("attachments[]")
+        if not files:
+            return "No files provided", 400
+
+        upload_dir = Paths.LEAVES
+        saved = []
+        try:
+            for f in files:
+                if not f or not f.filename:
+                    continue
+                original = f.filename
+                ext = file_extension(original)
+                safe = secure_filename(original) or f"file.{ext}"
+                stored = f"{uuid.uuid4().hex}_{safe}"
+                full_path = os.path.join(upload_dir, stored)
+                f.save(full_path)
+                size_bytes = os.path.getsize(full_path)
+                mime = getattr(f, "mimetype", None)
+                self.attendance_repository.add_leave_attachment({
+                    "leave_request_id": leave_id,
+                    "original_name": original,
+                    "stored_name": stored,
+                    "mime_type": mime,
+                    "size_bytes": size_bytes,
+                    "uploaded_by": user_id,
+                })
+                saved.append(stored)
+        except Exception as ex:
+            for s in saved:
+                try:
+                    os.remove(os.path.join(upload_dir, s))
+                except Exception:
+                    pass
+            return f"Error guardando archivos: {ex}", 500
+
+        return {"added": len(saved)}, 200
+
+    @handle_exceptions
     def get_leave_attachments(self, leave_id):
         rows, rc = self.attendance_repository.get_leave_attachments(leave_id)
         if rc != 200:
             return rows, rc
 
+        def _ext(name):
+            return name.rsplit(".", 1)[-1].lower() if "." in (name or "") else ""
+
         result = [{
             "id": a.id,
             "original_name": a.original_name,
+            "ext": _ext(a.original_name),
             "mime_type": a.mime_type,
             "size_bytes": int(a.size_bytes or 0),
             "uploaded_at": a.uploaded_at.isoformat() if a.uploaded_at else None,
             "uploader_name": format_name(a.uploader.name) if a.uploader else "-",
+            "inline_url": f"/attendance/leave/attachment/{a.id}?disposition=inline",
+            "download_url": f"/attendance/leave/attachment/{a.id}?disposition=attachment",
+            "preview_url": f"/attendance/leave/attachment/{a.id}/preview",
         } for a in rows]
 
         return result, 200
 
 
-    def get_leave_attachment_file(self, attachment_id):
-        """Retorna (filepath, original_name, mime_type) para descarga"""
+    def attachment_stream(self, attachment_id, disposition="inline"):
         from flask import send_file, abort
-
         row, rc = self.attendance_repository.get_leave_attachment_by_id(attachment_id)
         if rc != 200 or not row:
             abort(404)
-
         full_path = os.path.join(Paths.LEAVES, row.stored_name)
         if not os.path.isfile(full_path):
             abort(404)
-
         return send_file(
             full_path,
             mimetype=row.mime_type or "application/octet-stream",
-            as_attachment=False,
+            as_attachment=(disposition == "attachment"),
             download_name=row.original_name,
         )
+
+    @handle_exceptions
+    def attachment_preview(self, attachment_id):
+        row, rc = self.attendance_repository.get_leave_attachment_by_id(attachment_id)
+        if rc != 200 or not row:
+            return "Not found", 404
+        ext = row.original_name.rsplit(".", 1)[-1].lower() if "." in (row.original_name or "") else ""
+        inline_url = f"/attendance/leave/attachment/{row.id}?disposition=inline"
+        if ext in {"png", "jpg", "jpeg", "webp", "gif", "pdf"}:
+            return {"kind": "url", "url": inline_url, "name": row.original_name}, 200
+        full_path = os.path.join(Paths.LEAVES, row.stored_name)
+        if not os.path.isfile(full_path):
+            return "File missing", 404
+        if ext in {"txt", "xml"}:
+            with open(full_path, "r", encoding="utf-8", errors="replace") as fp:
+                text = fp.read(200_000)
+            return {"kind": "text", "text": text, "name": row.original_name}, 200
+        return {
+            "kind": "download",
+            "name": row.original_name,
+            "message": "Vista previa no disponible",
+            "download_url": f"/attendance/leave/attachment/{row.id}?disposition=attachment",
+        }, 200
+
+    @handle_exceptions
+    def delete_leave_attachment(self, attachment_id):
+        row, rc = self.attendance_repository.get_leave_attachment_by_id(attachment_id)
+        if rc != 200 or not row:
+            return "Not found", 404
+        full_path = os.path.join(Paths.LEAVES, row.stored_name)
+        _, drc = self.attendance_repository.delete_leave_attachment(attachment_id)
+        if drc != 200:
+            return "Error al eliminar", 500
+        try:
+            if os.path.isfile(full_path):
+                os.remove(full_path)
+        except OSError:
+            pass
+        return {"deleted": attachment_id}, 200
+
+    def get_leave_attachment_file(self, attachment_id, disposition="inline"):
+        from flask import abort
+        return self.attachment_stream(attachment_id, disposition=disposition)

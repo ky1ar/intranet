@@ -181,7 +181,19 @@ class AttendanceController:
     def get_leave_attachments(self, leave_id):
         return self.attendance_service.get_leave_attachments(leave_id)
 
+    @handle_logs_and_exceptions
+    def add_leave_attachments(self, req):
+        return self.attendance_service.add_leave_attachments(req)
 
-    def get_leave_attachment_file(self, attachment_id):
-        """Retorna respuesta de Flask directamente, no usa handle_logs_and_exceptions"""
-        return self.attendance_service.get_leave_attachment_file(attachment_id)
+
+    def get_leave_attachment_file(self, attachment_id, disposition="inline"):
+        return self.attendance_service.get_leave_attachment_file(attachment_id, disposition)
+
+
+    @handle_logs_and_exceptions
+    def attachment_preview(self, attachment_id):
+        return self.attendance_service.attachment_preview(attachment_id)
+
+    @handle_logs_and_exceptions
+    def delete_leave_attachment(self, attachment_id):
+        return self.attendance_service.delete_leave_attachment(attachment_id)
