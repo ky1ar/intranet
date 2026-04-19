@@ -7,7 +7,7 @@
 				</div>
 			</div>
 
-			<div class="menu-collapse frost" x-transition.duration.300ms x-show="editAllowed() && $store.cache.more_menu">
+			<div class="menu-collapse frost" x-transition.duration.300ms x-show="adminPermission() && $store.cache.more_menu">
 				<div class="item" @click="pendings_open = !pendings_open">
 					<img alt="" width="22" height="22" src="/static/images/icons/pending.svg">
 				</div>
@@ -26,7 +26,7 @@
 				</div> -->
 			</div>
 			
-			<div class="left mobile-hide frost" x-show="editAllowed()">
+			<div class="left mobile-hide frost" x-show="adminPermission()">
 				<div class="item" @click="toggleViewMode()">
 					<img alt="" width="22" height="22" src="/static/images/icons/eye.svg">
 					<span x-text="isSimpleView() ? 'Extendida' : 'Compacta'"></span>
@@ -591,7 +591,7 @@
 						<div
 							class="box white"
 							x-show="
-								(editAllowed() && (!!import_data?.dates?.booking || !!import_data?.dates?.etd)) ||
+								(adminPermission() && (!!import_data?.dates?.booking || !!import_data?.dates?.etd)) ||
 								(!canEdit() && import_data?.status_id >= 6 && (!!import_data?.dates?.etd || !!import_data?.dates?.eta))
 							"
 						>
@@ -1817,7 +1817,7 @@
 			async init() {
 				console.log('Inicializando Imports...');
 
-				this.view_simple = !this.editAllowed();
+				this.view_simple = !this.adminPermission();
 
                 const socket = Alpine.store('cache').socket;
 				if (socket) {
@@ -1849,7 +1849,7 @@
 			},
 
 			toggleViewMode() {
-				if (!this.editAllowed()) return;
+				if (!this.adminPermission()) return;
 
 				this.view_simple = !this.view_simple;
 
@@ -1859,7 +1859,7 @@
 			},
 
 			isSimpleView() {
-				return !this.editAllowed() || this.view_simple;
+				return !this.adminPermission() || this.view_simple;
 			},
 
 			simpleDashboard() {
@@ -2799,7 +2799,7 @@
 			canMove() {
 				return Alpine.store('cache').hasPermission('imports', 'move');
 			},
-			editAllowed() {
+			adminPermission() {
 				return this.canAdd() || this.canEdit() || this.canMove();
 			},
 			
