@@ -12,6 +12,58 @@ class SalaryRepository:
 
 
     @handle_db_exceptions
+    def get_bank_accounts_by_user(self, user_id):
+        accounts = (
+            g.db_session.query(UserBankAccount)
+            .filter(UserBankAccount.user_id == user_id)
+            .all()
+        )
+        return [
+            {
+                "id": a.id,
+                "business_id": a.business_id,
+                "business_name": a.business.name if a.business else "",
+                "account_type": a.account_type,
+                "account_number": a.account_number,
+                "doc_type": a.doc_type,
+                "currency": a.currency,
+                "is_active": a.is_active,
+            }
+            for a in accounts
+        ], 200
+
+
+    @handle_db_exceptions
+    def upsert_bank_account(self, user_id, data):
+        existing = (
+            g.db_session.query(UserBankAccount)
+            .filter(
+                UserBankAccount.user_id == user_id,
+                UserBankAccount.business_id == data["business_id"],
+            )
+            .first()
+        )
+        if existing:
+            existing.account_type   = data["account_type"]
+            existing.account_number = data["account_number"]
+            existing.doc_type       = data["doc_type"]
+            existing.currency       = data["currency"]
+            existing.is_active      = True
+        else:
+            existing = UserBankAccount(
+                user_id        = user_id,
+                business_id    = data["business_id"],
+                account_type   = data["account_type"],
+                account_number = data["account_number"],
+                doc_type       = data["doc_type"],
+                currency       = data["currency"],
+            )
+            g.db_session.add(existing)
+        g.db_session.commit()
+        return "Cuenta guardada", 200
+
+
+    @handle_db_exceptions
     def get_bank_account(self, user_id, business_id):
         account = (
             g.db_session.query(UserBankAccount)

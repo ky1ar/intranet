@@ -127,6 +127,18 @@ def salary_config_get(user_id):
     return controller.salary_config_get(user_id)
 
 
+@attendance_bp.route("/salary/bank-account/<int:user_id>", methods=["GET"])
+@jwt_required()
+def bank_account_get(user_id):
+    return controller.bank_account_get(user_id)
+
+
+@attendance_bp.route("/salary/bank-account", methods=["POST"])
+@jwt_required()
+def bank_account_save():
+    return controller.bank_account_save(request.get_json())
+
+
 @attendance_bp.route("/salary/approve/rrhh", methods=["POST"])
 @jwt_required()
 def salary_approve_rrhh():

@@ -100,7 +100,7 @@
 				</template>
 			</div>
 
-			<!-- Salary config -->
+			<!-- Salary + cuenta de pago -->
 			<div class="salary-section white" x-show="selected_user">
 				<div class="salary-head" @click="salary_open = !salary_open">
 					<div class="mod-left">
@@ -119,29 +119,31 @@
 					<div class="salary-fields">
 						<label class="salary-field">
 							<span>Empresa</span>
-							<select x-model="salary_form.business_id">
+							<select x-model="salary_form.business_id" @change="onBusinessChange()">
 								<option value="">Seleccionar...</option>
 								<template x-for="b in businesses" :key="b.id">
 									<option :value="b.id" x-text="b.name"></option>
 								</template>
 							</select>
 						</label>
-
 						<label class="salary-field">
 							<span>Sueldo base</span>
 							<input type="number" min="0" step="0.01" placeholder="0.00" x-model.number="salary_form.base_salary">
 						</label>
-
 						<label class="salary-field">
 							<span>Vigente desde</span>
 							<input type="date" x-model="salary_form.effective_from">
 						</label>
+						<label class="salary-field">
+							<span>Número de cuenta</span>
+							<input type="text" maxlength="20" placeholder="Ej. 19475032505008" x-model="salary_form.account_number">
+						</label>
 					</div>
 
-					<button class="salary-save hover-opacity" 
-						@click="saveSalaryConfig()" 
+					<button class="salary-save hover-opacity"
+						@click="saveAll()"
 						:disabled="saving_salary"
-						x-text="saving_salary ? 'Guardando...' : 'Guardar salario'">
+						x-text="saving_salary ? 'Guardando...' : 'Guardar'">
 					</button>
 				</div>
 			</div>
@@ -158,8 +160,9 @@
 			saving: false,
 			salary_open: false,
 			salary_config: null,
-			salary_form: { business_id: '', base_salary: '', effective_from: '' },
+			salary_form: { business_id: '', base_salary: '', effective_from: '', account_number: '' },
 			saving_salary: false,
+			bank_accounts: [],
 			businesses: [],
 
 			async init() {
@@ -195,73 +198,98 @@
 					map.forEach(m => m._open = false);
 					this.access_map = map;
 
-					// Cargar salary config
-					await this.loadSalaryConfig(user.id);
+					await this.loadSalaryData(user.id);
 
 				} catch (e) {
 					console.error('Error cargando mapa:', e);
 				}
 			},
 
-			async loadSalaryConfig(userId) {
-				try {
-					const token = localStorage.getItem('user_token');
-					const res = await fetch(`${Alpine.store('cache').api}/attendance/salary/config/${userId}`, {
-						headers: { 'Authorization': `Bearer ${token}` },
-					});
-					const data = await res.json();
-					this.salary_config = data.data || null;
-
-					if (this.salary_config) {
-						this.salary_form = {
-							business_id: this.salary_config.business_id || '',
-							base_salary: this.salary_config.base_salary || '',
-							effective_from: this.salary_config.effective_from || '',
-						};
-					} else {
-						this.salary_form = { business_id: '', base_salary: '', effective_from: '' };
-					}
-				} catch (e) {
-					this.salary_config = null;
-					this.salary_form = { business_id: '', base_salary: '', effective_from: '' };
-				}
+			_emptyForm() {
+				return { business_id: '', base_salary: '', effective_from: '', account_number: '' };
 			},
 
-			async saveSalaryConfig() {
+			async loadSalaryData(userId) {
+				const token = localStorage.getItem('user_token');
+				const h = { 'Authorization': `Bearer ${token}` };
+				const [cfgRes, bankRes] = await Promise.all([
+					fetch(`${Alpine.store('cache').api}/attendance/salary/config/${userId}`, { headers: h }),
+					fetch(`${Alpine.store('cache').api}/attendance/salary/bank-account/${userId}`, { headers: h }),
+				]);
+				const cfg  = (await cfgRes.json()).data  || null;
+				const bank = (await bankRes.json()).data || [];
+
+				this.salary_config = cfg;
+				this.bank_accounts = bank;
+
+				const f = this._emptyForm();
+				if (cfg) {
+					f.business_id    = cfg.business_id    || '';
+					f.base_salary    = cfg.base_salary    || '';
+					f.effective_from = cfg.effective_from || '';
+				}
+				if (f.business_id) {
+					const acct = bank.find(a => a.business_id == f.business_id);
+					if (acct) f.account_number = acct.account_number;
+				}
+				this.salary_form = f;
+			},
+
+			onBusinessChange() {
+				const acct = this.bank_accounts.find(a => a.business_id == this.salary_form.business_id);
+				this.salary_form.account_number = acct ? acct.account_number : '';
+			},
+
+			async saveAll() {
 				if (this.saving_salary) return;
 				if (!this.salary_form.business_id || !this.salary_form.base_salary || !this.salary_form.effective_from) return;
-
 				this.saving_salary = true;
 				try {
 					const token = localStorage.getItem('user_token');
-					await fetch(`${Alpine.store('cache').api}/attendance/salary/config`, {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-							'Authorization': `Bearer ${token}`,
-						},
-						body: JSON.stringify({
-							user_id: this.selected_user.id,
-							business_id: this.salary_form.business_id,
-							base_salary: this.salary_form.base_salary,
-							effective_from: this.salary_form.effective_from,
+					const h = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+					const uid = this.selected_user.id;
+
+					const saves = [
+						fetch(`${Alpine.store('cache').api}/attendance/salary/config`, {
+							method: 'POST', headers: h,
+							body: JSON.stringify({
+								user_id:        uid,
+								business_id:    this.salary_form.business_id,
+								base_salary:    this.salary_form.base_salary,
+								effective_from: this.salary_form.effective_from,
+							}),
 						}),
-					});
-					await this.loadSalaryConfig(this.selected_user.id);
+					];
+					if (this.salary_form.account_number) {
+						saves.push(fetch(`${Alpine.store('cache').api}/attendance/salary/bank-account`, {
+							method: 'POST', headers: h,
+							body: JSON.stringify({
+								user_id:        uid,
+								business_id:    this.salary_form.business_id,
+								account_type:   'A',
+								account_number: this.salary_form.account_number,
+								doc_type:       '1',
+								currency:       'S',
+							}),
+						}));
+					}
+					await Promise.all(saves);
+					await this.loadSalaryData(uid);
 					this.salary_open = false;
 				} catch (e) {
-					console.error('Error guardando salary config:', e);
+					console.error('Error guardando:', e);
 				} finally {
 					this.saving_salary = false;
 				}
 			},
 
-			// En goBack():
 			goBack() {
 				this.selected_user = null;
 				this.access_map = [];
 				this.salary_config = null;
 				this.salary_open = false;
+				this.bank_accounts = [];
+				this.salary_form = this._emptyForm();
 			},
 
 			async loadUsers() {
@@ -740,6 +768,40 @@
 		.salary-save:disabled {
 			opacity: 0.5;
 			cursor: not-allowed;
+		}
+
+		.bank-list {
+			display: flex;
+			flex-direction: column;
+			gap: 0.35rem;
+			margin-bottom: 1rem;
+		}
+		.bank-item {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			padding: 0.5rem 0.75rem;
+			border-radius: 0.6rem;
+			background: var(--gray);
+			cursor: pointer;
+			font-size: 0.8rem;
+			transition: background var(--transition);
+		}
+		.bank-item:hover {
+			background: var(--graydark);
+		}
+		.bank-item-biz {
+			font-weight: 600;
+			min-width: 5rem;
+		}
+		.bank-item-num {
+			font-family: monospace;
+			font-size: 0.78rem;
+			flex: 1;
+		}
+		.bank-item-type {
+			font-size: 0.7rem;
+			opacity: 0.5;
 		}
 
 		/* ── Responsive ───────────────────────────── */

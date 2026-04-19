@@ -961,7 +961,7 @@
 
 					<template x-if="salary_list.length > 0">
 						<div class="salary-table">
-							<div class="salary-table-head">
+							<div class="salary-table-head salary-cols">
 								<span>Usuario</span>
 								<span>Base</span>
 								<span>Factor</span>
@@ -972,7 +972,7 @@
 							</div>
 
 							<template x-for="row in salary_list" :key="row.id">
-								<div class="salary-table-row white">
+								<div class="salary-table-row salary-cols white">
 									<div class="salary-user" :title="`${row.compliance_pct.toFixed(2)}%`">
 										<img :src="'/static/images/uploads/users/' + row.user_image" width="28" height="28" alt="">
 										<div>
@@ -1000,31 +1000,31 @@
 
 									<span class="salary-final" x-text="`S/ ${row.final_salary.toFixed(2)}`"></span>
 
-									<!-- Estado con doble aprobación -->
+									<!-- Estado -->
 									<div class="salary-status-cell">
 										<template x-if="row.status === 'draft'">
-											<div class="salary-status-actions">
-												<span class="salary-draft-badge">Borrador</span>
-												<template x-if="$store.cache.hasPermission('attendance', 'salary_rrhh')">
-													<button class="salary-approve-btn hover-opacity" @click="salaryApproveRrhh(row.id)">RRHH</button>
-												</template>
-											</div>
+											<span class="salary-draft-badge">Borrador</span>
 										</template>
 										<template x-if="row.status === 'rrhh_approved'">
-											<div class="salary-status-actions">
-												<span class="salary-rrhh-badge">RRHH ✓</span>
-												<template x-if="$store.cache.hasPermission('attendance', 'salary_mgr')">
-													<button class="salary-approve-btn-mgr hover-opacity" @click="salaryApproveMgr(row.id)">Gerencia</button>
-												</template>
-											</div>
+											<span class="salary-rrhh-badge">RRHH ✓</span>
 										</template>
 										<template x-if="row.status === 'approved'">
 											<span class="salary-approved-badge">Aprobado</span>
 										</template>
 									</div>
 
-									<!-- Recalcular individual -->
-									<div>
+									<!-- Aprobar + Recalcular -->
+									<div class="salary-actions-cell">
+										<template x-if="row.status === 'draft' && $store.cache.hasPermission('attendance', 'salary_rrhh')">
+											<button class="salary-approve-btn hover-opacity" @click="salaryApproveRrhh(row.id)" title="Aprobar RRHH">
+												<img src="/static/images/icons/approve.svg" width="14" height="14" alt="">
+											</button>
+										</template>
+										<template x-if="row.status === 'rrhh_approved' && $store.cache.hasPermission('attendance', 'salary_mgr')">
+											<button class="salary-approve-btn-mgr hover-opacity" @click="salaryApproveMgr(row.id)" title="Aprobar Gerencia">
+												<img src="/static/images/icons/approve.svg" width="14" height="14" alt="">
+											</button>
+										</template>
 										<button class="salary-recalc-btn hover-opacity"
 											@click="salaryRecalculateSingle(row.id)"
 											title="Recalcular (resetea a borrador)">
@@ -2588,13 +2588,14 @@
 			justify-content: space-between;
 			gap: 1rem;
 			flex-wrap: wrap;
+			padding: 0 0.1rem 0.25rem;
 		}
 		.salary-modal-title {
 			display: flex;
 			align-items: center;
 			gap: 0.5rem;
-			font-weight: 600;
-			font-size: 0.95rem;
+			font-weight: 700;
+			font-size: 1rem;
 		}
 		.salary-modal-controls {
 			display: flex;
@@ -2645,109 +2646,142 @@
 		.salary-table {
 			display: flex;
 			flex-direction: column;
+			gap: 0.25rem;
+		}
+		.salary-cols {
+			grid-template-columns: 2fr 1fr 0.7fr 0.9fr 1fr 1fr auto;
 		}
 		.salary-table-head {
 			display: grid;
-			grid-template-columns: 2fr 0.8fr 0.8fr 0.7fr 0.7fr 0.7fr 0.8fr 1.2fr 0.4fr;
-			gap: 0.5rem;
-			padding: 0.6rem 1.25rem;
-			font-size: 0.7rem;
-			font-weight: 600;
-			opacity: 0.4;
+			gap: 0.75rem;
+			padding: 0.4rem 1rem 0.4rem 1.1rem;
+			font-size: 0.65rem;
+			font-weight: 700;
+			opacity: 0.35;
 			text-transform: uppercase;
-			letter-spacing: 0.03em;
+			letter-spacing: 0.06em;
 		}
 		.salary-table-row {
 			display: grid;
-			grid-template-columns: 2fr 0.8fr 0.8fr 0.7fr 0.7fr 0.7fr 0.8fr 1.2fr 0.4fr;
-			gap: 0.5rem;
+			gap: 0.75rem;
 			align-items: center;
-			padding: 0.6rem 1.25rem;
+			padding: 0.65rem 1rem 0.65rem 1.1rem;
 			font-size: 0.8rem;
-			border-radius: 0.75rem;
-			margin: 0 0.5rem 0.35rem;
+			border-radius: 0.85rem;
+			transition: box-shadow 0.15s;
+		}
+		.salary-table-row:hover {
+			box-shadow: 0 2px 10px rgba(0,0,0,0.06);
 		}
 		.salary-user {
 			display: flex;
 			align-items: center;
-			gap: 0.5rem;
+			gap: 0.6rem;
+			min-width: 0;
 		}
 		.salary-user img {
 			border-radius: 50%;
 			object-fit: cover;
-			width: 28px;
-			height: 28px;
+			flex-shrink: 0;
+			width: 32px;
+			height: 32px;
 		}
 		.salary-user .name {
 			font-weight: 600;
 			font-size: 0.8rem;
 			display: block;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
 		}
 		.salary-user .dept {
 			font-size: 0.65rem;
-			opacity: 0.5;
+			opacity: 0.45;
 		}
 		.salary-final {
-			font-weight: 600;
+			font-weight: 700;
 		}
 		.salary-low {
 			color: #d35400;
 		}
 		.salary-approve-btn {
-			background: var(--secondary);
-			color: white;
-			border: none;
-			border-radius: 2rem;
-			padding: 0.3rem 0.75rem;
-			font-family: var(--font);
-			font-size: 0.7rem;
-			font-weight: 500;
+			background: none;
+			border: 1.5px solid var(--secondary);
+			border-radius: 0.5rem;
+			width: 2rem;
+			height: 2rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
 			cursor: pointer;
+			opacity: 0.7;
+			transition: opacity var(--transition);
+			padding: 0;
+		}
+		.salary-approve-btn img {
+			filter: invert(29%) sepia(85%) saturate(400%) hue-rotate(155deg);
+		}
+		.salary-approve-btn:hover {
+			opacity: 1;
 		}
 		.salary-approved-badge {
 			background: #d0f4ea;
 			color: #0F6E56;
 			border: 1.5px solid #abe9d8;
 			border-radius: 2rem;
-			padding: 0.25rem 0.75rem;
+			padding: 0.3rem 0.85rem;
 			font-size: 0.65rem;
-			font-weight: 600;
+			font-weight: 700;
+			white-space: nowrap;
 		}
 		.salary-draft-badge {
-			background: #f0f0ea;
-			color: #5F5E5A;
+			background: #efefef;
+			color: #888;
 			border-radius: 2rem;
-			padding: 0.2rem 0.5rem;
-			font-size: 0.6rem;
+			padding: 0.3rem 0.7rem;
+			font-size: 0.65rem;
 			font-weight: 600;
+			white-space: nowrap;
 		}
 		.salary-rrhh-badge {
 			background: #E6F1FB;
 			color: #185FA5;
 			border-radius: 2rem;
-			padding: 0.2rem 0.5rem;
-			font-size: 0.6rem;
-			font-weight: 600;
+			padding: 0.3rem 0.7rem;
+			font-size: 0.65rem;
+			font-weight: 700;
+			white-space: nowrap;
 		}
 		.salary-approve-btn-mgr {
-			background: #BA7517;
-			color: white;
-			border: none;
-			border-radius: 2rem;
-			padding: 0.3rem 0.75rem;
-			font-family: var(--font);
-			font-size: 0.7rem;
-			font-weight: 500;
+			background: none;
+			border: 1.5px solid #BA7517;
+			border-radius: 0.5rem;
+			width: 2rem;
+			height: 2rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
 			cursor: pointer;
+			opacity: 0.7;
+			transition: opacity var(--transition);
+			padding: 0;
+		}
+		.salary-approve-btn-mgr img {
+			filter: invert(46%) sepia(72%) saturate(500%) hue-rotate(10deg);
+		}
+		.salary-approve-btn-mgr:hover {
+			opacity: 1;
 		}
 		.salary-status-cell {
 			display: flex;
 			align-items: center;
 		}
-		.salary-status-actions {
+		.salary-actions-cell {
 			display: flex;
 			align-items: center;
-			gap: 0.35rem;
+			gap: 0.4rem;
+			justify-content: flex-end;
+			width: calc(2 * 2rem + 0.4rem);
 		}
 		.salary-adj-cell {
 			display: flex;
@@ -2758,10 +2792,11 @@
 			align-items: center;
 		}
 		.salary-adj-input {
-			width: 5rem;
+			width: 100%;
+			max-width: 5.5rem;
 			border: 1.5px solid var(--graydark);
-			border-radius: 0.4rem;
-			padding: 0.25rem 0.4rem;
+			border-radius: 0.5rem;
+			padding: 0.3rem 0.45rem;
 			font-family: var(--font);
 			font-size: 0.75rem;
 			text-align: right;
@@ -2777,15 +2812,20 @@
 		.salary-recalc-btn {
 			background: none;
 			border: 1.5px solid var(--graydark);
-			border-radius: 0.4rem;
-			padding: 0.2rem 0.45rem;
-			font-size: 0.85rem;
+			border-radius: 0.5rem;
+			width: 2rem;
+			height: 2rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 1rem;
 			cursor: pointer;
-			opacity: 0.5;
+			opacity: 0.35;
 			transition: opacity var(--transition);
+			padding: 0;
 		}
 		.salary-recalc-btn:hover {
-			opacity: 1;
+			opacity: 0.9;
 		}
 
 		/* Leave balance adjustment */

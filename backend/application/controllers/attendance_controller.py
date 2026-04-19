@@ -118,6 +118,14 @@ class AttendanceController:
 
 
     @handle_logs_and_exceptions
+    def bank_account_get(self, user_id):
+        return self.attendance_service.bank_account_get(user_id)
+
+    @handle_logs_and_exceptions
+    def bank_account_save(self, data):
+        return self.attendance_service.bank_account_save(data)
+
+    @handle_logs_and_exceptions
     def salary_approve_rrhh(self, data):
         return self.attendance_service.salary_approve_rrhh(
             data.get("salary_id"),

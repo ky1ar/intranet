@@ -1718,6 +1718,30 @@ class AttendanceService:
 
 
     @handle_exceptions
+    def bank_account_get(self, user_id):
+        return self.salary_repository.get_bank_accounts_by_user(int(user_id))
+
+    @handle_exceptions
+    def bank_account_save(self, data):
+        user_id = data.get("user_id")
+        business_id = data.get("business_id")
+        account_number = (data.get("account_number") or "").strip()
+        account_type = data.get("account_type", "A")
+        doc_type = data.get("doc_type", "1")
+        currency = data.get("currency", "S")
+
+        if not user_id or not business_id or not account_number:
+            return "Datos incompletos", 400
+
+        return self.salary_repository.upsert_bank_account(int(user_id), {
+            "business_id":    int(business_id),
+            "account_type":   account_type,
+            "account_number": account_number,
+            "doc_type":       doc_type,
+            "currency":       currency,
+        })
+
+    @handle_exceptions
     def salary_approve_rrhh(self, salary_id, approved_by):
         return self.salary_repository.approve_rrhh(salary_id, approved_by)
 
