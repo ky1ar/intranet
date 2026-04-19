@@ -218,6 +218,13 @@ class ModuleService:
 
 
     @handle_exceptions
+    def save_my_settings(self, user_id, modules_data):
+        if not modules_data:
+            return "modules requerido", 400
+        return self.module_repository.save_user_settings(user_id, modules_data)
+
+
+    @handle_exceptions
     def set_default_module(self, user_id, module_slug):
         module, mc = self.module_repository.get_module_by_slug(module_slug)
         if mc != 200:

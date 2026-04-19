@@ -13,6 +13,14 @@ def get_my_modules():
     return controller.get_my_modules(user_id)
 
 
+@module_bp.route("/me/settings", methods=["PUT"])
+@jwt_required()
+def save_my_settings():
+    data = request.get_json()
+    data['user_id'] = int(get_jwt_identity())
+    return controller.save_my_settings(data)
+
+
 @module_bp.route("/me/default", methods=["PUT"])
 @jwt_required()
 def set_default():

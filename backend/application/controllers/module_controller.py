@@ -42,6 +42,15 @@ class ModuleController:
 
 
     @handle_logs_and_exceptions
+    def save_my_settings(self, data):
+        user_id = data.get('user_id')
+        modules_data = data.get('modules', [])
+        if not modules_data:
+            return "modules requerido", 400
+        return self.module.save_my_settings(user_id, modules_data)
+
+
+    @handle_logs_and_exceptions
     def set_default(self, data):
         user_id = data.get('user_id')
         module_slug = data.get('module_slug')

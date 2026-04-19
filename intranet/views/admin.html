@@ -344,7 +344,7 @@
 					const modules = this.access_map.map(mod => ({
 						slug: mod.slug,
 						visible: mod.visible,
-						is_pinned: true,
+						is_pinned: mod.is_pinned,
 						permissions: Object.fromEntries(
 							mod.permissions.map(p => [p.slug, p.granted])
 						),

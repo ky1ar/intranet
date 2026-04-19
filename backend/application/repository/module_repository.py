@@ -188,6 +188,32 @@ class ModuleRepository:
 
 
     @handle_db_exceptions
+    def save_user_settings(self, user_id, modules_data):
+        (
+            g.db_session.query(UserModuleAccess)
+            .filter(UserModuleAccess.user_id == user_id)
+            .update({'is_default': False})
+        )
+
+        for item in modules_data:
+            (
+                g.db_session.query(UserModuleAccess)
+                .filter(
+                    UserModuleAccess.user_id == user_id,
+                    UserModuleAccess.module_id == item['module_id']
+                )
+                .update({
+                    'user_sort_order': item['sort_order'],
+                    'is_pinned': item['is_pinned'],
+                    'is_default': item.get('is_default', False),
+                })
+            )
+
+        g.db_session.commit()
+        return "Configuración guardada", 200
+
+
+    @handle_db_exceptions
     def update_user_sort_order(self, user_id, order_list):
         for item in order_list:
             (

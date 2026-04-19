@@ -206,55 +206,27 @@ document.addEventListener('alpine:init', () => {
             const token = localStorage.getItem('user_token');
 
             try {
-                // 1. Guardar default
-                const defaultMod = this._settings_modules.find(m => m.is_default);
-                if (defaultMod) {
-                    await fetch(`${this.api}/modules/me/default`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`,
-                            'X-No-Toast': '1',
-                        },
-                        body: JSON.stringify({ module_slug: defaultMod.slug }),
-                    });
-                }
+                const modules = this._settings_modules.map((m, i) => {
+                    const um = this.user.modules.find(u => u.slug === m.slug);
+                    return {
+                        module_id: um?.module_id || 0,
+                        sort_order: i,
+                        is_pinned: m.is_pinned,
+                        is_default: m.is_default,
+                    };
+                }).filter(m => m.module_id);
 
-                // 2. Guardar orden
-                const order = this._settings_modules.map((m, i) => ({
-                    module_id: this.user.modules.find(um => um.slug === m.slug)?.module_id || 0,
-                    sort_order: i,
-                })).filter(o => o.module_id);
+                await fetch(`${this.api}/modules/me/settings`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'X-No-Toast': '1',
+                    },
+                    body: JSON.stringify({ modules }),
+                });
 
-                if (order.length) {
-                    await fetch(`${this.api}/modules/me/sort`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`,
-                            'X-No-Toast': '1',
-                        },
-                        body: JSON.stringify({ order }),
-                    });
-                }
-
-                // 3. Guardar pins (solo los que cambiaron)
-                for (const sm of this._settings_modules) {
-                    const original = this.user.modules.find(m => m.slug === sm.slug);
-                    if (original && original.is_pinned !== sm.is_pinned) {
-                        await fetch(`${this.api}/modules/me/pin`, {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`,
-                                'X-No-Toast': '1',
-                            },
-                            body: JSON.stringify({ module_slug: sm.slug }),
-                        });
-                    }
-                }
-
-                // 4. Actualizar store local
+                // Actualizar store local
                 this._settings_modules.forEach((sm, i) => {
                     const original = this.user.modules.find(m => m.slug === sm.slug);
                     if (original) {
@@ -264,6 +236,7 @@ document.addEventListener('alpine:init', () => {
                     }
                 });
 
+                const defaultMod = this._settings_modules.find(m => m.is_default);
                 this.user.default_page = defaultMod?.slug || this.user.default_page;
                 this.hideModal('module-settings');
             } catch (e) {
