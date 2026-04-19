@@ -1788,7 +1788,16 @@ class AttendanceService:
 
         # Construir líneas de detalle
         detail_lines = []
-        total_amount = 0
+        total_amount  = 0
+        total_control = 0
+
+        # TotalControl campo: sum of significant digits from cargo account
+        cargo_acct_num = bank_config.account_number.strip()
+        if len(cargo_acct_num) > 3:
+            try:
+                total_control += int(cargo_acct_num[3:])
+            except ValueError:
+                pass
 
         for salary in salaries:
             user = salary.user
@@ -1802,23 +1811,36 @@ class AttendanceService:
 
             amount = float(salary.final_salary)
             total_amount += amount
-            doc = (user.document or "").strip()
+            doc  = (user.document or "").strip()
             name = (user.name or "").strip()
 
-            # Format detail line (195 chars)
+            # TotalControl: add significant digits of this abono account
+            abono_acct_num = bank_acct.account_number.strip()
+            try:
+                # type B (20-char inter-bank): chars 11+; others (C/M 13-char): chars 4+
+                offset = 10 if bank_acct.account_type == "B" else 3
+                if len(abono_acct_num) > offset:
+                    total_control += int(abono_acct_num[offset:])
+            except ValueError:
+                pass
+
+            # doc padded to 12 for DNI (type "1") or other types (campo5 = 12 chars)
+            doc_padded = (doc.ljust(8)[:8] + "    ") if bank_acct.doc_type == "1" else doc.ljust(12)[:12]
+
+            # Detail line (195 chars) — field layout per BCP Telecrédito spec
             line = (
-                "2"                                                 # [0:1]   tipo registro
-                + bank_acct.account_type                            # [1:2]   tipo cuenta abono
-                + bank_acct.account_number.ljust(14)[:14]           # [2:16]  cuenta abono
-                + " " * 6                                           # [16:22] padding
-                + bank_acct.doc_type                                # [22:23] tipo doc
-                + doc.ljust(15)[:15]                                # [23:38] doc numero
-                + name.ljust(75)[:75]                               # [38:113] nombre
-                + f"Referencia Beneficiario {doc}".ljust(40)[:40]   # [113:153] ref beneficiario
-                + f"Ref Emp {doc}".ljust(20)[:20]                   # [153:173] ref empresa
-                + "0001"                                            # [173:177] validación
-                + f"{amount:017.2f}"                                # [177:194] monto (17 chars con punto)
-                + bank_acct.currency                                # [194:195] moneda
+                "2"                                                      # [0]     tipo registro
+                + bank_acct.account_type                                 # [1]     tipo cuenta abono
+                + bank_acct.account_number.ljust(20)[:20]                # [2:22]  nro cuenta abono (20)
+                + bank_acct.doc_type                                     # [22]    tipo doc empleado
+                + doc_padded                                             # [23:35] nro doc (12)
+                + "   "                                                  # [35:38] correlativo doc (3)
+                + name.ljust(75)[:75]                                    # [38:113] nombre (75)
+                + f"Referencia Beneficiario {doc_padded}".ljust(40)[:40] # [113:153] ref beneficiario (40)
+                + f"Ref Emp {doc_padded}".ljust(20)[:20]                 # [153:173] ref empresa (20)
+                + ("0001" if bank_acct.currency == "S" else "1001")      # [173:177] moneda abono (4)
+                + f"{amount:017.2f}"                                     # [177:194] importe (17)
+                + "S"                                                    # [194]   flag validar IDC
             )
 
             detail_lines.append(line)
@@ -1827,17 +1849,23 @@ class AttendanceService:
         fecha = period.end_date.strftime("%Y%m%d")
         count = len(detail_lines)
 
-        # Format header line (113 chars)
+        # Moneda de cuenta cargo: derivada del 11º dígito (índice 10) del nro de cuenta
+        # "0" → soles "0001", "1" → dólares "1001"
+        moneda_char  = cargo_acct_num[10] if len(cargo_acct_num) > 10 else "0"
+        moneda_cargo = "0001" if moneda_char == "0" else "1001"
+
+        # Header line (113 chars) — field layout per BCP Telecrédito spec
         header = (
-            "1"                                                     # [0:1]   tipo registro
-            + f"{count:06d}"                                        # [1:7]   cantidad abonos
-            + fecha                                                 # [7:15]  fecha proceso
-            + "X"                                                   # [15:16] subtipo
-            + bank_config.account_type                              # [16:17] tipo cuenta cargo
-            + bank_config.account_number.ljust(24)[:24]             # [17:41] cuenta cargo
-            + f"{total_amount:017.2f}"                              # [41:58] monto total (17 chars con punto)
-            + bank_config.reference.ljust(40)[:40]                  # [58:98] referencia
-            + bank_config.company_code.ljust(15)[:15]               # [98:113] código empresa
+            "1"                                          # [0]     tipo registro
+            + f"{count:06d}"                             # [1:7]   cantidad abonos (6)
+            + fecha                                      # [7:15]  fecha proceso (8)
+            + "X"                                         # [15]    subtipo planilla: X = haberes
+            + bank_config.account_type                   # [16]    tipo cuenta cargo (1)
+            + moneda_cargo                               # [17:21] moneda cuenta cargo (4)
+            + cargo_acct_num.ljust(20)[:20]              # [21:41] nro cuenta cargo (20)
+            + f"{total_amount:017.2f}"                   # [41:58] monto total planilla (17)
+            + bank_config.reference.ljust(40)[:40]       # [58:98] referencia planilla (40)
+            + f"{total_control:015d}"                    # [98:113] total control (15)
         )
 
         # Generar contenido
