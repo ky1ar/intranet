@@ -943,9 +943,8 @@
 						</button>
 
 						<button class="button black hover-opacity"
-							@click="salaryGenerateFile(2)"
-							title="Generar TXT de Telecrédito para KREAR3D"
-							disabled>
+							@click="salaryGenerateFileBbva(2)"
+							title="Generar TXT BBVA Cash para KREAR3D">
 							KREAR3D
 							<img src="/static/images/icons/download.svg" width="14" height="14" alt="">
 						</button>
@@ -2555,7 +2554,6 @@
 
 				const data = json.data;
 
-				// Descargar como TXT
 				const blob = new Blob([data.content], { type: 'text/plain' });
 				const url = URL.createObjectURL(blob);
 				const a = document.createElement('a');
@@ -2566,6 +2564,41 @@
 
 			} catch (e) {
 				console.error('Error generando archivo:', e);
+			}
+		},
+
+		async salaryGenerateFileBbva(businessId) {
+			if (!this.salary_period_id) return;
+
+			try {
+				const token = localStorage.getItem('user_token');
+				const res = await fetch(`${this.api}/attendance/salary/generate/bbva`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': `Bearer ${token}`,
+					},
+					body: JSON.stringify({
+						period_id: this.salary_period_id,
+						business_id: businessId,
+					}),
+				});
+
+				const json = await res.json();
+				if (!res.ok) throw new Error(json?.data?.message || 'Error generando archivo BBVA');
+
+				const data = json.data;
+
+				const blob = new Blob([data.content], { type: 'text/plain' });
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = data.filename;
+				a.click();
+				URL.revokeObjectURL(url);
+
+			} catch (e) {
+				console.error('Error generando archivo BBVA:', e);
 			}
 		},
 

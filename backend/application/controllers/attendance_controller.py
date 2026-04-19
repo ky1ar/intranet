@@ -157,6 +157,14 @@ class AttendanceController:
             data.get("business_id"),
         )
 
+    @handle_logs_and_exceptions
+    def salary_generate_bbva_cash(self, data):
+        period_id = data.get("period_id")
+        business_id = data.get("business_id")
+        if not period_id or not business_id:
+            return "period_id y business_id requeridos", 400
+        return self.attendance_service.salary_generate_bbva_cash(period_id, business_id)
+
 
     # ── Leave Balance ──────────────────────────────────────────────────
 

@@ -1850,6 +1850,74 @@ class AttendanceService:
             "total": total_amount,
         }, 200
 
+    @handle_exceptions
+    def salary_generate_bbva_cash(self, period_id, business_id):
+        """Genera el archivo TXT BBVA Cash para pago de haberes (formato centavos)"""
+        bank_config, bc = self.salary_repository.get_business_bank_config(business_id)
+        if bc != 200 or not bank_config:
+            return "Configuración bancaria no encontrada para esta empresa", 404
+
+        period, pc = self.salary_repository.get_period_by_id(period_id)
+        if pc != 200 or not period:
+            return "Periodo no encontrado", 404
+
+        salaries, sc = self.salary_repository.get_approved_salaries_by_period_and_business(period_id, business_id)
+        if sc != 200:
+            return salaries, sc
+        if not salaries:
+            return "No hay salarios aprobados para generar", 422
+
+        fecha = period.end_date.strftime("%Y%m%d")
+        detail_lines = []
+        total_centavos = 0
+
+        for salary in salaries:
+            user = salary.user
+            if not user:
+                continue
+            bank_acct, bac = self.salary_repository.get_bank_account(user.id, business_id)
+            if bac != 200 or not bank_acct:
+                continue
+
+            centavos = int(round(float(salary.final_salary) * 100))
+            total_centavos += centavos
+
+            doc      = (user.document or "").strip()
+            cuenta   = bank_acct.account_number.ljust(20)[:20]
+            line = (
+                "0680"                      # [0:4]   tipo registro
+                + doc.ljust(15)[:15]        # [4:19]  referencia (DNI)
+                + "001"                     # [19:22] servicio: soles haberes
+                + cuenta                   # [22:42] cuenta abono
+                + f"{centavos:014d}"        # [42:56] importe centavos
+                + fecha                    # [56:64] fecha YYYYMMDD
+                + " " * 36                 # [64:100] padding
+            )
+            detail_lines.append(line)
+
+        emisora  = bank_config.company_code.strip().zfill(5)[-5:]
+        count    = len(detail_lines)
+        header = (
+            "038010011"                     # [0:9]   magic BBVA Cash
+            + emisora                       # [9:14]  código emisora
+            + f"{count:07d}"               # [14:21] cantidad registros PEN
+            + f"{total_centavos:015d}"     # [21:36] total PEN centavos
+            + "0000000"                    # [36:43] registros USD
+            + "000000000000000"            # [43:58] total USD
+            + fecha                        # [58:66] fecha YYYYMMDD
+            + " " * 34                     # [66:100] padding
+        )
+
+        content = header + "\r\n" + "\r\n".join(detail_lines) + "\r\n"
+        biz_name = salaries[0].business.name if salaries else str(business_id)
+
+        return {
+            "content": content,
+            "filename": f"bbva_haberes_{biz_name}_{period.name.replace(' ', '_')}.txt",
+            "count": count,
+            "total": round(total_centavos / 100, 2),
+        }, 200
+
     # ── Leave Balance ──────────────────────────────────────────────────
 
     @handle_exceptions

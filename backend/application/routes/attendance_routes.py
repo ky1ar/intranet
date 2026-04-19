@@ -169,6 +169,12 @@ def salary_generate_file():
     return controller.salary_generate_file(request.get_json())
 
 
+@attendance_bp.route("/salary/generate/bbva", methods=["POST"])
+@jwt_required()
+def salary_generate_bbva():
+    return controller.salary_generate_bbva_cash(request.get_json())
+
+
 # ── Leave Balance ──────────────────────────────────────────────
 
 @attendance_bp.route("/leave/balance/<int:user_id>/period/<int:period_id>", methods=["GET"])
