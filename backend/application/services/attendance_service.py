@@ -1810,8 +1810,8 @@ class AttendanceService:
             + fecha                                                 # [7:15]  fecha proceso
             + "X"                                                   # [15:16] subtipo
             + bank_config.account_type                              # [16:17] tipo cuenta cargo
-            + bank_config.account_number.ljust(20)[:20]             # [17:37] cuenta cargo
-            + f"{total_amount:021.2f}"                              # [37:58] monto total (21 chars con punto)
+            + bank_config.account_number.ljust(24)[:24]             # [17:41] cuenta cargo
+            + f"{total_amount:017.2f}"                              # [41:58] monto total (17 chars con punto)
             + bank_config.reference.ljust(40)[:40]                  # [58:98] referencia
             + bank_config.company_code.ljust(15)[:15]               # [98:113] código empresa
         )

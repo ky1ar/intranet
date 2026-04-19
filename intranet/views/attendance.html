@@ -963,9 +963,7 @@
 						<div class="salary-table">
 							<div class="salary-table-head">
 								<span>Usuario</span>
-								<span>Empresa</span>
 								<span>Base</span>
-								<span>Cumpl.</span>
 								<span>Factor</span>
 								<span>Ajuste</span>
 								<span>Final</span>
@@ -975,17 +973,15 @@
 
 							<template x-for="row in salary_list" :key="row.id">
 								<div class="salary-table-row white">
-									<div class="salary-user">
+									<div class="salary-user" :title="`${row.compliance_pct.toFixed(2)}%`">
 										<img :src="'/static/images/uploads/users/' + row.user_image" width="28" height="28" alt="">
 										<div>
 											<span class="name" x-text="row.user_name"></span>
-											<span class="dept" x-text="row.department_name"></span>
+											<span class="dept" x-text="row.business_name"></span>
 										</div>
 									</div>
-									<span x-text="row.business_name"></span>
 									<span x-text="`S/ ${row.base_salary.toFixed(2)}`"></span>
-									<span :class="{'salary-low': row.compliance_pct < 100}" x-text="`${row.compliance_pct.toFixed(2)}%`"></span>
-									<span x-text="`x${row.factor.toFixed(4)}`"></span>
+									<span :class="{'salary-low': row.compliance_pct < 100}" x-text="truncateDecimals(row.factor, 2)"></span>
 
 									<!-- Ajuste: editable si tiene permiso rrhh o mgr y no está approved -->
 									<div class="salary-adj-cell">
