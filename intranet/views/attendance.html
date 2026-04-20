@@ -72,8 +72,6 @@
 							<div
 								class="month"
 								:class="dayClass(day)"
-								@mouseenter="setHover(day, true)"
-								@mouseleave="setHover(day, false)"
 								@click="canEditMarks() && hasIncomplete(day) && showEdit(day)"
 								:style="(canEditMarks() && hasIncomplete(day)) ? 'cursor:pointer' : ''"
 							>
@@ -89,8 +87,6 @@
 										<div
 											class="item"
 											:class="`${item.class || ''} ${item.incomplete ? 'incomplete' : ''} ${item.extra ? 'extra' : ''} ${item.holiday ? 'holiday' : ''} ${item.adjustment ? 'adjustment' : ''} ${item.vacation ? 'vacations' : ''}`"
-											x-show="!item.extra || isHover(day)"
-											x-transition.opacity.duration.150ms
 											@click="item.leave_id && openLeave(item.leave_id)"
 											:style="item.leave_id ? 'cursor:pointer' : ''"
 										>
@@ -1077,7 +1073,6 @@
 		minVacationDate: "",
 		option_user: null,
 		option_user_active: false,
-		hover_day: null,
 		selected_day: null,
 		expected_marks: 4,
 		draft_marks: [],
@@ -1381,7 +1376,6 @@
 			await Alpine.store('cache').fetchData([
 				{ key: 'attendance_period', url: `/attendance/period?user_id=${user_id}&offset=${this.offset}`, force: true },
 			]);
-			this.hover_day = null;
 			this.buildGrid();
 			if (Alpine.store('cache').hasPermission('attendance', 'view_salary')) {
 				await this.loadSalary();
@@ -1474,13 +1468,6 @@
 			}
 		},
 
-		isHover(day) {
-			return this.hover_day === (day?.date || null);
-		},
-
-		setHover(day, on) {
-			this.hover_day = on ? (day?.date || null) : null;
-		},
 
 		toogleUserOption() { 
 			this.option_user_active = !this.option_user_active;
@@ -3784,6 +3771,13 @@
 			right: 0.25rem;
 			justify-content: space-between;
 			flex-direction: row;
+			opacity: 0;
+			pointer-events: none;
+			transition: opacity 150ms;
+		}
+		#attendance .main .middle .bottom .month:hover .body .item.extra {
+			opacity: 1;
+			pointer-events: auto;
 		}
 		#attendance .main .middle .bottom .month .body .item.extra .label {
 			color: #000;
