@@ -124,12 +124,15 @@ class SalaryRepository:
             existing.calculated_at = data["calculated_at"]
             existing.calculated_by = data.get("calculated_by")
             g.db_session.commit()
-            return existing, 200
+            stats_id = existing.id  # leer id antes de que close() deteche el objeto
+            return stats_id, 200
 
         stats = AttendancePeriodStats(**data)
         g.db_session.add(stats)
+        g.db_session.flush()   # populate id from DB antes del commit
+        stats_id = stats.id
         g.db_session.commit()
-        return stats, 200
+        return stats_id, 200
 
 
     @handle_db_exceptions
@@ -369,6 +372,23 @@ class SalaryRepository:
         salary.mgr_approved_at = peru_time()
         g.db_session.commit()
         return "Aprobado por gerencia", 200
+
+
+    @handle_db_exceptions
+    def auto_approve_user24(self, user_id, period_id, approved_by):  # genérico para fixed users
+        from application.utils import peru_time
+        salary = (
+            g.db_session.query(SalaryPeriod)
+            .filter(SalaryPeriod.user_id == user_id, SalaryPeriod.period_id == period_id)
+            .first()
+        )
+        if not salary or salary.status == "approved":
+            return "ok", 200
+        salary.status = "approved"
+        salary.approved_by = approved_by
+        salary.approved_at = peru_time()
+        g.db_session.commit()
+        return "ok", 200
 
 
     @handle_db_exceptions

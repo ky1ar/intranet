@@ -1570,6 +1570,37 @@ class AttendanceService:
             else:
                 calculated += 1
 
+        # Usuarios sin asistencia que siempre se incluyen con factor 1
+        for fixed_uid in [23, 24]:
+            cfg, cc = self.salary_repository.get_salary_config(fixed_uid, period.end_date)
+            if cc != 200 or not cfg:
+                continue
+            base = float(cfg.base_salary)
+            stats_id, _ = self.salary_repository.upsert_period_stats({
+                "user_id": fixed_uid,
+                "period_id": period_id,
+                "target_min": 0, "worked_min": 0, "tolerance_planned_min": 0,
+                "tolerance_accum_min": 0, "base_excess_min": 0, "calc_excess_min": 0,
+                "calc_obj_min": 0, "tardiness_count": 0, "vacation_days": 0,
+                "incomplete_days": 0, "compliance_pct": 100.0,
+                "calculated_at": peru_time(), "calculated_by": editor_user_id,
+            })
+            if not isinstance(stats_id, int):
+                continue
+            result_f, _ = self.salary_repository.upsert_salary_period_if_draft({
+                "user_id": fixed_uid,
+                "period_id": period_id,
+                "stats_id": stats_id,
+                "business_id": cfg.business_id,
+                "base_salary": base,
+                "compliance_pct": 100.0,
+                "factor": 1.0,
+                "final_salary": base,
+            })
+            if result_f != "skipped":
+                calculated += 1
+                self.salary_repository.auto_approve_user24(fixed_uid, period_id, editor_user_id)
+
         return {
             "calculated": calculated,
             "skipped": skipped,
@@ -1852,8 +1883,10 @@ class AttendanceService:
 
             detail_lines.append(line)
 
-        # Fecha de proceso = último día del periodo
-        fecha = period.end_date.strftime("%Y%m%d")
+        # Fecha de proceso = último día calendario del mes del periodo
+        import calendar as _cal
+        last_day = _cal.monthrange(period.end_date.year, period.end_date.month)[1]
+        fecha = date(period.end_date.year, period.end_date.month, last_day).strftime("%Y%m%d")
         count = len(detail_lines)
 
         # Moneda de cuenta cargo: derivada del 11º dígito (índice 10) del nro de cuenta
@@ -1902,7 +1935,9 @@ class AttendanceService:
         if not salaries:
             return "No hay salarios aprobados para generar", 422
 
-        fecha = period.end_date.strftime("%Y%m%d")
+        import calendar as _cal
+        last_day = _cal.monthrange(period.end_date.year, period.end_date.month)[1]
+        fecha = date(period.end_date.year, period.end_date.month, last_day).strftime("%Y%m%d")
         detail_lines = []
         total_centavos = 0
 
