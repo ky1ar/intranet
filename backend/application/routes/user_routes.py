@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from application.controllers.user_controller import UserController
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 
 user_bp = Blueprint("user", __name__, url_prefix="/user")
@@ -57,3 +57,19 @@ def user_validate_otp():
 @jwt_required()
 def user_register_device():
     return controller.register_device(request.get_json())
+
+
+@user_bp.route("/upload_avatar", methods=["POST"])
+@jwt_required()
+def upload_avatar():
+    from application.services.user_service import UserService
+    from application.response import Response
+    user_id = int(get_jwt_identity())
+    file = request.files.get("avatar")
+    if not file:
+        return jsonify({"success": False, "data": "Archivo requerido"}), 400
+    result, code = UserService().upload_avatar(user_id, file)
+    fmt = Response()
+    if code != 200:
+        return fmt.error(result, code)
+    return fmt.success(result)

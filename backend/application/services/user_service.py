@@ -110,6 +110,44 @@ class UserService:
     
 
     @handle_exceptions
+    @handle_exceptions
+    def upload_avatar(self, user_id, file):
+        from PIL import Image
+        import os
+        from werkzeug.utils import secure_filename
+
+        ALLOWED = {"image/jpeg", "image/png", "image/webp"}
+        if file.mimetype not in ALLOWED:
+            return "Formato no permitido. Solo JPG, PNG o WEBP", 400
+
+        img = Image.open(file.stream).convert("RGBA" if file.mimetype == "image/webp" else "RGB")
+
+        w, h = img.size
+        if w > 1000 or h > 1000:
+            return "La imagen supera 1000x1000 px", 400
+
+        # Recortar al centro en cuadrado y redimensionar a 512x512
+        side = min(w, h)
+        left = (w - side) // 2
+        top  = (h - side) // 2
+        img  = img.crop((left, top, left + side, top + side))
+        img  = img.resize((512, 512), Image.LANCZOS)
+
+        ext = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}[file.mimetype]
+        filename = secure_filename(f"user_{user_id}_avatar.{ext}")
+        save_path = os.path.join("/shared_uploads/users", filename)
+        os.makedirs("/shared_uploads/users", exist_ok=True)
+
+        if ext == "jpg":
+            img.convert("RGB").save(save_path, "JPEG", quality=90)
+        elif ext == "png":
+            img.save(save_path, "PNG")
+        else:
+            img.save(save_path, "WEBP", quality=90)
+
+        return self.user_repository.update_user_image(user_id, filename)
+
+
     def get_user_by_document(self, document):
         user, user_status = self.user_repository.get_user_by_document(document)
         if user_status != 200:

@@ -52,6 +52,16 @@ class UserRepository:
     
 
     @handle_db_exceptions
+    def update_user_image(self, user_id, filename):
+        user = g.db_session.query(Users).filter_by(id=user_id).first()
+        if not user:
+            return "Usuario no encontrado", 404
+        user.image = filename
+        g.db_session.commit()
+        return filename, 200
+
+
+    @handle_db_exceptions
     def get_all_team(self):
         team = (
             g.db_session.query(Users)
