@@ -240,28 +240,18 @@
                                     <span class="mod-name" x-text="$store.cache.module_ui[mod.slug]?.label || mod.name"></span>
 
                                     <div class="mod-actions">
-                                        <div class="mod-default hover-opacity" 
+                                        <div class="mod-default hover-opacity"
                                              :class="{'active': mod.is_default}"
                                              @click="$store.cache._setSettingsDefault(mod.slug)"
                                              title="Página de inicio">
-                                            <svg width="16" height="16" viewBox="0 0 16 16">
-                                                <path d="M8 1.5L1.5 7V14h4.5v-4h4v4h4.5V7L8 1.5z" 
-                                                      :fill="mod.is_default ? 'var(--primary)' : 'none'" 
-                                                      :stroke="mod.is_default ? 'var(--primary)' : '#999'" 
-                                                      stroke-width="1.2"/>
-                                            </svg>
+                                            <img width="18" height="18" :src="mod.is_default ? '/static/images/icons/filled/home2.svg' : '/static/images/icons/home2.svg'" alt="">
                                         </div>
 
                                         <div class="mod-pin hover-opacity"
                                              :class="{'active': mod.is_pinned}"
                                              @click="mod.is_pinned = !mod.is_pinned"
                                              title="Fijar en sidebar">
-                                            <svg width="16" height="16" viewBox="0 0 16 16">
-                                                <path d="M10 1L6 5L2 6L10 14L11 10L15 6L10 1Z" 
-                                                      :fill="mod.is_pinned ? 'var(--primary)' : 'none'" 
-                                                      :stroke="mod.is_pinned ? 'var(--primary)' : '#999'" 
-                                                      stroke-width="1.2"/>
-                                            </svg>
+                                            <img width="18" height="18" :src="mod.is_pinned ? '/static/images/icons/filled/pin.svg' : '/static/images/icons/pin.svg'" alt="">
                                         </div>
                                     </div>
                                 </div>
