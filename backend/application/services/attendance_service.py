@@ -1550,9 +1550,8 @@ class AttendanceService:
             base = float(config.base_salary)
             compliance = float(stats.compliance_pct or 0)
             compliance = math.floor(compliance * 100) / 100
-            factor = min(compliance / 100, 1.0)
-            factor = math.floor(factor * 10000) / 10000 
-            final = math.floor(base * factor * 100) / 100
+            factor = round(compliance / 100, 2)
+            final = round(base * factor, 2)
 
             salary_data = {
                 "user_id": stats.user_id,
@@ -1603,8 +1602,7 @@ class AttendanceService:
         base = float(config.base_salary)
         compliance = float(stats.compliance_pct or 0)
         compliance = math.floor(compliance * 100) / 100
-        factor = min(compliance / 100, 1.0)
-        factor = math.floor(factor * 10000) / 10000
+        factor = round(compliance / 100, 2)
         final = math.floor(base * factor * 100) / 100
 
         update_data = {

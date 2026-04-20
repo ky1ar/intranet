@@ -14,7 +14,7 @@ class MachineRepository:
             g.db_session.query(Machines.id, Machines.image, Machines.category_id, full_name)
             .join(Brands)
             .filter(full_name.ilike(search_term))
-            .filter(Machines.category_id == 1)
+            .filter(Machines.category_id != 57)
             .order_by(full_name)
             .all()
         )

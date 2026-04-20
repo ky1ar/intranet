@@ -976,7 +976,7 @@
 										</div>
 									</div>
 									<span x-text="`S/ ${row.base_salary.toFixed(2)}`"></span>
-									<span :class="{'salary-low': row.compliance_pct < 100}" x-text="truncateDecimals(row.factor, 2)"></span>
+									<span :class="{'salary-low': row.compliance_pct < 100}" x-text="(+row.factor).toFixed(2)"></span>
 
 									<!-- Ajuste: editable si tiene permiso rrhh o mgr y no está approved -->
 									<div class="salary-adj-cell">
