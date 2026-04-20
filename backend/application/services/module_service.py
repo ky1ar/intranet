@@ -143,7 +143,6 @@ class ModuleService:
                 user_id=target_user_id,
                 module_id=module.id,
                 visible=mod_data.get("visible", False),
-                is_pinned=mod_data.get("is_pinned", True),
             )
 
             perms_dict = mod_data.get("permissions", {})

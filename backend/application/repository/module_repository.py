@@ -253,7 +253,7 @@ class ModuleRepository:
     # ── Admin ──────────────────────────────────────────────────────────────
 
     @handle_db_exceptions
-    def upsert_user_access(self, user_id, module_id, visible, is_pinned=True, user_sort_order=0):
+    def upsert_user_access(self, user_id, module_id, visible, is_pinned=None, user_sort_order=None):
         access = (
             g.db_session.query(UserModuleAccess)
             .filter(
@@ -268,14 +268,16 @@ class ModuleRepository:
                 user_id=user_id,
                 module_id=module_id,
                 visible=visible,
-                is_pinned=is_pinned,
-                user_sort_order=user_sort_order,
+                is_pinned=is_pinned if is_pinned is not None else True,
+                user_sort_order=user_sort_order if user_sort_order is not None else 0,
             )
             g.db_session.add(access)
         else:
             access.visible = visible
-            access.is_pinned = is_pinned
-            access.user_sort_order = user_sort_order
+            if is_pinned is not None:
+                access.is_pinned = is_pinned
+            if user_sort_order is not None:
+                access.user_sort_order = user_sort_order
             access.updated_at = peru_time()
 
         g.db_session.commit()
