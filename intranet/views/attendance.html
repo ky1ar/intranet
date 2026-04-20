@@ -976,7 +976,17 @@
 										</div>
 									</div>
 									<span x-text="`S/ ${row.base_salary.toFixed(2)}`"></span>
-									<span :class="{'salary-low': row.compliance_pct < 100}" x-text="(+row.factor).toFixed(2)"></span>
+									<!-- Factor: editable si draft y tiene permiso rrhh -->
+									<template x-if="row.status !== 'approved' && $store.cache.hasPermission('attendance', 'salary_rrhh')">
+										<input type="number" step="0.01" min="0" class="salary-adj-input"
+											:class="{'salary-low': row.compliance_pct < 100}"
+											:value="(+row.factor).toFixed(2)"
+											@change="salarySetFactor(row.id, $event.target.value)"
+											:title="`Cumplimiento: ${row.compliance_pct.toFixed(2)}%`">
+									</template>
+									<template x-if="row.status === 'approved' || !$store.cache.hasPermission('attendance', 'salary_rrhh')">
+										<span :class="{'salary-low': row.compliance_pct < 100}" x-text="(+row.factor).toFixed(2)"></span>
+									</template>
 
 									<!-- Ajuste: editable si tiene permiso rrhh o mgr y no está approved -->
 									<div class="salary-adj-cell">
@@ -1283,6 +1293,20 @@
 			await this.loadSalaryList();
 		} catch (e) {
 			console.error('Error aprobando gerencia:', e);
+		}
+	},
+
+	async salarySetFactor(salaryId, value) {
+		try {
+			const token = localStorage.getItem('user_token');
+			await fetch(`${this.api}/attendance/salary/factor`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+				body: JSON.stringify({ salary_id: salaryId, factor: parseFloat(value) || 1 }),
+			});
+			await this.loadSalaryList();
+		} catch (e) {
+			console.error('Error cambiando factor:', e);
 		}
 	},
 

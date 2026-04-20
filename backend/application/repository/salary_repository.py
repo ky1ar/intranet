@@ -372,6 +372,23 @@ class SalaryRepository:
 
 
     @handle_db_exceptions
+    def set_factor(self, salary_id, factor):
+        salary = g.db_session.query(SalaryPeriod).get(salary_id)
+        if not salary:
+            return "No encontrado", 404
+        if salary.status == "approved":
+            return "No se puede modificar un salario ya aprobado", 422
+
+        import math
+        base = float(salary.base_salary)
+        adj = float(salary.adjustment or 0)
+        salary.factor = round(factor, 2)
+        salary.final_salary = round(base * salary.factor + adj, 2)
+        g.db_session.commit()
+        return "Factor actualizado", 200
+
+
+    @handle_db_exceptions
     def set_adjustment(self, salary_id, adjustment, adjusted_by):
         salary = g.db_session.query(SalaryPeriod).get(salary_id)
         if not salary:

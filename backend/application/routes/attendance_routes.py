@@ -155,6 +155,13 @@ def salary_approve_mgr():
     return controller.salary_approve_mgr(data)
 
 
+@attendance_bp.route("/salary/factor", methods=["POST"])
+@jwt_required()
+def salary_set_factor():
+    data = request.get_json() or {}
+    return controller.salary_set_factor(data)
+
+
 @attendance_bp.route("/salary/adjustment", methods=["POST"])
 @jwt_required()
 def salary_set_adjustment():

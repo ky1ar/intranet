@@ -1748,6 +1748,17 @@ class AttendanceService:
 
 
     @handle_exceptions
+    def salary_set_factor(self, salary_id, factor):
+        if factor is None:
+            return "Factor requerido", 400
+        try:
+            factor = float(factor)
+        except (TypeError, ValueError):
+            return "Factor inválido", 400
+        return self.salary_repository.set_factor(salary_id, factor)
+
+
+    @handle_exceptions
     def salary_set_adjustment(self, salary_id, adjustment, adjusted_by):
         if adjustment is None:
             return "Ajuste requerido", 400

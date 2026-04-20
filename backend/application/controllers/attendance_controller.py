@@ -142,6 +142,14 @@ class AttendanceController:
 
 
     @handle_logs_and_exceptions
+    def salary_set_factor(self, data):
+        return self.attendance_service.salary_set_factor(
+            data.get("salary_id"),
+            data.get("factor"),
+        )
+
+
+    @handle_logs_and_exceptions
     def salary_set_adjustment(self, data):
         return self.attendance_service.salary_set_adjustment(
             data.get("salary_id"),
