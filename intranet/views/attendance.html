@@ -1092,6 +1092,7 @@
 			compliance_pct: 0,
 		},
 		available_leave: 0,
+		_vacation_used_backend: null,
 		finish_date: '-',
 		leave_adj_open: false,
 		leave_adj_value: 0,
@@ -1355,7 +1356,6 @@
 			);
 			const json = await res.json();
 			if (json.data) {
-				this.available_leave = json.data.balance ?? 0;
 				this.leave_adj_value = json.data.manual_adj ?? 0;
 			}
 		} catch (e) {
@@ -1523,8 +1523,9 @@
 		buildGrid() {
 			const data = Alpine.store('cache').getData('attendance_period') || {};
 			const weeks = data.weeks || [];
-			this.available_leave = data.available_leave || 0;
+			this.available_leave = data.available_leave ?? 0;
 			this.finish_date = data.finish_date || '-';
+			this._vacation_used_backend = data.vacation_used ?? null;
 
 			const days = [];
 
@@ -1604,7 +1605,6 @@
 			let worked = 0;          // ✅ solo hasta hoy
 			let toleranceAccum = 0;  // ✅ solo hasta hoy
 			let tardies = 0;         // ✅ solo hasta hoy
-			let vacations = 0;       // ✅ todo el periodo
 
 			for (const w of weeks) {
 				for (const day of (w.days || [])) {
@@ -1612,8 +1612,6 @@
 					if (day?.is_summary) continue;
 
 					target += Number(day?.target_min || 0);
-
-					if (day?.is_vacation) vacations += 1;
 
 					if (!day?.date || day.date > todayISO) continue;
 
@@ -1632,7 +1630,10 @@
 			const calcObjMin = target + calcExcess;
 
 			const compliance = calcObjMin > 0 ? (worked * 100) / calcObjMin : 0;
-			
+
+			// vacation_days viene del backend (campo vacation_used en el periodo)
+			const vacations = this._vacation_used_backend ?? 0;
+
 			this.stats = {
 				...this.stats,
 				target_min: target,

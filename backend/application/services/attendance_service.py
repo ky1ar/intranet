@@ -595,12 +595,10 @@ class AttendanceService:
         if leave_adjustment:
             payload["finish_date"] = leave_adjustment.finish_date
 
-        # Usar leave_balance para available_leave (con fallback a leave_adjustment)
-        leave_bal, lbc = self.attendance_repository.get_leave_balance(user_id, period.id)
-        if leave_bal:
-            payload["available_leave"] = float(leave_bal.balance)
-        elif leave_adjustment:
-            payload["available_leave"] = int(leave_adjustment.available)
+        leave_data, _ = self.attendance_repository.compute_available_leave(user_id, period.id)
+        if leave_data:
+            payload["available_leave"] = leave_data["available"]
+            payload["vacation_used"] = leave_data["vacation_used"]
             
         effective_start = max(period.start_date, start_in_period)
         payload["effective_start_date"] = effective_start.isoformat()
@@ -1948,6 +1946,8 @@ class AttendanceService:
 
     # ── Leave Balance ──────────────────────────────────────────────────
 
+
+
     @handle_exceptions
     def calculate_leave_balances(self, period_id):
         """Calcula el saldo de vacaciones para todos los usuarios del periodo.
@@ -1956,16 +1956,29 @@ class AttendanceService:
         if sc != 200:
             return stats_list, sc
 
+        period, pc = self.attendance_repository.get_period_by_id(period_id)
+        if pc != 200 or not period:
+            return "Periodo no encontrado", 404
+
         calculated = 0
         for stats in stats_list:
-            # Obtener balance del periodo anterior
-            prev_bal, pc = self.attendance_repository.get_leave_balance_prev(stats.user_id, period_id)
-            prev_balance = float(prev_bal.balance) if prev_bal else 0
+            # Contar vacaciones directamente (Art. 23: días calendario para 2+ días consecutivos)
+            vacation_used, _ = self.attendance_repository.count_vacation_days_in_period(
+                stats.user_id, period.start_date, period.end_date
+            )
+
+            # Obtener balance del periodo anterior; si no existe, usar leave_adjustment inicial
+            prev_bal, _ = self.attendance_repository.get_leave_balance_prev(stats.user_id, period_id)
+            if prev_bal is not None:
+                prev_balance = float(prev_bal.balance)
+            else:
+                adj, _ = self.attendance_repository.get_user_leave_adjustment(stats.user_id)
+                prev_balance = float(adj.available) if adj else 0
 
             data = {
                 "user_id": stats.user_id,
                 "period_id": period_id,
-                "vacation_used": stats.vacation_days or 0,
+                "vacation_used": vacation_used or 0,
                 "prev_balance": prev_balance,
             }
             self.attendance_repository.upsert_leave_balance(data)
@@ -1976,28 +1989,22 @@ class AttendanceService:
 
     @handle_exceptions
     def get_leave_balance_for_user(self, user_id, period_id):
-        """Obtiene el saldo de vacaciones de un usuario en un periodo"""
-        bal, bc = self.attendance_repository.get_leave_balance(user_id, period_id)
-        if bc != 200:
-            return bal, bc
+        """Obtiene el saldo de vacaciones de un usuario en un periodo (cálculo dinámico)"""
+        bal, _ = self.attendance_repository.get_leave_balance(user_id, period_id)
+        manual_adj = float(bal.manual_adj) if bal else 0
+        adjusted_by = bal.adjusted_by if bal else None
+        adjusted_at = bal.adjusted_at.isoformat() if bal and bal.adjusted_at else None
 
-        if not bal:
-            return {
-                "vacation_used": 0,
-                "prev_balance": 0,
-                "manual_adj": 0,
-                "balance": 0,
-                "adjusted_by": None,
-                "adjusted_at": None,
-            }, 200
+        leave_data, _ = self.attendance_repository.compute_available_leave(user_id, period_id)
+        vacation_used = leave_data["vacation_used"] if leave_data else 0
+        balance = leave_data["available"] if leave_data else 0
 
         return {
-            "vacation_used": int(bal.vacation_used),
-            "prev_balance": float(bal.prev_balance),
-            "manual_adj": float(bal.manual_adj),
-            "balance": float(bal.balance),
-            "adjusted_by": bal.adjusted_by,
-            "adjusted_at": bal.adjusted_at.isoformat() if bal.adjusted_at else None,
+            "vacation_used": vacation_used,
+            "manual_adj": manual_adj,
+            "balance": balance,
+            "adjusted_by": adjusted_by,
+            "adjusted_at": adjusted_at,
         }, 200
 
 

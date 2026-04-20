@@ -212,6 +212,13 @@ class AttendanceRepository:
 
 
     @handle_db_exceptions
+    def get_period_by_id(self, period_id):
+        row = g.db_session.query(AttendancePeriod).get(period_id)
+        if not row:
+            return None, 404
+        return row, 200
+
+    @handle_db_exceptions
     def get_period_by_offset(self, offset, today=None):
         today = today or date.today()
         base_month = date(today.year, today.month, 1)
@@ -662,9 +669,7 @@ class AttendanceRepository:
                 continue
 
             if duration == 1:
-                # Art. 23.a: solo cuenta si NO es descanso/feriado
-                if not _is_bridge_day(eff_s):
-                    counted_days.add(eff_s.isoformat())
+                counted_days.add(eff_s.isoformat())
             else:
                 # Art. 23.b: cuenta todos los días calendario
                 d = eff_s
@@ -709,6 +714,109 @@ class AttendanceRepository:
         return mp, 200
 
     # ── Leave Balance ──────────────────────────────────────────────────
+
+    def _count_vacation_days_raw(self, user_id, start_date, end_date):
+        """Cuenta días de vacaciones Art.23 sin cerrar sesión (uso interno)."""
+        rows = (
+            g.db_session.query(LeaveRequest)
+            .filter(LeaveRequest.deleted_at.is_(None))
+            .filter(LeaveRequest.user_id == int(user_id))
+            .filter(LeaveRequest.request_type == "Vacaciones")
+            .filter(LeaveRequest.status_id == 4)
+            .filter(LeaveRequest.start_date <= end_date)
+            .filter((LeaveRequest.end_date.is_(None)) | (LeaveRequest.end_date >= start_date))
+            .order_by(LeaveRequest.start_date.asc(), LeaveRequest.id.asc())
+            .all()
+        )
+        if not rows:
+            return 0
+
+        holidays = (
+            g.db_session.query(Holidays)
+            .filter(Holidays.deleted_at.is_(None))
+            .filter(Holidays.date >= start_date)
+            .filter(Holidays.date <= end_date)
+            .all()
+        )
+        holiday_dates = set(h.date for h in (holidays or []))
+
+        intervals = sorted((r.start_date, r.end_date or r.start_date) for r in rows)
+
+        def _bridge(d):
+            return d.weekday() >= 5 or d in holiday_dates
+
+        merged = []
+        for s, e in intervals:
+            if not merged:
+                merged.append([s, e])
+                continue
+            last_s, last_e = merged[-1]
+            gap_start = last_e + timedelta(days=1)
+            gap_end = s - timedelta(days=1)
+            if gap_start > gap_end:
+                merged[-1][1] = max(last_e, e)
+            else:
+                all_bridge = all(_bridge(gap_start + timedelta(days=i)) for i in range((gap_end - gap_start).days + 1))
+                if all_bridge:
+                    merged[-1][1] = max(last_e, e)
+                else:
+                    merged.append([s, e])
+
+        counted = set()
+        for s, e in merged:
+            duration = (e - s).days + 1
+            eff_s = max(s, start_date)
+            eff_e = min(e, end_date)
+            if eff_s > eff_e:
+                continue
+            if duration == 1:
+                counted.add(eff_s.isoformat())
+            else:
+                d = eff_s
+                while d <= eff_e:
+                    counted.add(d.isoformat())
+                    d += timedelta(days=1)
+        return len(counted)
+
+
+    @handle_db_exceptions
+    def compute_available_leave(self, user_id, period_id):
+        """Calcula días disponibles y usados dinámicamente en una sola sesión."""
+        from sqlalchemy import func
+        from datetime import date as _date
+
+        period = g.db_session.query(AttendancePeriod).get(period_id)
+        if not period:
+            return {"available": 0, "vacation_used": 0}, 200
+
+        adj = (
+            g.db_session.query(LeaveAdjustment)
+            .filter(LeaveAdjustment.user_id == int(user_id))
+            .first()
+        )
+        if not adj:
+            return {"available": 0, "vacation_used": 0}, 200
+
+        initial = float(adj.available)
+
+        # Días usados solo en este periodo (para mostrar en stats)
+        vacation_used = self._count_vacation_days_raw(user_id, period.start_date, period.end_date)
+
+        # Días usados total hasta fin de este periodo (para calcular saldo acumulado)
+        total_used = self._count_vacation_days_raw(user_id, _date(2000, 1, 1), period.end_date)
+
+        # Ajustes manuales acumulados hasta este periodo
+        manual_adjs = float(
+            g.db_session.query(func.sum(LeaveBalance.manual_adj))
+            .join(AttendancePeriod, LeaveBalance.period_id == AttendancePeriod.id)
+            .filter(LeaveBalance.user_id == int(user_id))
+            .filter(AttendancePeriod.end_date <= period.end_date)
+            .scalar() or 0
+        )
+
+        available = initial + manual_adjs - total_used
+        return {"available": available, "vacation_used": vacation_used}, 200
+
 
     @handle_db_exceptions
     def get_leave_balance(self, user_id, period_id):
