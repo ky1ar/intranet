@@ -147,6 +147,9 @@ body.modal-open {
 .hover-opacity:hover {
     opacity: 0.75 !important;
 }
+.hover-opacity:active {
+    scale: 0.98;
+}
 .controls {
     display: flex;
     justify-content: space-between;

@@ -446,11 +446,11 @@
 							<span style=" text-align: center; padding: 2rem 0 1rem 0;">El historial de licencias aparecerá aquí</span>
 						</template>
 
-						<div class="table-box">
+						<div class="table-box" x-ref="leaves_box">
 							<template x-for="leave in leave_requests" :key="leave.id">
-								<div>
+								<div :id="`leave-row-${leave.id}`">
 									<div
-										class="table-row white"
+										class="table-row white hover-opacity"
 										:class="{'row-open': expanded_leave_id === leave.id}"
 										@click="toggleLeaveExpand(leave)"
 									>
@@ -1941,7 +1941,12 @@
 			Alpine.store('cache').showModal('leaves');
 			await this.$nextTick();
 			const leave = (this.leave_requests || []).find(l => l.id === leaveId);
-			if (leave) await this.toggleLeaveExpand(leave);
+			if (leave) {
+				await this.toggleLeaveExpand(leave);
+				await this.$nextTick();
+				const el = document.getElementById(`leave-row-${leaveId}`);
+				if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			}
 		},
 
 		removeNewAt(index) {
