@@ -101,13 +101,38 @@
                 </div>
 
                 <div x-show="$store.cache.sidebar_menu" x-transition.duration.300ms x-cloak @click.outside="$store.cache.hideSidebarMenu()" class="frost menu">
-                    <div class="avatar-wrap" @click="document.getElementById('avatarInput').click()" title="Cambiar foto de perfil">
-                        <img alt="user" class="image" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
-                        <div class="avatar-overlay">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    <div x-data="avatarCrop">
+                        <div class="avatar-wrap" @click="$refs.fileInput.click()" title="Cambiar foto de perfil">
+                            <img alt="user" class="image" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
+                            <div class="avatar-overlay">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                            </div>
+                        </div>
+                        <input type="file" x-ref="fileInput" accept="image/jpeg,image/png,image/webp" style="display:none" @change="onSelected($event)">
+
+                        <!-- Modal crop -->
+                        <div class="avatar-modal-overlay" x-show="open" x-transition.opacity
+                             @mousedown.self="open=false"
+                             @mousemove="onDragMove($event)" @mouseup="dragging=false"
+                             @touchmove.passive="onDragMove($event)" @touchend="dragging=false">
+                            <div class="avatar-modal-box">
+                                <b>Previsualización (512×512)</b>
+                                <div class="avatar-crop-circle"
+                                     @mousedown="onDragStart($event)" @touchstart.passive="onDragStart($event)">
+                                    <img x-ref="preview" class="avatar-crop-img" draggable="false"
+                                         :style="`transform:translate(${offsetX}px,${offsetY}px) scale(${zoom})`">
+                                </div>
+                                <div class="avatar-zoom-row">
+                                    <span>Zoom</span>
+                                    <input type="range" min="1" max="3" step="0.01" x-model="zoom">
+                                </div>
+                                <div class="avatar-modal-actions">
+                                    <button class="btn-cancel" @click="open=false">Cancelar</button>
+                                    <button class="btn-save" @click="upload()" :disabled="saving" x-text="saving ? 'Guardando...' : 'Guardar'"></button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/webp" style="display:none" @change="window._onAvatarSelected($event)">
                     
                     <div class="text">
                         <b x-text="$store.cache.user.name"></b>
@@ -280,137 +305,6 @@
     
     <div id="content" :class="{'sidebar': $store.cache.sidebar}"></div>
 
-    <!-- Modal crop avatar -->
-    <div id="avatarModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;">
-        <div style="background:#1e1e1e;border-radius:16px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:16px;width:320px;max-width:90vw;">
-            <b style="color:#fff;font-size:15px;">Previsualización (512×512)</b>
-            <div style="position:relative;width:220px;height:220px;overflow:hidden;border-radius:50%;border:2px solid #f07e46;">
-                <img id="avatarPreview" style="position:absolute;transform-origin:center center;" draggable="false">
-            </div>
-            <div style="width:100%;display:flex;align-items:center;gap:8px;">
-                <span style="color:#aaa;font-size:12px;">Zoom</span>
-                <input id="avatarZoom" type="range" min="1" max="3" step="0.01" value="1" style="flex:1;" oninput="window._avatarUpdateTransform()">
-            </div>
-            <div style="display:flex;gap:10px;">
-                <button onclick="document.getElementById('avatarModal').style.display='none'" style="padding:8px 18px;border-radius:8px;border:none;background:#444;color:#fff;cursor:pointer;">Cancelar</button>
-                <button id="avatarSaveBtn" onclick="window._avatarUpload()" style="padding:8px 18px;border-radius:8px;border:none;background:#f07e46;color:#fff;cursor:pointer;font-weight:600;">Guardar</button>
-            </div>
-        </div>
-    </div>
-
-    <style>
-        .avatar-wrap { position:relative; width:80px; height:80px; border-radius:50%; cursor:pointer; flex-shrink:0; }
-        .avatar-wrap .image { border-radius:50%; object-fit:cover; display:block; }
-        .avatar-overlay { position:absolute; inset:0; border-radius:50%; background:rgba(0,0,0,0); display:flex; align-items:center; justify-content:center; color:transparent; transition:background .2s,color .2s; }
-        .avatar-wrap:hover .avatar-overlay { background:rgba(0,0,0,.45); color:#fff; }
-    </style>
-
-    <script>
-    (() => {
-        let _offsetX = 0, _offsetY = 0, _startX = 0, _startY = 0, _dragging = false;
-        const modal  = () => document.getElementById('avatarModal');
-        const preview= () => document.getElementById('avatarPreview');
-        const zoom   = () => parseFloat(document.getElementById('avatarZoom').value);
-
-        window._avatarUpdateTransform = () => {
-            const z = zoom();
-            preview().style.transform = `translate(${_offsetX}px,${_offsetY}px) scale(${z})`;
-        };
-
-        // drag to reposition
-        const p = () => preview();
-        document.getElementById('avatarModal').addEventListener('mousedown', e => {
-            if (e.target !== p()) return;
-            _dragging = true; _startX = e.clientX - _offsetX; _startY = e.clientY - _offsetY;
-        });
-        document.addEventListener('mousemove', e => {
-            if (!_dragging) return;
-            _offsetX = e.clientX - _startX; _offsetY = e.clientY - _startY;
-            window._avatarUpdateTransform();
-        });
-        document.addEventListener('mouseup', () => _dragging = false);
-        // touch drag
-        document.getElementById('avatarModal').addEventListener('touchstart', e => {
-            if (e.target !== p()) return;
-            const t = e.touches[0]; _dragging = true; _startX = t.clientX - _offsetX; _startY = t.clientY - _offsetY;
-        }, {passive:true});
-        document.addEventListener('touchmove', e => {
-            if (!_dragging) return;
-            const t = e.touches[0]; _offsetX = t.clientX - _startX; _offsetY = t.clientY - _startY;
-            window._avatarUpdateTransform();
-        }, {passive:true});
-        document.addEventListener('touchend', () => _dragging = false);
-
-        window._onAvatarSelected = function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const allowed = ['image/jpeg','image/png','image/webp'];
-            if (!allowed.includes(file.type)) { alert('Solo JPG, PNG o WEBP'); return; }
-            const img = new Image();
-            const url = URL.createObjectURL(file);
-            img.onload = () => {
-                if (img.width > 1000 || img.height > 1000) { alert('La imagen supera 1000×1000 px'); URL.revokeObjectURL(url); return; }
-                _offsetX = 0; _offsetY = 0;
-                document.getElementById('avatarZoom').value = 1;
-                const pr = preview();
-                pr.src = url;
-                pr.style.width  = '220px';
-                pr.style.height = '220px';
-                pr.style.left   = '0'; pr.style.top = '0';
-                window._avatarUpdateTransform();
-                modal().style.display = 'flex';
-                pr._file = file;
-            };
-            img.src = url;
-            event.target.value = '';
-        };
-
-        window._avatarUpload = async function() {
-            const btn = document.getElementById('avatarSaveBtn');
-            btn.disabled = true; btn.textContent = 'Guardando...';
-            try {
-                // Draw 512x512 from the preview via canvas
-                const pr   = preview();
-                const z    = zoom();
-                const size = 512;
-                const canvas = document.createElement('canvas');
-                canvas.width = canvas.height = size;
-                const ctx = canvas.getContext('2d');
-                // Container is 220px, displayed image is 220px scaled by z, offset by _offsetX,_offsetY
-                const scale = size / 220;
-                ctx.save();
-                ctx.translate(size/2, size/2);
-                ctx.scale(z * scale, z * scale);
-                ctx.translate(-110 + _offsetX / z, -110 + _offsetY / z);
-                ctx.drawImage(pr, 0, 0, 220, 220);
-                ctx.restore();
-
-                const file = pr._file;
-                const mimeOut = file.type === 'image/webp' ? 'image/webp' : file.type === 'image/png' ? 'image/png' : 'image/jpeg';
-                const blob = await new Promise(res => canvas.toBlob(res, mimeOut, 0.92));
-                const form = new FormData();
-                form.append('avatar', blob, 'avatar.' + (mimeOut === 'image/webp' ? 'webp' : mimeOut === 'image/png' ? 'png' : 'jpg'));
-                const token = localStorage.getItem('user_token');
-                const res = await fetch(`${Alpine.store('cache').api}/user/upload_avatar`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    body: form,
-                });
-                const data = await res.json();
-                if (data.success) {
-                    Alpine.store('cache').user.image = data.data.message || data.data;
-                    modal().style.display = 'none';
-                } else {
-                    alert(data.data || 'Error al subir imagen');
-                }
-            } catch(e) {
-                alert('Error al procesar la imagen');
-            } finally {
-                btn.disabled = false; btn.textContent = 'Guardar';
-            }
-        };
-    })();
-    </script>
 
 </body>
 </html>

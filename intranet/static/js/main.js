@@ -960,6 +960,102 @@ document.addEventListener('alpine:init', () => {
         }, { passive: false });
         })();
 
+
+
+    Alpine.data('avatarCrop', () => ({
+        open: false,
+        zoom: 1,
+        offsetX: 0,
+        offsetY: 0,
+        dragging: false,
+        _startX: 0,
+        _startY: 0,
+        _file: null,
+
+        onSelected(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+            if (!allowed.includes(file.type)) { alert('Solo JPG, PNG o WEBP'); return; }
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+            img.onload = () => {
+                if (img.width > 1000 || img.height > 1000) {
+                    alert('La imagen supera 1000×1000 px');
+                    URL.revokeObjectURL(url);
+                    return;
+                }
+                this.zoom = 1;
+                this.offsetX = 0;
+                this.offsetY = 0;
+                this._file = file;
+                this.$refs.preview.src = url;
+                this.open = true;
+            };
+            img.src = url;
+            event.target.value = '';
+        },
+
+        onDragStart(e) {
+            const client = e.touches ? e.touches[0] : e;
+            this.dragging = true;
+            this._startX = client.clientX - this.offsetX;
+            this._startY = client.clientY - this.offsetY;
+        },
+
+        onDragMove(e) {
+            if (!this.dragging) return;
+            const client = e.touches ? e.touches[0] : e;
+            this.offsetX = client.clientX - this._startX;
+            this.offsetY = client.clientY - this._startY;
+        },
+
+        async upload() {
+            if (!this._file) return;
+            this.saving = true;
+            try {
+                const pr = this.$refs.preview;
+                const size = 512, display = 220;
+                const canvas = document.createElement('canvas');
+                canvas.width = canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                const scale = size / display;
+                ctx.save();
+                ctx.translate(size / 2, size / 2);
+                ctx.scale(this.zoom * scale, this.zoom * scale);
+                ctx.translate(-display / 2 + this.offsetX / this.zoom, -display / 2 + this.offsetY / this.zoom);
+                ctx.drawImage(pr, 0, 0, display, display);
+                ctx.restore();
+
+                const mime = this._file.type === 'image/webp' ? 'image/webp'
+                           : this._file.type === 'image/png'  ? 'image/png' : 'image/jpeg';
+                const ext  = mime === 'image/webp' ? 'webp' : mime === 'image/png' ? 'png' : 'jpg';
+                const blob = await new Promise(res => canvas.toBlob(res, mime, 0.92));
+                const form = new FormData();
+                form.append('avatar', blob, `avatar.${ext}`);
+                const token = localStorage.getItem('user_token');
+                const res  = await fetch(`${Alpine.store('cache').api}/user/upload_avatar`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: form,
+                });
+                const data = await res.json();
+                if (data.success) {
+                    Alpine.store('cache').user.image = data.data.message || data.data;
+                    this.open = false;
+                } else {
+                    alert(data.data?.message || data.data || 'Error al subir imagen');
+                }
+            } catch {
+                alert('Error al procesar la imagen');
+            } finally {
+                this.saving = false;
+            }
+        },
+
+        saving: false,
+    }));
+
 });
 
 function logisticsHandler({ params }) {

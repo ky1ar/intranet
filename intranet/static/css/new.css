@@ -1259,3 +1259,113 @@ body.modal-open {
   opacity: 0;
   transform: translate3d(0, 6rem, 0) !important;
 }
+
+/* ── Avatar crop ── */
+.avatar-wrap {
+    position: relative;
+    width: 5rem;
+    height: 5rem;
+    border-radius: 50%;
+    cursor: pointer;
+}
+.avatar-wrap .image {
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+}
+.avatar-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    transition: background .2s, color .2s;
+}
+.avatar-wrap:hover .avatar-overlay {
+    background: rgba(0,0,0,.45);
+    color: #fff;
+}
+.avatar-modal-overlay {
+    position: absolute;
+    z-index: 9999;
+    padding: 1.5rem;
+    bottom: 0;
+    left: 0;
+    border-radius: 1rem;
+    box-shadow: 0.5rem 0 1rem hsl(0deg 0% 0% / 10%);
+    background-color: var(--white);
+}
+.avatar-modal-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+.avatar-modal-box b {
+    color: #fff;
+    font-size: 15px;
+    display: none;
+}
+.avatar-crop-circle {
+    position: relative;
+    width: 10rem;
+    height: 10rem;
+    overflow: hidden;
+    border-radius: 50%;
+    cursor: grab;
+    background-color: var(--secondary);
+    box-shadow: 0 0 0 3px #0000001a;
+}
+.avatar-crop-circle:active {
+    cursor: grabbing;
+}
+.avatar-crop-img {
+    position: absolute;
+    width: 10rem;
+    height: 10rem;
+    transform-origin: center center;
+    user-select: none;
+}
+.avatar-zoom-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.avatar-zoom-row span {
+    color: #aaa;
+    font-size: 12px;
+    display: none;
+}
+.avatar-zoom-row input {
+    flex: 1;
+}
+.avatar-modal-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+.avatar-modal-actions button {
+    color: var(--white);
+    border: none;
+    font-family: var(--font);
+    font-weight: 500;
+    font-size: 0.8rem;
+    border-radius: 2.5rem;
+    padding: 0.75rem 1.5rem;
+    width: 100%;
+    outline: none;
+    cursor: pointer;
+}
+.avatar-modal-actions .btn-cancel {
+    background-color: var(--secondary);
+}
+.avatar-modal-actions .btn-save {
+    background-color: var(--primary);
+}
+.avatar-modal-actions .btn-save:disabled {
+    opacity: .6;
+    cursor: default;
+}
