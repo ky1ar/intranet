@@ -305,25 +305,29 @@ class ImportService:
         if sc != 200:
             return statuses, sc
         
+        visible_statuses = [s for s in statuses if s.id not in (1, 14)]
         result = []
-        for status in statuses:
-            if status.id in (1, 14):
-                continue
+        for i, status in enumerate(visible_statuses):
+            is_last = (i == len(visible_statuses) - 1)
 
             import_status = [import_row for import_row in imports if import_row.status_id == status.id]
-            
+
             imports_list = []
             for item in import_status:
                 passed_days = 0
                 updated_today = False
 
-                first_status, _ = self.import_repository.get_status_history(item.id, 1) 
-                if first_status:
-                    passed_days = calculate_passed_days(first_status.created_at)
-
-                current_status, _ = self.import_repository.get_status_history(item.id, status.id) 
+                current_status, _ = self.import_repository.get_status_history(item.id, status.id)
                 if current_status and current_status.created_at.date() == date.today():
                     updated_today = True
+
+                first_status, _ = self.import_repository.get_status_history(item.id, 1)
+                if is_last:
+                    if first_status and current_status:
+                        passed_days = calculate_passed_days(first_status.created_at, current_status.created_at)
+                else:
+                    if first_status:
+                        passed_days = calculate_passed_days(first_status.created_at)
 
                 summary = self._shipment_summary(item)
 

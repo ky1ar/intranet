@@ -1041,7 +1041,7 @@ document.addEventListener('alpine:init', () => {
                 });
                 const data = await res.json();
                 if (data.success) {
-                    Alpine.store('cache').user.image = data.data.message || data.data;
+                    Alpine.store('cache').user.image = (data.data.message || data.data) + '?t=' + Date.now();
                     this.open = false;
                 } else {
                     alert(data.data?.message || data.data || 'Error al subir imagen');

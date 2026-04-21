@@ -235,21 +235,27 @@ class ComplaintService:
             return statuses, sc
         
         result = []
-        for status in statuses:
+        for i, status in enumerate(statuses):
+            is_last = (i == len(statuses) - 1)
             complaint_status = [complaint_row for complaint_row in complaints if complaint_row.status_id == status.id]
-            
+
             complaints_list = []
             for complaint in complaint_status:
                 passed_days = 0
                 updated_today = False
 
-                first_status, _ = self.complaint_repository.get_complaint_status(complaint.id, 1) 
-                if first_status:
-                    passed_days = calculate_passed_days(first_status.created_at)
-
-                current_status, _ = self.complaint_repository.get_complaint_status(complaint.id, status.id) 
+                current_status, _ = self.complaint_repository.get_complaint_status(complaint.id, status.id)
                 if current_status and current_status.created_at.date() == date.today():
                     updated_today = True
+
+                if is_last:
+                    first_status, _ = self.complaint_repository.get_complaint_status(complaint.id, 1)
+                    if first_status and current_status:
+                        passed_days = calculate_passed_days(first_status.created_at, current_status.created_at)
+                else:
+                    first_status, _ = self.complaint_repository.get_complaint_status(complaint.id, 1)
+                    if first_status:
+                        passed_days = calculate_passed_days(first_status.created_at)
 
                 complaints_data = {
                     "id": complaint.id,
