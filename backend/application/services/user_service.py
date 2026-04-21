@@ -123,10 +123,6 @@ class UserService:
         img = Image.open(file.stream).convert("RGBA" if file.mimetype == "image/webp" else "RGB")
 
         w, h = img.size
-        if w > 1000 or h > 1000:
-            return "La imagen supera 1000x1000 px", 400
-
-        # Recortar al centro en cuadrado y redimensionar a 512x512
         side = min(w, h)
         left = (w - side) // 2
         top  = (h - side) // 2
@@ -134,9 +130,11 @@ class UserService:
         img  = img.resize((512, 512), Image.LANCZOS)
 
         ext = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}[file.mimetype]
-        filename = secure_filename(f"user_{user_id}_avatar.{ext}")
-        save_path = os.path.join("/shared_uploads/users", filename)
-        os.makedirs("/shared_uploads/users", exist_ok=True)
+        ts = int(datetime.now().timestamp())
+        filename = secure_filename(f"user_{user_id}_avatar_{ts}.{ext}")
+        upload_dir = "/shared_uploads/users"
+        os.makedirs(upload_dir, exist_ok=True)
+        save_path = os.path.join(upload_dir, filename)
 
         if ext == "jpg":
             img.convert("RGB").save(save_path, "JPEG", quality=90)
@@ -144,6 +142,15 @@ class UserService:
             img.save(save_path, "PNG")
         else:
             img.save(save_path, "WEBP", quality=90)
+
+        user, uc = self.user_repository.get_user_by_id(user_id)
+        if uc == 200 and user.image and user.image != filename:
+            old_path = os.path.join(upload_dir, user.image)
+            try:
+                if os.path.exists(old_path):
+                    os.remove(old_path)
+            except OSError:
+                pass
 
         return self.user_repository.update_user_image(user_id, filename)
 
