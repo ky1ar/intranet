@@ -977,14 +977,10 @@ document.addEventListener('alpine:init', () => {
             if (!file) return;
             const allowed = ['image/jpeg', 'image/png', 'image/webp'];
             if (!allowed.includes(file.type)) { alert('Solo JPG, PNG o WEBP'); return; }
+            if (file.size > 6 * 1024 * 1024) { alert('La imagen supera 6 MB'); return; }
             const img = new Image();
             const url = URL.createObjectURL(file);
             img.onload = () => {
-                if (img.width > 1000 || img.height > 1000) {
-                    alert('La imagen supera 1000×1000 px');
-                    URL.revokeObjectURL(url);
-                    return;
-                }
                 this.zoom = 1;
                 this.offsetX = 0;
                 this.offsetY = 0;
