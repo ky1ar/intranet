@@ -494,14 +494,18 @@
 						</div>
 					</div>
 
-					<div class="thumbnails-grid" x-show="process_shipping.proof_photo">
-						<div class="thumbnail-wrapper">
-							<img 
-								class="thumbnail hover-opacity" 
-								:src="'/static/images/uploads/' + process_shipping.proof_photo" 
-								alt="preview" 
-								@click="$store.cache.showModal('image');">
-						</div>
+					<div class="thumbnails-grid" x-show="process_shipping.proof_photos?.length > 0">
+						<template x-for="(photo, index) in process_shipping.proof_photos" :key="index">
+							<div class="thumbnail-wrapper">
+								<img
+									class="thumbnail hover-opacity"
+									:src="'/static/images/uploads/' + photo"
+									alt="preview"
+									@click="viewing_photo = photo; $store.cache.showModal('image');"
+									style="cursor: pointer;"
+								>
+							</div>
+						</template>
 					</div>
 					
 				</div>
@@ -528,8 +532,8 @@
 					<div class="modal-grabber-bar"></div>
 				</div>
 
-				<img 
-					:src="'/static/images/uploads/' + process_shipping.proof_photo"
+				<img
+					:src="'/static/images/uploads/' + viewing_photo"
 					alt="preview"
 					style="border-radius: 0.75rem;">
 			</div>
@@ -754,6 +758,7 @@
 			offset: 0,
 			process_shipping: {},
 			selected_shipping: {},
+			viewing_photo: null,
 			edit: false,
 			buttons: {
                 process: { class: '', text: 'Añadir' },
@@ -1228,6 +1233,7 @@
 			
 			resetOrder() {
                 this.process_shipping = {};
+				this.viewing_photo = null;
 				this.edit = false;
             },
 

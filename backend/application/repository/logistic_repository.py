@@ -1,7 +1,7 @@
 
 from datetime import date, datetime, timezone, timedelta
 from application.handlers import handle_db_exceptions
-from application.models import ShippingOrders, ClientOrders, ShippingHistory, ShippingMethod, ShippingDistricts, Clients, db
+from application.models import ShippingOrders, ClientOrders, ShippingHistory, ShippingMethod, ShippingDistricts, Clients, ShippingAttachment, db
 from sqlalchemy.orm import joinedload
 from sqlalchemy import asc, func
 from flask import g
@@ -69,6 +69,7 @@ class LogisticRepository:
             .filter(ShippingOrders.is_deleted.is_(False))
             .options(
                 joinedload(ShippingOrders.client_order).joinedload(ClientOrders.client),
+                joinedload(ShippingOrders.attachments),
             )
             .first()
         )
@@ -87,6 +88,7 @@ class LogisticRepository:
             .filter(ShippingOrders.is_deleted.is_(False))
             .options(
                 joinedload(ShippingOrders.client_order).joinedload(ClientOrders.client),
+                joinedload(ShippingOrders.attachments),
             )
             .first()
         )
@@ -138,7 +140,7 @@ class LogisticRepository:
 
     @handle_db_exceptions
     def update_shipping_order(self, shipping_order, data):
-        direct_update_fields = ["delivery_date", "status_id", "schedule_id", "proof_photo"]
+        direct_update_fields = ["delivery_date", "status_id", "schedule_id"]
         conditional_fields = ["method_id", "register_date", "address", "reference", "district_id", "maps", "assigned_id", "driver_id"]
 
         updated_fields = {}
@@ -418,3 +420,16 @@ class LogisticRepository:
             return None, 400
 
         return results, 200
+
+
+    @handle_db_exceptions
+    def add_attachments(self, shipping_order_id, filenames, user_id=None):
+        for filename in filenames:
+            attachment = ShippingAttachment(
+                shipping_order_id=shipping_order_id,
+                filename=filename,
+                uploaded_by=user_id,
+            )
+            g.db_session.add(attachment)
+        g.db_session.commit()
+        return True, 200

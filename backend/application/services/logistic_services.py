@@ -6,6 +6,7 @@ from flask import send_file, render_template, current_app
 from datetime import date, timedelta
 from application.models import  ShippingHistory, ShippingStatusList, HistoryType
 from application.handlers import handle_exceptions, handle_db_exceptions
+from application.utils import format_date
 from application.repository.logistic_repository import LogisticRepository
 from application.repository.client_repository import ClientRepository
 from application.proxy.whatsapp import Whatsapp
@@ -239,6 +240,7 @@ class LogisticService:
             "method_background": shipping_order.method.background,
             "method_border": shipping_order.method.border,
             "register_date_format": shipping_order.register_date.strftime("%Y-%m-%d"),
+            "register_date_str": format_date(shipping_order.register_date),
             "client_name": client.name.title() if client.name else "",
             "client_document": client.document,
             "client_email": client.email,
@@ -247,10 +249,12 @@ class LogisticService:
             "order_number": shipping_order.client_order.number
         })
 
+        result["proof_photos"] = [a.filename for a in shipping_order.attachments]
+
         shipping_dates, shipping_dates_status = self.get_shipping_dates(shipping_order.id, shipping_order.status_id)
         if shipping_dates_status != 200:
             return shipping_dates, shipping_dates_status
-        
+
         if shipping_order.status_id == 3:
             result["on_the_way_date"] = shipping_dates.get("on_the_way_date")
         if shipping_order.status_id == 4:
@@ -277,7 +281,6 @@ class LogisticService:
                 "username": client.name.title(),
                 "order_number": shipping_order.client_order.number,
                 "schedule_id": shipping_order.schedule_id,
-                "file": shipping_order.proof_photo,
                 "delivery_date": delivery_date,
             }
             if shipping_order.method_id < 3:
@@ -484,17 +487,19 @@ class LogisticService:
     def photo_upload(self, shipping_order, data):
         user_id = data.get("user_id")
         shipping_order_id = data.get("shipping_order_id")
-        update_shipping, update_status = self.logistic_repository.update_shipping_order(shipping_order, data)
-        if update_status != 200:
-            return update_shipping, update_status
-        
+        filenames = data.get("filenames", [])
+
+        added, added_status = self.logistic_repository.add_attachments(shipping_order_id, filenames, user_id)
+        if added_status != 200:
+            return added, added_status
+
         socketio.emit("logistics_update_dashboard", {})
         socketio.emit("logistics_update_driver", {})
-        history, history_status = self.logistic_repository.add_shipping_history(user_id, shipping_order_id, HistoryType.UPDATED, data=update_shipping)
+        history, history_status = self.logistic_repository.add_shipping_history(user_id, shipping_order_id, HistoryType.UPDATED, data={"filenames": filenames})
         if history_status != 200:
             return history, history_status
-        
-        return "Orden actualizada correctamente", 200
+
+        return "Fotos guardadas correctamente", 200
     
 
     @handle_exceptions

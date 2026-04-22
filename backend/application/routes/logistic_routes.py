@@ -54,24 +54,28 @@ def logistic_delete():
 
 @logistic_bp.route("/upload_proof", methods=["POST"])
 def logistic_upload_proof():
-    image = request.files["image"]
+    images = request.files.getlist("images[]")
     order_number = request.form.get("order_number")
     shipping_order_id = request.form.get("shipping_order_id")
     user_id = request.form.get("user_id")
 
-    if image.filename == "":
-        return {"error": "Nombre de archivo vacío"}, 400
+    if not images or all(f.filename == "" for f in images):
+        return {"error": "No se recibieron imágenes"}, 400
 
-    filename = secure_filename(f"order_{order_number}_{shipping_order_id}.jpg")
-    filepath = os.path.join(Config.UPLOAD_FOLDER, filename)
-
-    img = Image.open(image)
-    img = img.convert("RGB")
-    img.save(filepath, "JPEG", quality=90)
+    saved_files = []
+    for image in images:
+        if not image or image.filename == "":
+            continue
+        filename = secure_filename(f"order_{order_number}_{uuid.uuid4().hex[:8]}.jpg")
+        filepath = os.path.join(Config.UPLOAD_FOLDER, filename)
+        img = Image.open(image)
+        img = img.convert("RGB")
+        img.save(filepath, "JPEG", quality=90)
+        saved_files.append(filename)
 
     data = {
         "shipping_order_id": shipping_order_id,
-        "proof_photo": filename,
+        "filenames": saved_files,
         "user_id": user_id,
     }
     return controller.logistic_upload_proof(data)

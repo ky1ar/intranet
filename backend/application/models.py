@@ -222,11 +222,10 @@ class ShippingOrders(BaseModel):
     district_id = db.Column(db.Integer, db.ForeignKey('shipping_districts.id'), nullable=False)
     comments = db.Column(db.String(255))
     maps = db.Column(db.String(255))
-    proof_photo = db.Column(db.String(255))
     register_date = db.Column(db.DATE, nullable=False)
     delivery_date = db.Column(db.DATE, nullable=False)
     is_deleted = db.Column(db.Boolean, default=False, nullable=False)
-    
+
     client_order = db.relationship("ClientOrders", lazy="joined", foreign_keys=[client_order_id])
     method = db.relationship("ShippingMethod", lazy="joined", foreign_keys=[method_id])
     driver = db.relationship("Users", lazy="joined", foreign_keys=[driver_id])
@@ -234,6 +233,17 @@ class ShippingOrders(BaseModel):
     status = db.relationship("ShippingStatus", lazy="joined", foreign_keys=[status_id])
     schedule = db.relationship("ShippingSchedule", lazy="joined", foreign_keys=[schedule_id])
     district = db.relationship("ShippingDistricts", lazy="joined", foreign_keys=[district_id])
+    attachments = db.relationship("ShippingAttachment", lazy="select", foreign_keys="ShippingAttachment.shipping_order_id")
+
+
+class ShippingAttachment(BaseModel):
+    __tablename__ = 'shipping_attachment'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    shipping_order_id = db.Column(db.Integer, db.ForeignKey('shipping_orders.id'), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)
+    uploaded_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
 
 
 class ShippingHistory(BaseModel):

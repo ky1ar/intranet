@@ -75,20 +75,22 @@
 					<div class="modal-grabber-bar"></div>
 				</div>
 
-				<span class="title" x-text="'Orden ' + process_shipping.order_number"></span>
+				<div class="view-head">
+					<span class="label">Orden</span>
+					<span class="date" x-text="process_shipping.register_date_str"></span>
+				</div>
+				<div class="view-data">
+					<span class="order" x-text="process_shipping.order_number"></span>
+					<span class="type"
+						:style="`background-color: ${process_shipping.method_background}; border: 2px solid ${process_shipping.method_border}`"
+						x-text="process_shipping.method_name"
+					></span>
+				</div>
 
 				<div class="content modal-content">
 					<div class="left">
-						<div class="header">
-							<span class="type"
-								:style="`background-color: ${process_shipping.method_background}; border: 2px solid ${process_shipping.method_border}`"
-								x-text="process_shipping.method_name"
-							></span>
-							<span class="register" x-text="new Date(process_shipping.register_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })"></span>
-						</div>
-						
 						<a class="white contact" :href="'tel:+51'+process_shipping.client_phone">
-							<img width="20" height="20" alt="client_phone" src="/static/images/call.svg">
+							<img width="16" height="16" alt="client_phone" style="margin-top: 2px; " src="/static/images/icons/filled/phone.svg">
 							<div class="data">
 								<div class="title" x-text="process_shipping.client_name"></div>
 								<div class="subtitle" x-text="process_shipping.client_phone"></div>
@@ -98,7 +100,7 @@
 						<a class="white contact" 
 							:href="`https://maps.google.com/maps?q=${encodeURIComponent(process_shipping.address)}`" 
 							target="_blank">
-							<img width="20" height="20" alt="notification" src="/static/images/location.svg">
+							<img width="20" height="20" alt="notification" style="margin: 0 -4px;" src="/static/images/icons/filled/location.svg">
 							<div class="data">
 								<div class="title" x-text="process_shipping.address"></div>
 								<template x-if="process_shipping.reference != ''">
@@ -112,7 +114,7 @@
 							<a class="white contact" 
 								:href="process_shipping.maps" 
 								target="_blank">
-								<img width="20" height="20" alt="notification" src="/static/images/maps.svg">
+								<img width="20" height="20" alt="notification" style="margin: 0 -2px;" src="/static/images/icons/filled/maps.svg">
 								<div class="data">
 									<div class="title">Google Maps</div>
 									<div class="subtitle">Link disponible</div>
@@ -121,33 +123,37 @@
 						</template>
 					</div>
 
-					<div class="thumbnails-grid" x-show="process_shipping.proof_photo">
-						<div class="thumbnail-wrapper">
-							<img 
-								class="thumbnail hover-opacity" 
-								:src="'/static/images/uploads/' + process_shipping.proof_photo" 
-								alt="preview" 
-								@click="$store.cache.showModal('image');"
-								style="cursor: pointer;"
-							>
-						</div>
+					<div class="thumbnails-grid" x-show="process_shipping.proof_photos?.length > 0">
+						<template x-for="(photo, index) in process_shipping.proof_photos" :key="index">
+							<div class="thumbnail-wrapper">
+								<img
+									class="thumbnail hover-opacity"
+									:src="'/static/images/uploads/' + photo"
+									alt="preview"
+									@click="viewing_photo = photo; $store.cache.showModal('image');"
+									style="cursor: pointer;"
+								>
+							</div>
+						</template>
 					</div>
 
 					<div class="capture-proof" x-show="canDeliver() && process_shipping.status_id == 3">
-						<label for="fileInput" class="dotted-button" x-show="!preview">+ Subir foto</label>
-
-						<input type="file" id="fileInput" accept="image/*" capture="environment"  style="display: none;" 
-							@change="
-								let file = $event.target.files[0]; 
-								if (file) { 
-									proof_photo = file;
-									let reader = new FileReader();
-									reader.onload = e => preview = e.target.result;
-									reader.readAsDataURL(file);
-								}
-							">
-						<img class="thumbnail" x-show="preview" :src="preview" alt="preview" 
-							@click="document.getElementById('fileInput').click()">
+						<div class="thumbnails-grid">
+							<template x-for="(photo, index) in proof_photos" :key="index">
+								<div class="thumb-item" @click="removePhoto(index)">
+									<div class="thumbnail-wrapper">
+										<div class="delete-button">
+											<img class="delete" alt="delete" width="24" height="24" src="/static/images/icons/delete.svg">
+										</div>
+										<img class="thumbnail" :src="photo.preview" alt="preview">
+									</div>
+								</div>
+							</template>
+							<div class="add-button hover-opacity" @click.prevent="openFileInput()">
+								<img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
+							</div>
+							<input type="file" accept="image/*" capture="environment" style="display: none;" x-ref="fileInput" @change="addFiles($event)" multiple>
+						</div>
 					</div>
 				</div>
 
@@ -181,9 +187,9 @@
 				</div>
 				<div class="modal-content">
 					<img
-					:src="'/static/images/uploads/' + process_shipping.proof_photo"
-						alt="preview"
-						style="border-radius: 0.75rem;">
+					:src="'/static/images/uploads/' + viewing_photo"
+					alt="preview"
+					style="border-radius: 0.75rem;">
 				</div>
 				
 			</div>
@@ -209,8 +215,8 @@
 			offset: 0,
 			process_shipping: {},
 			processing: false,
-			preview: null,
-			proof_photo: null,
+			proof_photos: [],
+			viewing_photo: null,
 			buttons: {
                 reject: { class: '', text: 'No entregado' },
                 complete: { class: '', text: 'Entregado' },
@@ -238,6 +244,8 @@
 
 			resetOrder() {
                 this.process_shipping = {};
+                this.proof_photos = [];
+                this.viewing_photo = null;
             },
 
 			canDeliver() {
@@ -264,6 +272,8 @@
             },
 
 			async processShippingModal(shipping_order_id){
+				this.proof_photos = [];
+				this.viewing_photo = null;
 				await this.getShipping(shipping_order_id);
 				Alpine.store('cache').showModal('finish');
 			},
@@ -339,65 +349,75 @@
 				} 
 			},
 
+			addFiles(event) {
+				for (let f of event.target.files) {
+					if (f) {
+						let reader = new FileReader();
+						reader.onload = e => this.proof_photos.push({ file: f, preview: e.target.result });
+						reader.readAsDataURL(f);
+					}
+				}
+				event.target.value = '';
+			},
+
+			removePhoto(index) {
+				this.proof_photos.splice(index, 1);
+			},
+
+			openFileInput() {
+				this.$refs.fileInput.value = null;
+				this.$refs.fileInput.click();
+			},
+
+			async buildProofFormData() {
+				const formData = new FormData();
+				for (let i = 0; i < this.proof_photos.length; i++) {
+					const resized = await this.resizeImage(this.proof_photos[i].file, 1024, 1024);
+					formData.append('images[]', resized);
+				}
+				formData.append('user_id', Alpine.store('cache').user.id);
+				formData.append('order_number', this.process_shipping.order_number);
+				formData.append('shipping_order_id', this.process_shipping.shipping_order_id);
+				return formData;
+			},
+
 			async completeShipping() {
 				if (this.processing) return;
 				this.processing = true;
 
-				if (!this.proof_photo) {
-					this.showError('complete', 'Sube una foto');
+				if (this.proof_photos.length < 1) {
+					this.showError('complete', 'Sube al menos 1 foto');
 					this.processing = false;
 					return;
 				}
-			
-				const maxWidth = 1024;
-				const maxHeight = 1024;
-			
+
 				try {
-					const resizedImage = await this.resizeImage(this.proof_photo, maxWidth, maxHeight);
-			
-					const formData = new FormData();
-					formData.append("image", resizedImage);
-					formData.append("user_id", Alpine.store('cache').user.id);
-					formData.append("order_number", this.process_shipping.order_number);
-					formData.append("shipping_order_id", this.process_shipping.shipping_order_id);
-			
+					const formData = await this.buildProofFormData();
 					await this.uploadImage(formData);
 					await this.updateOrderStatus(4);
 					Alpine.store('cache').hideModal('finish');
-			
 				} catch (error) {
 					console.error("Error en el proceso de entrega:", error);
 				} finally {
 					this.processing = false;
 				}
 			},
-			
+
 			async rejectShipping() {
 				if (this.processing) return;
 				this.processing = true;
 
-				if (!this.proof_photo) {
-					this.showError('reject', 'Sube una foto');
+				if (this.proof_photos.length < 1) {
+					this.showError('reject', 'Sube al menos 1 foto');
 					this.processing = false;
 					return;
-				} 
-			
-				const maxWidth = 1024;
-				const maxHeight = 1024;
-			
+				}
+
 				try {
-					const resizedImage = await this.resizeImage(this.proof_photo, maxWidth, maxHeight);
-			
-					const formData = new FormData();
-					formData.append("image", resizedImage);
-					formData.append("user_id", Alpine.store('cache').user.id);
-					formData.append("order_number", this.process_shipping.order_number);
-					formData.append("shipping_order_id", this.process_shipping.shipping_order_id);
-			
+					const formData = await this.buildProofFormData();
 					await this.uploadImage(formData);
 					await this.updateOrderStatus(6);
 					Alpine.store('cache').hideModal('finish');
-			
 				} catch (error) {
 					console.error("Error en el proceso de entrega:", error);
 				} finally {
@@ -681,10 +701,35 @@
 			outline: none;
 		}
 		/***********************************************************************************/
-		#modal-finish .content {
+		#modal-finish .view-head {
 			display: flex;
-			gap: 1.5rem;
-			align-items: start;
+			justify-content: space-between;
+			margin-top: -0.75rem;
+			pointer-events: none;
+			font-size: 0.8rem;
+			opacity: 0.5;
+		}
+		
+		#modal-finish .view-head .label {
+			text-transform: uppercase;
+    		font-weight: 600;
+		}
+		#modal-finish .view-head .date {
+			font-weight: 500;
+		}
+		#modal-finish .view-data {
+			display: flex;
+			margin-top: -0.5rem;
+			justify-content: space-between;
+		}
+		#modal-finish .view-data .order {
+			font-weight: 500;
+    		font-size: 1.35rem;
+		}
+		#modal-finish .view-data .type {
+			padding: 0.25rem 1rem;
+			border-radius: 2rem;
+			font-weight: 600;
 		}
 		#modal-finish .left {
 			display: flex;
@@ -704,8 +749,9 @@
 			border-radius: 0.75rem;
 			display: flex;
 			padding: 0.75rem 1rem;
-			gap: 1rem;
+			gap: 0.75rem;
 			color: var(--black);
+			align-items: start;
 		}
 		#modal-finish .left .contact .data {
 			display: flex;
@@ -713,7 +759,14 @@
 			flex-direction: column;
 		}
 		#modal-finish .left .contact .data .title {
-			font-size: 1rem;
+			font-size: 0.9rem;
+		}
+		#modal-finish .left .contact .data .subtitle {
+			font-size: 0.8rem;
+		}
+		#modal-finish .left .contact .data .subtitle + .subtitle {
+			font-weight: 600;
+    		opacity: 0.4;
 		}
 		#modal-finish .right {
 			width: 12.5rem;
@@ -731,30 +784,13 @@
 		}
 		#modal-finish .capture-proof {
 			display: flex;
-			flex-direction: column;
-			gap: 1rem;
 			width: 100%;
 		}
-		#modal-finish .capture-proof .thumbnail {
-			margin: auto;
-			max-height: 12rem;
-			border-radius: 0.5rem;
-			border: 3px solid #ffffff;
-		}
-		#modal-finish .capture-proof .dotted-button {
-			line-height: 2.75rem;
-			border-radius: 0.5rem;
-			border: 2px dotted #c5c5c5;
-			font-size: 1rem;
-			text-align: center;
-			cursor: pointer;
-			padding: 0;
-			justify-content: center;
-		}
-		#modal-finish .capture-proof .options {
+		#modal-finish .capture-proof .thumbnails-grid {
 			display: flex;
-			justify-content: center;
-			gap: 1rem;
+			flex-wrap: wrap;
+			gap: 0.75rem;
+			justify-content: space-between;
 		}
 		@media only screen and (max-width: 48rem) {
 			#logistics .main .schedule {
