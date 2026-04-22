@@ -184,6 +184,7 @@ class SafebuyService:
             "purchase_channel": req.purchase_channel,
             "product_brand": product_brand,
             "product_model": product_model,
+            "product_image": req.machine.image if req.machine.image != "" else "impresoras-varias1.webp",
             "original_price": float(req.original_price or 0),
             "paid_price": float(req.paid_price or 0),
             "new_price": float(req.new_price or 0),
