@@ -15,23 +15,17 @@ class SafebuyRequest(BaseModel):
     id                = db.Column(db.Integer, primary_key=True, autoincrement=True)
     status_id         = db.Column(db.Integer, db.ForeignKey("safebuy_status.id"), nullable=False, default=1)
 
-    client_name       = db.Column(db.String(150), nullable=False)
-    client_email      = db.Column(db.String(150))
-    client_phone      = db.Column(db.String(20))
-    client_document   = db.Column(db.String(20))
+    client_id         = db.Column(db.Integer, db.ForeignKey("clients.id"))
 
     order_number      = db.Column(db.String(50))
     purchase_date     = db.Column(db.Date, nullable=False)
     purchase_channel  = db.Column(db.String(20), nullable=False, default="web")
-    product_name      = db.Column(db.String(255))
-    product_brand     = db.Column(db.String(100))
-    product_model     = db.Column(db.String(100))
+    machine_id        = db.Column(db.Integer, db.ForeignKey("machines.id"))
     original_price    = db.Column(db.Numeric(10, 2), nullable=False)
     paid_price        = db.Column(db.Numeric(10, 2), nullable=False)
 
     new_price         = db.Column(db.Numeric(10, 2), nullable=False)
     price_difference  = db.Column(db.Numeric(10, 2), nullable=False)
-    proof_url         = db.Column(db.String(500))
 
     credit_amount     = db.Column(db.Numeric(10, 2), nullable=False, default=0)
     credit_used       = db.Column(db.Numeric(10, 2), nullable=False, default=0)
@@ -46,6 +40,8 @@ class SafebuyRequest(BaseModel):
     deleted_at        = db.Column(db.DateTime)
 
     status   = db.relationship("SafebuyStatus", lazy="joined")
+    client   = db.relationship("Clients", foreign_keys=[client_id], lazy="joined")
+    machine  = db.relationship("Machines", foreign_keys=[machine_id], lazy="joined")
     assigned = db.relationship("Users", foreign_keys=[assigned_user_id], lazy="joined")
     approver = db.relationship("Users", foreign_keys=[approved_by], lazy="joined")
 

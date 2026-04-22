@@ -36,17 +36,20 @@
 						<div class="req-card white hover-opacity" @click="openRequest(req.id)">
 							<div class="req-top">
 								<span class="req-client" x-text="req.client_name"></span>
-								<span class="req-date" x-text="req.created_at"></span>
+								<!-- <span class="req-date" x-text="req.created_at"></span> -->
+								<span class="req-diff" x-text="`S/ ${req.price_difference}`"></span>
+
 							</div>
-							<div class="req-product" x-text="`${req.product_brand} ${req.product_model}`"></div>
+							<div class="req-product" x-text="`${req.product_model}`"></div>
 							<div class="req-bottom">
-								<span class="req-order" x-text="req.order_number ? `#${req.order_number}` : ''"></span>
-								<div class="req-prices">
-									<span class="req-diff" x-text="`S/ ${req.price_difference.toFixed(2)}`"></span>
+								<span class="req-order" x-text="req.order_number ? `${req.order_number}` : ''"></span>
+								<!-- <div class="req-prices">
 									<template x-if="req.credit_available > 0">
 										<span class="req-credit" x-text="`Crédito: S/ ${req.credit_available.toFixed(2)}`"></span>
 									</template>
-								</div>
+								</div> -->
+								<img alt="" width="32" height="32" :src="`/static/images/uploads/machines/${req.product_image}`" alt="">
+
 							</div>
 						</div>
 					</template>
@@ -72,14 +75,14 @@
 				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
 
 				<div class="detail-head">
-					<span class="detail-title" x-text="`Compra Segura #${detail?.id || ''}`"></span>
+					<span class="detail-title" x-text="`CS-${detail?.id || ''}`"></span>
 					<div class="detail-status" :class="detail?.status_slug" x-text="detail?.status_name"></div>
 				</div>
 
 				<div class="modal-content dual">
 					<div class="dataview overflow percent50">
 						<!-- Cliente -->
-						<div class="detail-section">
+						<div class="detail-section white">
 							<div class="section-label">Cliente</div>
 							<div class="detail-grid">
 								<div class="detail-field">
@@ -102,12 +105,12 @@
 						</div>
 
 						<!-- Producto -->
-						<div class="detail-section">
+						<div class="detail-section white">
 							<div class="section-label">Producto</div>
 							<div class="detail-grid">
 								<div class="detail-field full">
 									<span class="label">Producto</span>
-									<span x-text="detail?.product_name"></span>
+									<span x-text="[detail?.product_brand, detail?.product_model].filter(Boolean).join(' ') || '-'"></span>
 								</div>
 								<div class="detail-field">
 									<span class="label">Nro. orden</span>
@@ -125,7 +128,7 @@
 						</div>
 
 						<!-- Precios -->
-						<div class="detail-section">
+						<div class="detail-section white">
 							<div class="section-label">Precios</div>
 							<div class="detail-grid">
 								<div class="detail-field">
@@ -144,7 +147,7 @@
 						</div>
 
 						<!-- Crédito -->
-						<div class="detail-section" x-show="detail?.status_id >= 3 && detail?.status_id <= 5">
+						<div class="detail-section white" x-show="detail?.status_id >= 3 && detail?.status_id <= 5">
 							<div class="section-label">Crédito</div>
 							<div class="detail-grid">
 								<div class="detail-field">
@@ -187,7 +190,7 @@
 
 						<!-- Attachments -->
 						<template x-for="section in (detail?.attachment_sections || [])" :key="section.target">
-							<div class="detail-section" x-show="section.files && section.files.length">
+							<div class="detail-section white" x-show="section.files && section.files.length">
 								<div class="section-label-row">
 									<img alt="" width="14" height="14" src="/static/images/icons/filled/clip.svg">
 									<span class="section-label" style="margin-bottom:0;" x-text="section.label"></span>
@@ -517,11 +520,12 @@
 			display: flex;
 			flex-direction: column;
 			gap: 0.35rem;
+			position: relative;
 		}
 		#safebuy .req-top {
 			display: flex;
 			justify-content: space-between;
-			align-items: center;
+			align-items: start;
 		}
 		#safebuy .req-client {
 			font-weight: 600;
@@ -537,21 +541,33 @@
 			white-space: nowrap;
 			overflow: hidden;
 			text-overflow: ellipsis;
+			font-weight: 500;
 		}
 		#safebuy .req-bottom {
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
 			margin-top: 0.15rem;
+			font-weight: 500;
+		}
+		#safebuy .req-bottom img {
+			mix-blend-mode: darken;
+			position: absolute;
+			bottom: 0.75rem;
+			right: 0.75rem;
+			width: 2rem;
+			pointer-events: none;
 		}
 		#safebuy .req-order {
 			font-size: 0.7rem;
 			opacity: 0.4;
 		}
 		#safebuy .req-diff {
-			font-weight: 600;
-			font-size: 0.8rem;
 			color: var(--primary);
+			font-size: 1rem;
+			font-weight: 700;
+			text-align: right;
+			width: 8rem;
 		}
 		#safebuy .req-credit {
 			font-size: 0.65rem;
@@ -564,7 +580,6 @@
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
-			padding: 1rem 1.25rem;
 		}
 		.detail-title {
 			font-weight: 700;
@@ -582,9 +597,13 @@
 		.detail-status.partial     { background: #dff5ff; color: #185FA5; }
 		.detail-status.used        { background: #e6e6e6; color: #444; }
 		.detail-status.rejected    { background: #fee3e1; color: #993535; }
-
+		.dataview {
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+		}
 		.detail-section {
-			padding: 0.75rem 0;
+			padding: 0.75rem;
 			border-top: 1px solid var(--gray);
 		}
 		.section-label {

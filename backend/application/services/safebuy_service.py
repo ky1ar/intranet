@@ -6,6 +6,9 @@ from application.handlers import handle_exceptions
 from application.utils import format_name, format_date, format_datetime, file_extension, size, allowed_extension, upload_path, peru_time
 from application.repository.safebuy_repository import SafebuyRepository
 from application.repository.user_repository import UserRepository
+from application.repository.client_repository import ClientRepository
+from application.repository.machine_repository import MachineRepository
+from application.proxy.apiperu import ApiPeru
 from application.services.push_service import PushSender
 from application import socketio
 from config import Paths
@@ -15,6 +18,9 @@ class SafebuyService:
     def __init__(self):
         self.repository = SafebuyRepository()
         self.user_repository = UserRepository()
+        self.client_repository = ClientRepository()
+        self.machine_repository = MachineRepository()
+        self.apiperu = ApiPeru()
         self.push_service = PushSender()
 
     @handle_exceptions
@@ -50,13 +56,16 @@ class SafebuyService:
 
             available = float(req.credit_amount or 0) - float(req.credit_used or 0)
 
+            product_brand = req.machine.brand.name if req.machine else None
+            product_model = req.machine.model if req.machine else None
+
             grouped[sid]["requests"].append({
                 "id": req.id,
-                "client_name": req.client_name,
-                "client_document": req.client_document,
-                "product_name": req.product_name,
-                "product_brand": req.product_brand,
-                "product_model": req.product_model,
+                "client_name": req.client.name if req.client else None,
+                "client_document": req.client.document if req.client else None,
+                "product_brand": product_brand,
+                "product_model": product_model,
+                "product_image": req.machine.image if req.machine.image != "" else "impresoras-varias1.webp",
                 "order_number": req.order_number,
                 "purchase_date": req.purchase_date.isoformat() if req.purchase_date else None,
                 "original_price": float(req.original_price or 0),
@@ -156,26 +165,29 @@ class SafebuyService:
                 "created_at": format_datetime(chat.created_at),
             })
 
+        product_brand = req.machine.brand.name if req.machine else None
+        product_model = req.machine.model if req.machine else None
+
+        client = req.client
         return {
             "id": req.id,
             "status_id": req.status_id,
             "status_name": req.status.name,
             "status_slug": req.status.slug,
-            "client_name": req.client_name,
-            "client_email": req.client_email,
-            "client_phone": req.client_phone,
-            "client_document": req.client_document,
+            "client_id": req.client_id,
+            "client_name": client.name if client else None,
+            "client_email": client.email if client else None,
+            "client_phone": client.phone[2:] if client and client.phone else None,
+            "client_document": client.document if client else None,
             "order_number": req.order_number,
             "purchase_date": req.purchase_date.isoformat() if req.purchase_date else None,
             "purchase_channel": req.purchase_channel,
-            "product_name": req.product_name,
-            "product_brand": req.product_brand,
-            "product_model": req.product_model,
+            "product_brand": product_brand,
+            "product_model": product_model,
             "original_price": float(req.original_price or 0),
             "paid_price": float(req.paid_price or 0),
             "new_price": float(req.new_price or 0),
             "price_difference": float(req.price_difference or 0),
-            "proof_url": req.proof_url,
             "credit_amount": float(req.credit_amount or 0),
             "credit_used": float(req.credit_used or 0),
             "credit_available": available,
@@ -192,33 +204,57 @@ class SafebuyService:
 
     @handle_exceptions
     def create_request(self):
+        client_name_form = request.form.get("client_name")
+        client_email = request.form.get("client_email") or None
+        client_phone = request.form.get("client_phone") or None
+        client_document = request.form.get("client_document") or None
+        purchase_date = request.form.get("purchase_date")
+        paid_price = request.form.get("paid_price")
+        new_price = request.form.get("new_price")
+        product_id = request.form.get("product") or None
+
+        if not client_name_form:
+            return "client_name requerido", 400
+        if not purchase_date:
+            return "purchase_date requerido", 400
+        if not paid_price or not new_price:
+            return "Precios requeridos", 400
+
+        # Resolver cliente via documento
+        client_id = None
+        resolved_name = None
+        if client_document:
+            existing, ec = self.client_repository.get_client_by_document(client_document)
+            if ec == 200:
+                client_id = existing.id
+                resolved_name = existing.name
+                if client_email or client_phone:
+                    self.client_repository.update_client_contact(existing, client_email, client_phone)
+            else:
+                doc_type = 'dni' if len(client_document) == 8 else 'ruc'
+                name_result, nc = self.apiperu.get_name(doc_type, client_document)
+                if nc == 200:
+                    resolved_name = name_result.get("name")
+                if resolved_name:
+                    new_id, _ = self.client_repository.add_client_minimal(
+                        document=client_document,
+                        name=resolved_name,
+                        email=client_email,
+                        phone=client_phone,
+                    )
+                    client_id = new_id
+
         data = {
-            "client_name": request.form.get("client_name"),
-            "client_email": request.form.get("client_email"),
-            "client_phone": request.form.get("client_phone"),
-            "client_document": request.form.get("client_document"),
+            "client_id": client_id,
             "order_number": request.form.get("order_number"),
-            "purchase_date": request.form.get("purchase_date"),
+            "purchase_date": purchase_date,
             "purchase_channel": request.form.get("purchase_channel", "web"),
-            "product_name": request.form.get("product_name"),
-            "product_brand": request.form.get("product_brand"),
-            "product_model": request.form.get("product_model"),
+            "machine_id": int(product_id) if product_id else None,
             "original_price": request.form.get("original_price"),
-            "paid_price": request.form.get("paid_price"),
-            "new_price": request.form.get("new_price"),
-            "proof_url": request.form.get("proof_url"),
+            "paid_price": paid_price,
+            "new_price": new_price,
             "assigned_user_id": request.form.get("assigned_user_id"),
         }
-
-        # Validaciones mínimas
-        if not data["client_name"]:
-            return "client_name requerido", 400
-        if not data["purchase_date"]:
-            return "purchase_date requerido", 400
-        # if not data["product_name"]:
-        #     return "product_name requerido", 400
-        if not data["paid_price"] or not data["new_price"]:
-            return "Precios requeridos", 400
 
         result, rc = self.repository.create_request(data)
         if rc != 200:
@@ -238,8 +274,20 @@ class SafebuyService:
                 continue
             self._save_attachment(new_request_id, file, "screenshot")
 
+        product_brand = product_model = None
+        if product_id:
+            machine, mc = self.machine_repository.get_machine_full(int(product_id))
+            if mc == 200:
+                product_brand = machine.brand.name
+                product_model = machine.model
+
         socketio.emit("safebuy_update", {})
-        return {"id": new_request_id}, 200
+        return {
+            "id": new_request_id,
+            "client_name": resolved_name,
+            "product_brand": product_brand,
+            "product_model": product_model,
+        }, 200
 
 
     def _save_attachment(self, request_id, file, target):

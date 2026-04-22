@@ -119,6 +119,30 @@ class ClientRepository:
     
 
     @handle_db_exceptions
+    def add_client_minimal(self, document, name, email=None, phone=None):
+        new_client = Clients(
+            document=document,
+            name=name,
+            email=email,
+            phone=f'51{phone}' if phone else None,
+            address="",
+        )
+        g.db_session.add(new_client)
+        g.db_session.flush()
+        client_id = new_client.id
+        g.db_session.commit()
+        return client_id, 200
+
+    @handle_db_exceptions
+    def update_client_contact(self, client, email=None, phone=None):
+        if email:
+            client.email = email
+        if phone:
+            client.phone = f'51{phone}'
+        g.db_session.commit()
+        return client, 200
+
+    @handle_db_exceptions
     def update_client(self, client, data):
         client.phone = f'51{data.get("phone")}'
         client.email = data.get("email")

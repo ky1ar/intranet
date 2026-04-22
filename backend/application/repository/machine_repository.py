@@ -37,3 +37,10 @@ class MachineRepository:
             return None, 400
 
         return machine, 200
+
+    @handle_db_exceptions
+    def get_machine_full(self, machine_id):
+        machine = g.db_session.query(Machines).filter(Machines.id == machine_id).first()
+        if not machine:
+            return None, 404
+        return machine, 200

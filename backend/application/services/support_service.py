@@ -315,7 +315,7 @@ class SupportService:
                     "protect": order.protect,
                     "technician_name": order.technician.name.split()[0] if order.technician and order.technician.name else None,
                     "machine": order.machine.model,
-                    "machine_image": order.machine.image,
+                    "machine_image": order.machine.image if order.machine.image != "" else "impresoras-varias1.webp",
                     "method_name": order.method.name if order.method else None,
                     "method_letter": order.method.name[0] if order.method and order.method.name else None,
                     "paid": order.paid,

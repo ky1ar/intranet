@@ -42,21 +42,15 @@ class SafebuyRepository:
         diff = float(data["paid_price"]) - float(data["new_price"])
 
         req = SafebuyRequest(
-            client_name=data["client_name"],
-            client_email=data.get("client_email"),
-            client_phone=data.get("client_phone"),
-            client_document=data.get("client_document"),
+            client_id=data.get("client_id"),
             order_number=data.get("order_number"),
             purchase_date=data["purchase_date"],
             purchase_channel=data.get("purchase_channel", "web"),
-            product_name=data["product_name"],
-            product_brand=data.get("product_brand"),
-            product_model=data.get("product_model"),
+            machine_id=data.get("machine_id"),
             original_price=data["original_price"],
             paid_price=data["paid_price"],
             new_price=data["new_price"],
             price_difference=diff,
-            proof_url=data.get("proof_url"),
             assigned_user_id=data.get("assigned_user_id"),
         )
         g.db_session.add(req)
