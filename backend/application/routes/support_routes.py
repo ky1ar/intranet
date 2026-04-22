@@ -1,4 +1,4 @@
-import os, logging
+import os, uuid, logging
 from flask import Blueprint, request
 from werkzeug.utils import secure_filename
 from application.controllers.support_controller import SupportController
@@ -96,26 +96,28 @@ def service_order_next():
 
 @support_bp.route("/finish", methods=["POST"])
 def finish():
-    image = request.files["image"]
+    images = request.files.getlist("images[]")
     order_number = request.form.get("order_number")
-    service_order_id = request.form.get("service_order_id")
     user_id = request.form.get("user_id")
     notes = request.form.get("notes")
 
-    if image.filename == "":
-        return {"error": "Nombre de archivo vacío"}, 400
+    if not images or all(f.filename == "" for f in images):
+        return {"error": "No se recibieron imágenes"}, 400
 
-    filename = secure_filename(f"support_{order_number}_{service_order_id}.jpg")
-    filepath = os.path.join(Config.UPLOAD_FOLDER, filename)
-
-    img = Image.open(image)
-    img = img.convert("RGB")
-    img.save(filepath, "JPEG", quality=90)
+    saved_files = []
+    for image in images:
+        if not image or image.filename == "":
+            continue
+        filename = secure_filename(f"support_{order_number}_{uuid.uuid4().hex[:8]}.jpg")
+        filepath = os.path.join(Config.UPLOAD_FOLDER, filename)
+        img = Image.open(image)
+        img = img.convert("RGB")
+        img.save(filepath, "JPEG", quality=90)
+        saved_files.append(filename)
 
     data = {
-        "service_order_id": service_order_id,
         "order_number": order_number,
-        "filename": filename,
+        "filenames": saved_files,
         "user_id": user_id,
         "notes": notes,
     }

@@ -632,14 +632,15 @@ class SupportService:
     def service_by_id(self, service_order_id):
         return self.support_repository.get_service_by_id(service_order_id)
 
+    def get_service_order_orm_by_number(self, order_number):
+        return self.support_repository.get_service_order_by_number(order_number)
+
 
     @handle_exceptions
     def finish(self, service_order, data):
-        #order_number = data.get("order_number")
         user_id = data.get("user_id")
-        filename = data.get("filename")
-        notes = data.get("notes")
-        final_notes = f"{notes}\n Image: {filename}"
+        filenames = data.get("filenames", [])
+        notes = data.get("notes") or ""
         utc_now = datetime.now(timezone.utc)
         stamp = utc_now - timedelta(hours=5)
         current_status_id = service_order.status_id
@@ -648,21 +649,27 @@ class SupportService:
         client_phone = service_order.client.phone
         machine_id = service_order.machine_id
 
-        next_order, next_order_status = self.support_repository.next_service_order(service_order, current_status_id, stamp) 
+        if filenames:
+            add_photos, add_photos_status = self.support_repository.add_photos(service_order_id, current_status_id, filenames)
+            if add_photos_status != 200:
+                return add_photos, add_photos_status
+
+        next_order, next_order_status = self.support_repository.next_service_order(service_order, current_status_id, stamp)
         if next_order_status != 200:
             return next_order, next_order_status
-        
-        new_order_status, new_order_status_code = self.support_repository.new_order_status(service_order_id, current_status_id, user_id, stamp, final_notes) 
+
+        new_order_status, new_order_status_code = self.support_repository.new_order_status(service_order_id, current_status_id, user_id, stamp, notes)
         if new_order_status_code != 200:
             return new_order_status, new_order_status_code
-        
+
         socketio.emit("support_dashboard_update", {})
-        
+
         machine, machine_status = self.machine_repository.get_machine(machine_id)
         if machine_status != 200:
             return machine, machine_status
-        
-        threading.Thread(target=self.whatsapp.status_change, args=(current_status_id, client_phone, client_name, machine.full_name, filename)).start()
+
+        first_file = filenames[0] if filenames else None
+        threading.Thread(target=self.whatsapp.status_change, args=(current_status_id, client_phone, client_name, machine.full_name, first_file)).start()
         return "Order de servicio actualizada correctamente", 200
 
 

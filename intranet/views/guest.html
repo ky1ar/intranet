@@ -92,31 +92,23 @@
                 <textarea x-model="status_notes" class="text-area glass2" placeholder="Notas internas"></textarea>
 
                 <div class="capture-proof">
-                    <label class="dotted-button" x-show="!preview" @click.prevent="openFileInput()">+ Subir foto</label>
-
-                    <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        style="display: none;"
-                        x-ref="fileInput" 
-                        @change="
-                            let file = $event.target.files[0]; 
-                            if (file) { 
-                                proof_photo = file;
-                                let reader = new FileReader();
-                                reader.onload = e => preview = e.target.result;
-                                reader.readAsDataURL(file);
-                            }
-                        "
-                    >
-                    <img
-                        class="thumbnail"
-                        x-show="preview"
-                        :src="preview"
-                        alt="preview" 
-                        @click="openFileInput()"
-                    >
+                    <span class="name">Imágenes</span>
+                    <div class="thumbnails-grid">
+                        <template x-for="(photo, index) in proof_photos" :key="index">
+                            <div class="thumb-item" @click="removePhoto(index)">
+                                <div class="thumbnail-wrapper">
+                                    <div class="delete-button">
+                                        <img class="delete" alt="delete" width="24" height="24" src="/static/images/icons/delete.svg">
+                                    </div>
+                                    <img class="thumbnail" :src="photo.preview" alt="preview">
+                                </div>
+                            </div>
+                        </template>
+                        <div class="add-button hover-opacity" @click.prevent="openFileInput()">
+                            <img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
+                        </div>
+                        <input type="file" accept="image/*" style="display: none;" x-ref="fileInput" @change="addFiles($event)" multiple>
+                    </div>
                 </div>
                 <button class="button hover-opacity" @click="finishOrder()" :class="buttons.finish.class" x-text="buttons.finish.text"></button>
             </div>
@@ -462,8 +454,7 @@
             termsScrolledToBottom: false,
             signaturePad: null,
             selected_order: null,
-            preview: null,
-			proof_photo: null,
+            proof_photos: [],
 			processing: false,
             status_notes: '',
             api: Alpine.store('cache').api,
@@ -581,11 +572,25 @@
             },
 
             pickOrder(item) {
-                this.preview = null;
-                this.proof_photo = null;
-				this.selected_order = item;
+                this.proof_photos = [];
+                this.selected_order = item;
                 this.gotoStep('finish');
-			},
+            },
+
+            addFiles(event) {
+                for (let f of event.target.files) {
+                    if (f) {
+                        let reader = new FileReader();
+                        reader.onload = e => this.proof_photos.push({ file: f, preview: e.target.result });
+                        reader.readAsDataURL(f);
+                    }
+                }
+                event.target.value = '';
+            },
+
+            removePhoto(index) {
+                this.proof_photos.splice(index, 1);
+            },
 
             clear() {
                 this.signaturePad?.clear();
@@ -611,41 +616,39 @@
             },
 
             async finishOrder() {
-				if (this.processing) return;
-				this.processing = true;
+                if (this.processing) return;
+                this.processing = true;
 
-				if (!this.proof_photo) {
-					this.showError('finish', 'Sube una foto');
-					this.processing = false;
-					return;
-				}
-			
-				const maxWidth = 1024;
-				const maxHeight = 1024;
-                const resizedImage = await Alpine.store('cache').resizeImage(this.proof_photo, maxWidth, maxHeight);
-                
-				try {
-					const formData = new FormData();
-					formData.append("image", resizedImage);
-					formData.append("user_id", Alpine.store('cache').user.id);
-					formData.append("order_number", this.selected_order.order_number);
-					formData.append("service_order_id", this.selected_order.service_order_id);
-					formData.append("notes", this.status_notes);
+                if (this.proof_photos.length < 1) {
+                    this.showError('finish', 'Sube al menos 1 foto');
+                    this.processing = false;
+                    return;
+                }
 
-					const response = await fetch(`${this.api}/support/finish`, {
+                try {
+                    const formData = new FormData();
+                    for (let i = 0; i < this.proof_photos.length; i++) {
+                        const resized = await Alpine.store('cache').resizeImage(this.proof_photos[i].file, 1024, 1024);
+                        formData.append('images[]', resized);
+                    }
+                    formData.append('user_id', Alpine.store('cache').user.id);
+                    formData.append('order_number', this.selected_order.order_number);
+                    formData.append('notes', this.status_notes);
+
+                    const response = await fetch(`${this.api}/support/finish`, {
                         method: 'POST',
-                        body: formData
+                        body: formData,
                     });
-                    
-                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+                    if (!response.ok) throw new Error('Error al finalizar la orden');
                     this.next();
-			
-				} catch (error) {
+
+                } catch (error) {
                     this.showError('finish', error.message);
                 } finally {
-					this.processing = false;
+                    this.processing = false;
                 }
-			},
+            },
 
             validateAccessories() {
                 if (this.accessories.length === 0) {
@@ -912,20 +915,19 @@
             margin: 0;
             text-align: left;
         }
-        #guest .content .capture-proof .dotted-button {
-            line-height: 3rem;
-            border-radius: 0.75rem;
-            border: 2px dotted #c5c5c5;
-            font-size: 1rem;
-            cursor: pointer;
-            justify-content: center;
+        #guest .content .capture-proof {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        #guest .content .capture-proof .name {
+            text-align: left;
             font-weight: 500;
         }
-        #guest .content .capture-proof .thumbnail {
-            margin: auto;
-            max-height: 20rem;
-            border-radius: 0.5rem;
-            border: 2px solid var(--gray);
+        #guest .content .capture-proof .thumbnails-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
         }
         #guest .content .bottom input {
             outline: none;

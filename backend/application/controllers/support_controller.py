@@ -96,11 +96,11 @@ class SupportController:
     
 
     @handle_logs_and_exceptions
-    def support_finish(self, data):  
-        service_order, service_order_status = self.support.service_by_id(data.get("service_order_id"))
+    def support_finish(self, data):
+        service_order, service_order_status = self.support.get_service_order_orm_by_number(data.get("order_number"))
         if service_order_status != 200:
             return service_order, service_order_status
-        
+
         return self.support.finish(service_order, data)
     
 
