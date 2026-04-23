@@ -180,7 +180,7 @@ class SafebuyService:
             "client_phone": client.phone[2:] if client and client.phone else None,
             "client_document": client.document if client else None,
             "order_number": req.order_number,
-            "purchase_date": req.purchase_date.isoformat() if req.purchase_date else None,
+            "purchase_date": format_date(req.purchase_date),
             "purchase_channel": req.purchase_channel,
             "product_brand": product_brand,
             "product_model": product_model,
@@ -202,6 +202,7 @@ class SafebuyService:
             "attachment_sections": attachment_sections,
             "chats": chats,
         }, 200
+    
 
     @handle_exceptions
     def create_request(self):

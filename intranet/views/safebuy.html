@@ -75,15 +75,15 @@
 				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
 
 				<div class="detail-head">
-					<span class="detail-title" x-text="`CS-${detail?.id || ''} - ${detail?.order_number}`"></span>
+					<span class="detail-title" x-text="`CS-${detail?.id || ''}`"></span>
 					<div class="detail-status" :class="detail?.status_slug" x-text="detail?.status_name"></div>
 				</div>
 
 				<div class="modal-content dual">
 					<div class="dataview overflow percent50">
 						<!-- Cliente -->
-						 <div class="product white">
-							<img class="thumb" alt="thumb" width="48" height="48" :src="'/static/images/uploads/machines/'+detail?.product_image">
+						<div class="product white">
+							<img class="thumb" alt="thumb" width="40" height="40" :src="'/static/images/uploads/machines/'+detail?.product_image">
 							
 							<div class="data">
 								<div class="head">
@@ -92,22 +92,45 @@
 									<span class="model" x-text="detail?.product_model"></span>
 								</div>
 
-								<span class="name" x-text="show_document ? detail?.client_document : detail?.client_name"></span>
+								<div class="order">
+									<span class="invoice" x-text="detail?.order_number"></span>
+									<span class="date" x-text="detail?.purchase_date"></span>
+								</div>
 
-								<div class="email" x-show="detail?.client_email">
-									<img alt="" width="14" height="14" src="/static/images/email.svg">
-									<span x-text="detail?.client_email"></span>
+								<div class="tag">
+									<img alt="" width="10" height="10" src="/static/images/icons/tag.svg">
+									<span x-text="detail?.purchase_channel != 'physical' ? 'Web':'Tienda' "></span>
 								</div>
 							</div>
+						</div>
 
-							<div class="icons">
-								<a title="Enviar whatsapp" :href="'https://api.whatsapp.com/send?phone=' + detail?.client_phone" target="_blank" class="hover-opacity" rel="noopener noreferrer" href="https://api.whatsapp.com/send?phone=51946887982">
-									<img alt="" src="/static/images/whatsapp.svg" width="16" height="16">
-								</a>
+						<div class="product white">
+							<span class="letter" x-text="detail?.client_name?.charAt(0)"></span>
+				
+							<div class="data">
+								<div class="client">
+									<button title="Alternar nombre/documento" @click="show_document = !show_document" class="hover-opacity">
+										<img alt="" src="/static/images/document.svg" width="14" height="14">
+									</button>
+									<span class="name" x-text="show_document ? detail?.client_document : detail?.client_name"></span>
+								</div>
+								
+								<div class="links">
+									<div class="email" x-show="detail?.client_email">
+										<img alt="" width="15" height="15" src="/static/images/email.svg">
+										<span x-text="detail?.client_email"></span>
+									</div>
 
-								<button title="Alternar nombre/documento" @click="show_document = !show_document" class="hover-opacity">
-									<img alt="" src="/static/images/document.svg" width="16" height="16">
-								</button>
+									<a title="Enviar whatsapp" :href="`https://api.whatsapp.com/send?phone=${detail?.client_phone}`" target="_blank" class="hover-opacity" rel="noopener noreferrer">
+										<img alt="" src="/static/images/whatsapp.svg" width="12	" height="12	">
+										<span x-text="detail?.client_phone"></span>
+									</a>
+								</div>
+								
+							</div>
+
+							<div class="">
+								
 							</div>
 						</div>
 
@@ -596,6 +619,9 @@
 		}
 
 		/* Modal detail */
+		#modal-safebuy-detail .modal {
+    		gap: 0.75rem;
+		}
 		.detail-head {
 			display: flex;
 			align-items: center;
@@ -608,15 +634,33 @@
 		.detail-status {
 			font-size: 0.7rem;
 			font-weight: 600;
-			padding: 0.25rem 0.75rem;
+			padding: 0.5rem 1.5rem;
 			border-radius: 2rem;
 		}
-		.detail-status.requested   { background: var(--newgray); }
-		.detail-status.reviewing   { background: #fff0de; color: #b87514; }
-		.detail-status.approved    { background: #d0f4ea; color: #0F6E56; }
-		.detail-status.partial     { background: #dff5ff; color: #185FA5; }
-		.detail-status.used        { background: #e6e6e6; color: #444; }
-		.detail-status.rejected    { background: #fee3e1; color: #993535; }
+		.detail-status.requested   {
+			background: #f8954d;
+    		color: white;
+		}
+		.detail-status.reviewing   {
+			background: #efae24;
+			color: white;
+		}
+		.detail-status.approved    {
+			background: #88b262;
+			color: white;
+		}
+		.detail-status.partial     {
+			background: #508dc3;
+			color: white;
+		}
+		.detail-status.used        {
+			background: #c490cf;
+			color: white;
+		}
+		.detail-status.rejected    {
+			background: #e36464;
+			color: white;
+		}
 		.dataview {
 			display: flex;
 			flex-direction: column;
@@ -625,15 +669,26 @@
 		.dataview .product {
 			display: flex;
 			align-items: center;
+			position: relative;
 			padding: 1rem;
 			width: 100%;
 			gap: 1rem;
 		}
+		.dataview .product .letter {
+			background-color: var(--secondary);
+			color: var(--white);
+			width: 2.5rem;
+			height: 2.5rem;
+			border-radius: 2rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-size: 1rem;
+		}
 		.dataview .product .data {
 			display: flex;
 			flex-direction: column;
-			gap: 0.25rem;
-			justify-content: center;
+			gap: 0.125rem;
 		}
 		.dataview .product .data .head {
 			display: flex;
@@ -653,31 +708,63 @@
 			font-weight: 400;
 			opacity: 0.75;
 		}
-		.dataview .product .data .email {
-			opacity: 0.5;
-			font-size: 0.8rem;
-			display: flex;
-			gap: 0.5rem;
+		.dataview .product .data .tag {
+			position: absolute;
+			top: 1rem;
+			right: 1rem;
+			background-color: var(--black);
+			color: var(--white);
+			font-size: 0.7rem;
+			padding: 0.25rem 0.75rem;
+			border-radius: 1.5rem;
 		}
-		.dataview .product .icons {
-			margin-left: auto;
+		.dataview .product .data .tag img {
+			filter: invert(1);
+    		transform: rotate(-45deg);
+		}
+		.dataview .product .data .order {
 			display: flex;
-			flex-direction: column;
+			gap: 0.75rem;
 			align-items: center;
-			gap: 0.25rem;
 		}
-		.dataview .product .icons a {
-			padding: 0.25rem;
+		.dataview .product .data .order .invoice {
+			font-size: 0.95rem;
+			font-weight: 600;
+			opacity: 0.5;
+		}
+		.dataview .product .data .order .date {
+			opacity: 0.4;
+		}
+		.dataview .product .data .client {
 			display: flex;
+    		gap: 0.4rem;
 		}
-		.dataview .product .icons button {
-			padding: 0.25rem;
+		.dataview .product .data .client button {
+			padding: 0;
 			display: flex;
 			margin: 0;
 			background-color: transparent;
 			outline: none;
 			border: none;
-			cursor: pointer;
+		}
+		.dataview .product .data .links {
+			display: flex;
+			gap: 1rem;
+			opacity: 0.4;
+			font-size: 0.8rem;
+			font-weight: 500;
+		}
+		.dataview .product .data .links .email {
+			display: flex;
+    		gap: 0.4rem;
+		}
+		.dataview .product .data .links a {
+			color: var(--black);
+			display: flex;
+			gap: 0.4rem;
+		}
+		.dataview .product .icons {
+		
 		}
 		.detail-section {
 			padding: 1rem;
