@@ -250,6 +250,18 @@ class PurchaseRepository:
     
 
     @handle_db_exceptions
+    def get_statuses(self):
+        from application.models import PurchaseStatus
+        statuses = (
+            g.db_session.query(PurchaseStatus)
+            .filter(PurchaseStatus.id <= 9)
+            .order_by(PurchaseStatus.id.asc())
+            .all()
+        )
+        return statuses, 200
+
+
+    @handle_db_exceptions
     def get_purchase_type(self):
         purchase_type = g.db_session.query(PurchaseType).order_by(PurchaseType.id.asc()).all()
         if not purchase_type:

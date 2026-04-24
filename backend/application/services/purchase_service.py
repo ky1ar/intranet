@@ -469,23 +469,37 @@ class PurchaseService:
 
     @handle_exceptions
     def _format_requests_reponse(self, purchase_requests, user_id):
-        return {
-            "requests": [
-                {
-                    "id": purchase.id,
-                    "pr": f"PR-{purchase.id:04d}",
-                    "requester_name": format_name(purchase.user.name) if user_id != purchase.user_id else 'Tú',
-                    "requester_department": purchase.user.department.name,
-                    "requester_image": purchase.user.image,
-                    "type_name": purchase.purchase_type.name,
-                    "urgency_name": purchase.purchase_urgency.name,
-                    "express": purchase.express,
-                    "status_name": purchase.status.name,
-                    "status_slug": purchase.status.slug,
-                    "created_at": format_datetime(purchase.created_at),
-                } for purchase in purchase_requests
-            ],
-        }, 200
+        statuses, sc = self.purchase_repository.get_statuses()
+        if sc != 200:
+            return statuses, sc
+
+        by_status = {s.id: [] for s in statuses}
+        for purchase in purchase_requests:
+            if purchase.status_id not in by_status:
+                continue
+            by_status[purchase.status_id].append({
+                "id": purchase.id,
+                "pr": f"PR-{purchase.id:04d}",
+                "requester_name": format_name(purchase.user.name) if user_id != purchase.user_id else 'Tú',
+                "requester_department": purchase.user.department.name,
+                "requester_image": purchase.user.image,
+                "type_name": purchase.purchase_type.name,
+                "urgency_name": purchase.purchase_urgency.name,
+                "express": purchase.express,
+                "status_name": purchase.status.name,
+                "status_slug": purchase.status.slug,
+                "created_at": format_datetime(purchase.created_at),
+            })
+
+        return [
+            {
+                "status_id": s.id,
+                "status_name": s.name,
+                "status_slug": s.slug,
+                "requests": by_status[s.id],
+            }
+            for s in statuses
+        ], 200
 
 
     @handle_exceptions

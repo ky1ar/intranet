@@ -9,65 +9,32 @@
 			</div>
 		</div>
 
-		<div class="main glass mobile-hide">
-			<div class="table-header">
-				<div>Orden</div>
-				<div>Usuario</div>
-				<div>Área</div>
-				<div>Solicitud</div>
-				<div>Prioridad</div>
-				<div>Estado</div>
-				<div>Fecha de solicitud</div>
-			</div>
+		<div class="main glass">
+			<template x-for="group in $store.cache.getData('purchases_dashboard')" :key="group.status_id">
+				<div class="group">
+					<div class="group-head">
+						<img alt="" width="18" height="18" :src="'/static/images/icons/' + (statusIcons[group.status_slug] || 'pending.svg')">
+						<span class="group-name" x-text="group.status_name"></span>
+						<span class="group-count" x-text="group.requests.length"></span>
+					</div>
 
-			<div class="table-box">
-				<template x-for="purchase in $store.cache.getData('purchases_dashboard')?.requests" :key="purchase.id">
-					<div class="table-row white" @click="viewPurchase(purchase)">
-						<div class="id" x-text="`PR-00${purchase.id}`"></div>
-						<div>
-							<img alt="user" class="image" :src="'/static/images/uploads/users/' + purchase.requester_image" width="24" height="24">
-							<span class="name" x-text="purchase.requester_name"></span>
+					<template x-for="purchase in group.requests" :key="purchase.id">
+						<div class="req-card white hover-opacity" @click="viewPurchase(purchase)">
+							<div class="req-top">
+								<span class="req-id" x-text="`PR-${String(purchase.id)}`"></span>
+								<span class="req-urgency" x-text="purchase.urgency_name"></span>
+							</div>
+							<div class="req-user">
+								<img :src="'/static/images/uploads/users/' + purchase.requester_image" width="20" height="20" alt="user">
+								<span x-text="purchase.requester_name"></span>
+							</div>
+							<div class="req-bottom">
+								<span class="req-dept" x-text="purchase.requester_department"></span>
+								<span class="req-type" :class="{'express': purchase.express == 1}" x-text="purchase.express == 1 ? 'Caja chica' : 'Estándar'"></span>
+							</div>
+							<div class="req-date" x-text="purchase.created_at"></div>
 						</div>
-						<div x-text="purchase.requester_department"></div>
-						<div x-text="purchase.express == 1 ? 'Caja chica':'Estándar'"></div>
-						<div x-text="purchase.urgency_name"></div>
-						<div class="statuses">
-							<div :class="purchase.status_slug" x-text="purchase.status_name"></div>
-						</div>
-						<div class="date" x-text="purchase.created_at"></div>
-					</div>
-				</template>
-			</div>
-		</div>
-
-		<div class="mobile-dashboard glass mobile-show">
-			<template x-for="purchase in $store.cache.getData('purchases_dashboard')?.requests" :key="purchase.id">
-				<div class="row white" @click="viewPurchase(purchase)">
-					<div class="head">
-						<div class="info">
-							<span class="id" x-text="`PR-00${purchase.id}`"></span>
-							<span class="date" x-text="purchase.created_at"></span>
-						</div>
-						<div class="status" :class="purchase.status_slug" x-text="purchase.status_name"></div>
-					</div>
-					
-					<!-- <div class="body">
-						<span class="label">Área</span>
-						<span class="name" x-text="purchase.requester_department"></span>
-					</div> -->
-					<div class="body">
-						<span class="label">Tipo</span>
-						<span class="name" x-text="purchase.express == 1 ? 'Caja chica':'Estándar'"></span>
-					</div>
-					<div class="body">
-						<span class="label">Creado por</span>
-						<span class="name left" x-text="purchase.requester_name"></span>
-						<img alt="user" class="image" :src="'/static/images/uploads/users/' + purchase.requester_image" width="24" height="24">
-					</div>
-					<!-- <div class="body">
-						<span class="label">Prioridad</span>
-						<span class="name" x-text="purchase.urgency_name"></span>
-					</div> -->
+					</template>
 				</div>
 			</template>
 		</div>
@@ -453,6 +420,16 @@
 				],
 			},
 			editing: false,
+
+			statusIcons: {
+				pending:         'pending.svg',
+				leader_approve:  'approve.svg',
+				manager_approve: 'protect.svg',
+				progress:        'progress.svg',
+				payed:           'payed.svg',
+				billed:          'invoiced.svg',
+				delivered:       'deliver.svg',
+			},
 
 			async init() {
 				console.log('Inicializando Purchases...');
@@ -1045,80 +1022,107 @@
 			gap: 1rem;
 			align-items: center;
 		}
-		.mobile-dashboard {
-			flex-direction: column;
-			gap: 0.75rem;
-			padding: 0.75rem;
-		}
-		.mobile-dashboard .row {
-			padding: 1rem;
-			display: flex;
-			flex-direction: column;
-			gap: 0.25rem;
-		}
-		.mobile-dashboard .head {
-			display: flex;
-    		justify-content: space-between;
-			align-items: start;
-			margin-bottom: 0.5rem;
-		}
-		.mobile-dashboard .head .info {
-			display: flex;
-    		flex-direction: column;
-		}
-		.mobile-dashboard .head .info .id {
-			font-size: 1rem;
-    		font-weight: 600;
-		}
-		.mobile-dashboard .head .info .id.pending {
-			font-size: 0.85rem;
-    		opacity: 0.5;
-		}
-		.mobile-dashboard .head .info .date {
-			font-size: 0.75rem;
-    		opacity: 0.75;
-		}
-		.mobile-dashboard .head .status {
-			border-radius: 1rem;
-			padding: 0.25rem 0.75rem;
-			font-size: 0.75rem;
-			font-weight: 500;
-		}
-		.mobile-dashboard .head .status.active {
-			background-color: #fff0de;
-    		border: 2px solid #fcdab1;
-		}
-		.mobile-dashboard .head .status.finished {
-			background-color: #d0f4ea;
-    		border: 2px solid #abe9d8;
-		}
-		.mobile-dashboard .body {
-			display: flex;
-    		justify-content: space-between;
-			align-items: center;
-			gap: 0.5rem;
-		}
-		.mobile-dashboard .body .label {
-			font-size: 0.75rem;
-			opacity: 0.5;
-		}
-		.mobile-dashboard .body .name {
-			font-weight: 500;
-			font-size: 0.8rem;
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-			max-width: 75%;
-		}
-		.mobile-dashboard .body .name.left {
-			margin-left: auto;
-		}
-		.mobile-dashboard .body img {
-			border-radius: 1rem;
-			border: 2px solid #e7e7e7;
-		}
 		.controls {
 			justify-content: end;
+		}
+		#purchases {
+			display: flex;
+			min-height: calc(100vh - 6.5rem);
+			gap: 1rem;
+			overflow: auto;
+			flex-direction: column;
+		}
+		#purchases .main {
+			display: flex;
+			overflow-x: auto;
+			flex: 1;
+		}
+		#purchases .group {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			border-right: 3px solid #ffffff80;
+			gap: 0.75rem;
+			min-width: 15rem;
+			padding: 0.75rem;
+		}
+		#purchases .group:last-child {
+			border-right: none;
+		}
+		#purchases .group-head {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.5rem;
+			padding-bottom: 0.25rem;
+		}
+		#purchases .group-head img {
+			opacity: 0.6;
+		}
+		#purchases .group-name {
+			font-weight: 600;
+			font-size: 0.85rem;
+		}
+		#purchases .group-count {
+			font-size: 0.7rem;
+			opacity: 0.4;
+			font-weight: 500;
+		}
+		#purchases .req-card {
+			padding: 0.75rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.35rem;
+			cursor: pointer;
+		}
+		#purchases .req-top {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#purchases .req-id {
+			font-weight: 600;
+			font-size: 0.85rem;
+		}
+		#purchases .req-urgency {
+			font-size: 0.7rem;
+			opacity: 0.5;
+			font-weight: 500;
+		}
+		#purchases .req-user {
+			display: flex;
+			align-items: center;
+			gap: 0.4rem;
+			font-size: 0.8rem;
+			font-weight: 500;
+		}
+		#purchases .req-user img {
+			border-radius: 2rem;
+			object-fit: cover;
+			border: 2px solid #e7e7e7;
+		}
+		#purchases .req-bottom {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#purchases .req-dept {
+			font-size: 0.75rem;
+			opacity: 0.55;
+		}
+		#purchases .req-type {
+			font-size: 0.7rem;
+			opacity: 0.5;
+			font-weight: 500;
+		}
+		#purchases .req-type.express {
+			color: var(--primary);
+			opacity: 1;
+			font-style: italic;
+		}
+		#purchases .req-date {
+			font-size: 0.65rem;
+			opacity: 0.35;
 		}
 		#modal-process .express .dot {
 			width: 0.5rem;
@@ -1337,67 +1341,6 @@
 			padding: 0.5rem 0.75rem;
 			border-bottom: none;
 		}
-		.main {
-			overflow: hidden;
-		}
-		.table-header {
-			display: grid;
-			grid-template-columns: 0.5fr 1.25fr 1fr 0.6fr 0.8fr 0.7fr 1fr;
-			gap: 1rem;
-			padding: 1rem 2rem 0 2rem;
-			font-weight: 600;
-		}
-		.table-box {
-			padding: 1rem;
-			gap: 0.5rem;
-			display: flex;
-			flex-direction: column;
-		}
-		.table-row {
-			display: grid;
-			grid-template-columns: 0.5fr 1.25fr 1fr 0.6fr 0.8fr 0.7fr 1fr;
-			gap: 1rem;
-			align-items: center;
-			padding: 1rem;
-			cursor: pointer;
-			transition: var(--transition);
-		}
-		.table-row > div:nth-child(2) {
-			display: flex;
-			align-items: center;
-			gap: 0.5rem;
-		}
-		.table-row .image {
-			border-radius: 2rem;
-			object-fit: cover;
-		}
-		.table-row .statuses div {
-			display: inline-flex;
-			align-items: center;
-			justify-content: center;
-			padding: 0.25rem 1rem;
-			border-radius: 2rem;
-			font-size: 0.75rem;
-			font-weight: 600;
-		}
-		.table-row .express {
-			color: var(--primary);
-    		font-weight: 500;
-			font-style: italic;
-		}
-		.table-row .id {
-			font-weight: 600;
-			min-width: 4rem;
-		}
-		.table-row .date {
-			font-size: 0.75rem;
-    		opacity: 0.75;
-		}
-		.table-row .name {
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-		}
 		.pending {
 			background: var(--newgray);
     		border: 2px solid #c7c6c6;
@@ -1583,14 +1526,19 @@
 		}
 
 		@media only screen and (max-width: 48rem) {
-			.main.glass {
-				border-radius: 0;
+			#purchases .main {
+				flex-direction: column;
+			}
+			#purchases .group {
+				min-width: 100%;
+				border-right: none;
+				border-bottom: 3px solid #ffffff80;
+			}
+			#purchases .group:last-child {
+				border-bottom: none;
 			}
 			.modal .grid {
 				grid-template-columns: 1fr 1fr;
-			}
-			.mobile-dashboard {
-				border-radius: 0;
 			}
 
 			#modal-process .express {

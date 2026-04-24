@@ -198,23 +198,25 @@
 						</label>
 
 						<label class="white" x-show="!event_data.all_day">
-							<input 
-								type="time" 
+							<input
+								type="time"
 								x-model="event_data.start_time"
 								@change="
 									if (event_data.end_time && event_data.end_time <= event_data.start_time) {
-										event_data.end_time = event_data.start_time;
+										const [h,m] = event_data.start_time.split(':').map(Number);
+										event_data.end_time = String(Math.min(h+1,23)).padStart(2,'0') + ':' + String(m).padStart(2,'0');
 									}
 								"
 							>
 
-							<input 
-								type="time" 
+							<input
+								type="time"
 								x-model="event_data.end_time"
 								:min="event_data.start_time || null"
 								@change="
-									if (event_data.start_time && event_data.end_time && event_data.end_time <= event_data.start_time) {
-										event_data.start_time = event_data.end_time;
+									if (event_data.start_time && event_data.end_time <= event_data.start_time) {
+										const [h,m] = event_data.start_time.split(':').map(Number);
+										event_data.end_time = String(Math.min(h+1,23)).padStart(2,'0') + ':' + String(m).padStart(2,'0');
 									}
 								"
 							>
@@ -659,7 +661,7 @@
 				let endHour   = startHour + 1;
 
 				if (startHour >= 23) {
-					startHour = 23;
+					startHour = 22;
 					endHour = 23;
 				}
 
