@@ -319,6 +319,60 @@ class PurchaseRepository:
 
 
     @handle_db_exceptions
+    def find_purchases(self, query, visibility):
+        from application.models import Users
+        term = f"%{query}%"
+
+        base = (
+            g.db_session.query(PurchaseRequest)
+            .join(Users, Users.id == PurchaseRequest.user_id)
+            .outerjoin(
+                PurchaseItems,
+                (PurchaseItems.purchase_id == PurchaseRequest.id) &
+                (PurchaseItems.deleted_at.is_(None))
+            )
+            .filter(
+                PurchaseRequest.deleted_at.is_(None),
+                or_(
+                    Users.name.ilike(term),
+                    PurchaseItems.title.ilike(term),
+                ),
+            )
+            .distinct()
+        )
+
+        if visibility:
+            base = base.filter(PurchaseRequest.user_id.in_(visibility))
+
+        results = base.order_by(PurchaseRequest.id.desc()).limit(20).all()
+        return results, 200
+
+
+    @handle_db_exceptions
+    def get_purchase_history(self, visibility, page, per_page=20):
+        base = (
+            g.db_session.query(PurchaseRequest)
+            .filter(PurchaseRequest.deleted_at.is_(None))
+        )
+
+        if visibility:
+            base = base.filter(PurchaseRequest.user_id.in_(visibility))
+
+        total = base.count()
+        pages = max(1, -(-total // per_page))  # ceil division
+
+        purchases = (
+            base
+            .order_by(PurchaseRequest.id.desc())
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        )
+
+        return {"list": purchases, "total": total, "pages": pages}, 200
+
+
+    @handle_db_exceptions
     def soft_delete(self, purchase_id):
         purchase = (
             g.db_session.query(PurchaseRequest)

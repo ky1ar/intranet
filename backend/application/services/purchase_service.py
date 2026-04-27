@@ -557,6 +557,95 @@ class PurchaseService:
 
     
     @handle_exceptions
+    def _get_visibility(self, user_id):
+        """Devuelve la lista de user_ids visibles para el usuario, o [] si ve todo."""
+        if self._has_perm(user_id, 'view_all'):
+            return []
+
+        visible = {user_id}
+
+        modules_data, _ = self.module_service.get_user_modules(user_id)
+        purchases_perms = {}
+        if isinstance(modules_data, list):
+            for m in modules_data:
+                if m['slug'] == 'purchases':
+                    purchases_perms = m.get('permissions', {})
+                    break
+
+        department_slugs = [
+            slug.replace('view_', '')
+            for slug, granted in purchases_perms.items()
+            if granted and slug.startswith('view_')
+        ]
+
+        if department_slugs:
+            area_ids, code = self.user_repository.get_user_ids_by_department_slugs(department_slugs)
+            if code == 200:
+                visible.update(area_ids)
+
+        return list(visible)
+
+
+    @handle_exceptions
+    def find(self, query):
+        user_id = int(get_jwt_identity())
+        visibility = self._get_visibility(user_id)
+
+        results, code = self.purchase_repository.find_purchases(query, visibility)
+        if code != 200:
+            return results, code
+
+        data = [
+            {
+                "id": p.id,
+                "requester_name": format_name(p.user.name) if p.user_id != user_id else "Tú",
+                "requester_department": p.user.department.name,
+                "requester_image": p.user.image,
+                "urgency_name": p.purchase_urgency.name,
+                "urgency_slug": p.purchase_urgency.slug,
+                "express": p.express,
+                "status_name": p.status.name,
+                "status_slug": p.status.slug,
+                "created_at": format_datetime(p.created_at),
+            }
+            for p in results
+        ]
+
+        return data, 200
+
+
+    @handle_exceptions
+    def history(self, page):
+        user_id = int(get_jwt_identity())
+        visibility = self._get_visibility(user_id)
+
+        result, code = self.purchase_repository.get_purchase_history(visibility, page)
+        if code != 200:
+            return result, code
+
+        purchases = result["list"]
+        data = {
+            "list": [
+                {
+                    "id": p.id,
+                    "requester_name": format_name(p.user.name) if p.user_id != user_id else "Tú",
+                    "status_name": p.status.name,
+                    "status_slug": p.status.slug,
+                    "created_at": format_datetime(p.created_at),
+                }
+                for p in purchases
+            ],
+            "pagination": {
+                "page": page,
+                "pages": result["pages"],
+                "total": result["total"],
+            },
+        }
+
+        return data, 200
+
+
+    @handle_exceptions
     def send_chat(self, data):
         if not data.get("purchase_id"):
             return "purchase_id requerido", 400

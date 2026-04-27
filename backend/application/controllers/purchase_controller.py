@@ -48,5 +48,15 @@ class PurchaseController:
     
 
     @handle_logs_and_exceptions
+    def purchase_find(self, query):
+        return self.purchase.find(query)
+
+
+    @handle_logs_and_exceptions
+    def purchase_history(self, page):
+        return self.purchase.history(page)
+
+
+    @handle_logs_and_exceptions
     def purchase_send_chat(self, data):
         return self.purchase.send_chat(data)

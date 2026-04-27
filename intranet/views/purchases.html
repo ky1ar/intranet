@@ -1,6 +1,32 @@
 <div x-data="purchases_data">
 	<div id="purchases" class="dashboard">
         <div class="controls">
+			<div class="toggle-collapse frost" @click="$store.cache.toogleMoreMenu()" @click.outside="$store.cache.hideMoreMenu()">
+				<div class="item">
+					<img alt="" width="24" height="24" src="/static/images/icons/more.svg">
+				</div>
+			</div>
+
+			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
+				<div class="item" @click="search()">
+					<img alt="" width="18" height="18" src="/static/images/icons/find.svg">
+				</div>
+				<div class="item" @click="viewHistory()">
+					<img alt="" width="18" height="18" src="/static/images/icons/history.svg">
+				</div>
+			</div>
+
+			<div class="left mobile-hide frost">
+				<div class="item" @click="search()">
+					<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
+					<span>Buscar</span>
+				</div>
+				<div class="item" @click="viewHistory()">
+					<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
+					<span>Historial</span>
+				</div>
+			</div>
+
 			<div class="right frost-dark">
 				<div class="item" @click="addPurchase()">
 					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
@@ -64,12 +90,6 @@
 				<div class="modal-grabber">
 					<div class="modal-grabber-bar"></div>
 				</div>
-
-				
-<!-- 
-				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
-					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">
-				</div> -->
 
 				<div class="modal-content dual" x-init="
 					const left  = $el.querySelector('.container');
@@ -461,8 +481,136 @@
 			</div>
 		</div>
 
+		<div
+			x-show="$store.cache.isVisibleModal('purchases-search')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="moda-purchases-search"
+			x-cloak>
+			<div class="modal" @click.stop>
+				<div class="bottom glass2">
+					<img alt="" class="ico" width="20" height="20" src="/static/images/icons/find.svg">
+					<input type="text"
+						x-model="find_query"
+						placeholder="Nombre de usuario, título de ítem"
+						@input="findPurchases()">
+					<div class="hover-opacity clear" x-show="find_query" @click="find_query = ''; finded_purchases = [];">
+						<img alt="" width="12" height="12" src="/static/images/x.svg">
+					</div>
+				</div>
+				<div class="orders glass2" x-show="finded_purchases.length > 0">
+					<template x-for="p in finded_purchases" :key="p.id">
+						<div class="req-card white hover-opacity" @click="$store.cache.hideLastModal(); viewPurchase(p)">
+							<div class="req-top">
+								<template x-if="p.express == 1">
+									<span class="req-id pri" x-html="`PR-${String(p.id)}<img title='Caja chica' width='16' height='16' src='/static/images/icons/filled/dollars.svg'>`"></span>
+								</template>
+								<template x-if="!p.express">
+									<span class="req-id" x-text="`PR-${String(p.id)}`"></span>
+								</template>
+								<div class="req-date" x-text="p.created_at"></div>
+							</div>
+
+							<div class="req-user">
+								<img :src="'/static/images/uploads/users/' + p.requester_image" width="24" height="24" alt="user">
+								<div class="req-bottom">
+									<span x-text="p.requester_name"></span>
+									<span class="req-dept" x-text="p.requester_department"></span>
+								</div>
+							</div>
+							<img class="req-urgency" :src="`/static/images/icons/${p.urgency_slug}.svg`" :title="`Urgencia ${p.urgency_name}`" width="16" height="16">
+						</div>
+					</template>
+				</div>
+			</div>
+		</div>
+
+		<div
+			x-show="$store.cache.isVisibleModal('purchases-history')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-purchases-history"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="top">
+					<span class="title">Historial</span>
+
+					<div class="pagination">
+						<span class="white hover-opacity left" :class="current_page > 1 ? '' : 'disabled'" @click="firstPage()">
+							<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity left" :class="current_page > 1 ? '' : 'disabled'" @click="prevPage()">
+							<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity" :class="current_page < total_pages ? '' : 'disabled'" @click="nextPage()">
+							<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity" :class="current_page < total_pages ? '' : 'disabled'" @click="lastPage()">
+							<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
+						</span>
+					</div>
+				</div>
+
+				<div class="modal-content history">
+					<table class="mobile-hide">
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>Usuario</th>
+								<th>Estado</th>
+								<th>Fecha</th>
+							</tr>
+						</thead>
+						<tbody>
+							<template x-for="h in history_list" :key="h.id">
+								<tr @click="viewPurchase(h)">
+									<td class="order">
+										<b x-text="`PR-${h.id}`"></b>
+									</td>
+									<td x-text="h.requester_name"></td>
+									<td class="order">
+										<span class="finished" :class="h.status_slug" x-text="h.status_name"></span>
+									</td>
+									<td x-text="h.created_at"></td>
+								</tr>
+							</template>
+						</tbody>
+					</table>
+
+					<div class="mobile-show mobile-table">
+						<template x-for="h in history_list" :key="h.id">
+							<div class="row white" @click="viewPurchase(h)">
+								<div class="head">
+									<div class="info">
+										<span class="id" x-text="`PR-${h.id}`"></span>
+										<span class="date" x-text="h.created_at"></span>
+									</div>
+									<div class="status" :class="h.status_slug" x-text="h.status_name"></div>
+								</div>
+								<div class="body">
+									<span class="label">Usuario</span>
+									<span class="name" x-text="h.requester_name"></span>
+								</div>
+							</div>
+						</template>
+					</div>
+				</div>
+			</div>
+		</div>
+
 	</div>
-	
+
 
 
 
@@ -475,6 +623,11 @@
 			user_id: Alpine.store('cache').user.id,
 			// department_id: Alpine.store('cache').user.department_id,
 			processing: false,
+			find_query: '',
+			finded_purchases: [],
+			current_page: 1,
+			total_pages: null,
+			history_list: [],
 			buttons: {
 				add:   { text: 'Registrar', class: '' },
 				update:   { text: 'Actualizar', class: '' },
@@ -1079,6 +1232,73 @@
 				this.process_purchase.items.splice(index, 1);
 			},
 			
+			async search() {
+				this.find_query = '';
+				this.finded_purchases = [];
+				Alpine.store('cache').showModal('purchases-search');
+			},
+
+			async findPurchases() {
+				const query = this.find_query;
+				try {
+					if (query.length < 2) {
+						this.finded_purchases = [];
+						return;
+					}
+					const response = await fetch(`${this.api}/purchases/find/${encodeURIComponent(query)}`, {
+						headers: { 'Authorization': `Bearer ${this.token}` },
+					});
+					const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+					this.finded_purchases = jsonData.data;
+				} catch (error) {
+					this.finded_purchases = [];
+				}
+			},
+
+			async viewHistory() {
+				await this.firstPage();
+				Alpine.store('cache').showModal('purchases-history');
+			},
+
+			async firstPage() {
+				this.current_page = 1;
+				await this.getHistory();
+			},
+
+			async lastPage() {
+				this.current_page = this.total_pages;
+				await this.getHistory();
+			},
+
+			async nextPage() {
+				const new_page = this.current_page + 1;
+				if (new_page > this.total_pages) return;
+				this.current_page = new_page;
+				await this.getHistory();
+			},
+
+			async prevPage() {
+				const new_page = this.current_page - 1;
+				if (new_page < 1) return;
+				this.current_page = new_page;
+				await this.getHistory();
+			},
+
+			async getHistory() {
+				try {
+					const response = await fetch(`${this.api}/purchases/history?page=${this.current_page}`, {
+						headers: { 'Authorization': `Bearer ${this.token}` },
+					});
+					const data = await response.json();
+					const jsonData = data.data || {};
+					this.history_list = jsonData.list || [];
+					this.total_pages = jsonData.pagination?.pages || 1;
+				} catch (error) {
+					console.error('Error fetching history', error);
+				}
+			},
+
 			showError(btnKey, errorMsg) {
                 const originalText = this.buttons[btnKey].text;
                 const originalClass = this.buttons[btnKey].class;
@@ -1114,9 +1334,6 @@
 			grid-template-columns: 1fr 1fr auto auto;
 			gap: 1rem;
 			align-items: center;
-		}
-		.controls {
-			justify-content: end;
 		}
 		#purchases {
 			display: flex;
@@ -1800,6 +2017,109 @@
 			font-size: 0.75rem;
 			opacity: 0.6;
 		}
+		#moda-purchases-search .modal {
+			gap: 0.5rem;
+			min-width: initial;
+		}
+		#moda-purchases-search .bottom {
+			display: flex;
+			align-items: center;
+			padding: 0.25rem 1rem;
+			border-radius: 0.75rem;
+		}
+		#moda-purchases-search .bottom .ico {
+			opacity: 0.5;
+		}
+		#moda-purchases-search .bottom input {
+			flex: 1;
+			background-color: transparent;
+			border: none;
+			outline: none;
+			padding: 0.75rem;
+			font-family: inherit;
+			font-size: 1rem;
+			font-weight: 400;
+			min-width: 10rem;
+		}
+		#moda-purchases-search .bottom .clear {
+			padding: 0.25rem;
+		}
+		#moda-purchases-search .bottom .clear img {
+			min-width: 0.75rem;
+			min-height: 0.75rem;
+		}
+		#moda-purchases-search .orders {
+			max-height: 24rem;
+			overflow-y: auto;
+			width: 100%;
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			padding: 0.5rem;
+			border-radius: 0.75rem;
+		}
+		#moda-purchases-search .orders .req-card {
+			cursor: pointer;
+		}
+		#modal-purchases-history .top {
+			justify-content: space-between;
+			display: flex;
+		}
+		#modal-purchases-history .pagination {
+			display: flex;
+			gap: 0.75rem;
+		}
+		#modal-purchases-history .pagination .disabled {
+			opacity: 0.5;
+			cursor: default !important;
+		}
+		#modal-purchases-history .pagination .left img {
+			transform: rotate(180deg);
+		}
+		#modal-purchases-history .pagination span {
+			width: 2rem;
+			height: 2rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			border-radius: 2rem;
+		}
+		#modal-purchases-history table {
+			border-collapse: collapse;
+			width: 100%;
+		}
+		#modal-purchases-history table th {
+			padding: 0.5rem 0.75rem;
+			text-align: left;
+			font-weight: 600;
+			font-size: 0.8rem;
+			opacity: 0.75;
+		}
+		#modal-purchases-history table tbody tr {
+			transition: var(--transition);
+			border-top: 3px solid #ffffff80;
+			cursor: pointer;
+		}
+		#modal-purchases-history table tbody tr:hover {
+			background-color: var(--white);
+		}
+		#modal-purchases-history table td {
+			padding: 0.5rem 0.75rem;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			height: 3.5rem;
+		}
+		#modal-purchases-history table td.order {
+			width: 8rem;
+		}
+		#modal-purchases-history table .finished {
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+
 		@media only screen and (max-width: 75rem) {
 			#modal-process .container {
 				overflow: visible;

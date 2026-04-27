@@ -45,6 +45,19 @@ def process():
     return controller.purchase_process(request.get_json())
 
 
+@purchase_bp.route("/find/<string:query>", methods=["GET"])
+@jwt_required()
+def find_purchases(query):
+    return controller.purchase_find(query)
+
+
+@purchase_bp.route("/history", methods=["GET"])
+@jwt_required()
+def history():
+    page = max(1, request.args.get("page", 1, type=int))
+    return controller.purchase_history(page)
+
+
 @purchase_bp.route("/<int:purchase_id>/chat", methods=["POST"])
 @jwt_required()
 def send_chat(purchase_id):
