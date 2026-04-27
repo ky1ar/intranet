@@ -13,7 +13,7 @@
 			<template x-for="group in $store.cache.getData('purchases_dashboard')" :key="group.status_id">
 				<div class="group">
 					<div class="group-head">
-						<img alt="" width="18" height="18" :src="'/static/images/icons/' + (statusIcons[group.status_slug] || 'pending.svg')">
+						<img alt="" width="20" height="20" :src="'/static/images/purchases/' + (statusIcons[group.status_slug] || 'pending.svg')">
 						<span class="group-name" x-text="group.status_name"></span>
 						<span class="group-count" x-text="group.requests.length"></span>
 					</div>
@@ -21,18 +21,25 @@
 					<template x-for="purchase in group.requests" :key="purchase.id">
 						<div class="req-card white hover-opacity" @click="viewPurchase(purchase)">
 							<div class="req-top">
-								<span class="req-id" x-text="`PR-${String(purchase.id)}`"></span>
-								<span class="req-urgency" x-text="purchase.urgency_name"></span>
+								<template x-if="purchase.express == 1">
+									<span class="req-id pri" x-html="`PR-${String(purchase.id)}<img title='Caja chica' width='16' height='16' src='/static/images/icons/filled/dollars.svg'>`"></span>
+								</template>
+
+								<template x-if="purchase.express == 0">
+									<span class="req-id" x-text="`PR-${String(purchase.id)}`"></span>
+								</template>
+								
+								<div class="req-date" x-text="purchase.created_at"></div>
 							</div>
+
 							<div class="req-user">
-								<img :src="'/static/images/uploads/users/' + purchase.requester_image" width="20" height="20" alt="user">
-								<span x-text="purchase.requester_name"></span>
+								<img :src="'/static/images/uploads/users/' + purchase.requester_image" width="24" height="24" alt="user">
+								<div class="req-bottom">
+									<span x-text="purchase.requester_name"></span>
+									<span class="req-dept" x-text="purchase.requester_department"></span>
+								</div>
 							</div>
-							<div class="req-bottom">
-								<span class="req-dept" x-text="purchase.requester_department"></span>
-								<span class="req-type" :class="{'express': purchase.express == 1}" x-text="purchase.express == 1 ? 'Caja chica' : 'Estándar'"></span>
-							</div>
-							<div class="req-date" x-text="purchase.created_at"></div>
+							<img class="req-urgency" :src="`/static/images/icons/${purchase.urgency_slug}.svg`" :title="`Urgencia ${purchase.urgency_name}`" width="16" height="16">
 						</div>
 					</template>
 				</div>
@@ -53,214 +60,295 @@
 			x-cloak
 		>
 			
-			<div class="modal glass2 extrabig" @click.stop>
+			<div class="modal glass2" :class="{'big': process_purchase.modal !== 'add'}" @click.stop>
 				<div class="modal-grabber">
 					<div class="modal-grabber-bar"></div>
 				</div>
 
-				<div class="title" x-show="process_purchase.modal !== 'add'">
-					<span x-text="`Solicitud ${process_purchase.pr}`"></span>
-
-					<p class="created"
-						x-text="`Creada por ${(process_purchase.self_created ? 'ti' : process_purchase.user_name)} el ${process_purchase.created_at}`">
-					</p>
-				</div>
+				
 <!-- 
 				<div class="hover-opacity modal-close" @click="$store.cache.hideLastModal()">
 					<img alt="" alt="close" src="/static/images/x.svg" width="12" height="12">
 				</div> -->
 
-				<div class="modal-content dual">
-					<div class="flexbox overflow">
-						<div class="view-box overflow" x-show="['view','delete'].includes(process_purchase.modal)">
-							<div class="view-header mobile-hide">
-								<span>Nº</span>
-								<div class="sub">
-									<span>Ítem</span>
-									<span>Cant.</span>
-									<span>Precio</span>
-									<span>URL</span>
-									<span># Pedido</span>
+				<div class="modal-content dual" x-init="
+					const left  = $el.querySelector('.container');
+					const right = $el.querySelector('.comments-container');
+					new ResizeObserver(() => {
+						if (window.innerWidth < 1200) return;
+						right.style.maxHeight = left.offsetHeight + 'px';
+					}).observe(left);
+				">
+					<div class="container overflow">
+						<div class="title" x-show="process_purchase.modal !== 'add'">
+							<span x-text="`Solicitud ${process_purchase.pr}`"></span>
+
+							<p class="created"
+								x-text="`Creada por ${(process_purchase.self_created ? 'ti' : process_purchase.user_name)} el ${process_purchase.created_at}`">
+							</p>
+						</div>
+
+						
+						<div class="boxes" x-show="['view','delete'].includes(process_purchase.modal)">
+							<div class="box-cont">
+								<div class="desc">Detalles</div>
+								<label class="white white-box">
+									<div class="lbl">Tipo</div>
+									<div class="selected" x-text="process_purchase.type_name"></div>
+								</label>
+
+								<label class="white white-box">
+									<div class="lbl">Urgencia</div>
+									<div class="selected" x-text="process_purchase.urgency_name"></div>
+								</label>
+							</div>
+
+							<div class="box-cont">
+								<div class="desc">Opciones</div>
+								<div class="white full-box">
+									<div class="express">
+										<div class="data">
+											<div class="top">Caja chica</div>
+											<p>Pago desde el fondo de caja chica</p>
+										</div>
+
+										<div class="switch">
+											<div class="text" x-text="process_purchase.express ? 'Sí':'No'"></div>
+										</div>
+									</div>
+
+									<div class="express">
+										<div class="data">
+											<div class="top">Validación TI</div>
+											<p>Requiere aprobación del área de TI</p>
+										</div>
+
+										<div class="switch">
+											<div class="text" x-text="process_purchase.it_validation ? 'Sí':'No'"></div>
+										</div>
+									</div>
 								</div>
 							</div>
 
-							<template x-for="(item, index) in process_purchase.items" :key="index">
-								<div class="view-row">
-									<span class="n" x-text="(index + 1) + '.'"></span>
-									<div class="sub mobile-hide">
-										<span class="row-title" x-text="item.title"></span>
-										<span x-text="item.quantity"></span>
-										<span x-text="item.price ? item.price:'-'"></span>
-										<template x-if="item.url">
-											<a :href="item.url" target="_blank" rel="noopener">
-												<img alt="link" width="16" height="16"
-													src="/static/images/icons/link.svg">
-											</a>
-										</template>
-										<template x-if="!item.url">
-											<span>-</span>
-										</template>
-										<template x-if="process_purchase.status_id == 4 && process_purchase.can_manage">
-											<label class="white order">
-												<input
-												type="text"
-												placeholder="Número..."
-												x-model="item.order_number"
-												>
-											</label>
-										</template>
+							<div class="box-cont">
+								<div class="desc">Ítems solicitados</div>
 
-										<template x-if="!(process_purchase.status_id == 4 && process_purchase.can_manage)">
-											<span x-text="item.order_number ? item.order_number : '-'"></span>
-										</template>
-									</div>
-									<div class="list mobile-show">
-										<div class="pair">
-											<span class="name" x-text="item.title"></span>
+								<div class="items-cont white">
+									<div class="items-header">
+										<span class="number">#</span>
+
+										<div class="row">
+											<span>Ítem</span>
+											<span class="right">Cant.</span>
+											<span class="right">Precio</span>
 										</div>
-										<div class="specs">
-											<div class="pair">
-												<span class="label">Cant.</span>
-												<span class="name" x-text="item.quantity"></span>
-											</div>
-											<div class="pair">
-												<span class="label">Precio</span>
-												<span class="name" x-text="item.price ? item.price:'-'"></span>
-											</div>
-											<div class="pair">
-												<span class="label">URL</span>
-												<template x-if="item.url">
-													<a :href="item.url" target="_blank" rel="noopener">
-														<img alt="link" width="16" height="16"
-															src="/static/images/icons/link.svg">
-													</a>
-												</template>
-												<template x-if="!item.url">
-													<span class="name" >-</span>
-												</template>
-											</div>
-											<div class="pair">
-												<span class="label">Nº Pedido</span>
+									</div>
 
-												<template x-if="process_purchase.status_id == 4 && process_purchase.can_manage">
-													<label class="white order">
-														<input
-															type="text"
-															placeholder="Número..."
-															x-model="item.order_number"
-														/>
+									<template x-for="(item, index) in process_purchase.items" :key="index">
+										<div class="items-row">
+											<div class="delete">
+												<span x-text="index + 1"></span>
+											</div>
+
+											<div class="row space">
+												<div class="description">
+													<label :title="item?.title">
+														<template x-if="item.url">
+															<a :href="item.url" target="_blank" rel="noopener" x-text="item.title"></a>
+														</template>
+
+														<template x-if="!item.url">
+															<span class="static" x-text="item.title"></span>
+														</template>
 													</label>
-												</template>
 
-												<template x-if="!(process_purchase.status_id == 4 && process_purchase.can_manage)">
-													<span class="name" x-text="item.order_number ? item.order_number : '-'"></span>
-												</template>
+													<label x-show="process_purchase.status_id == 4 && process_purchase.can_manage">
+														<input class="url" type="url" placeholder="Agregar # de pedido" x-model="item.order_number">
+													</label>
+
+													<label x-show="process_purchase.status_id > 4">
+														<span class="url" x-text="item.order_number" title="Número de pedido"></span>
+													</label>
+												</div>
+												
+												<label>
+													<span class="static right" x-text="item.quantity"></span>
+												</label>
+
+												<label>
+													<span class="static right" x-text="item.price || 0"></span>
+												</label>
 											</div>
 										</div>
-									</div>
-								</div>
-							</template>
-
-							<div class="view-row total" x-show="process_purchase.items?.length">
-								<span></span>
-								<div class="sub">
-									<span class="mobile-hide">Total</span>
-									<span x-text="sumQty(process_purchase.items)"></span>
-									<span x-text="sumPrice(process_purchase.items)"></span>
-									<span></span>
-									<span></span>
-								</div>
-							</div>
-						</div>
-						<!-- INPUTS -->
-						<div class="grid" x-show="['edit','approve','add'].includes(process_purchase.modal)">
-							<label class="white">
-								<select x-model="process_purchase.type_id">
-									<template x-for="type in $store.cache.getData('purchases_type')" :key="type.id">
-										<option :value="type.id" x-text="type.name"></option>
 									</template>
-								</select>
-							</label>
-							<label class="white">
-								<select x-model="process_purchase.urgency_id">
-									<template x-for="urgency in $store.cache.getData('purchases_urgency')" :key="urgency.id">
-										<option :value="urgency.id" x-text="urgency.name"></option>
-									</template>
-								</select>
-							</label>
-							<!-- <label class="white">
-								<input type="date" x-model="process_purchase.register_date">
-							</label> -->
 
-							<label class="white express">
-								Caja chica
-								<label class="box">
-									<input id="express" type="checkbox" x-model="process_purchase.express">
-									<span class="slider"></span>
-								</label>
-							</label>
-							<label class="white express">
-								Validación TI
-								<label class="box">
-									<input id="it-validation" type="checkbox" x-model="process_purchase.it_validation">
-									<span class="slider"></span>
-								</label>
-							</label>
-						</div>
+									<div class="items-row">
+										<div class="dummy"></div>
 
-						<div class="items-box" x-show="['edit','approve','add'].includes(process_purchase.modal)">
-							<div class="items-header">
-								<span>Nº</span>
-								<div class="sub">
-									<span>Ítem</span>
-									<span class="mobile-hide">Cant.</span>
-									<span class="mobile-hide">Precio</span>
-									<span class="mobile-hide">URL</span>
-								</div>
-								
-								<button type="button" class="new hover-opacity" @click="addItem()" title="Agregar">
-									<img alt="Agregar" width="16" height="16" src="/static/images/icons/add.svg">
-								</button>
-							</div>
-							<template x-for="(item, index) in process_purchase.items" :key="index">
-								<div class="items-row">
-									<span x-text="(index + 1) + '.'"></span>
-									<div class="sub">
-										<label class="white">
-											<input type="text" placeholder="Agregar título" x-model="item.title">
-										</label>
-										
-										<label class="white">
-											<input type="number" min="1" step="1" placeholder="1" x-model.number="item.quantity">
-										</label>
+										<div class="row space">
+											<div class="description">
+												<span class="static">Total</span>
+											</div>
+											
+											<label>
+												<span class="static right bold" x-text="sumQty(process_purchase.items)"></span>
+											</label>
 
-										<label class="white">
-											<input type="number" min="0" step="0.01" placeholder="0.00" x-model.number="item.price">
-										</label>
-
-										<label class="white">
-											<input type="url" placeholder="Añadir URL" x-model="item.url">
-										</label>
+											<label>
+												<span class="static right bold" x-text="sumPrice(process_purchase.items)"></span>
+											</label>
+										</div>
 									</div>
 									
-									<button type="button" class="remove hover-opacity" @click="removeItem(index)" title="Eliminar">
-										<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
-									</button>
 								</div>
-							</template>
-
-							<div class="items-row total" x-show="process_purchase.items?.length">
-								<span></span>
-								<div class="sub glass2">
-									<span>Total</span>
-									<span x-text="sumQty(process_purchase.items)"></span>
-									<span x-text="sumPrice(process_purchase.items)"></span>
-									<span class="mobile-hide"></span>
-								</div>
-								<span></span>
 							</div>
 						</div>
-					<!-- COMMENTS -->
+						
+						<!-- INPUTS -->
+
+						<div class="boxes" x-show="['edit','approve','add'].includes(process_purchase.modal)">
+							<div class="box-cont">
+								<div class="desc">Detalles</div>
+								<label class="white white-box">
+									<div class="lbl">Tipo</div>
+
+									<select x-model="process_purchase.type_id">
+										<template x-for="type in $store.cache.getData('purchases_type')" :key="type.id">
+											<option :value="type.id" x-text="type.name"></option>
+										</template>
+									</select>
+								</label>
+
+								<label class="white white-box">
+									<div class="lbl">Urgencia</div>
+
+									<select x-model="process_purchase.urgency_id">
+										<template x-for="urgency in $store.cache.getData('purchases_urgency')" :key="urgency.id">
+											<option :value="urgency.id" x-text="urgency.name"></option>
+										</template>
+									</select>
+								</label>
+							</div>
+							
+							<div class="box-cont">
+								<div class="desc">Opciones</div>
+								<div class="white full-box">
+									<div class="express">
+										<div class="data">
+											<div class="top">Caja chica</div>
+											<p>Pago desde el fondo de caja chica</p>
+										</div>
+
+										<div class="switch">
+											<div class="text" x-text="process_purchase.express ? 'Sí':'No'"></div>
+											<label class="box">
+												<input id="express" type="checkbox" x-model="process_purchase.express">
+												<div class="slider"></div>
+											</label>
+										</div>
+									</div>
+
+									<div class="express">
+										<div class="data">
+											<div class="top">Validación TI</div>
+											<p>Requiere aprobación del área de TI</p>
+										</div>
+
+										<div class="switch">
+											<div class="text" x-text="process_purchase.it_validation ? 'Sí':'No'"></div>
+											<label class="box">
+												<input id="it-validation" type="checkbox" x-model="process_purchase.it_validation">
+												<div class="slider"></div>
+											</label>
+										</div>
+									</div>
+								</div>
+							</div>
+							
+							<div class="box-cont">
+								<div class="desc">Ítems solicitados</div>
+
+								<div class="items-cont white">
+									<div class="items-header">
+										<span class="number">#</span>
+
+										<div class="row">
+											<span>Ítem</span>
+											<span class="right">Cant.</span>
+											<span class="right">Precio</span>
+											<!-- <span class="mobile-hide">URL</span> -->
+										</div>
+										<!-- <button type="button" class="new hover-opacity" @click="addItem()" title="Agregar">
+											<img alt="Agregar" width="16" height="16" src="/static/images/icons/add.svg">
+										</button> -->
+									</div>
+
+									<template x-for="(item, index) in process_purchase.items" :key="index">
+										<div class="items-row">
+											<div class="delete hover-opacity" @click="removeItem(index)" title="Eliminar" >
+												<img alt="eliminar" width="14" height="14" src="/static/images/icons/delete.svg">
+												<span x-text="index + 1"></span>
+											</div>
+
+											<div class="row">
+												<div class="description">
+													<label :title="item?.title">
+														<input type="text" placeholder="Agregar título" x-model="item.title">
+													</label>
+
+													<label :title="item?.url">
+														<input class="url" type="url" placeholder="Añadir URL" x-model="item.url">
+													</label>
+												</div>
+												
+												<label>
+													<input class="right" type="number" min="1" step="1" placeholder="1" x-model.number="item.quantity">
+												</label>
+
+												<label>
+													<input class="right" type="number" min="0" step="0.01" placeholder="0.00" x-model.number="item.price">
+												</label>
+											</div>
+										</div>
+									</template>
+
+									<div class="items-row add">
+										<div class="add-button hover-opacity" @click="addItem()">+ Añadir ítem</div>
+									</div>
+
+									<div class="items-row">
+										<div class="dummy"></div>
+
+										<div class="row">
+											<div class="description">
+												<span class="bold">Total</span>
+											</div>
+											
+											<label>
+												<input class="bold right" type="number" :value="sumQty(process_purchase.items)" disabled>
+											</label>
+
+											<label>
+												<input class="bold right" type="number" :value="sumPrice(process_purchase.items)" disabled>
+											</label>
+										</div>
+									</div>
+									
+									<!-- <div class="items-row total" x-show="process_purchase.items?.length">
+										<span></span>
+										<div class="sub glass2">
+											<span>Total</span>
+											<span x-text="sumQty(process_purchase.items)"></span>
+											<span x-text="sumPrice(process_purchase.items)"></span>
+											<span class="mobile-hide"></span>
+										</div>
+										<span></span>
+									</div> -->
+								</div>
+							</div>
+						</div>
+
+						<!-- COMMENTS -->
 
 						<label class="white" x-show="process_purchase.modal === 'add'">
 							<input type="text" x-model="process_purchase.comment" placeholder="Ingresa un comentario...">
@@ -314,13 +402,13 @@
 						</div>
 
 						<div class="buttons" x-show="process_purchase.modal === 'approve'">
-							<button class="button icon red hover-opacity" @click="rejectRequest()" :class="buttons.reject.class">
-								<img alt="eliminar" width="18" height="18" src="/static/images/icons/dislike.svg">
+							<button class="button icon black hover-opacity" @click="rejectRequest()" :class="buttons.reject.class">
+								<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
 								<span x-text="buttons.reject.text"></span>
 							</button>
 
-							<button class="button icon green hover-opacity" @click="approveRequest()" :class="buttons.approve.class">
-								<img alt="update" width="18" height="18" src="/static/images/icons/like.svg">
+							<button class="button icon hover-opacity" @click="approveRequest()" :class="buttons.approve.class">
+								<img alt="update" width="16" height="16" src="/static/images/icons/approve.svg">
 								<span x-text="buttons.approve.text"></span>
 							</button>
 						</div>
@@ -338,7 +426,7 @@
 						</div>
 					</div>
 					
-					<div class="comments-container white percent50" x-show="process_purchase.modal !== 'add'">
+					<div class="comments-container white" x-show="process_purchase.modal !== 'add'">
 						<div class="comments-box overflow" x-ref="commentsBox">
 							<template x-if="!process_purchase.chats || process_purchase.chats.length === 0">
 								<div class="no-comments">Nada por aquí</div>
@@ -358,7 +446,7 @@
 							</template>
 						</div>
 
-						<div class="comments-input white" x-show="process_purchase.status_id <= 5">
+						<div class="comments-input white" x-show="process_purchase.status_id <= 6">
 							<label>
 								<textarea type="text" x-model="process_purchase.message" placeholder="Ingresa un mensaje..." @keydown.enter="handleEnterSend($event)"></textarea>
 							</label>
@@ -422,14 +510,15 @@
 			editing: false,
 
 			statusIcons: {
-				pending:         'pending.svg',
-				leader_approve:  'approve.svg',
-				manager_approve: 'protect.svg',
+				pending:         'requested.svg',
+				leader_approve:  'leader.svg',
+				manager_approve: 'manager.svg',
 				progress:        'progress.svg',
 				payed:           'payed.svg',
-				billed:          'invoiced.svg',
+				billed:          'billed.svg',
 				delivered:       'deliver.svg',
 			},
+
 
 			async init() {
 				console.log('Inicializando Purchases...');
@@ -1016,6 +1105,10 @@
 
 
 	<style>
+		.comments-container {
+			width: 24rem;
+			min-width: 24rem;
+		}
 		.modal .grid {
 			display: grid;
 			grid-template-columns: 1fr 1fr auto auto;
@@ -1056,9 +1149,6 @@
 			gap: 0.5rem;
 			padding-bottom: 0.25rem;
 		}
-		#purchases .group-head img {
-			opacity: 0.6;
-		}
 		#purchases .group-name {
 			font-weight: 600;
 			font-size: 0.85rem;
@@ -1067,6 +1157,7 @@
 			font-size: 0.7rem;
 			opacity: 0.4;
 			font-weight: 500;
+			display: none;
 		}
 		#purchases .req-card {
 			padding: 0.75rem;
@@ -1074,6 +1165,7 @@
 			flex-direction: column;
 			gap: 0.35rem;
 			cursor: pointer;
+			position: relative;
 		}
 		#purchases .req-top {
 			display: flex;
@@ -1082,33 +1174,49 @@
 		}
 		#purchases .req-id {
 			font-weight: 600;
-			font-size: 0.85rem;
+			font-size: 0.9rem;
+			position: relative;
+			line-height: 1rem;
+		}
+		#purchases .req-id.pri {
+			color: var(--primary);
+		}
+		#purchases .req-id img {
+			right: -1.35rem;
+    		top: -0.05rem;
+			position: absolute;
 		}
 		#purchases .req-urgency {
-			font-size: 0.7rem;
-			opacity: 0.5;
-			font-weight: 500;
+			position: absolute;
+			right: 0.75rem;
+			bottom: 0.75rem;
 		}
 		#purchases .req-user {
 			display: flex;
 			align-items: center;
-			gap: 0.4rem;
-			font-size: 0.8rem;
-			font-weight: 500;
+			gap: 0.5rem;
+			font-size: 0.75rem;
+			font-weight: 600;
+			margin-top: 0.25rem;
 		}
 		#purchases .req-user img {
 			border-radius: 2rem;
-			object-fit: cover;
-			border: 2px solid #e7e7e7;
 		}
 		#purchases .req-bottom {
 			display: flex;
-			justify-content: space-between;
-			align-items: center;
+			flex-direction: column;
+			gap: 0.25rem;
+			flex: 1;
 		}
 		#purchases .req-dept {
-			font-size: 0.75rem;
-			opacity: 0.55;
+			font-size: 0.7rem;
+			opacity: 0.4;
+			font-weight: 500;
+			line-height: 0.7rem;
+			max-width: 70%;
+			white-space: nowrap;
+			text-overflow: ellipsis;
+			overflow: hidden;
 		}
 		#purchases .req-type {
 			font-size: 0.7rem;
@@ -1122,62 +1230,13 @@
 		}
 		#purchases .req-date {
 			font-size: 0.65rem;
+			line-height: 0.65rem;
 			opacity: 0.35;
 		}
-		#modal-process .express .dot {
-			width: 0.5rem;
-			height: 0.5rem;
-			background-color: var(--primary);
-			border-radius: 1rem;
-		}
-		#modal-process .express .box {
-			position: relative;
-			width: 2.5rem;
-			height: 1.5rem;
-			flex: initial;
-			margin: 0.5rem 0;
-		}
-		#modal-process .express .box input {
-			opacity: 0;
-			width: 0;
-			height: 0;
-		}
-		#modal-process .express .box .slider {
-			border-radius: 2rem;
-			position: absolute;
-			cursor: pointer;
-			top: 0;
-			left: 0;
-			right: 0;
-			bottom: 0;
-			background-color: #ccc;
-			transition: all 0.25s ease-in-out;
-		}
-		#modal-process .express .box .slider:before {
-			position: absolute;
-			content: "";
-			height: 1rem;
-			width: 1rem;
-			left: 0.25rem;
-			bottom: 0.25rem;
-			background-color: white;
-			transition: all 0.25s ease-in-out;
-			border-radius: 50%;
-		}
-		#modal-process .express .box input:checked + .slider {
-			background-color: var(--primary);
-		}
-		#modal-process .express .box input:checked + .slider:before {
-			transform: translateX(1rem);
-		}
+		
 		/* #modal-process .modal {
 			gap: 1.5rem;
 		} */
-		#modal-process .modal .title {
-			display: flex;
-    		flex-direction: column;
-			gap: 0.25rem;
-		}
 		#modal-process .modal .title span {
 			line-height: 1rem;
 		}
@@ -1188,72 +1247,7 @@
 			gap: 0.5rem;
 			margin: 0.25rem 0;
 		}
-		#modal-process .items-header {
-			display: grid;
-			grid-template-columns: 0.15fr 4fr 0.2fr;
-			gap: 0.75rem;
-			align-items: center;
-			font-weight: 500;
-		}
-		#modal-process .items-header .sub {
-			display: grid;
-			gap: 0.75rem;
-			grid-template-columns: 2.25fr 0.4fr 0.5fr 1fr;
-			align-items: center;
-		}
-		#modal-process .items-header .new {
-			padding: 0;
-			margin: 0;
-			border: 0;
-			background-color: transparent;
-			width: 2rem;
-			height: 1.5rem;
-		}
-		#modal-process .items-row {
-			grid-template-columns: 0.15fr 4fr 0.2fr;
-			display: grid;
-			gap: 0.75rem;
-			align-items: center;
-		}
-		#modal-process .items-row .sub {
-			display: grid;
-			gap: 0.75rem;
-			grid-template-columns: 2.25fr 0.4fr 0.5fr 1fr;
-			align-items: center;
-		}
-		#modal-process .items-row.total .sub {
-    		border-radius: 0.75rem;
-			font-weight: 600;
-		}
-		#modal-process .items-row.total .sub span {
-			padding: 0.5rem;
-		}
-		#modal-process .items-row label {
-			border-radius: 0.75rem;
-		}
-		#modal-process .items-row label input {
-			height: 2.25rem;
-		}
-		#modal-process .items-box .remove {
-			padding: 0;
-			margin: 0;
-			border: 0;
-			border-radius: 1rem;
-			background-color: transparent;
-			box-shadow: none;
-			width: 2rem;
-			height: 2.5rem;
-		}
-		#modal-process .text-area {
-			max-width: 48rem;
-    		border: none;
-			min-height: 2rem;
-    		padding: 0.75rem 1rem;
-		}
-		#modal-process .buttons {
-			display: flex;
-    		gap: 0.75rem;
-		}
+		
 		
 		#modal-process .view-box {
 			flex-direction: column;
@@ -1291,8 +1285,7 @@
 		#modal-process .view-row:first {
 			border-top: none;
 		}
-		#modal-process .view-row .n {
-		}
+		
 		#modal-process .view-row .sub {
 			display: grid;
 			grid-template-columns: 3fr 0.5fr 0.5fr 0.5fr 1.25fr;
@@ -1339,6 +1332,294 @@
 			background-color: var(--graydark);
     		text-transform: uppercase;
 			padding: 0.5rem 0.75rem;
+			border-bottom: none;
+		}
+		#modal-process .container {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			width: 100%;
+		}
+		#modal-process .boxes {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+		}
+		#modal-process .boxes .box-cont {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.5rem;
+		}
+		#modal-process .boxes .box-cont .desc {
+			width: 100%;
+			font-weight: 600;
+			text-transform: uppercase;
+			font-size: 0.7rem;
+			opacity: 0.5;
+		}
+		
+		.items-cont {
+			padding: 0 1rem;
+			border-radius: 0.5rem;
+			flex: 1;
+		}
+		.items-cont .items-header {
+			gap: 0.75rem;
+			display: flex;
+			padding: 0.75rem 0;
+			text-transform: uppercase;
+			font-size: 0.7rem;
+			font-weight: 500;
+			opacity: 0.5;
+		}
+		.items-cont .items-header .number {
+			width: 1.5rem;
+    		padding: 0 0.5rem;
+		}
+		.items-cont .items-header .row {
+			display: grid;
+			gap: 0.75rem;
+			grid-template-columns: 2.25fr 0.4fr 0.5fr;
+			align-items: center;
+			width: 100%;
+			padding-right: 0.5rem;
+		}
+		.items-cont .items-header .row .right {
+			text-align: right;
+		}
+		/* .items-cont .items-header .new {
+			padding: 0;
+			margin: 0;
+			border: 0;
+			background-color: transparent;
+			width: 2rem;
+			height: 1.5rem;
+		} */
+		.items-cont .items-row {
+			display: flex;
+			gap: 0.75rem;
+			align-items: center;
+			padding: 0.75rem 0;
+			border-top: 1px solid #00000014;
+		}
+		.items-cont .items-row .delete {
+			min-width: 1.5rem;
+			height: 1.5rem;
+			border-radius: 1rem;
+			background-color: var(--graydark);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 0.7rem;
+			font-weight: 600;
+			color: #0000006e;
+		}
+		.items-cont .items-row .delete img {
+		    position: absolute;
+			opacity: 0;
+			transition: var(--transition);
+		}
+		.items-cont .items-row .delete span {
+			transition: var(--transition);
+		}
+		.items-cont .items-row .delete:hover img {
+			opacity: 1;
+		}
+		.items-cont .items-row .delete:hover span {
+			opacity: 0;
+		}
+		.items-cont .items-row .row {
+			display: grid;
+			gap: 0.75rem;
+			grid-template-columns: 2.25fr 0.4fr 0.5fr;
+			align-items: center;
+			flex: 1;
+		}
+		.items-cont .items-row .row.space {
+			padding-right: 0.5rem;
+		}
+		.items-cont .items-row.add {
+			border: none;
+    		padding: 0.25rem;
+		}
+		.items-cont .items-row.add + .items-row{
+			border: none;
+		}
+		.items-cont .items-row .add-button {
+			border: 1px dashed #000000;
+			padding: 0.5rem 1rem;
+			border-radius: 0.5rem;
+			width: 100%;
+			opacity: 0.25;
+			align-items: center;
+			font-weight: 500;
+			font-size: 0.8rem;
+			text-align: center;
+		}
+		.items-cont .items-row .dummy {
+			width: 1.25rem;
+		}
+		.items-cont .items-row .bold {
+			font-weight: 600 !important;
+		}
+		.items-cont .items-row .row .description {
+			display: flex;
+			flex-direction: column;
+			gap: 0.125rem;
+			font-weight: 600;
+			overflow: hidden;
+		}
+		.items-cont .items-row label {
+			padding: 0;
+		}
+		.items-cont .items-row label input {
+			height: initial;
+    		font-size: 0.85rem;
+			font-weight: 500;
+			text-overflow: ellipsis;
+		}
+		.items-cont .items-row label a {
+			font-weight: 500;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			overflow: hidden;
+			color: var(--primary);
+		}
+		.items-cont .items-row label .static {
+			font-weight: 500;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			overflow: hidden;
+		}
+		.items-cont .items-row label .url {
+			font-size: 0.75rem;
+			opacity: 0.5;
+		}
+		.items-cont .items-row label .right {
+			text-align: right;
+			flex: 1;
+		}
+		/* .items-cont .items-box .remove {
+			padding: 0;
+			margin: 0;
+			border: 0;
+			border-radius: 1rem;
+			background-color: transparent;
+			box-shadow: none;
+			width: 2rem;
+			height: 2.5rem;
+		} */
+
+		#modal-process .text-area {
+			max-width: 48rem;
+    		border: none;
+			min-height: 2rem;
+    		padding: 0.75rem 1rem;
+		}
+		#modal-process .buttons {
+			display: flex;
+    		gap: 0.75rem;
+		}
+
+		#modal-process .boxes .box-cont .white-box {
+			border-radius: 0.5rem;
+			position: relative;
+		}
+		#modal-process .boxes .box-cont .white-box .lbl {
+			position: absolute;
+			top: 0.75rem;
+			left: 1rem;
+			font-size: 0.7rem;
+			opacity: 0.5;
+		}
+		#modal-process .boxes .box-cont .white-box .selected {
+			padding-top: 1.75rem;
+			padding-bottom: 0.75rem;
+			padding-left: 0.25rem;
+			height: initial;
+			font-weight: 500;
+		}
+		#modal-process .boxes .box-cont .white-box select {
+			padding-top: 1.75rem;
+			padding-bottom: 0.75rem;
+			height: initial;
+			font-weight: 500;
+		}
+		#modal-process .boxes .full-box {
+			width: 100%;
+			padding: 0 1rem;
+			display: flex;
+			flex-direction: column;
+			border-radius: 0.5rem;
+		}
+		#modal-process .boxes .express {
+			display: flex;
+			justify-content: space-between;
+			border-bottom: 1px solid #00000014;
+			padding: 0.75rem 0;
+		}
+		#modal-process .boxes .express .data {
+			display: flex;
+			flex-direction: column;
+			gap: 0.125rem;
+		}
+		#modal-process .boxes .express .data .top {
+			font-weight: 500;
+		}
+		#modal-process .boxes .express .data p {
+			margin: 0;
+			font-size: 0.7rem;
+			opacity: 0.5;
+		}
+		#modal-process .boxes .express .switch {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		#modal-process .boxes .switch .text {
+			opacity: 0.5;
+			font-size: 0.75rem;
+		}
+		#modal-process .boxes .switch .box {
+			position: relative;
+			width: 2rem;
+			height: 1.25rem;
+			flex: initial;
+		}
+		#modal-process .boxes .switch .box input {
+			opacity: 0;
+			width: 0;
+			height: 0;
+		}
+		#modal-process .boxes .switch .box .slider {
+			border-radius: 2rem;
+			position: absolute;
+			cursor: pointer;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background-color: var(--graydarkest);
+			transition: all 0.25s ease-in-out;
+		}
+		#modal-process .boxes .switch .box .slider:before {
+			position: absolute;
+			content: "";
+			height: 0.75rem;
+			width: 0.75rem;
+			left: 0.25rem;
+			bottom: 0.25rem;
+			background-color: white;
+			transition: all 0.25s ease-in-out;
+			border-radius: 50%;
+		}
+		#modal-process .boxes .switch .box input:checked + .slider {
+			background-color: var(--primary);
+		}
+		#modal-process .boxes .switch .box input:checked + .slider:before {
+			transform: translateX(0.75rem);
+		}
+		#modal-process .boxes .full-box .express + .express {
 			border-bottom: none;
 		}
 		.pending {
@@ -1520,7 +1801,15 @@
 			opacity: 0.6;
 		}
 		@media only screen and (max-width: 75rem) {
-			#modal-process .modal-content .flexbox {
+			#modal-process .container {
+				overflow: visible;
+			}
+			.comments-container {
+				width: 100%;
+				min-width: initial;
+				max-height: initial !important;
+			}
+			.comments-container .comments-box {
 				overflow: visible;
 			}
 		}
