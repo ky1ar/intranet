@@ -146,10 +146,7 @@ class PurchaseRepository:
                 selectinload(PurchaseRequest.items),
                 selectinload(PurchaseRequest.chats)
             )
-            .filter(
-                PurchaseRequest.id == purchase_id,
-                PurchaseRequest.deleted_at.is_(None),
-            )
+            .filter(PurchaseRequest.id == purchase_id)
             .first()
         )
         if not purchase:
@@ -350,10 +347,7 @@ class PurchaseRepository:
 
     @handle_db_exceptions
     def get_purchase_history(self, visibility, page, per_page=20):
-        base = (
-            g.db_session.query(PurchaseRequest)
-            .filter(PurchaseRequest.deleted_at.is_(None))
-        )
+        base = g.db_session.query(PurchaseRequest)
 
         if visibility:
             base = base.filter(PurchaseRequest.user_id.in_(visibility))

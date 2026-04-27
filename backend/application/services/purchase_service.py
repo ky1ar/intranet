@@ -556,7 +556,6 @@ class PurchaseService:
         return urgency_list, 200
 
     
-    @handle_exceptions
     def _get_visibility(self, user_id):
         """Devuelve la lista de user_ids visibles para el usuario, o [] si ve todo."""
         if self._has_perm(user_id, 'view_all'):
@@ -629,8 +628,13 @@ class PurchaseService:
                 {
                     "id": p.id,
                     "requester_name": format_name(p.user.name) if p.user_id != user_id else "Tú",
-                    "status_name": p.status.name,
-                    "status_slug": p.status.slug,
+                    "requester_image": p.user.image,
+                    "requester_department": p.user.department.name,
+                    "urgency_name": p.purchase_urgency.name,
+                    "urgency_slug": p.purchase_urgency.slug,
+                    "express": p.express,
+                    "status_name": "Eliminada" if p.deleted_at else p.status.name,
+                    "status_slug": "deleted" if p.deleted_at else p.status.slug,
                     "created_at": format_datetime(p.created_at),
                 }
                 for p in purchases
