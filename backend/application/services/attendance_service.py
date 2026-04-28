@@ -1663,7 +1663,7 @@ class AttendanceService:
                 "user_name": format_name(s.user.name) if s.user else "-",
                 "user_image": s.user.image if s.user else "user_default.jpg",
                 "department_name": s.user.department.name if s.user and s.user.department else "-",
-                "business_name": s.business.name if s.business else "-",
+                "business_name": s.business.name.title() if s.business else "-",
                 "base_salary": float(s.base_salary),
                 "compliance_pct": float(s.compliance_pct),
                 "factor": float(s.factor),

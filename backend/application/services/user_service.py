@@ -198,7 +198,7 @@ class UserService:
         default_page, _ = self.module_service.get_default_page(user.id)
 
         return {
-            "app_version": "1.6.4",
+            "app_version": "1.6.5",
             "id": user.id,
             "level_id": user.level_id,
             "department_id": user.department_id,
