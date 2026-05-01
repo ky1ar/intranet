@@ -1,0 +1,61 @@
+from flask import request
+from application.handlers import handle_logs_and_exceptions
+from application.services.refund_service import RefundService
+
+
+class RefundController:
+    def __init__(self):
+        self.service = RefundService()
+
+    @handle_logs_and_exceptions
+    def get_statuses(self):
+        return self.service.get_statuses()
+
+    @handle_logs_and_exceptions
+    def dashboard(self):
+        return self.service.dashboard()
+
+    @handle_logs_and_exceptions
+    def get_refund(self, refund_id):
+        return self.service.get_refund(refund_id)
+
+    @handle_logs_and_exceptions
+    def create(self):
+        return self.service.create()
+
+    @handle_logs_and_exceptions
+    def update_status(self, data):
+        return self.service.update_status(data)
+
+    @handle_logs_and_exceptions
+    def update_penalty(self, refund_id):
+        return self.service.update_penalty(refund_id, request.get_json() or {})
+
+    @handle_logs_and_exceptions
+    def delete(self, refund_id):
+        return self.service.delete(refund_id)
+
+    # ── Attachments ──
+
+    @handle_logs_and_exceptions
+    def attachments_upload(self):
+        return self.service.attachments_upload()
+
+    @handle_logs_and_exceptions
+    def attachment_stream(self, attachment_id):
+        disposition = request.args.get("disposition", "inline")
+        return self.service.attachment_stream(attachment_id, disposition)
+
+    @handle_logs_and_exceptions
+    def attachment_preview(self, attachment_id):
+        return self.service.attachment_preview(attachment_id)
+
+    @handle_logs_and_exceptions
+    def delete_attachment(self, attachment_id):
+        return self.service.delete_attachment(attachment_id)
+
+    # ── Chat ──
+
+    @handle_logs_and_exceptions
+    def chat(self, data):
+        return self.service.chat(data)

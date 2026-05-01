@@ -3,11 +3,11 @@
 		<div class="controls">
 			<div class="left frost">
 				<div class="item" @click="prev()">
-					<img class="flip" alt="prev" src="/static/images/icons/right.svg" width="20" height="20">
+					<img class="flip" alt="prev" src="/static/icons/line/right.svg" width="20" height="20">
 				</div>
 				<div class="item date" @click="today()" x-text="formatMonthLabel()"></div>
 				<div class="item" @click="next()">
-					<img alt="next" src="/static/images/icons/right.svg" width="20" height="20">
+					<img alt="next" src="/static/icons/line/right.svg" width="20" height="20">
 				</div>
 			</div>
 		</div>
@@ -75,7 +75,7 @@
 											<div class="content">
 												<span class="label" x-text="ev.label"></span>
 												<span class="date" x-show="!ev.allDay && ev.time" x-text="ev.time"></span>
-												<!-- <img class="thumb" x-show="ev.creatorId == user_id" width="24" height="24" src="/static/images/user.svg"> -->
+												<!-- <img class="thumb" x-show="ev.creatorId == user_id" width="24" height="24" src="/static/icons/line/user.svg"> -->
 											</div>
 										</div>
 									</div>
@@ -120,7 +120,7 @@
 
 						<!-- COLOR DEL EVENTO -->
 						<label class="white compact-color">
-							<img alt="color" src="/static/images/icons/tag.svg" width="16" height="16">
+							<img alt="color" src="/static/icons/line/tag.svg" width="16" height="16">
 
 							<div class="color-select" x-data="{ open: false }" @click.outside="open = false">
 								<!-- Círculo principal -->
@@ -227,7 +227,7 @@
 					<div class="fields">
 						<!-- VISIBILIDAD -->
 						<label class="white flex2-3">
-							<img alt="eye" src="/static/images/icons/eye.svg" width="16" height="16">
+							<img alt="eye" src="/static/icons/line/eye.svg" width="16" height="16">
 							<select x-model="event_data.visibility_id">
 								<option value="" disabled>Visibilidad</option>
 								<template x-for="opt in ($store.cache.getData('visibility_options') || [])" :key="opt.id">
@@ -238,7 +238,7 @@
 
 						<!-- REPETIR -->
 						<label class="white">
-							<img alt="repeat" src="/static/images/pending.svg" width="16" height="16">
+							<img alt="repeat" src="/static/icons/line/pending.svg" width="16" height="16">
 							<select x-model="event_data.repeat_id">
 								<option value="" disabled>Repetición</option>
 								<template x-for="opt in ($store.cache.getData('repeat_options') || [])" :key="opt.id">
@@ -248,20 +248,10 @@
 						</label>
 
 						<label class="white flex2-3">
-							<img alt="link" src="/static/images/icons/link.svg" width="16" height="16">
+							<img alt="link" src="/static/icons/line/link.svg" width="16" height="16">
 							<input type="url" placeholder="Google Meet" x-model="event_data.meet">
 						</label>
-
-						<!-- NOTIFICACIÓN -->
-						<!-- <label class="white notify-field">
-							<img alt="bell" src="/static/images/notifications.svg" width="16" height="16">
-							<select x-model="event_data.notify_id">
-								<option value="" disabled>Notificación</option>
-								<template x-for="opt in ($store.cache.getData('notify_options') || [])" :key="opt.id">
-									<option :value="opt.id" x-text="opt.name"></option>
-								</template>
-							</select>
-						</label> -->
+					
 					</div>	
 					
 					<!-- USUARIOS ESPECÍFICOS -->
@@ -380,7 +370,7 @@
 							<template x-if="event_data.description">
 								<div class="readonly-row">
 									<span class="readonly-label">
-										<img alt="repeat" src="/static/images/icons/board.svg" width="16" height="16">
+										<img alt="repeat" src="/static/icons/line/board.svg" width="16" height="16">
 										Descripción
 									</span>
 									<span class="readonly-value" x-html="event_data.description"></span>
@@ -389,7 +379,7 @@
 
 							<div class="readonly-row">
 								<span class="readonly-label">
-									<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
+									<img alt="repeat" src="/static/icons/line/calendar.svg" width="16" height="16">
 									Fecha y hora
 								</span>
 								<span class="readonly-value" x-text="formattedEventRange()"></span>
@@ -398,7 +388,7 @@
 							<template x-if="event_data.meet">
 								<div class="readonly-row">
 									<span class="readonly-label">
-										<img alt="repeat" src="/static/images/icons/link.svg" width="16" height="16">
+										<img alt="repeat" src="/static/icons/line/link.svg" width="16" height="16">
 										Google Meet
 									</span>
 									<a class="readonly-value readonly-link"
@@ -415,7 +405,7 @@
 						<div class="readonly-box white">
 							<div class="readonly-row">
 								<span class="readonly-label">
-									<img alt="port" src="/static/images/location.svg" width="16" height="16">
+									<img alt="port" src="/static/icons/line/location.svg" width="16" height="16">
 									Salida
 								</span>
 								<span
@@ -426,7 +416,7 @@
 
 							<div class="readonly-row" x-show="event_data.import_shipment.etd_date">
 								<span class="readonly-label">
-									<img alt="etd" src="/static/images/icons/calendar.svg" width="16" height="16">
+									<img alt="etd" src="/static/icons/line/calendar.svg" width="16" height="16">
 									Salida estimada
 								</span>
 								<span class="readonly-value" x-text="event_data.import_shipment.etd_date"></span>
@@ -434,7 +424,7 @@
 
 							<div class="readonly-row" x-show="event_data.import_shipment.eta_date">
 								<span class="readonly-label">
-									<img alt="eta" src="/static/images/icons/calendar.svg" width="16" height="16">
+									<img alt="eta" src="/static/icons/line/calendar.svg" width="16" height="16">
 									Llegada estimada
 								</span>
 								<span class="readonly-value" x-text="event_data.import_shipment.eta_date"></span>
@@ -442,7 +432,7 @@
 
 							<div class="readonly-row" x-show="event_data.import_shipment.tracking_link">
 								<span class="readonly-label">
-									<img alt="tracking" src="/static/images/icons/web.svg" width="16" height="16">
+									<img alt="tracking" src="/static/icons/line/web.svg" width="16" height="16">
 									Tracking
 								</span>
 								<a
@@ -457,7 +447,7 @@
 							<div x-show="event_data.import_shipment.product_list_files && event_data.import_shipment.product_list_files.length">
 								<div class="readonly-row" style="margin-bottom:.5rem;">
 									<span class="readonly-label">
-										<img alt="files" src="/static/images/icons/filled/clip.svg" width="16" height="16">
+										<img alt="files" src="/static/icons/filled/clip.svg" width="16" height="16">
 										Lista de productos
 									</span>
 								</div>

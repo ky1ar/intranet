@@ -1,38 +1,7 @@
 <div x-data="home_data">
 	<div id="home">
-		<div class="header">Inicio</div>
-		<div class="content">
-			<div class="left">
-
-			</div>
-			<div class="right">
-				<div class="profile glass">
-					<img alt="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="108" height="108">
-					<span class="name" x-text="$store.cache.user.name"></span>
-					<span class="department" x-text="$store.cache.user.department_name"></span>
-				</div>
-
-				<template x-for="history in service_order?.history" :key="history.status_id">
-					<div class="row">
-						<img width="20" height="20" :src="'/static/images/support/' + $store.support.service_status[history.status_id].image" alt="">
-
-						<div class="left">
-							<div class="head">
-								<span class="name" x-text="$store.support.service_status[history.status_id].name"></span>
-								<div class="right">
-									<span class="admin" x-text="history.admin_name"></span>
-									<span class="date" x-text="history.register_at"></span>
-								</div>
-							</div>
-							<span class="notes" x-text="history.notes"></span>
-						</div>
-					</div>
-				</template>
-			</div>
-		</div>
+		
 	</div>
-
-
 
 
 

@@ -3,66 +3,66 @@
 		<div class="controls">
 			<div class="toggle-collapse frost" @click="$store.cache.toogleMoreMenu()" @click.outside="$store.cache.hideMoreMenu()">
 				<div class="item">
-					<img alt="" width="24" height="24" src="/static/images/icons/more.svg">
+					<img alt="" width="24" height="24" src="/static/icons/line/more.svg">
 				</div>
 			</div>
 
 			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
 				<div class="item" @click="openQrModal()" x-show="$store.cache.hasPermission('logistics', 'qr')">
-					<img alt="" width="20" height="20" src="/static/images/icons/qr.svg">
+					<img alt="" width="20" height="20" src="/static/icons/line/qr.svg">
 				</div>
 				<div class="item" @click="pdfProcess()">
-					<img alt="" width="22" height="22" src="/static/images/icons/pdf.svg">
+					<img alt="" width="22" height="22" src="/static/icons/line/pdf.svg">
 				</div>
 				<div class="item" @click="pendings_open = !pendings_open" x-show="$store.cache.hasPermission('logistics', 'pendings')">
-					<img alt="" width="22" height="22" src="/static/images/icons/pending.svg">
+					<img alt="" width="22" height="22" src="/static/icons/line/pending.svg">
 				</div>
 				<div class="item" @click="search()">
-					<img alt="" width="18" height="18" src="/static/images/icons/find.svg">
+					<img alt="" width="18" height="18" src="/static/icons/line/find.svg">
 				</div>
 				<div class="item" @click="viewHistory()">
-					<img alt="" width="18" height="18" src="/static/images/icons/history.svg">
+					<img alt="" width="18" height="18" src="/static/icons/line/history.svg">
 				</div>
 				<div class="item" @click="viewStatistics()">
-					<img alt="" width="18" height="18" src="/static/images/icons/report.svg">
+					<img alt="" width="18" height="18" src="/static/icons/line/report.svg">
 				</div>
 			</div>
 			
 			<div class="left mobile-hide frost">
 				<div class="item" @click="search()">
-					<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
+					<img alt="" width="20" height="20" src="/static/icons/line/find.svg">
 					<span>Buscar</span>
 				</div>
 				<div class="item" @click="viewHistory()">
-					<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
+					<img alt="" width="20" height="20" src="/static/icons/line/history.svg">
 					<span>Historial</span>
 				</div>
 				<div class="item" @click="viewStatistics()">
-					<img alt="" width="20" height="20" src="/static/images/icons/report.svg">
+					<img alt="" width="20" height="20" src="/static/icons/line/report.svg">
 					<span>Estadísticas</span>
 				</div>
 			</div>
 				
 			<div class="left frost">
 				<div class="item" @click="prev()">
-					<img class="flip" alt="prev" src="/static/images/icons/right.svg" width="20" height="20">
+					<img class="flip" alt="prev" src="/static/icons/line/right.svg" width="20" height="20">
 				</div>
 				<div class="item date" @click="today()" x-text="getDateRange($store.cache.getData('logistics_dashboard'))">
 					Semana actual
 				</div>
 				<div class="item" @click="next()">
-					<img alt="next" src="/static/images/icons/right.svg" width="20" height="20">
+					<img alt="next" src="/static/icons/line/right.svg" width="20" height="20">
 				</div>
 			</div>
 
 			<div class="right frost-dark">
 				<div class="item" @click="openQrModal()" x-show="$store.cache.hasPermission('logistics', 'qr')">
-					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/qr.svg">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/qr.svg">
 					<span>QR</span>
 				</div>
 
 				<div class="mobile-hide item" @click="pdfProcess()">
-					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/pdf.svg">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/pdf.svg">
 					<span x-text="pdf_loading ? 'Generando...' : 'Rótulo'"></span>
 					<input
 						type="file"
@@ -74,12 +74,12 @@
 				</div>
 
 				<div class="mobile-hide item" x-show="$store.cache.hasPermission('logistics', 'pendings')" @click="pendings_open = !pendings_open">
-					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/pending.svg">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/pending.svg">
 					<span x-text="`Pendientes ${$store.cache.getData('logistics_pendings')?.length || 0}`"></span>
 				</div>
 
 				<div class="item" @click="processShippingModal()" x-show="$store.cache.hasPermission('logistics', 'add')">
-					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/add.svg">
 					<span>Añadir</span>
 				</div>
 			</div>
@@ -150,7 +150,7 @@
 												<span class="address" x-text="shipping.address"></span>
 											</div>
 											<a class="phone" @click.stop :href="'https://api.whatsapp.com/send?phone=' + shipping.client_phone" target="_blank" rel="nofollow">
-												<img alt="" src="/static/images/wsp.svg" width="16" height="16" alt="phone">
+												<img alt="" src="/static/icons/line/whatsapp.svg" width="16" height="16" alt="phone">
 											</a>
 											<template x-if="shipping.status_id > 2">
 												<span class="status" 
@@ -304,7 +304,7 @@
 						</label>
 
 						<label :class="client_order_found || edit ? 'glass2' : 'white'">
-							<img alt="user" src="/static/images/id.svg" width="16" height="16">
+							<img alt="user" src="/static/icons/line/id.svg" width="16" height="16">
 							<input
 								type="text"
 								maxlength="11"
@@ -319,19 +319,19 @@
 
 					<div class="fields">
 						<label :class="client_order_found || client_found || edit ? 'glass2' : 'white'">
-							<img alt="user" src="/static/images/user.svg" width="16" height="16">
+							<img alt="user" src="/static/icons/line/user.svg" width="16" height="16">
 							<input :disabled="client_order_found || client_found || edit" type="text" placeholder="Nombre o Razón Social" x-model="process_shipping.client_name">
 						</label>
 					</div>
 
 					<div class="fields">
 						<label class="white">
-							<img alt="phone" src="/static/images/phone.svg" width="16" height="16">
+							<img alt="phone" src="/static/icons/line/phone.svg" width="16" height="16">
 							<input type="text" maxlength="9" @input="process_shipping.client_phone = process_shipping.client_phone.replace(/\D/g, '')" placeholder="Celular" x-model="process_shipping.client_phone">
 						</label>
 
 						<label class="white flex2-3">
-							<img alt="location" src="/static/images/icons/tracking.svg" width="16" height="16">
+							<img alt="location" src="/static/icons/line/tracking.svg" width="16" height="16">
 							<input type="text" placeholder="Dirección" x-model="process_shipping.address">
 						</label>
 						
@@ -339,12 +339,12 @@
 
 					<div class="fields">
 						<label class="white flex2-3">
-							<img alt="Referencia" src="/static/images/icons/tag.svg" width="16" height="16">
+							<img alt="Referencia" src="/static/icons/line/tag.svg" width="16" height="16">
 							<input type="text" placeholder="Referencia" x-model="process_shipping.reference">
 						</label>
 
 						<label class="white">
-							<img alt="maps" src="/static/images/maps.svg" width="16" height="16">
+							<img alt="maps" src="/static/icons/line/maps.svg" width="16" height="16">
 							<input type="text" placeholder="Google Maps" x-model="process_shipping.maps">
 						</label>
 					</div>
@@ -423,7 +423,7 @@
 						x-text="process_shipping.method_name">
 					</span>
 					<div class="driver glass2">
-						<img width="16" height="16" alt="" src="/static/images/icons/logistics.svg">
+						<img width="16" height="16" alt="" src="/static/icons/line/logistics.svg">
 						<span x-text="process_shipping.driver_name"></span>
 					</div>
 				</div>
@@ -439,12 +439,12 @@
 							</div>
 
 							<a class="message hover-opacity" :href="'https://api.whatsapp.com/send?phone=' + process_shipping.client_phone" target="_blank" rel="nofollow">
-								<img alt="" width="16" height="16" alt="client_phone" src="/static/images/whatsapp.svg">
+								<img alt="" width="16" height="16" alt="client_phone" src="/static/icons/line/whatsapp.svg">
 							</a>
 						</div>
 						
 						<div class="white user">
-							<img alt="" width="16" height="16" alt="client_phone" src="/static/images/location.svg">
+							<img alt="" width="16" height="16" alt="client_phone" src="/static/icons/line/location.svg">
 
 							<div class="data">
 								<span x-text="process_shipping.address"></span>
@@ -455,7 +455,7 @@
 								<a class="message hover-opacity" 
 									:href="process_shipping.maps" 
 									target="_blank" rel="nofollow">
-									<img alt="" width="16" height="16" alt="notification" src="/static/images/maps.svg">
+									<img alt="" width="16" height="16" alt="notification" src="/static/icons/line/maps.svg">
 								</a>
 							</template>
 						</div>
@@ -564,16 +564,16 @@
 
 					<div class="pagination">
 						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstPage()">
-							<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
+							<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
 						</span>
 						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevPage()">
-							<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
+							<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
 						</span>
 						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextPage()">
-							<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
+							<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
 						</span>
 						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastPage()">
-							<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
+							<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
 						</span>
 					</div>
 
@@ -701,13 +701,13 @@
 			x-cloak>
 			<div class="modal small" @click.stop>
 				<div class="bottom glass2">
-					<img alt="" class="ico" width="20" height="20" src="/static/images/icons/find.svg">
+					<img alt="" class="ico" width="20" height="20" src="/static/icons/line/find.svg">
 					<input type="text"
 						x-model="find_order_number"
 						placeholder="Orden, nombre, dni/ruc"
 						@input="findOrders()">
 					<div class="hover-opacity clear" x-show="find_order_number" @click="find_order_number = ''; finded_orders = [];">
-						<img alt="" class="" width="12" height="12" src="/static/images/x.svg">
+						<img alt="" class="" width="12" height="12" src="/static/icons/filled/x.svg">
 					</div>
 				</div>
 				<div class="orders glass2" x-show="finded_orders.length > 0">

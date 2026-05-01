@@ -3,19 +3,19 @@
 		<div class="controls">
 			<div class="toggle-collapse frost" @click="$store.cache.toogleMoreMenu()" @click.outside="$store.cache.hideMoreMenu()">
 				<div class="item">
-					<img alt="" width="24" height="24" src="/static/images/icons/more.svg">
+					<img alt="" width="24" height="24" src="/static/icons/line/more.svg">
 				</div>
 			</div>
 
 			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
 				<div class="item" @click="search()">
-					<img alt="" width="18" height="18" src="/static/images/icons/find.svg">
+					<img alt="" width="18" height="18" src="/static/icons/line/find.svg">
 				</div>
 			</div>
 
 			<div class="left mobile-hide frost">
 				<div class="item" @click="search()">
-					<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
+					<img alt="" width="20" height="20" src="/static/icons/line/find.svg">
 					<span>Buscar</span>
 				</div>
 			</div>
@@ -26,7 +26,7 @@
 				<div class="group">
 					<div class="group-head">
 						<img alt="" width="20" height="20"
-							:src="'/static/images/safebuy/' + ($store.cache.getById('safebuy_statuses', group.status_id)?.image || 'default.png')"
+							:src="'/static/icons/module/safebuy/' + ($store.cache.getById('safebuy_statuses', group.status_id)?.image || 'default.png')"
 							alt="">
 						<span class="group-name" x-text="$store.cache.getById('safebuy_statuses', group.status_id)?.name || ''"></span>
 						<!-- <span class="group-count" x-text="group.requests.length"></span> -->
@@ -98,7 +98,7 @@
 								</div>
 
 								<div class="tag">
-									<img alt="" width="10" height="10" src="/static/images/icons/tag.svg">
+									<img alt="" width="10" height="10" src="/static/icons/line/tag.svg">
 									<span x-text="detail?.purchase_channel != 'physical' ? 'Web':'Tienda' "></span>
 								</div>
 							</div>
@@ -110,19 +110,19 @@
 							<div class="data">
 								<div class="client">
 									<button title="Alternar nombre/documento" @click="show_document = !show_document" class="hover-opacity">
-										<img alt="" src="/static/images/document.svg" width="14" height="14">
+										<img alt="" src="/static/icons/line/document.svg" width="14" height="14">
 									</button>
 									<span class="name" x-text="show_document ? detail?.client_document : detail?.client_name"></span>
 								</div>
 								
 								<div class="links">
 									<div class="email" x-show="detail?.client_email">
-										<img alt="" width="15" height="15" src="/static/images/email.svg">
+										<img alt="" width="15" height="15" src="/static/icons/line/email.svg">
 										<span x-text="detail?.client_email"></span>
 									</div>
 
 									<a title="Enviar whatsapp" :href="`https://api.whatsapp.com/send?phone=${detail?.client_phone}`" target="_blank" class="hover-opacity" rel="noopener noreferrer">
-										<img alt="" src="/static/images/whatsapp.svg" width="12	" height="12	">
+										<img alt="" src="/static/icons/line/whatsapp.svg" width="12	" height="12	">
 										<span x-text="detail?.client_phone"></span>
 									</a>
 								</div>
@@ -180,7 +180,7 @@
 							<template x-for="section in (detail?.attachment_sections || [])" :key="section.target">
 								<div>
 									<div class="section-label-row">
-										<img alt="" width="14" height="14" src="/static/images/icons/filled/clip.svg">
+										<img alt="" width="14" height="14" src="/static/icons/filled/clip.svg">
 										<span class="section-label" style="margin-bottom:0;" x-text="section.label"></span>
 										<span class="section-count" x-text="`(${section.files.length})`"></span>
 									</div>
@@ -253,19 +253,19 @@
 							<div class="action-btns buttons">
 								<button class="button icon hover-opacity" @click="changeStatus(2)"
 									x-show="detail?.status_id === 1 && $store.cache.hasPermission('safebuy', 'manage')">
-									<img alt="" width="18" height="18" src="/static/images/icons/find.svg">
+									<img alt="" width="18" height="18" src="/static/icons/line/find.svg">
 									<span>En revisión</span>
 								</button>
 								
 									<button class="button red icon btn-reject hover-opacity" @click="changeStatus(6)"
 									x-show="detail?.status_id === 2 && $store.cache.hasPermission('safebuy', 'approve')">
-									<img alt="" width="18" height="18" src="/static/images/icons/dislike.svg">
+									<img alt="" width="18" height="18" src="/static/icons/line/dislike.svg">
 									<span>Rechazar</span>
 								</button>
 									
 								<button class="button green icon btn-approve hover-opacity" @click="changeStatus(3)"
 									x-show="detail?.status_id === 2 && $store.cache.hasPermission('safebuy', 'approve')">
-									<img alt="" width="18" height="18" src="/static/images/icons/like.svg">
+									<img alt="" width="18" height="18" src="/static/icons/line/like.svg">
 									<span>Aprobar</span>
 								</button>
 							</div>
@@ -298,7 +298,7 @@
 								<textarea x-model="message" placeholder="Ingresa un mensaje..." @keydown.enter="handleEnterSend($event)"></textarea>
 							</label>
 							<div class="send hover-opacity" @click="sendChat()" :class="{'disabled': !message}">
-								<img alt="enviar" width="16" height="16" src="/static/images/icons/send.svg">
+								<img alt="enviar" width="16" height="16" src="/static/icons/filled/send.svg">
 							</div>
 						</div>
 					</div>

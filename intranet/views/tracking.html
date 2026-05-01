@@ -3,40 +3,40 @@
         <div class="controls">
 			<div class="toggle-collapse frost" @click="$store.cache.toogleMoreMenu()" @click.outside="$store.cache.hideMoreMenu()">
 				<div class="item">
-					<img alt="" width="24" height="24" src="/static/images/icons/more.svg">
+					<img alt="" width="24" height="24" src="/static/icons/line/more.svg">
 				</div>
 			</div>
 
 			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
 				<div class="item" @click="search()">
-					<img alt="" width="18" height="18" src="/static/images/icons/find.svg">
+					<img alt="" width="18" height="18" src="/static/icons/line/find.svg">
 				</div>
 				<div class="item" @click="viewHistory()">
-					<img alt="" width="18" height="18" src="/static/images/icons/history.svg">
+					<img alt="" width="18" height="18" src="/static/icons/line/history.svg">
 				</div>
 				<div class="item" @click="viewStatistics()">
-					<img alt="" width="18" height="18" src="/static/images/icons/report.svg">
+					<img alt="" width="18" height="18" src="/static/icons/line/report.svg">
 				</div>
 			</div>
 
 			<div class="left mobile-hide frost">
 				<div class="item" @click="search()">
-					<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
+					<img alt="" width="20" height="20" src="/static/icons/line/find.svg">
 					<span>Buscar</span>
 				</div>
 				<div class="item" @click="viewHistory()">
-					<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
+					<img alt="" width="20" height="20" src="/static/icons/line/history.svg">
 					<span>Historial</span>
 				</div>
 				<div class="item" @click="viewStatistics()">
-					<img alt="" width="20" height="20" src="/static/images/icons/report.svg">
+					<img alt="" width="20" height="20" src="/static/icons/line/report.svg">
 					<span>Estadísticas</span>
 				</div>
 			</div>
 
 			<div class="right frost-dark" x-show="$store.cache.hasPermission('tracking', 'add')">
 				<div class="item" @click="addTracking()">
-					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/add.svg">
 					<span>Añadir</span>
 				</div>
 			</div>
@@ -46,7 +46,7 @@
 			<template x-for="group in $store.cache.getData('tracking_dashboard')" :key="group.status_id">
 				<div class="group">
 					<div class="name">
-						<img width="20" height="20" :src="'/static/images/tracking/' + $store.cache.getById('tracking_status', group.status_id)?.image" alt="">
+						<img width="20" height="20" :src="'/static/icons/module/tracking/' + $store.cache.getById('tracking_status', group.status_id)?.image" alt="">
 						<span x-text="$store.cache.getById('tracking_status', group.status_id)?.name"></span>
 					</div>
 
@@ -56,7 +56,7 @@
 								<li class="white" @click="viewOrder(item.id)">
 									<div class="row">
 										<span class="order-number" x-text="item.order_number"></span>
-										<img width="72" height="16" :src="'/static/images/tracking/' + $store.cache.getById('tracking_agencies', item.agency_id)?.icon" alt="">
+										<img width="72" height="16" :src="'/static/icons/module/tracking/' + $store.cache.getById('tracking_agencies', item.agency_id)?.icon" alt="">
 									</div>
 
 									<div class="row">
@@ -105,7 +105,7 @@
 						@blur="fetchOrderData()"
 						required>
 					<div class="hover-opacity button black" @click="readQR()">
-						<img alt="qr" src="/static/images/icons/qr.svg" width="16" height="16">
+						<img alt="qr" src="/static/icons/line/qr.svg" width="16" height="16">
 					</div>
 				</div>
 				
@@ -120,7 +120,7 @@
 						</label>
 
 						<label class="white">
-							<img alt="user" src="/static/images/id.svg" width="16" height="16">
+							<img alt="user" src="/static/icons/line/id.svg" width="16" height="16">
 							<input
 								type="text"
 								maxlength="15"
@@ -134,7 +134,7 @@
 
 					<div class="fields">
 						<label :class="disableName ? 'glass2' : 'white'">
-							<img alt="user" src="/static/images/user.svg" width="16" height="16">
+							<img alt="user" src="/static/icons/line/user.svg" width="16" height="16">
 							<input 
 								x-model="name"
 								type="text"
@@ -147,7 +147,7 @@
 					
 					<div class="fields">
 						<label class="white">
-							<img alt="phone" src="/static/images/phone.svg" width="16" height="16">
+							<img alt="phone" src="/static/icons/line/phone.svg" width="16" height="16">
 							<input 
 								x-model="phone"
 								type="tel" 
@@ -165,7 +165,7 @@
 						</label>
 
 						<label class="white">
-							<img alt="email" src="/static/images/email.svg" width="16" height="16">
+							<img alt="email" src="/static/icons/line/email.svg" width="16" height="16">
 							<input 
 								x-model="email"
 								type="email" 
@@ -289,7 +289,7 @@
 				<div class="top">
 					<span class="order" x-text="tracking_order.order_number"></span>
 					<div class="code3" x-show="tracking_order.code3" x-text="'Clave de recojo: ' +tracking_order.code3"></div>
-					<img class="agency" width="80" height="22" :src="'/static/images/tracking/' + $store.cache.getById('tracking_agencies', tracking_order.agency_id)?.icon" alt="">
+					<img class="agency" width="80" height="22" :src="'/static/icons/module/tracking/' + $store.cache.getById('tracking_agencies', tracking_order.agency_id)?.icon" alt="">
 				</div>
 
 				<div class="content modal-content">
@@ -302,14 +302,14 @@
 						</div>
 
 						<a class="message hover-opacity" :href="'https://api.whatsapp.com/send?phone=' + tracking_order.client_phone" target="_blank" rel="nofollow">
-							<img width="16" height="16" alt="client_phone" src="/static/images/whatsapp.svg">
+							<img width="16" height="16" alt="client_phone" src="/static/icons/line/whatsapp.svg">
 						</a>
 					</div>
 
 					
 
 					<div class="white user">
-						<img width="16" height="16" alt="client_phone" src="/static/images/location.svg">
+						<img width="16" height="16" alt="client_phone" src="/static/icons/line/location.svg">
 
 						<div class="data">
 							<span x-text="tracking_order.destination_agency"></span>
@@ -359,16 +359,16 @@
 
 					<div class="pagination">
 						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstPage()">
-							<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
+							<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
 						</span>
 						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevPage()">
-							<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
+							<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
 						</span>
 						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextPage()">
-							<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
+							<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
 						</span>
 						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastPage()">
-							<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
+							<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
 						</span>
 					</div>
 
@@ -499,13 +499,13 @@
 			x-cloak>
 			<div class="modal" @click.stop>
 				<div class="bottom glass2">
-					<img alt="" class="ico" width="20" height="20" src="/static/images/icons/find.svg">
+					<img alt="" class="ico" width="20" height="20" src="/static/icons/line/find.svg">
 					<input type="text"
 						x-model="find_order_number"
 						placeholder="Orden, nombre, dni/ruc"
 						@input="findOrders()">
 					<div class="hover-opacity clear" x-show="find_order_number" @click="find_order_number = ''; finded_orders = [];">
-						<img alt="" class="" width="12" height="12" src="/static/images/x.svg">
+						<img alt="" class="" width="12" height="12" src="/static/icons/filled/x.svg">
 					</div>
 				</div>
 				<div class="orders glass2" x-show="finded_orders.length > 0">
@@ -513,7 +513,7 @@
 						<div class="item" @click="viewOrder(order.id)">
 							<div class="title">
 								<span class="order-number" x-text="order.order_number"></span>
-								<img width="72" height="16" :src="'/static/images/tracking/' + $store.cache.getById('tracking_agencies', order.agency_id)?.icon" alt="">
+								<img width="72" height="16" :src="'/static/icons/module/tracking/' + $store.cache.getById('tracking_agencies', order.agency_id)?.icon" alt="">
 							</div>
 							<span class="client" x-text="order.client_name"></span>
 						</div>

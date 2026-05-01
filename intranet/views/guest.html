@@ -3,14 +3,14 @@
         <div class="controls">
             <div x-show="currentStep != 'select_type' && currentStep != 'success' && currentStep != 'finish_success'" class="left frost" >
                 <div class="item" @click="prev()">
-                    <img alt="" width="20" height="20" src="/static/images/icons/back.svg">
+                    <img alt="" width="20" height="20" src="/static/icons/filled/back.svg">
                     <span>Volver</span>
                 </div>
             </div>
         
             <div x-show="currentStep != 'select_type' && currentStep != 'success' && currentStep != 'finish_success'" class="right frost">
                 <div class="item" @click="resetOrder()">
-                    <img alt="" width="20" height="20" src="/static/images/icons/home.svg">
+                    <img alt="" width="20" height="20" src="/static/icons/line/home.svg">
                     <span>Inicio</span>
                 </div>
             </div>
@@ -98,14 +98,14 @@
                             <div class="thumb-item" @click="removePhoto(index)">
                                 <div class="thumbnail-wrapper">
                                     <div class="delete-button">
-                                        <img class="delete" alt="delete" width="24" height="24" src="/static/images/icons/delete.svg">
+                                        <img class="delete" alt="delete" width="24" height="24" src="/static/icons/line/delete.svg">
                                     </div>
                                     <img class="thumbnail" :src="photo.preview" alt="preview">
                                 </div>
                             </div>
                         </template>
                         <div class="add-button hover-opacity" @click.prevent="openFileInput()">
-                            <img alt="" width="24" height="24" src="/static/images/icons/add2.svg">
+                            <img alt="" width="24" height="24" src="/static/icons/line/plus.svg">
                         </div>
                         <input type="file" accept="image/*" style="display: none;" x-ref="fileInput" @change="addFiles($event)" multiple>
                     </div>

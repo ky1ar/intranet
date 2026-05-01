@@ -17,7 +17,7 @@
 
 			<div class="right frost-dark">
 				<div class="item" @click="addIssueModal()">
-					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/add.svg">
 					<span>Añadir</span>
 				</div>
 			</div>
@@ -53,7 +53,7 @@
 											<span class="id" x-text="issue.created_at"></span>
 										</div>
 										<div class="right">
-											<img width="16" height="16" :src="'/static/images/icons/' + $store.cache.getById('board_priority', issue.priority_id)?.image" alt="users">
+											<img width="16" height="16" :src="'/static/icons/filled/' + $store.cache.getById('board_priority', issue.priority_id)?.image" alt="users">
 											<img class="thumb" width="24" height="24" :src="'/static/images/uploads/users/'+issue.assignee_image" :title="issue.assignee_name">
 										</div>
 									</div>
@@ -94,14 +94,14 @@
 				<div class="selects">
 					<div class="custom_select">
 						<div class="selected_option" @click="tooglePriorityOption()">
-							<img width="16" height="16" :src="'/static/images/icons/' + option_priority?.image" alt="user">
+							<img width="16" height="16" :src="'/static/icons/filled/' + option_priority?.image" alt="user">
 							<span x-text="'Prioridad ' + option_priority?.name"></span>
 						</div>
 
 						<div x-show="option_priority_active" x-transition.duration.300ms @click.outside="hidePriorityOption()" class="select_options">
 							<template x-for="priority in $store.cache.getData('board_priority')" :key="priority.id">
 								<div class="option" @click="option_priority = priority; hidePriorityOption()">
-									<img width="16" height="16" :src="'/static/images/icons/' + priority.image" alt="priority">
+									<img width="16" height="16" :src="'/static/icons/filled/' + priority.image" alt="priority">
 									<span x-text="'Prioridad ' + priority.name"></span>
 								</div>
 							</template>
@@ -161,23 +161,6 @@
 					<div class="modal-grabber-bar"></div>
 				</div>
 
-				<!--<div class="selects">
-					<div class="custom_select">
-						<div class="selected_option" @click="tooglePriorityOption()">
-							<img width="16" height="16" src="/static/images/icons/tag.svg" alt="user">
-							<span>Categoría</span>
-						</div>
-
-						<div x-show="option_priority_active" x-transition.duration.300ms @click.outside="hidePriorityOption()" class="select_options">
-							<template x-for="priority in $store.cache.getData('board_priority')" :key="priority.id">
-								<div class="option" @click="option_priority = priority; hidePriorityOption()">
-									<img width="16" height="16" :src="'/static/images/icons/' + priority.image" alt="priority">
-									<span x-text="'Prioridad ' + priority.name"></span>
-								</div>
-							</template>
-						</div>
-					</div>
-				</div>-->
 				<textarea x-model="add_issue.title" class="title" placeholder="Añade aquí el título de la actividad" ></textarea>
 
 				<textarea x-model="add_issue.description" class="text-area glass2" placeholder="Descripción (opcional)"></textarea>
@@ -185,14 +168,14 @@
 				<div class="selects">
 					<div class="custom_select">
 						<div class="selected_option" @click="tooglePriorityOption()">
-							<img width="16" height="16" :src="'/static/images/icons/' + option_priority?.image" alt="user">
+							<img width="16" height="16" :src="'/static/icons/filled/' + option_priority?.image" alt="user">
 							<span x-text="'Prioridad ' + option_priority?.name"></span>
 						</div>
 
 						<div x-show="option_priority_active" x-transition.duration.300ms @click.outside="hidePriorityOption()" class="select_options">
 							<template x-for="priority in $store.cache.getData('board_priority')" :key="priority.id">
 								<div class="option" @click="option_priority = priority; hidePriorityOption()">
-									<img width="16" height="16" :src="'/static/images/icons/' + priority.image" alt="priority">
+									<img width="16" height="16" :src="'/static/icons/filled/' + priority.image" alt="priority">
 									<span x-text="'Prioridad ' + priority.name"></span>
 								</div>
 							</template>

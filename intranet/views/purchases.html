@@ -3,33 +3,33 @@
         <div class="controls">
 			<div class="toggle-collapse frost" @click="$store.cache.toogleMoreMenu()" @click.outside="$store.cache.hideMoreMenu()">
 				<div class="item">
-					<img alt="" width="24" height="24" src="/static/images/icons/more.svg">
+					<img alt="" width="24" height="24" src="/static/icons/line/more.svg">
 				</div>
 			</div>
 
 			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
 				<div class="item" @click="search()">
-					<img alt="" width="18" height="18" src="/static/images/icons/find.svg">
+					<img alt="" width="18" height="18" src="/static/icons/line/find.svg">
 				</div>
 				<div class="item" @click="viewHistory()">
-					<img alt="" width="18" height="18" src="/static/images/icons/history.svg">
+					<img alt="" width="18" height="18" src="/static/icons/line/history.svg">
 				</div>
 			</div>
 
 			<div class="left mobile-hide frost">
 				<div class="item" @click="search()">
-					<img alt="" width="20" height="20" src="/static/images/icons/find.svg">
+					<img alt="" width="20" height="20" src="/static/icons/line/find.svg">
 					<span>Buscar</span>
 				</div>
 				<div class="item" @click="viewHistory()">
-					<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
+					<img alt="" width="20" height="20" src="/static/icons/line/history.svg">
 					<span>Historial</span>
 				</div>
 			</div>
 
 			<div class="right frost-dark">
 				<div class="item" @click="addPurchase()">
-					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/add.svg">
 					<span>Añadir</span>
 				</div>
 			</div>
@@ -39,7 +39,7 @@
 			<template x-for="group in $store.cache.getData('purchases_dashboard')" :key="group.status_id">
 				<div class="group">
 					<div class="group-head">
-						<img alt="" width="20" height="20" :src="'/static/images/purchases/' + (statusIcons[group.status_slug] || 'pending.svg')">
+						<img alt="" width="20" height="20" :src="'/static/icons/module/purchases/' + (statusIcons[group.status_slug] || 'pending.svg')">
 						<span class="group-name" x-text="group.status_name"></span>
 						<span class="group-count" x-text="group.requests.length"></span>
 					</div>
@@ -48,7 +48,7 @@
 						<div class="req-card white hover-opacity" @click="viewPurchase(purchase)">
 							<div class="req-top">
 								<template x-if="purchase.express == 1">
-									<span class="req-id pri" x-html="`PR-${String(purchase.id)}<img title='Caja chica' width='16' height='16' src='/static/images/icons/filled/dollars.svg'>`"></span>
+									<span class="req-id pri" x-html="`PR-${String(purchase.id)}<img title='Caja chica' width='16' height='16' src='/static/icons/filled/dollars.svg'>`"></span>
 								</template>
 
 								<template x-if="purchase.express == 0">
@@ -65,7 +65,7 @@
 									<span class="req-dept" x-text="purchase.requester_department"></span>
 								</div>
 							</div>
-							<img class="req-urgency" :src="`/static/images/icons/${purchase.urgency_slug}.svg`" :title="`Urgencia ${purchase.urgency_name}`" width="16" height="16">
+							<img class="req-urgency" :src="`/static/icons/filled/${purchase.urgency_slug}.svg`" :title="`Urgencia ${purchase.urgency_name}`" width="16" height="16">
 						</div>
 					</template>
 				</div>
@@ -299,14 +299,14 @@
 											<!-- <span class="mobile-hide">URL</span> -->
 										</div>
 										<!-- <button type="button" class="new hover-opacity" @click="addItem()" title="Agregar">
-											<img alt="Agregar" width="16" height="16" src="/static/images/icons/add.svg">
+											<img alt="Agregar" width="16" height="16" src="/static/icons/line/add.svg">
 										</button> -->
 									</div>
 
 									<template x-for="(item, index) in process_purchase.items" :key="index">
 										<div class="items-row">
 											<div class="delete hover-opacity" @click="removeItem(index)" title="Eliminar" >
-												<img alt="eliminar" width="14" height="14" src="/static/images/icons/delete.svg">
+												<img alt="eliminar" width="14" height="14" src="/static/icons/line/delete.svg">
 												<span x-text="index + 1"></span>
 											</div>
 
@@ -378,7 +378,7 @@
 
 						<div class="buttons" x-show="process_purchase.modal === 'add'">
 							<button class="button icon hover-opacity" @click="newRequest()" :class="buttons.add.class">
-								<img alt="update" width="16" height="16" src="/static/images/icons/add.svg">
+								<img alt="update" width="16" height="16" src="/static/icons/line/add.svg">
 								<span x-text="buttons.add.text"></span>
 							</button>
 						</div>	
@@ -386,17 +386,17 @@
 						<div class="buttons"
     						x-show="process_purchase.modal === 'view' && process_purchase.can_manage && process_purchase.status_id > 2 && process_purchase.status_id < 7">
 							<button x-show="process_purchase.status_id == 3" class="button icon lime hover-opacity" @click="progressRequest()" :class="buttons.progress.class">
-								<img alt="eliminar" width="16" height="16" src="/static/images/icons/progress.svg">
+								<img alt="eliminar" width="16" height="16" src="/static/icons/line/progress.svg">
 								<span x-text="buttons.progress.text"></span>
 							</button>
 
 							<button x-show="process_purchase.status_id == 4" class="button icon blue hover-opacity" @click="payRequest()" :class="buttons.payed.class">
-								<img alt="eliminar" width="16" height="16" src="/static/images/icons/payed.svg">
+								<img alt="eliminar" width="16" height="16" src="/static/icons/line/payed.svg">
 								<span x-text="buttons.payed.text"></span>
 							</button>
 
 							<button x-show="process_purchase.status_id == 5" class="button icon violet hover-opacity" @click="invoiceRequest()" :class="buttons.invoiced.class">
-								<img alt="update" width="16" height="16" src="/static/images/icons/invoiced.svg">
+								<img alt="update" width="16" height="16" src="/static/icons/line/invoice.svg">
 								<span x-text="buttons.invoiced.text"></span>
 							</button>
 
@@ -404,43 +404,43 @@
 								class="button icon teal hover-opacity"
 								@click="deliverRequest()"
 								:class="buttons.delivered.class">
-								<img alt="entregado" width="16" height="16" src="/static/images/icons/deliver.svg">
+								<img alt="entregado" width="16" height="16" src="/static/icons/line/deliver.svg">
 								<span x-text="buttons.delivered.text"></span>
 							</button>
 						</div>
 
 						<div class="buttons" x-show="process_purchase.modal === 'edit'">
 							<button class="button icon black hover-opacity" @click="deleteRequest()" :class="buttons.remove.class">
-								<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
+								<img alt="eliminar" width="16" height="16" src="/static/icons/line/delete.svg">
 								<span x-text="buttons.remove.text"></span>
 							</button>
 
 							<button class="button icon hover-opacity" @click="updateRequest()" :class="buttons.update.class">
-								<img alt="update" width="16" height="16" src="/static/images/icons/update.svg">
+								<img alt="update" width="16" height="16" src="/static/icons/line/update.svg">
 								<span x-text="buttons.update.text"></span>
 							</button>
 						</div>
 
 						<div class="buttons" x-show="process_purchase.modal === 'approve'">
 							<button class="button icon black hover-opacity" @click="rejectRequest()" :class="buttons.reject.class">
-								<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
+								<img alt="eliminar" width="16" height="16" src="/static/icons/line/delete.svg">
 								<span x-text="buttons.reject.text"></span>
 							</button>
 
 							<button class="button icon hover-opacity" @click="approveRequest()" :class="buttons.approve.class">
-								<img alt="update" width="16" height="16" src="/static/images/icons/approve.svg">
+								<img alt="update" width="16" height="16" src="/static/icons/line/approve.svg">
 								<span x-text="buttons.approve.text"></span>
 							</button>
 						</div>
 
 						<div class="buttons" x-show="process_purchase.modal === 'delete'">
 							<button class="button icon red hover-opacity" @click="deleteRequest()" :class="buttons.remove.class">
-								<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
+								<img alt="eliminar" width="16" height="16" src="/static/icons/line/delete.svg">
 								<span x-text="buttons.remove.text"></span>
 							</button>
 
 							<button x-show="process_purchase.can_manage && (process_purchase.express || process_purchase.status_id == 2)" class="button icon lime hover-opacity" @click="progressRequest()" :class="buttons.progress.class">
-								<img alt="eliminar" width="16" height="16" src="/static/images/icons/progress.svg">
+								<img alt="eliminar" width="16" height="16" src="/static/icons/line/progress.svg">
 								<span x-text="buttons.progress.text"></span>
 							</button>
 						</div>
@@ -471,7 +471,7 @@
 								<textarea type="text" x-model="process_purchase.message" placeholder="Ingresa un mensaje..." @keydown.enter="handleEnterSend($event)"></textarea>
 							</label>
 							<div class="send hover-opacity" @click="sendChat()" :class="{'disabled': process_purchase.message == '' || process_purchase.message === undefined}">
-								<img alt="enviar" width="16" height="16" src="/static/images/icons/send.svg">
+								<img alt="enviar" width="16" height="16" src="/static/icons/filled/send.svg">
 							</div>
 						</div>
 					</div>
@@ -490,13 +490,13 @@
 			x-cloak>
 			<div class="modal little" @click.stop>
 				<div class="bottom glass2">
-					<img alt="" class="ico" width="20" height="20" src="/static/images/icons/find.svg">
+					<img alt="" class="ico" width="20" height="20" src="/static/icons/line/find.svg">
 					<input type="text"
 						x-model="find_query"
 						placeholder="Nombre de usuario, título de ítem"
 						@input="findPurchases()">
 					<div class="hover-opacity clear" x-show="find_query" @click="find_query = ''; finded_purchases = [];">
-						<img alt="" width="12" height="12" src="/static/images/x.svg">
+						<img alt="" width="12" height="12" src="/static/icons/filled/x.svg">
 					</div>
 				</div>
 				<div class="orders glass2" x-show="finded_purchases.length > 0">
@@ -504,7 +504,7 @@
 						<div class="req-card white hover-opacity" @click="$store.cache.hideLastModal(); viewPurchase(p)">
 							<div class="req-top">
 								<template x-if="p.express == 1">
-									<span class="req-id pri" x-html="`PR-${String(p.id)}<img title='Caja chica' width='16' height='16' src='/static/images/icons/filled/dollars.svg'>`"></span>
+									<span class="req-id pri" x-html="`PR-${String(p.id)}<img title='Caja chica' width='16' height='16' src='/static/icons/filled/dollars.svg'>`"></span>
 								</template>
 								<template x-if="!p.express">
 									<span class="req-id" x-text="`PR-${String(p.id)}`"></span>
@@ -519,7 +519,7 @@
 									<span class="req-dept" x-text="p.requester_department"></span>
 								</div>
 							</div>
-							<img class="req-urgency" :src="`/static/images/icons/${p.urgency_slug}.svg`" :title="`Urgencia ${p.urgency_name}`" width="16" height="16">
+							<img class="req-urgency" :src="`/static/icons/filled/${p.urgency_slug}.svg`" :title="`Urgencia ${p.urgency_name}`" width="16" height="16">
 						</div>
 					</template>
 				</div>
@@ -548,16 +548,16 @@
 
 					<div class="pagination">
 						<span class="white hover-opacity left" :class="current_page > 1 ? '' : 'disabled'" @click="firstPage()">
-							<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
+							<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
 						</span>
 						<span class="white hover-opacity left" :class="current_page > 1 ? '' : 'disabled'" @click="prevPage()">
-							<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
+							<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
 						</span>
 						<span class="white hover-opacity" :class="current_page < total_pages ? '' : 'disabled'" @click="nextPage()">
-							<img alt="" src="/static/images/icons/right.svg" width="20" height="20">
+							<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
 						</span>
 						<span class="white hover-opacity" :class="current_page < total_pages ? '' : 'disabled'" @click="lastPage()">
-							<img alt="" src="/static/images/icons/rightfull.svg" width="20" height="20">
+							<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
 						</span>
 					</div>
 				</div>

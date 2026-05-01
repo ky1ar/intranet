@@ -99,4 +99,5 @@ class Paths:
     IMPORTS = os.path.abspath("/shared_uploads/imports/")
     SAFEBUY = os.path.abspath("/shared_uploads/safebuy/")
     LEAVES = os.path.abspath("/shared_uploads/leaves/")
+    REFUND = os.path.abspath("/shared_uploads/refund/")
 

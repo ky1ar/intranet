@@ -3,30 +3,30 @@
         <div class="controls">
 			<div class="left frost">
 				<div class="item" @click="viewLeaves()">
-					<img alt="" width="20" height="20" src="/static/images/icons/leave.svg">
+					<img alt="" width="20" height="20" src="/static/icons/line/leave.svg">
 					<span>Licencias</span>
 				</div>
 
 				<div class="item" @click="openSalaryModal()" x-show="$store.cache.hasPermission('attendance', 'salary_admin')">
-					<img alt="" width="20" height="20" src="/static/images/icons/salary.svg">
+					<img alt="" width="20" height="20" src="/static/icons/line/salary.svg">
 					<span>Salarios</span>
 				</div>
 			</div>
 
 			<div class="left frost">
 				<div class="item" @click="prev()" x-show="offset >= -2">
-					<img class="flip" alt="prev" src="/static/images/icons/right.svg" width="20" height="20">
+					<img class="flip" alt="prev" src="/static/icons/line/right.svg" width="20" height="20">
 				</div>
 
 				<div class="item date" @click="today()" x-text="$store.cache.getData('attendance_period')?.period?.name"></div>
 				<div class="item" @click="next()" x-show="offset < 0">
-					<img alt="next" src="/static/images/icons/right.svg" width="20" height="20">
+					<img alt="next" src="/static/icons/line/right.svg" width="20" height="20">
 				</div>
 			</div>
 
 			<div class="right frost-dark" x-show="canLoadMarks()">
 				<div class="item" @click="xlsProcess()">
-					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/add.svg">
 					<span>Cargar</span>
 					<input
 						type="file"
@@ -75,7 +75,7 @@
 								@click="canEditMarks() && hasIncomplete(day) && showEdit(day)"
 								:style="(canEditMarks() && hasIncomplete(day)) ? 'cursor:pointer' : ''"
 							>
-								<img x-show="showLate(day)" class="late" alt="" width="16" height="16" src="/static/images/icons/late.svg" x-transition.opacity.duration.150ms>
+								<img x-show="showLate(day)" class="late" alt="" width="16" height="16" src="/static/icons/filled/late.svg" x-transition.opacity.duration.150ms>
 
 								<span class="number"
 									:class="isToday(day) ? 'today' : ''"
@@ -159,7 +159,7 @@
 										<div class="wk-day-label">
 											<span class="wk-day-abbr" x-text="['Lu','Ma','Mi','Ju','Vi','Sa'][di]"></span>
 											<span class="wk-day-num" :class="isToday(day) ? 'today' : ''" x-text="day.label"></span>
-											<img x-show="showLate(day)" alt="" width="12" height="12" src="/static/images/icons/late.svg">
+											<img x-show="showLate(day)" alt="" width="12" height="12" src="/static/icons/filled/late.svg">
 										</div>
 										<div class="wk-day-items">
 											<template x-if="dayItems(day).length === 0">
@@ -189,13 +189,13 @@
 			<div class="right">
 				<div class="card glass user" x-show="canViewOthers()">
 					<span class="litle">
-						<img alt="" width="16" height="16" src="/static/images/icons/user.svg">
+						<img alt="" width="16" height="16" src="/static/icons/filled/user.svg">
 						Usuario
 					</span>
 
 					<div class="custom_select white">
 						<div class="selectors" @click.stop="prevUser()" title="Anterior">
-							<img class="flip" alt="prev" src="/static/images/icons/right.svg" width="20" height="20">
+							<img class="flip" alt="prev" src="/static/icons/line/right.svg" width="20" height="20">
 						</div>
 						
 						<div class="data" @click="toogleUserOption()">
@@ -207,7 +207,7 @@
 						</div>
 
 						<div class="selectors" @click.stop="nextUser()" title="Siguiente">
-							<img alt="prev" src="/static/images/icons/right.svg" width="20" height="20">
+							<img alt="prev" src="/static/icons/line/right.svg" width="20" height="20">
 						</div>
 						
 						<div x-show="option_user_active" x-transition.duration.300ms @click.outside="hideUserOption()" class="select_options">
@@ -235,13 +235,13 @@
 
 				<div class="card glass salary" x-show="$store.cache.hasPermission('attendance', 'view_salary') && salary_data">
 					<span class="litle">
-						<img alt="" width="16" height="16" src="/static/images/icons/wallet.svg">
+						<img alt="" width="16" height="16" src="/static/icons/filled/wallet.svg">
 						Sueldo del mes
 					</span>
 					<span class="amount" x-show="show_salary" x-text="`S/ ${salary_data?.final_salary?.toFixed(2) || '0.00'}`"></span>
 					<span class="amount" x-show="!show_salary">S/ ********</span>
 					<div class="white eye hover-opacity" @click="show_salary = !show_salary">
-						<img alt="" width="16" height="16" src="/static/images/icons/eye.svg">
+						<img alt="" width="16" height="16" src="/static/icons/line/eye.svg">
 					</div>
 
 					<div class="final" x-show="show_salary">
@@ -276,13 +276,13 @@
 				</div>
 				<div class="card glass stats">
 					<span class="litle">
-						<img alt="" width="18" height="18" src="/static/images/icons/filled/tag.svg">
+						<img alt="" width="18" height="18" src="/static/icons/filled/tag.svg">
 						Resumen del mes
 					</span>
 
 					<div class="sub white">
 						<div class="target">
-							<img alt="" width="16" height="16" src="/static/images/icons/accept.svg">
+							
 							<span>Periodo</span>
 						</div>
 
@@ -296,7 +296,7 @@
 
 					<div class="sub white">
 						<div class="target">
-							<img alt="" width="16" height="16" src="/static/images/icons/accept.svg">
+							
 							<span>Tardanzas y tolerancia</span>
 						</div>
 						<div class="item">
@@ -329,7 +329,7 @@
 
 					<div class="sub white">
 						<div class="target">
-							<img alt="" width="16" height="16" src="/static/images/icons/accept.svg">
+							
 							<span>Objetivo</span>
 						</div>
 						
@@ -345,12 +345,12 @@
 
 				<div class="sub white">
 					<div class="target">
-						<img alt="" width="16" height="16" src="/static/images/icons/accept.svg">
+						
 						<span>Licencias</span>
 						<template x-if="$store.cache.hasPermission('attendance', 'leave_balance')">
 							<div class="leave-adj-toggle hover-opacity" @click="leave_adj_open = !leave_adj_open"
 								title="Ajustar saldo de vacaciones">
-								<img alt="" width="12" height="12" src="/static/images/icons/edit.svg" style="opacity:0.4">
+								<img alt="" width="12" height="12" src="/static/icons/line/edit.svg" style="opacity:0.4">
 							</div>
 						</template>
 					</div>
@@ -393,7 +393,7 @@
 
 					<div class="sub white">
 						<div class="target">
-							<img alt="" width="16" height="16" src="/static/images/icons/accept.svg">
+							
 							<span>Cumplimiento final</span>
 						</div>
 						<div class="item">
@@ -413,7 +413,7 @@
 								<span class="name">Antonio Moll</span>
 								<span class="department">Gerencia</span>
 							</div>
-							<img class="like" alt="" width="16" height="16" src="/static/images/icons/like2.svg">
+							<img class="like" alt="" width="16" height="16" src="/static/icons/filled/like.svg">
 						</div>
 
 						<div class="user">
@@ -422,7 +422,7 @@
 								<span class="name">Leslie Gallegos</span>
 								<span class="department">Administración</span>
 							</div>
-							<img class="like" alt="" width="16" height="16" src="/static/images/icons/likeline.svg">
+							<img class="like" alt="" width="16" height="16" src="/static/icons/line/like.svg">
 						</div>
 						
 						<div class="user">
@@ -431,7 +431,7 @@
 								<span class="name">Silvia Tejeda</span>
 								<span class="department">Marketing</span>
 							</div>
-							<img class="like" alt="" width="16" height="16" src="/static/images/icons/likeline.svg">
+							<img class="like" alt="" width="16" height="16" src="/static/icons/line/like.svg">
 						</div>
 
 						<div class="user">
@@ -440,7 +440,7 @@
 								<span class="name">Lucy Chapoñan</span>
 								<span class="department">Soporte</span>
 							</div>
-							<img class="like" alt="" width="16" height="16" src="/static/images/icons/dislike.svg">
+							<img class="like" alt="" width="16" height="16" src="/static/icons/line/dislike.svg">
 						</div>
 
 						<div class="user">
@@ -449,7 +449,7 @@
 								<span class="name">Kevin Trejo</span>
 								<span class="department">Logistica</span>
 							</div>
-							<img class="like" alt="" width="16" height="16" src="/static/images/icons/like2.svg">
+							<img class="like" alt="" width="16" height="16" src="/static/icons/filled/like.svg">
 						</div>
 					</div>
 				</div>
@@ -478,17 +478,17 @@
 
 						<div class="buttons">
 							<button class="button  hardblue hover-opacity" @click="medicalModal()">
-								<img alt="" width="16" height="16" src="/static/images/icons/medical.svg">
+								<img alt="" width="16" height="16" src="/static/icons/line/medical.svg">
 								D. Médico
 							</button>
 
 							<button class="button black hover-opacity" @click="permitModal()">
-								<img alt="" width="16" height="16" src="/static/images/icons/leave.svg">
+								<img alt="" width="16" height="16" src="/static/icons/line/leave.svg">
 								Permiso
 							</button>
 
 							<button class="button hover-opacity" @click="vacationModal()">
-								<img alt="" width="16" height="16" src="/static/images/icons/vacation.svg">
+								<img alt="" width="16" height="16" src="/static/icons/line/vacation.svg">
 								Vacaciones
 							</button>
 						</div>
@@ -517,7 +517,7 @@
 										</div>
 										<div class="type">
 											<img
-												:src="`/static/images/icons/${
+												:src="`/static/icons/line/${
 													leave.request_type === 'Vacaciones' ? 'vacation' :
 													leave.request_type === 'Permiso'    ? 'leave' :
 													'medical'
@@ -542,31 +542,31 @@
 
 										<!-- Permiso -->
 										<div class="view-leave" x-show="['approve','view'].includes(attendance_form.modal) && attendance_form.type == 'permit'">
-											<div class="row"><div class="label"><img alt="" src="/static/images/icons/filled/calendar.svg" width="16" height="16"><span>Fecha</span></div><div class="value" x-text="attendance_form.start_date_text"></div></div>
-											<div class="row"><div class="label"><img alt="" src="/static/images/icons/filled/clock.svg" width="16" height="16"><span>Duración</span></div><div class="value" x-text="attendance_form.duration_name"></div></div>
-											<div class="row" x-show="attendance_form.leave_type && attendance_form.leave_type != 'Otro'"><div class="label"><img alt="" src="/static/images/icons/filled/tag.svg" width="16" height="16"><span>Motivo</span></div><div class="value" x-text="attendance_form.leave_type"></div></div>
-											<div class="row" x-show="attendance_form.leave_type == 'Otro'"><div class="label"><img alt="" src="/static/images/icons/filled/tag.svg" width="16" height="16"><span>Motivo</span></div><div class="value" x-text="attendance_form.leave_type_detail"></div></div>
-											<div class="row" x-show="attendance_form.motive"><div class="label"><img alt="" src="/static/images/icons/filled/notes.svg" width="16" height="16"><span>Detalle</span></div><div class="value" x-text="attendance_form.motive"></div></div>
-											<div class="row" x-show="attendance_form.recovery_plan"><div class="label"><img alt="" src="/static/images/icons/filled/notes.svg" width="16" height="16"><span>Plan de recuperación</span></div><div class="value" x-text="attendance_form.recovery_plan"></div></div>
+											<div class="row"><div class="label"><img alt="" src="/static/icons/filled/calendar.svg" width="16" height="16"><span>Fecha</span></div><div class="value" x-text="attendance_form.start_date_text"></div></div>
+											<div class="row"><div class="label"><img alt="" src="/static/icons/filled/clock.svg" width="16" height="16"><span>Duración</span></div><div class="value" x-text="attendance_form.duration_name"></div></div>
+											<div class="row" x-show="attendance_form.leave_type && attendance_form.leave_type != 'Otro'"><div class="label"><img alt="" src="/static/icons/filled/tag.svg" width="16" height="16"><span>Motivo</span></div><div class="value" x-text="attendance_form.leave_type"></div></div>
+											<div class="row" x-show="attendance_form.leave_type == 'Otro'"><div class="label"><img alt="" src="/static/icons/filled/tag.svg" width="16" height="16"><span>Motivo</span></div><div class="value" x-text="attendance_form.leave_type_detail"></div></div>
+											<div class="row" x-show="attendance_form.motive"><div class="label"><img alt="" src="/static/icons/filled/notes.svg" width="16" height="16"><span>Detalle</span></div><div class="value" x-text="attendance_form.motive"></div></div>
+											<div class="row" x-show="attendance_form.recovery_plan"><div class="label"><img alt="" src="/static/icons/filled/notes.svg" width="16" height="16"><span>Plan de recuperación</span></div><div class="value" x-text="attendance_form.recovery_plan"></div></div>
 										</div>
 
 										<!-- Vacaciones -->
 										<div class="view-leave" x-show="['approve','view'].includes(attendance_form.modal) && attendance_form.type == 'vacation'">
-											<div class="row"><div class="label"><img alt="" src="/static/images/icons/filled/calendar.svg" width="16" height="16"><span>Inicio</span></div><div class="value" x-text="attendance_form.start_date_text"></div></div>
-											<div class="row"><div class="label"><img alt="" src="/static/images/icons/filled/calendar.svg" width="16" height="16"><span>Fin</span></div><div class="value" x-text="attendance_form.end_date_text"></div></div>
-											<div class="row" x-show="attendance_form.assigned_name"><div class="label"><img alt="" src="/static/images/icons/user.svg" width="16" height="16"><span>Responsable</span></div><div class="value" x-text="attendance_form.assigned_name"></div></div>
-											<div class="row" x-show="attendance_form.description"><div class="label"><img alt="" src="/static/images/icons/filled/notes.svg" width="16" height="16"><span>Notas</span></div><div class="value" x-text="attendance_form.description"></div></div>
+											<div class="row"><div class="label"><img alt="" src="/static/icons/filled/calendar.svg" width="16" height="16"><span>Inicio</span></div><div class="value" x-text="attendance_form.start_date_text"></div></div>
+											<div class="row"><div class="label"><img alt="" src="/static/icons/filled/calendar.svg" width="16" height="16"><span>Fin</span></div><div class="value" x-text="attendance_form.end_date_text"></div></div>
+											<div class="row" x-show="attendance_form.assigned_name"><div class="label"><img alt="" src="/static/icons/filled/user.svg" width="16" height="16"><span>Responsable</span></div><div class="value" x-text="attendance_form.assigned_name"></div></div>
+											<div class="row" x-show="attendance_form.description"><div class="label"><img alt="" src="/static/icons/filled/notes.svg" width="16" height="16"><span>Notas</span></div><div class="value" x-text="attendance_form.description"></div></div>
 										</div>
 
 										<!-- Descanso Médico -->
 										<div class="view-leave" x-show="['approve','view'].includes(attendance_form.modal) && attendance_form.type == 'medical'">
-											<div class="row"><div class="label"><img alt="" src="/static/images/icons/filled/calendar.svg" width="16" height="16"><span>Inicio</span></div><div class="value" x-text="attendance_form.start_date_text"></div></div>
-											<div class="row"><div class="label"><img alt="" src="/static/images/icons/filled/calendar.svg" width="16" height="16"><span>Fin</span></div><div class="value" x-text="attendance_form.end_date_text"></div></div>
-											<div class="row" x-show="attendance_form.description"><div class="label"><img alt="" src="/static/images/icons/filled/notes.svg" width="16" height="16"><span>Detalle</span></div><div class="value" x-text="attendance_form.description"></div></div>
+											<div class="row"><div class="label"><img alt="" src="/static/icons/filled/calendar.svg" width="16" height="16"><span>Inicio</span></div><div class="value" x-text="attendance_form.start_date_text"></div></div>
+											<div class="row"><div class="label"><img alt="" src="/static/icons/filled/calendar.svg" width="16" height="16"><span>Fin</span></div><div class="value" x-text="attendance_form.end_date_text"></div></div>
+											<div class="row" x-show="attendance_form.description"><div class="label"><img alt="" src="/static/icons/filled/notes.svg" width="16" height="16"><span>Detalle</span></div><div class="value" x-text="attendance_form.description"></div></div>
 											<div class="row" x-show="medical_attachments.length > 0">
 												<div class="pair-content" style="margin-bottom:.5rem;">
 													<div class="pair">
-														<img alt="" width="14" height="14" src="/static/images/icons/filled/clip.svg">
+														<img alt="" width="14" height="14" src="/static/icons/filled/clip.svg">
 														<span class="black">Certificados</span>
 														<span class="text" x-text="`(${medical_attachments.length})`"></span>
 													</div>
@@ -597,8 +597,8 @@
 										<!-- Vacaciones edit -->
 										<div class="edit-content" x-show="attendance_form.modal === 'edit' && attendance_form.type == 'vacation'">
 											<div class="field-row">
-												<label class=""><img alt="" src="/static/images/icons/calendar.svg" width="16" height="16"><span style="white-space:nowrap">Inicio</span><input type="date" x-model="attendance_form.start_date" :min="minVacationDate" style="flex:1;background:none;border:none;outline:none;"></label>
-												<label class=""><img alt="" src="/static/images/icons/calendar.svg" width="16" height="16"><span style="white-space:nowrap">Fin</span><input type="date" x-model="attendance_form.end_date" :min="endDateMin()" :max="endDateMax()" style="flex:1;background:none;border:none;outline:none;"></label>
+												<label class=""><img alt="" src="/static/icons/line/calendar.svg" width="16" height="16"><span style="white-space:nowrap">Inicio</span><input type="date" x-model="attendance_form.start_date" :min="minVacationDate" style="flex:1;background:none;border:none;outline:none;"></label>
+												<label class=""><img alt="" src="/static/icons/line/calendar.svg" width="16" height="16"><span style="white-space:nowrap">Fin</span><input type="date" x-model="attendance_form.end_date" :min="endDateMin()" :max="endDateMax()" style="flex:1;background:none;border:none;outline:none;"></label>
 											</div>
 											<div class="field-row">
 												<label class="flex2-3">
@@ -617,13 +617,13 @@
 										<div class="edit-content" x-show="attendance_form.modal === 'edit' && attendance_form.type == 'permit'">
 											<div class="field-row">
 												<label class="">
-													<img alt="" src="/static/images/icons/calendar.svg" width="16" height="16">
+													<img alt="" src="/static/icons/line/calendar.svg" width="16" height="16">
 													<span style="white-space:nowrap">Fecha</span>
 													<input type="date" x-model="attendance_form.start_date" :min="minLeaveDate" style="flex:1;background:none;border:none;outline:none;">
 												</label>
 
 												<label class="">
-													<img alt="" src="/static/images/icons/clock.svg" width="14" height="14">
+													<img alt="" src="/static/icons/line/clock.svg" width="14" height="14">
 													<select x-model="attendance_form.duration_id">
 														<option value="null" disabled>Duración</option>
 														<template x-for="duration in $store.cache.getData('attendance_duration')" :key="duration.id"><option :value="duration.id" x-text="duration.name"></option></template>
@@ -648,20 +648,20 @@
 										<!-- Médico edit -->
 										<div class="edit-content" x-show="attendance_form.modal === 'edit' && attendance_form.type == 'medical'">
 											<div class="field-row">
-												<label class=""><img alt="" src="/static/images/icons/calendar.svg" width="16" height="16"><span style="white-space:nowrap">Inicio</span><input type="date" x-model="attendance_form.start_date" style="flex:1;background:none;border:none;outline:none;"></label>
-												<label class=""><img alt="" src="/static/images/icons/calendar.svg" width="16" height="16"><span style="white-space:nowrap">Fin</span><input type="date" x-model="attendance_form.end_date" :min="attendance_form.start_date" style="flex:1;background:none;border:none;outline:none;"></label>
+												<label class=""><img alt="" src="/static/icons/line/calendar.svg" width="16" height="16"><span style="white-space:nowrap">Inicio</span><input type="date" x-model="attendance_form.start_date" style="flex:1;background:none;border:none;outline:none;"></label>
+												<label class=""><img alt="" src="/static/icons/line/calendar.svg" width="16" height="16"><span style="white-space:nowrap">Fin</span><input type="date" x-model="attendance_form.end_date" :min="attendance_form.start_date" style="flex:1;background:none;border:none;outline:none;"></label>
 											</div>
 											<textarea placeholder="Notas (opcional)" x-model="attendance_form.description" class="text-area"></textarea>
 											<div class="medical-attachments">
 												<label class="medical-upload-btn white hover-opacity">
-													<img alt="" src="/static/images/icons/add.svg" width="14" height="14">
+													<img alt="" src="/static/icons/line/add.svg" width="14" height="14">
 													<span>Adjuntar certificado médico (PDF, imágenes)</span>
 													<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.gif" @change="medical_files=[...medical_files,...Array.from($event.target.files)];$event.target.value=''" style="display:none;">
 												</label>
 												<div class="medical-files-list" x-show="medical_attachments.length > 0 || medical_files.length > 0">
 													<template x-for="att in medical_attachments" :key="`existing-${att.id}`">
 														<div class="medical-file-item glass2">
-															<img alt="" src="/static/images/icons/filled/clip.svg" width="14" height="14" onerror="this.style.display='none'">
+															<img alt="" src="/static/icons/filled/clip.svg" width="14" height="14" onerror="this.style.display='none'">
 															<span class="medical-file-name" x-text="att.original_name"></span>
 															<span class="medical-file-size" x-text="(att.size_bytes/1024).toFixed(1)+' KB'"></span>
 															<span class="medical-file-remove hover-opacity" @click="deleteLeaveAttachment(att.id)">✕</span>
@@ -669,7 +669,7 @@
 													</template>
 													<template x-for="(f, idx) in medical_files" :key="`new-${idx}`">
 														<div class="medical-file-item glass2">
-															<img alt="" src="/static/images/icons/filled/clip.svg" width="14" height="14" onerror="this.style.display='none'">
+															<img alt="" src="/static/icons/filled/clip.svg" width="14" height="14" onerror="this.style.display='none'">
 															<span class="medical-file-name" x-text="f.name"></span>
 															<span class="medical-file-size" x-text="(f.size/1024).toFixed(1)+' KB'"></span>
 															<span class="medical-file-remove hover-opacity" @click="medical_files=medical_files.filter((_,i)=>i!==idx)">✕</span>
@@ -683,11 +683,11 @@
 										<!-- Botones -->
 										<div class="buttons" x-show="attendance_form.modal === 'approve'">
 											<button class="button icon red hover-opacity" @click="rejectRequest()" :class="buttons.reject.class">
-												<img alt="" width="18" height="18" src="/static/images/icons/dislike.svg">
+												<img alt="" width="18" height="18" src="/static/icons/line/dislike.svg">
 												<span x-text="buttons.reject.text"></span>
 											</button>
 											<button class="button icon green hover-opacity" @click="approveRequest()" :class="buttons.approve.class">
-												<img alt="" width="18" height="18" src="/static/images/icons/like.svg">
+												<img alt="" width="18" height="18" src="/static/icons/line/like.svg">
 												<span x-text="buttons.approve.text"></span>
 											</button>
 										</div>
@@ -765,12 +765,12 @@
 					<div class="modal-content" x-show="attendance_form.type == 'vacation'">
 						<div class="fields">
 							<label class="white">
-								<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
+								<img alt="repeat" src="/static/icons/line/calendar.svg" width="16" height="16">
 								<span style="cursor:pointer;flex:1;line-height:2.5rem;" @click="if($refs.start_date.showPicker){$refs.start_date.showPicker()}else{$refs.start_date.focus()}" x-text="dateLabel(attendance_form.start_date, 'Inicio de vacaciones')"></span>
 								<input x-ref="start_date" type="date" x-model="attendance_form.start_date" :min="minVacationDate" @change="attendance_form.end_date='';$nextTick(()=>{if($refs.end_date?.showPicker){$refs.end_date.showPicker()}else{$refs.end_date?.focus()}})" style="position:absolute;inset:0;opacity:0;pointer-events:none;">
 							</label>
 							<label class="white">
-								<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
+								<img alt="repeat" src="/static/icons/line/calendar.svg" width="16" height="16">
 								<span style="cursor:pointer;flex:1;line-height:2.5rem;" @click="if($refs.end_date.showPicker){$refs.end_date.showPicker()}else{$refs.end_date.focus()}" x-text="dateLabel(attendance_form.end_date, 'Fin de vacaciones')"></span>
 								<input x-ref="end_date" type="date" x-model="attendance_form.end_date" :min="endDateMin()" :max="endDateMax()" style="position:absolute;inset:0;opacity:0;pointer-events:none;">
 							</label>
@@ -792,12 +792,12 @@
 					<div class="modal-content" x-show="attendance_form.type == 'permit'">
 						<div class="fields">
 							<label class="white">
-								<img alt="repeat" src="/static/images/icons/calendar.svg" width="16" height="16">
+								<img alt="repeat" src="/static/icons/line/calendar.svg" width="16" height="16">
 								<span style="cursor:pointer;flex:1;line-height:2.5rem;" @click="if($refs.start_date_input.showPicker){$refs.start_date_input.showPicker()}else{$refs.start_date_input.focus()}" x-text="dateLabel(attendance_form.start_date, 'Fecha del permiso')"></span>
 								<input x-ref="start_date_input" type="date" x-model="attendance_form.start_date" :min="minLeaveDate" style="position:absolute;inset:0;opacity:0;pointer-events:none;">
 							</label>
 							<label class="white">
-								<img alt="repeat" src="/static/images/icons/clock.svg" width="14" height="14">
+								<img alt="repeat" src="/static/icons/line/clock.svg" width="14" height="14">
 								<select x-model="attendance_form.duration_id">
 									<option value="null" disabled selected>Duración</option>
 									<template x-for="duration in $store.cache.getData('attendance_duration')" :key="duration.id"><option :value="duration.id" x-text="duration.name"></option></template>
@@ -823,12 +823,12 @@
 					<div class="modal-content" x-show="attendance_form.type == 'medical'">
 						<div class="fields">
 							<label class="white">
-								<img alt="" src="/static/images/icons/calendar.svg" width="16" height="16">
+								<img alt="" src="/static/icons/line/calendar.svg" width="16" height="16">
 								<span style="cursor:pointer;flex:1;line-height:2.5rem;" @click="if($refs.med_start_date.showPicker){$refs.med_start_date.showPicker()}else{$refs.med_start_date.focus()}" x-text="dateLabel(attendance_form.start_date, 'Inicio del descanso')"></span>
 								<input x-ref="med_start_date" type="date" x-model="attendance_form.start_date" @change="if(attendance_form.end_date&&attendance_form.end_date<attendance_form.start_date)attendance_form.end_date=attendance_form.start_date" style="position:absolute;inset:0;opacity:0;pointer-events:none;">
 							</label>
 							<label class="white">
-								<img alt="" src="/static/images/icons/calendar.svg" width="16" height="16">
+								<img alt="" src="/static/icons/line/calendar.svg" width="16" height="16">
 								<span style="cursor:pointer;flex:1;line-height:2.5rem;" @click="if($refs.med_end_date.showPicker){$refs.med_end_date.showPicker()}else{$refs.med_end_date.focus()}" x-text="dateLabel(attendance_form.end_date, 'Fin del descanso')"></span>
 								<input x-ref="med_end_date" type="date" x-model="attendance_form.end_date" :min="attendance_form.start_date" style="position:absolute;inset:0;opacity:0;pointer-events:none;">
 							</label>
@@ -836,14 +836,14 @@
 						<textarea placeholder="Notas (opcional)" x-model="attendance_form.description" class="text-area" style="max-width:100%;border:2px solid white;"></textarea>
 						<div class="medical-attachments">
 							<label class="medical-upload-btn white hover-opacity">
-								<img alt="" src="/static/images/icons/add.svg" width="14" height="14">
+								<img alt="" src="/static/icons/line/add.svg" width="14" height="14">
 								<span>Adjuntar certificado médico (PDF, imágenes)</span>
 								<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.gif" @change="medical_files=[...medical_files,...Array.from($event.target.files)];$event.target.value=''" style="display:none;">
 							</label>
 							<div class="medical-files-list" x-show="medical_files.length > 0">
 								<template x-for="(f, idx) in medical_files" :key="idx">
 									<div class="medical-file-item">
-										<img alt="" src="/static/images/icons/filled/clip.svg" width="14" height="14" onerror="this.style.display='none'">
+										<img alt="" src="/static/icons/filled/clip.svg" width="14" height="14" onerror="this.style.display='none'">
 										<span class="medical-file-name" x-text="f.name"></span>
 										<span class="medical-file-size" x-text="(f.size/1024).toFixed(1)+' KB'"></span>
 										<span class="medical-file-remove hover-opacity" @click="medical_files=medical_files.filter((_,i)=>i!==idx)">✕</span>
@@ -904,7 +904,7 @@
 									<div class="white mark-pill" :class="draft_marks[node.index]?.type === 'locked' ? 'locked' : 'new'">
 										<template x-if="draft_marks[node.index]?.type === 'locked'">
 											<div class="box">
-												<img alt="" width="14" height="14" src="/static/images/icons/filled/lock.svg">
+												<img alt="" width="14" height="14" src="/static/icons/filled/lock.svg">
 												<b x-text="draft_marks[node.index]?.time"></b>
 											</div>
 										</template>
@@ -922,7 +922,7 @@
 													title="Quitar"
 													@click="removeNewAt(node.index)"
 													>
-													<img alt="eliminar" width="16" height="16" src="/static/images/icons/delete.svg">
+													<img alt="eliminar" width="16" height="16" src="/static/icons/line/delete.svg">
 												</button>
 											</div>
 										</template>
@@ -969,11 +969,11 @@
 
 					<div class="salary-period-nav white">
 						<div class="hover-opacity" @click="salaryPrevPeriod()">
-							<img class="flip" alt="" src="/static/images/icons/right.svg" width="16" height="16">
+							<img class="flip" alt="" src="/static/icons/line/right.svg" width="16" height="16">
 						</div>
 						<span class="salary-period-name" x-text="salary_period_name || 'Seleccionar periodo'"></span>
 						<div class="hover-opacity" @click="salaryNextPeriod()">
-							<img alt="" src="/static/images/icons/right.svg" width="16" height="16">
+							<img alt="" src="/static/icons/line/right.svg" width="16" height="16">
 						</div>
 					</div>
 
@@ -981,21 +981,21 @@
 						<button class="button black hover-opacity"
 							@click="salaryGenerateFile(1)"
 							title="Generar TXT de Telecrédito para FADIPESA">
-							<img src="/static/images/icons/txt.svg" width="16" height="16" alt="">
+							<img src="/static/icons/line/txt.svg" width="16" height="16" alt="">
 							Fadipesa
 						</button>
 
 						<button class="button black hover-opacity"
 							@click="salaryGenerateFileBbva(2)"
 							title="Generar TXT BBVA Cash para KREAR3D">
-							<img src="/static/images/icons/txt.svg" width="16" height="16" alt="">
+							<img src="/static/icons/line/txt.svg" width="16" height="16" alt="">
 							Krear3D
 						</button>
 
 						<button class="button ico hover-opacity" 
 							@click="salaryCalculateAll()"
 							:disabled="salary_calculating">
-							<img alt="" src="/static/images/icons/calc.svg" width="16" height="16">
+							<img alt="" src="/static/icons/line/calc.svg" width="16" height="16">
 							<span x-text="salary_calculating ? 'Calculando...' : 'Calcular'"></span>
 						</button>
 					</div>
@@ -1084,18 +1084,18 @@
 									<div class="salary-actions-cell">
 										<template x-if="row.status === 'draft' && $store.cache.hasPermission('attendance', 'salary_rrhh')">
 											<button class="salary-approve-btn hover-opacity" @click="salaryApproveRrhh(row.id)" title="Aprobar RRHH">
-												<img src="/static/images/icons/approve_user.svg" width="16" height="16" alt="">
+												<img src="/static/icons/line/approve_user.svg" width="16" height="16" alt="">
 											</button>
 										</template>
 										<template x-if="row.status === 'rrhh_approved' && $store.cache.hasPermission('attendance', 'salary_mgr')">
 											<button class="salary-approve-btn hover-opacity" @click="salaryApproveMgr(row.id)" title="Aprobar Gerencia">
-												<img src="/static/images/icons/approve_user.svg" width="16" height="16" alt="">
+												<img src="/static/icons/line/approve_user.svg" width="16" height="16" alt="">
 											</button>
 										</template>
 										<button class="salary-recalc-btn hover-opacity"
 											@click="salaryRecalculateSingle(row.id)"
 											title="Recalcular (resetea a borrador)">
-												<img src="/static/images/icons/reset.svg" width="16" height="16" alt="">
+												<img src="/static/icons/line/reset.svg" width="16" height="16" alt="">
 										</button>
 									</div>
 								</div>

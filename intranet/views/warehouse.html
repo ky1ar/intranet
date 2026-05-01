@@ -3,25 +3,25 @@
 		<div class="controls">
 			<div class="toggle-collapse frost" @click="openHistoryModal()" x-show="$store.cache.hasPermission('warehouse', 'history')">
 				<div class="item">
-					<img alt="" width="24" height="24" src="/static/images/icons/history.svg">
+					<img alt="" width="24" height="24" src="/static/icons/line/history.svg">
 				</div>
 			</div>
 			
 			<div class="left mobile-hide frost" x-show="$store.cache.hasPermission('warehouse', 'history')">
 				<div class="item" @click="openHistoryModal()">
-					<img alt="" width="20" height="20" src="/static/images/icons/history.svg">
+					<img alt="" width="20" height="20" src="/static/icons/line/history.svg">
 					<span>Historial</span>
 				</div>
 			</div>
 			
 			<div class="right frost-dark" style="margin-left: auto;">
 				<div class="item hover-opacity press" @click="openMapModal()">
-					<img class="invert" alt="" width="18" height="18" src="/static/images/icons/map.svg">
+					<img class="invert" alt="" width="18" height="18" src="/static/icons/line/map.svg">
 					<span>Mapa</span>
 				</div>
 
 				<div class="item hover-opacity press" @click="$refs.excelInput.click()" x-show="$store.cache.hasPermission('warehouse', 'load')" :class="{ 'loading': excel_loading }">
-					<img class="invert" alt="" width="20" height="20" src="/static/images/icons/add.svg">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/add.svg">
 					<span x-text="excel_loading ? 'Cargando...' : 'Cargar'"></span>
 				</div>
 				<input
@@ -38,7 +38,7 @@
 			<div class="main-title" x-text="`Hola, ${$store.cache.user.name.trim().split(/\s+/)[0] || ''}. ¿Que deseas ubicar?`"></div>
 
 			<div class="searchbar glass2">
-				<img alt="" class="ico" width="20" height="20" src="/static/images/icons/find.svg">
+				<img alt="" class="ico" width="20" height="20" src="/static/icons/line/find.svg">
 				<input
 					type="text"
 					x-model="product_input"
@@ -53,11 +53,11 @@
 					@click="product_input = ''; finded_products = []; finded_locations = [];"
 					style="display: none;"
 				>
-					<img alt="" width="12" height="12" src="/static/images/icons/filled/x.svg">
+					<img alt="" width="12" height="12" src="/static/icons/filled/x.svg">
 				</div>
 
 				<div class="hover-opacity press" title="Lector QR" @click="readQR()">
-					<img alt="" width="20" height="20" src="/static/images/icons/qr.svg">
+					<img alt="" width="20" height="20" src="/static/icons/line/qr.svg">
 				</div>
 			</div>
 
@@ -208,11 +208,11 @@
 
 						<div class="buttons">
 							<button class="button button-add black hover-opacity" @click="openMapModal(selected_location?.label)">
-								<img alt="" width="14" height="14" src="/static/images/icons/map.svg" style="filter:invert(1)">
+								<img alt="" width="14" height="14" src="/static/icons/line/map.svg" style="filter:invert(1)">
 								Ubicar
 							</button>
 							<button class="button button-add hover-opacity" @click="openAddStockModal()" x-show="$store.cache.hasPermission('warehouse', 'add')">
-								<img alt="" width="16" height="16" src="/static/images/icons/add.svg">
+								<img alt="" width="16" height="16" src="/static/icons/line/add.svg">
 								Añadir
 							</button>
 						</div>
@@ -241,7 +241,7 @@
 									</div>
 									
 									<div class="white hover-opacity press move-btn" @click.stop="openMoveModal(p)" x-show="$store.cache.hasPermission('warehouse', 'move')" title="Mover stock">
-										<img alt="" width="24" height="24" src="/static/images/icons/move.svg" class="invert">
+										<img alt="" width="24" height="24" src="/static/icons/line/move.svg" class="invert">
 										<span>Mover</span>
 									</div>
 								</div>
@@ -284,7 +284,7 @@
 
 				<div class="modal-content change-box">
 					<div class="add-search-bar white">
-						<img alt="" width="16" height="16" src="/static/images/icons/find.svg" style="opacity:.5;">
+						<img alt="" width="16" height="16" src="/static/icons/line/find.svg" style="opacity:.5;">
 						<input
 							type="text"
 							placeholder="Buscar modelo..."
@@ -298,7 +298,7 @@
 							style="display:none; width:1.5rem; height:1.5rem; align-items:center; justify-content:center;"
 							@click="add_stock_query = ''; add_stock_results = [];"
 						>
-							<img alt="" width="10" height="10" src="/static/images/icons/filled/x.svg">
+							<img alt="" width="10" height="10" src="/static/icons/filled/x.svg">
 						</div>
 					</div>
 
@@ -321,7 +321,7 @@
 								<span class="model" x-text="`${add_stock_selected?.brand} ${add_stock_selected?.model}`"></span>
 							</div>
 							<div class="hover-opacity press" style="margin-left:auto; padding:.25rem;" @click="add_stock_selected = null; add_stock_query = ''; add_stock_results = [];">
-								<img alt="" width="12" height="12" src="/static/images/icons/filled/x.svg">
+								<img alt="" width="12" height="12" src="/static/icons/filled/x.svg">
 							</div>
 						</div>
 					</div>
@@ -425,7 +425,7 @@
 								autocomplete="off"
 							>
 							<div class="hover-opacity press" title="Escanear QR" @click="readQRForMove()">
-								<img alt="" width="20" height="20" src="/static/images/icons/qr.svg">
+								<img alt="" width="20" height="20" src="/static/icons/line/qr.svg">
 							</div>
 						</div>
 					</div>
@@ -467,7 +467,7 @@
 					<span class="wmap-title" x-text="`Plano Piso ${current_floor}`"></span>
 					<div class="buttons">
 						<button class="button button-add hover-opacity" @click="current_floor = current_floor === 1 ? 2 : 1">
-							<img alt="" width="14" height="14" src="/static/images/icons/floor.svg">
+							<img alt="" width="14" height="14" src="/static/icons/line/floor.svg">
 							Cambiar piso
 						</button>
 					</div>
@@ -649,7 +649,7 @@
 					<span>Retirar stock</span>
 					<div class="buttons">
 						<button class="button button-add black hover-opacity" @click="openMapModal(selected_product?.location?.label)">
-							<img alt="" width="14" height="14" src="/static/images/icons/map.svg" style="filter:invert(1)">
+							<img alt="" width="14" height="14" src="/static/icons/line/map.svg" style="filter:invert(1)">
 							Ubicar
 						</button>
 					</div>
@@ -741,7 +741,7 @@
 												<img
 													alt=""
 													width="22" height="22"
-													:src="log.user_image ? `/static/images/uploads/users/${log.user_image}` : '/static/images/icons/user.svg'"
+													:src="log.user_image ? `/static/images/uploads/users/${log.user_image}` : '/static/icons/filled/user.svg'"
 													class="wh-user-img"
 												>
 												<span x-text="formatShortName(log.user) || '—'"></span>
@@ -751,7 +751,7 @@
 												<img
 													alt=""
 													width="32" height="32"
-													:src="log.product_image ? `/static/images/uploads/machines/${log.product_image}` : '/static/images/icons/warehouse.svg'"
+													:src="log.product_image ? `/static/images/uploads/machines/${log.product_image}` : '/static/icons/line/warehouse.svg'"
 													class="wh-product-img"
 												>
 												<span class="wh-product-name" x-text="log.product || 'Carga masiva'"></span>
@@ -777,7 +777,7 @@
 													<img
 														alt=""
 														width="28" height="28"
-														:src="log.product_image ? `/static/images/uploads/machines/${log.product_image}` : '/static/images/icons/warehouse.svg'"
+														:src="log.product_image ? `/static/images/uploads/machines/${log.product_image}` : '/static/icons/line/warehouse.svg'"
 														class="wh-product-img"
 													>
 													<span x-text="log.product || 'Carga masiva'"></span>
@@ -794,7 +794,7 @@
 													<img
 														alt=""
 														width="20" height="20"
-														:src="log.user_image ? `/static/images/uploads/users/${log.user_image}` : '/static/images/icons/user.svg'"
+														:src="log.user_image ? `/static/images/uploads/users/${log.user_image}` : '/static/icons/filled/user.svg'"
 														class="wh-user-img"
 													>
 													<span x-text="formatShortName(log.user) || '—'"></span>
@@ -2584,9 +2584,6 @@
 			padding: 0.25rem 0.5rem 0.25rem 0.75rem;
 			border-radius: 0.75rem;
 			position: relative;
-		}
-		#warehouse .searchbar img {
-			opacity: 0.5;
 		}
 		#warehouse .searchbar input {
 			flex: 1;
