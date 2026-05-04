@@ -14,7 +14,7 @@
 			</div>
 
 			<div class="left frost">
-				<div class="item" @click="prev()" x-show="offset >= -2">
+				<div class="item" @click="prev()" x-show="offset >= -3">
 					<img class="flip" alt="prev" src="/static/images/icons/right.svg" width="20" height="20">
 				</div>
 
@@ -233,47 +233,57 @@
 			
 				</div>
 
-				<div class="card glass salary" x-show="$store.cache.hasPermission('attendance', 'view_salary') && salary_data">
+				<div class="card glass salary" x-show="$store.cache.hasPermission('attendance', 'view_salary') && salary_data?.status === 'approved'">
 					<span class="litle">
 						<img alt="" width="16" height="16" src="/static/images/icons/wallet.svg">
 						Sueldo del mes
 					</span>
-					<span class="amount" x-show="show_salary" x-text="`S/ ${salary_data?.final_salary?.toFixed(2) || '0.00'}`"></span>
-					<span class="amount" x-show="!show_salary">S/ ********</span>
-					<div class="white eye hover-opacity" @click="show_salary = !show_salary">
-						<img alt="" width="16" height="16" src="/static/images/icons/eye.svg">
-					</div>
 
-					<div class="final" x-show="show_salary">
-						<div>
-							<span>Empresa</span>
-							<span x-text="salary_data?.business_name || '-'"></span>
+					<div class="sub white">
+						<span class="amount" x-show="show_salary" x-text="`S/ ${salary_data?.final_salary?.toFixed(2) || '0.00'}`"></span>
+						<span class="amount" x-show="!show_salary">S/ ********</span>
+						<div class="eye hover-opacity" @click="show_salary = !show_salary">
+							<img alt="" width="16" height="16" src="/static/images/icons/eye.svg">
 						</div>
-						<div>
-							<span>Sueldo base</span>
-							<span x-text="`S/ ${salary_data?.base_salary?.toFixed(2) || '0.00'}`"></span>
-						</div>
-						<div>
-							<span>Cumplimiento</span>
-							<span x-text="`${salary_data?.compliance_pct?.toFixed(2) || '0'}%`"></span>
-						</div>
-						<div>
-							<span>Factor</span>
-							<span x-text="`x ${salary_data?.factor?.toFixed(4) || '0'}`"></span>
-						</div>
-						<template x-if="salary_data?.adjustment && salary_data.adjustment != 0">
+
+						<div class="final" x-show="show_salary">
+							<!-- <div>
+								<span>Empresa</span>
+								<span x-text="salary_data?.business_name || '-'"></span>
+							</div> -->
 							<div>
-								<span>Ajuste</span>
-								<span :class="{'salary-low': salary_data.adjustment < 0}" x-text="`${salary_data.adjustment > 0 ? '+' : ''}S/ ${salary_data.adjustment.toFixed(2)}`"></span>
+								<span>Sueldo base</span>
+								<span x-text="`S/ ${salary_data?.base_salary?.toFixed(2) || '0.00'}`"></span>
 							</div>
-						</template>
-						<div class="spacer"></div>
-						<div>
-							<span>Sueldo neto</span>
-							<span x-text="`S/ ${salary_data?.final_salary?.toFixed(2) || '0.00'}`"></span>
+							<!-- <div>
+								<span>Cumplimiento</span>
+								<span x-text="`${salary_data?.compliance_pct?.toFixed(2) || '0'}%`"></span>
+							</div> -->
+							<div>
+								<span x-text="`Cumplimiento (${salary_data?.compliance_pct?.toFixed(2) || '0'}%)`"></span>
+								<span 
+									:class="{
+										'salary-high': salary_data?.factor >= 0.95,
+										'salary-medium': salary_data?.factor >= 0.85 && salary_data?.factor < 0.95,
+										'salary-low': salary_data?.factor < 0.85
+									}"
+									x-text="`x ${salary_data?.factor?.toFixed(2) || '0'}`"></span>
+							</div>
+							<template x-if="salary_data?.adjustment && salary_data.adjustment != 0">
+								<div>
+									<span>Ajuste</span>
+									<span :class="{'salary-low': salary_data.adjustment < 0, 'salary-high': salary_data?.adjustment > 0}" x-text="`${salary_data.adjustment > 0 ? '+' : ''}S/ ${salary_data.adjustment.toFixed(2)}`"></span>
+								</div>
+							</template>
+							<div class="spacer"></div>
+							<div>
+								<span>Sueldo final</span>
+								<span x-text="`S/ ${salary_data?.final_salary?.toFixed(2) || '0.00'}`"></span>
+							</div>
 						</div>
 					</div>
 				</div>
+
 				<div class="card glass stats">
 					<span class="litle">
 						<img alt="" width="18" height="18" src="/static/images/icons/filled/tag.svg">
@@ -3611,7 +3621,12 @@
 		}
 		#attendance .main .salary {
 			position: relative;
-    		gap: 0.5rem;
+		}
+		#attendance .main .salary .sub {
+			padding: 0.75rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
 		}
 		#attendance .main .salary .amount {
 			font-size: 1.25rem;
@@ -3626,20 +3641,26 @@
 		#attendance .main .salary .final div {
 			display: flex;
     		justify-content: space-between;
-			opacity: 0.75;
+			align-items: center;
 		}
 		#attendance .main .salary .final .spacer {
 			padding: 0.25rem 0;
 		}
+		#attendance .main .salary .final div span {
+			font-weight: 500;
+			opacity: 0.75;
+		}
 		#attendance .main .salary .final div span + span {
-			    font-weight: 600;
+			font-weight: 600;
+			opacity: 1;
+			font-size: 0.85rem;
+    		line-height: 1.125rem;
 		}
 		#attendance .main .salary .eye {
-			padding: 0.5rem;
-			border-radius: 0.5rem;
+			padding: 0.75rem;
 			position: absolute;
-			right: 0.5rem;
-			top: 0.5rem;
+			right: 0;
+			top: 0;
 			display: flex;
 			justify-content: center;
 			align-items: center;
