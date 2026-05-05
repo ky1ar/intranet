@@ -233,7 +233,7 @@
 			
 				</div>
 
-				<div class="card glass salary" x-show="$store.cache.hasPermission('attendance', 'view_salary') && salary_data?.status === 'approved'">
+				<div class="card glass salary" x-show="$store.cache.hasPermission('attendance', 'view_salary') && salary_data?.status === 'approved' && ((option_user?.id ?? user.id) === user.id || $store.cache.hasPermission('attendance', 'salary_admin'))">
 					<span class="litle">
 						<img alt="" width="16" height="16" src="/static/images/icons/wallet.svg">
 						Sueldo del mes
@@ -241,7 +241,7 @@
 
 					<div class="sub white">
 						<span class="amount" x-show="show_salary" x-text="`S/ ${salary_data?.final_salary?.toFixed(2) || '0.00'}`"></span>
-						<span class="amount" x-show="!show_salary">S/ ********</span>
+						<span class="amount" x-show="!show_salary">S/ ••••••••</span>
 						<div class="eye hover-opacity" @click="show_salary = !show_salary">
 							<img alt="" width="16" height="16" src="/static/images/icons/eye.svg">
 						</div>
@@ -260,7 +260,7 @@
 								<span x-text="`${salary_data?.compliance_pct?.toFixed(2) || '0'}%`"></span>
 							</div> -->
 							<div>
-								<span x-text="`Cumplimiento (${salary_data?.compliance_pct?.toFixed(2) || '0'}%)`"></span>
+								<span x-html="`Cumplimiento <small>(${salary_data?.compliance_pct?.toFixed(2) || '0'}%)</small>`"></span>
 								<span 
 									:class="{
 										'salary-high': salary_data?.factor >= 0.95,
@@ -1480,8 +1480,12 @@
 				{ key: 'attendance_period', url: `/attendance/period?user_id=${user_id}&offset=${this.offset}`, force: true },
 			]);
 			this.buildGrid();
-			if (Alpine.store('cache').hasPermission('attendance', 'view_salary')) {
+			const isSelf = (this.option_user?.id ?? this.user.id) === this.user.id;
+			const canSeeSalary = Alpine.store('cache').hasPermission('attendance', 'view_salary') && (isSelf || Alpine.store('cache').hasPermission('attendance', 'salary_admin'));
+			if (canSeeSalary) {
 				await this.loadSalary();
+			} else {
+				this.salary_data = null;
 			}
 			await this.loadLeaveBalance();
 		},
@@ -3649,6 +3653,9 @@
 		#attendance .main .salary .final div span {
 			font-weight: 500;
 			opacity: 0.75;
+			display: flex;
+			align-items: center;
+			gap: 0.25rem;
 		}
 		#attendance .main .salary .final div span + span {
 			font-weight: 600;
