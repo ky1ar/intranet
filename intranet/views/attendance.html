@@ -1475,6 +1475,7 @@
 
 		async load() {
 			const user_id = this.option_user?.id ?? this.user.id;
+			this.salary_data = null;
 
 			await Alpine.store('cache').fetchData([
 				{ key: 'attendance_period', url: `/attendance/period?user_id=${user_id}&offset=${this.offset}`, force: true },
