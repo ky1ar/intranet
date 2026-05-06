@@ -547,6 +547,9 @@ body.modal-open {
     outline: none;
     background-color: transparent;
 }
+.modal label img {
+    opacity: 0.5;
+}
 .modal label textarea {
     field-sizing: content;
     color: var(--black);

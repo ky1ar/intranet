@@ -47,60 +47,53 @@
 			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
 			x-cloak
 		>
-			<div class="modal glass2 medium" @click.stop>
+			<div class="modal glass2 small" @click.stop>
 				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
-				<div class="modal-title">Registrar extorno</div>
+
+				<input class="title" type="text" placeholder="Número de pedido" x-model="form.order_number" @blur="fetchClientOrder()">
 
 				<div class="modal-content">
-					<div class="form-grid">
-
-						<!-- Nro. pedido — bloquea cliente si se encuentra -->
-						<div class="field-group full">
-							<label class="field-label">Nro. pedido</label>
-							<input type="text" x-model="form.order_number" placeholder="Número de pedido"
-								@blur="fetchClientOrder()">
-						</div>
-
-						<!-- DNI — se bloquea si pedido resolvió cliente -->
-						<div class="field-group">
-							<label class="field-label">DNI / RUC</label>
-							<input type="text" maxlength="15"
+					<div class="fields">
+						<label :class="form.client_order_found ? 'glass2' : 'white'">
+							<img alt="user" src="/static/icons/line/id.svg" width="16" height="16">
+							<input
+								type="text"
+								maxlength="15"
 								x-model="form.client_dni"
 								placeholder="DNI / RUC"
 								@input="form.client_dni = form.client_dni.replace(/\D/g, '')"
-								:class="{'readonly-field': form.client_order_found}"
-								:readonly="form.client_order_found"
+								:disabled="form.client_order_found"
 								@blur="fetchClientData()">
-						</div>
+						</label>
 
-						<!-- Nombre — se bloquea si cliente o pedido resolvió -->
-						<div class="field-group">
-							<label class="field-label">Nombre cliente</label>
-							<input type="text" x-model="form.client_name" placeholder="Nombre"
-								:class="{'readonly-field': form.client_order_found || form.client_found}"
-								:readonly="form.client_order_found || form.client_found">
-						</div>
+						<label :class="form.client_order_found || form.client_found ? 'glass2' : 'white'" style="flex: 2;">
+							<img alt="user" :src="`/static/icons/line/${form.client_order_found || form.client_found ? 'user' : 'useradd'}.svg`" width="16" height="16">
+							<input :disabled="form.client_order_found || form.client_found" type="text" placeholder="Nombre o Razón Social" x-model="form.client_name">
+						</label>
+					</div>
 
-						<div class="field-group">
-							<label class="field-label">Motivo</label>
+					<div class="fields">
+						<label class="white">
 							<select x-model="form.reason">
-								<option value="">Seleccionar...</option>
+								<option value="" selected disabled>Motivo</option>
 								<option value="stock">Stock</option>
 								<option value="atencion">Atención</option>
 								<option value="precio">Precio</option>
 								<option value="envio">Envío</option>
 							</select>
-						</div>
+						</label>
 
-						<div class="field-group">
-							<label class="field-label">Medio de pago</label>
+						<label class="white">
 							<select x-model="form.payment_method">
-								<option value="">Seleccionar...</option>
+								<option value="" selected disabled>Medio de pago</option>
 								<option value="transferencia">Transferencia</option>
 								<option value="web">Web</option>
 								<option value="link_pago">Link de pago</option>
 							</select>
-						</div>
+						</label>
+					</div>
+
+					<div class="form-grid">
 
 						<div class="field-group full">
 							<label class="field-label">Detalle</label>
@@ -715,6 +708,32 @@
 	</script>
 
 	<style>
+		.controls {
+			justify-content: end;
+		}
+		#modal-refund-create .title {
+			font-family: inherit;
+			border: none;
+			border-radius: 0.5rem;
+			padding: 0 0.75rem;
+			margin: 0;
+			line-height: 2.5rem;
+			outline: none;
+		}
+		#modal-refund-create .fields input,
+		#modal-refund-create .fields select {
+			height: calc(2.5rem - 2px);
+		}
+		#modal-refund-create .fields .white,
+		#modal-refund-create .fields .glass2 {
+			border-radius: 0.5rem;
+		}
+		#modal-refund-create .fields .white {
+			border: 2px solid #fff;
+		}
+		#modal-refund-create .fields .glass2 {
+			border: 2px solid hsl(0deg 0% 100% / 45%);
+		}
 		#refunds {
 			display: flex;
 			min-height: calc(100vh - 6.5rem);
