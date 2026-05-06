@@ -146,7 +146,7 @@
 				<div class="modal-footer buttons">
 					<button class="button ghost hover-opacity" @click="$store.cache.hideLastModal()">Cancelar</button>
 					<button class="button hover-opacity" @click="submitCreate()"
-						:disabled="!form.client_order_id || !form.reason || !form.payment_method || !form.order_amount || !form.refund_amount">
+						:disabled="!form.order_number || !form.client_dni || !form.reason || !form.payment_method || !form.order_amount || !form.refund_amount">
 						Registrar
 					</button>
 				</div>
@@ -517,7 +517,10 @@
 
 			async submitCreate() {
 				const fd = new FormData();
-				fd.append('client_order_id', this.form.client_order_id);
+				fd.append('client_order_id', this.form.client_order_id || '');
+				fd.append('order_number',    this.form.order_number || '');
+				fd.append('client_dni',      this.form.client_dni || '');
+				fd.append('client_name',     this.form.client_name || '');
 				fd.append('reason',          this.form.reason);
 				fd.append('detail',          this.form.detail || '');
 				fd.append('order_amount',    this.form.order_amount);

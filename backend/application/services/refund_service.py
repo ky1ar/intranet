@@ -11,6 +11,7 @@ from application.utils import (
 )
 from application.repository.refund_repository import RefundRepository
 from application.repository.user_repository import UserRepository
+from application.repository.client_repository import ClientRepository
 from application.services.module_service import ModuleService
 from application.services.push_service import PushSender
 from application import socketio
@@ -42,6 +43,7 @@ class RefundService:
     def __init__(self):
         self.repository = RefundRepository()
         self.user_repository = UserRepository()
+        self.client_repository = ClientRepository()
         self.module_service = ModuleService()
         self.push_service = PushSender()
 
@@ -268,14 +270,39 @@ class RefundService:
             initial_status = 1
 
         raw_client_order_id = request.form.get("client_order_id") or None
-        if not raw_client_order_id:
-            return "Pedido de cliente requerido", 400
+        if raw_client_order_id:
+            client_order_id = int(raw_client_order_id)
+        else:
+            # Resolve or create client + client_order from form fields
+            order_number = request.form.get("order_number", "").strip()
+            client_dni   = request.form.get("client_dni", "").strip()
+            client_name  = request.form.get("client_name", "").strip()
+            if not order_number or not client_dni:
+                return "Número de pedido y DNI son requeridos", 400
+
+            # Find or create client
+            client, client_rc = self.client_repository.get_client_by_document(client_dni)
+            if client_rc == 200:
+                resolved_client_id = client.id
+            else:
+                resolved_client_id, crc = self.client_repository.add_client_minimal(client_dni, client_name or client_dni)
+                if crc != 200:
+                    return resolved_client_id, crc
+
+            # Find or create client_order
+            order, order_rc = self.client_repository.get_client_order_by_number(order_number)
+            if order_rc == 200:
+                client_order_id = order.id
+            else:
+                client_order_id, orc = self.client_repository.add_client_order(order_number, resolved_client_id)
+                if orc != 200:
+                    return client_order_id, orc
 
         data = {
             "status_id":        initial_status,
             "registered_by":    user_id,
             "is_admin_register": is_admin_reg_flag,
-            "client_order_id":  int(raw_client_order_id),
+            "client_order_id":  client_order_id,
             "reason":           reason,
             "detail":           request.form.get("detail") or None,
             "order_amount":     order_amount,
