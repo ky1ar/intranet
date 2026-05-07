@@ -1439,6 +1439,9 @@
 		#modal-process {
 			z-index: 50;
 		}
+		#modal-process .modal {
+			overflow-y: unset;
+		}
 		#modal-process .modal .title span {
 			line-height: 1rem;
 		}
@@ -1615,6 +1618,7 @@
 			font-size: 0.7rem;
 			font-weight: 600;
 			color: #0000006e;
+			position: relative;
 		}
 		.items-cont .items-row .delete img {
 		    position: absolute;
@@ -1700,6 +1704,8 @@
 		.items-cont .items-row label .right {
 			text-align: right;
 			flex: 1;
+			text-overflow: unset;
+    		margin-right: -0.25rem;
 		}
 		/* .items-cont .items-box .remove {
 			padding: 0;
