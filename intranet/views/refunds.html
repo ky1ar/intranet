@@ -93,13 +93,9 @@
 						</label>
 					</div>
 
+					<textarea class="text-area glass2" x-model="form.detail" placeholder="Descripción del caso..." rows="2"></textarea>
+
 					<div class="form-grid">
-
-						<div class="field-group full">
-							<label class="field-label">Detalle</label>
-							<textarea x-model="form.detail" placeholder="Descripción del caso..." rows="2"></textarea>
-						</div>
-
 						<div class="field-group">
 							<label class="field-label">Monto del pedido</label>
 							<input type="number" min="0" step="0.01" x-model.number="form.order_amount" placeholder="0.00">
