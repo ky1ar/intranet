@@ -497,7 +497,7 @@
 
 								<label class="white">
 									<select x-model="import_data.type_id">
-										<option value="null" selected disabled>Tipo de envío</option>
+										<option value="null" selected disabled>Tipo</option>
 										<template x-for="type in $store.cache.getData('imports_type')" :key="type.id">
 											<option :value="type.id" x-text="type.name"></option>
 										</template>
@@ -1635,7 +1635,7 @@
 
 						<label class="white">
 							<select x-model="new_import.type_id">
-								<option value="null" selected disabled>Tipo de envío</option>
+								<option value="null" selected disabled>Tipo</option>
 								<template x-for="type in $store.cache.getData('imports_type')" :key="type.id">
 									<option :value="type.id" x-text="type.name"></option>
 								</template>
@@ -1675,20 +1675,7 @@
 							<input type="text" placeholder="Agente origen" x-model="new_import.origin_agent">
 						</label>
 					</div>
-
-					<div class="fields">
-						<label class="white number">
-							<b style="min-width: 8rem;">Adelanto de pago (%)</b>
-							<input type="number" min="0" max="100" step="0.01" placeholder="0.00" x-model.number="new_import.advance_payment_percent">
-						</label>
-
-						<label class="white number">
-							<b style="min-width: 8rem;">Saldo (días)</b>
-							<input type="number" min="0" step="1" placeholder="0" x-model.number="new_import.balance_days">
-						</label>
-					</div>
-
-					
+				
 				</div>
 
 				<div class="buttons">

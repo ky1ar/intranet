@@ -20,13 +20,26 @@
 					<template x-for="req in group.requests" :key="req.id">
 						<div class="req-card white hover-opacity" @click="openDetail(req.id)">
 							<div class="req-top">
+								<template x-if="req.is_admin_register">
+									<span class="req-id pri" x-html="`EX-${String(req.id)}<img title='Caja chica' width='16' height='16' src='/static/icons/filled/admin.svg'>`"></span>
+								</template>
+
+								<template x-if="!req.is_admin_register">
+									<span class="req-id" x-text="`EX-${String(req.id)}`"></span>
+								</template>
+								
+								<div class="req-date" x-text="req.registered_by_name"></div>
+
+<!-- 								
 								<span class="req-client" x-text="req.client_name || req.client_dni || '-'"></span>
 								<div class="req-top-right">
 									<span class="admin-badge" x-show="req.is_admin_register">ADM</span>
 									<span class="req-amount" x-text="`S/ ${req.net_refund.toFixed(2)}`"></span>
-								</div>
+								</div> -->
 							</div>
-							<div class="req-reason" x-text="req.reason"></div>
+							<div class="req-client" x-text="req.client_name"></div>
+
+							<!-- <div class="req-reason" x-text="req.reason"></div> -->
 							<div class="req-bottom">
 								<span class="req-id" x-text="`EX-${req.id}`"></span>
 								<span class="req-date" x-text="req.scheduled_date ? `📅 ${req.scheduled_date}` : req.registered_by_name"></span>
@@ -95,42 +108,52 @@
 
 					<textarea class="text-area glass2" x-model="form.detail" placeholder="Descripción del caso..." rows="2"></textarea>
 
-					<div class="form-grid">
+					<div class="fields">
 						<div class="field-group">
-							<label class="field-label">Monto del pedido</label>
-							<input type="number" min="0" step="0.01" x-model.number="form.order_amount" placeholder="0.00">
-						</div>
-
-						<div class="field-group">
-							<label class="field-label">Monto a extornar</label>
-							<input type="number" min="0" step="0.01" x-model.number="form.refund_amount" placeholder="0.00" @input="calcNet()">
-						</div>
-
-						<div class="field-group penalty-row">
-							<label class="field-label">¿Aplica penalidad?</label>
-							<label class="toggle-label">
-								<input type="checkbox" x-model="form.applies_penalty" @change="calcNet()">
-								<span class="toggle-track"></span>
+							<span class="field-label">Monto del pedido</span>
+							<label class="white">
+								<input type="number" min="0" step="0.01" x-model.number="form.order_amount" placeholder="0.00">
 							</label>
 						</div>
 
-						<div class="field-group net-row">
-							<label class="field-label">Neto a extornar</label>
-							<div class="net-amount" x-text="`S/ ${form.net_refund.toFixed(2)}`"></div>
+						<div class="field-group">
+							<span class="field-label">Monto a extornar</span>
+							<label class="white">
+								<input type="number" min="0" step="0.01" x-model.number="form.refund_amount" placeholder="0.00" @input="calcNet()">
+							</label>
+						</div>
+					</div>
+					
+					<div class="fields">
+						<div class="field-group">
+							<span class="field-label">Penalidad</span>
+							<label class="white penalty-row">
+								<span class="text">¿Aplicar S/ 10 de penalidad?</span>
+								<div class="toggle-label">
+									<input type="checkbox" x-model="form.applies_penalty" @change="calcNet()">
+									<span class="toggle-track"></span>
+								</div>
+							</label>
 						</div>
 
-						<!-- Adjuntos de evidencia -->
+						<div class="field-group">
+							<span class="field-label">Neto a extornar</span>
+							<label class="glass2 net-amount" x-text="`S/ ${form.net_refund.toFixed(2)}`"></label>
+						</div>
+					</div>
+
+					<div class="form-grid">
 						<div class="field-group full">
-							<label class="field-label">Archivos de evidencia</label>
-							<label class="upload-btn hover-opacity">
-								<img alt="" width="14" height="14" src="/static/icons/line/add.svg">
-								<span x-text="form.files.length ? `${form.files.length} archivo(s) seleccionado(s)` : 'Agregar archivos'"></span>
+							<label class="white upload-btn hover-opacity">
+								<span x-text="form.files.length ? `${form.files.length} archivo(s) seleccionado(s)` : '+ Agregar evidencias'"></span>
 								<input type="file" multiple style="display:none" @change="addFiles($event)">
 							</label>
 							<div class="file-chips" x-show="form.files.length > 0">
 								<template x-for="(f, i) in form.files" :key="i">
 									<div class="file-chip">
-										<span x-text="f.name"></span>
+										<img alt="" src="/static/icons/filled/clip.svg" width="14" height="14">
+										<span class="chip-name" x-text="f.name"></span>
+										<span class="chip-size" x-text="(f.size/1024).toFixed(1)+' KB'"></span>
 										<button @click="removeFile(i)" class="chip-remove">×</button>
 									</div>
 								</template>
@@ -140,10 +163,9 @@
 				</div>
 
 				<div class="modal-footer buttons">
-					<button class="button ghost hover-opacity" @click="$store.cache.hideLastModal()">Cancelar</button>
-					<button class="button hover-opacity" @click="submitCreate()"
-						:disabled="!form.order_number || !form.client_dni || !form.reason || !form.payment_method || !form.order_amount || !form.refund_amount">
-						Registrar
+					<!-- <button class="button ghost hover-opacity" @click="$store.cache.hideLastModal()">Cancelar</button> -->
+					<button class="button hover-opacity" @click="submitCreate()">
+						Registrar extorno
 					</button>
 				</div>
 			</div>
@@ -353,7 +375,7 @@
 			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
 			x-cloak
 		>
-			<div class="modal small glass2" @click.stop>
+			<div class="modal big glass2" @click.stop>
 				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
 				<div class="modal-content">
 					<template x-if="viewer_payload?.kind === 'url' && isPdfFile(viewer_file)">
@@ -713,25 +735,36 @@
 		#modal-refund-create .title {
 			font-family: inherit;
 			border: none;
-			border-radius: 0.5rem;
+			border-radius: 0.75rem;
 			padding: 0 0.75rem;
 			margin: 0;
 			line-height: 2.5rem;
 			outline: none;
+			font-size: 1rem;
 		}
 		#modal-refund-create .fields input,
 		#modal-refund-create .fields select {
 			height: calc(2.5rem - 2px);
 		}
-		#modal-refund-create .fields .white,
-		#modal-refund-create .fields .glass2 {
-			border-radius: 0.5rem;
+		#modal-refund-create textarea {
+			border-radius: 0.75rem;
+			background-color: var(--white);
 		}
 		#modal-refund-create .fields .white {
 			border: 2px solid #fff;
 		}
 		#modal-refund-create .fields .glass2 {
-			border: 2px solid hsl(0deg 0% 100% / 45%);
+			border-radius: 0.75rem;
+			line-height: calc(2.5rem - 2px);
+		}
+		#modal-refund-create .upload-btn {
+			padding: 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 600;
+			border: 1px dashed #000000;
+			background-color: transparent;
+			justify-content: center;
+			opacity: 0.5;
 		}
 		#refunds {
 			display: flex;
@@ -753,33 +786,88 @@
 			gap: 0.6rem;
 			padding: 0.75rem;
 		}
-		#refunds .group:last-child { border-right: none; }
+		#refunds .group:last-child {
+			border-right: none;
+		}
 		#refunds .group-head {
 			display: flex;
 			align-items: center;
 			justify-content: center;
 			gap: 0.4rem;
 		}
-		#refunds .group-name  { font-weight: 600; font-size: 0.8rem; }
+		#refunds .group-name  {
+			font-weight: 600;
+			font-size: 0.8rem;
+		}
 		#refunds .group-count {
-			font-size: 0.65rem; opacity: 0.4; font-weight: 500;
-			background: var(--graydark); padding: 0.1rem 0.4rem; border-radius: 1rem;
+			font-size: 0.65rem;
+			opacity: 0.4;
+			font-weight: 500;
+			background: var(--graydark);
+			padding: 0.1rem 0.4rem;
+			border-radius: 1rem;
 		}
 		#refunds .req-card {
 			padding: 0.75rem;
 			display: flex;
 			flex-direction: column;
-			gap: 0.3rem;
+			gap: 0.35rem;
 			cursor: pointer;
 		}
-		#refunds .req-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
-		#refunds .req-top-right { display: flex; align-items: center; gap: 0.3rem; flex-shrink: 0; }
-		#refunds .req-client { font-weight: 600; font-size: 0.8rem; flex: 1; }
-		#refunds .req-amount { color: var(--primary); font-weight: 700; font-size: 0.9rem; white-space: nowrap; }
-		#refunds .req-reason { font-size: 0.72rem; opacity: 0.6; font-weight: 500; }
-		#refunds .req-bottom { display: flex; justify-content: space-between; align-items: center; font-size: 0.65rem; opacity: 0.4; font-weight: 500; }
-		#refunds .req-id { font-weight: 600; }
-
+		#refunds .req-top {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		#refunds .req-top-right {
+			display: flex;
+			align-items: center;
+			gap: 0.3rem;
+			flex-shrink: 0;
+		}
+		#refunds .req-client {
+			font-weight: 600;
+			font-size: 0.8rem;
+			flex: 1;
+		}
+		#refunds .req-amount {
+			color: var(--primary);
+			font-weight: 700;
+			font-size: 0.9rem;
+			white-space: nowrap;
+		}
+		#refunds .req-reason {
+			font-size: 0.72rem;
+			opacity: 0.6;
+			font-weight: 500;
+		}
+		#refunds .req-bottom {
+			display: flex;
+			justify-content: space-between; align-items: center;
+			font-size: 0.65rem;
+			opacity: 0.4;
+			font-weight: 500;
+		}
+		#refunds .req-id { 
+			font-weight: 600;
+			font-size: 0.9rem;
+			position: relative;
+			line-height: 1rem;
+		}
+		#refunds .req-id.pri {
+			color: var(--primary);
+		}
+		#refunds .req-id img {
+			right: -1.35rem;
+			top: -0.05rem;
+			position: absolute;
+		}
+		#refunds .req-date {
+			font-size: 0.65rem;
+			line-height: 0.65rem;
+			opacity: 0.35;
+		}
 		/* Status badge */
 		.detail-status.registered       { background: #7b8fa1; color: white; }
 		.detail-status.reviewing        { background: #efae24; color: white; }
@@ -825,14 +913,17 @@
 
 		/* Create form */
 		.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-		.form-grid .full { grid-column: 1 / -1; }
-		.field-group { display: flex; flex-direction: column; gap: 0.3rem; }
-		.field-label { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.45; }
-		.field-group input, .field-group select, .field-group textarea {
-			border: 1.5px solid var(--graydark); border-radius: 0.5rem;
-			padding: 0.45rem 0.6rem; font-family: var(--font); font-size: 0.8rem; outline: none; background: white;
+		.form-grid .full {
+			grid-column: 1 / -1;
+			padding: 0.5rem 0;
 		}
-		.field-group input:focus, .field-group select:focus, .field-group textarea:focus { border-color: var(--primary); }
+		.field-group {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			flex: 1;
+		}
+		.field-label { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.45; }
 		.readonly-field { background: var(--gray) !important; }
 		.field-with-btn { display: flex; gap: 0.4rem; }
 		.field-with-btn input { flex: 1; }
@@ -843,6 +934,11 @@
 		.btn-lookup:disabled { opacity: 0.4; }
 
 		.penalty-row { flex-direction: row; align-items: center; justify-content: space-between; }
+		.penalty-row .text {
+			font-size: 0.7rem;
+			line-height: calc(2.5rem - 2px);
+		}
+
 		.toggle-label { display: flex; align-items: center; cursor: pointer; }
 		.toggle-label input[type="checkbox"] { display: none; }
 		.toggle-track {
@@ -856,23 +952,47 @@
 		.toggle-label input:checked + .toggle-track { background: var(--primary); }
 		.toggle-label input:checked + .toggle-track::after { left: 1.15rem; }
 
-		.net-row .net-amount { font-size: 1.1rem; font-weight: 700; color: var(--primary); padding: 0.3rem 0; }
+		.net-amount { font-size: 1rem; font-weight: 600; color: var(--primary); }
 
 		/* File chips in create form */
-		.file-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.35rem; }
-		.file-chip {
-			display: flex; align-items: center; gap: 0.4rem; background: var(--gray);
-			border-radius: 1rem; padding: 0.2rem 0.6rem; font-size: 0.72rem; font-weight: 500;
+		.file-chips {
+			display: flex;
+			flex-direction: column;
 		}
-		.chip-remove { background: none; border: none; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0; }
+		.file-chip {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0 0.5rem;
+			border-radius: 0.75rem;
+			font-size: 0.7rem;
+		}
+		.file-chip .chip-name {
+			flex: 1;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			font-weight: 500;
+		}
+		.file-chip .chip-size {
+			opacity: 0.5;
+			font-size: 0.7rem;
+			white-space: nowrap;
+		}
+		.chip-remove {
+			background: none;
+			border: none;
+			cursor: pointer;
+			font-size: 1rem;
+			line-height: 1;
+			padding: 0;
+			color: var(--primary);
+			font-weight: 700;
+			padding: 0.5rem;
+		}
 
 		/* Upload */
 		.upload-area { margin-top: 0.5rem; }
-		.upload-btn {
-			display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; font-weight: 600;
-			padding: 0.4rem 0.75rem; border: 1.5px dashed var(--graydark);
-			border-radius: 0.5rem; cursor: pointer; color: var(--black); opacity: 0.6;
-		}
 		.no-files { font-size: 0.72rem; opacity: 0.35; padding: 0.25rem 0; }
 
 		/* Thumb with delete button */
