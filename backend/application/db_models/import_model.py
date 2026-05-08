@@ -61,6 +61,7 @@ class ImportShipment(BaseModel):
     description = db.Column(db.Text)
     local_agent_name = db.Column(db.String(128))
     origin_agent_name = db.Column(db.String(128))
+    reference = db.Column(db.String(50), nullable=True)
 
     advance_payment_percent = db.Column(db.Numeric(5, 2), nullable=False, default=0)
     balance_days = db.Column(db.Integer, nullable=False, default=0)
@@ -103,6 +104,7 @@ class ImportShipmentLine(db.Model):
     advance_payment_percent = db.Column(db.Numeric(5, 2), nullable=False, default=0)
     balance_days = db.Column(db.Integer, nullable=False, default=0)
     position = db.Column(db.Integer, nullable=False, default=1)
+    po_number = db.Column(db.String(20), nullable=True)
 
     shipment = db.relationship("ImportShipment", back_populates="lines")
     provider = db.relationship("ImportProvider", lazy="joined")

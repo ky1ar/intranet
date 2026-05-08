@@ -330,6 +330,12 @@
 												<span class="black">Saldo:</span>
 												<span class="text" x-text="`${line.balance_days ?? 0} día(s)`"></span>
 											</div>
+
+											<div class="pair" x-show="line.po_number">
+												<img alt="" width="14" height="14" src="/static/icons/line/board.svg">
+												<span class="black">PO:</span>
+												<span class="text" x-text="line.po_number"></span>
+											</div>
 										</div>
 
 									</div>
@@ -475,6 +481,10 @@
 												<b style="min-width: 8rem;">Saldo (días)</b>
 												<input type="number" min="0" step="1" x-model.number="line.balance_days">
 											</label>
+
+											<label class="white">
+												<input type="text" placeholder="PO" x-model="line.po_number">
+											</label>
 										</div>
 									</div>
 								</template>
@@ -538,17 +548,12 @@
 								</label>
 							</div>
 
-							<!-- <div class="fields options">
-								<label class="white number">
-									<b style="min-width: 8rem;">Adelanto (%)</b>
-									<input type="number" min="0" max="100" step="0.01" x-model.number="import_data.advance_payment_percent">
+							<div class="fields options">
+								<label class="white">
+									<img alt="" src="/static/icons/line/board.svg" width="16" height="16">
+									<input type="text" placeholder="Referencia" x-model="import_data.reference">
 								</label>
-
-								<label class="white number">
-									<b style="min-width: 8rem;">Saldo (días)</b>
-									<input type="number" min="0" step="1" x-model.number="import_data.balance_days">
-								</label>
-							</div> -->
+							</div>
 
 							<div class="buttons" x-show="canEdit() && import_data?.status_id == 1">
 								<button class="button icon hover-opacity black"
@@ -583,6 +588,14 @@
 									<img alt="" width="14" height="14" src="/static/icons/filled/user.svg">
 									<span class="black" x-text="`Agente de origen:`"></span>
 									<span class="text" x-text="`${import_data?.origin_agent_name}`"></span>
+								</div>
+							</div>
+
+							<div class="pair-content" x-show="import_data?.reference">
+								<div class="pair">
+									<img alt="" width="14" height="14" src="/static/icons/line/board.svg">
+									<span class="black">Referencia:</span>
+									<span class="text" x-text="import_data?.reference"></span>
 								</div>
 							</div>
 						</div>
@@ -1611,11 +1624,15 @@
 										<b style="min-width: 8rem;">Saldo (días)</b>
 										<input type="number" min="0" step="1" x-model.number="line.balance_days">
 									</label>
+
+									<label class="white">
+										<input type="text" placeholder="PO" x-model="line.po_number">
+									</label>
 								</div>
 							</div>
 						</template>
 					</div>
-					
+
 					<div class="add-provider hover-opacity glass2"
 						@click="addImportLine()">
 						<img alt="" width="16" height="16" src="/static/icons/line/plus.svg">
@@ -1675,7 +1692,14 @@
 							<input type="text" placeholder="Agente origen" x-model="new_import.origin_agent">
 						</label>
 					</div>
-				
+
+					<div class="fields">
+						<label class="white">
+							<img alt="" src="/static/icons/line/board.svg" width="16" height="16">
+							<input type="text" placeholder="Referencia" x-model="new_import.reference">
+						</label>
+					</div>
+
 				</div>
 
 				<div class="buttons">
@@ -1779,6 +1803,7 @@
 				custom_port_name: '',
 				local_agent: '',
 				origin_agent: '',
+				reference: '',
 				lines: []
 			},
 			provider_preview_cache: {},
@@ -1904,6 +1929,7 @@
 				const payload = {
 					local_agent: (this.import_data?.local_agent_name || '').trim(),
 					origin_agent: (this.import_data?.origin_agent_name || '').trim(),
+					reference: (this.import_data?.reference || '').trim() || null,
 					business_id: this.import_data?.business_id,
 					type_id: this.import_data?.type_id,
 					fcl: Number(this.import_data?.fcl || 0),
@@ -1924,6 +1950,7 @@
 						advance_payment_percent: x.advance_payment_percent,
 						balance_days: x.balance_days,
 						position: idx + 1,
+						po_number: (x.po_number || '').trim() || null,
 					})),
 				};
 
@@ -2027,6 +2054,7 @@
 					custom_incoterm_name: '',
 					advance_payment_percent: null,
         			balance_days: null,
+					po_number: '',
 				};
 			},
 
@@ -2063,6 +2091,7 @@
 					custom_port_name: '',
 					local_agent: '',
 					origin_agent: '',
+					reference: '',
 					lines: [this.emptyImportLine()],
 				};
 			},
@@ -2347,6 +2376,7 @@
 						: null,
 					local_agent: (this.new_import.local_agent || '').trim(),
 					origin_agent: (this.new_import.origin_agent || '').trim(),
+					reference: (this.new_import.reference || '').trim() || null,
 					lines: (this.new_import.lines || []).map((x, idx) => ({
 						provider_id: x.provider_id ? Number(x.provider_id) : null,
 						incoterm_id: this.isOtherIncoterm(x.incoterm_id)
@@ -2358,6 +2388,7 @@
 						advance_payment_percent: x.advance_payment_percent,
 						balance_days: x.balance_days,
 						position: idx + 1,
+						po_number: (x.po_number || '').trim() || null,
 					}))
 				};
 
@@ -2919,6 +2950,8 @@
 			font-size: 0.7rem;
 			opacity: 0.5;
 			font-weight: 700;
+			position: absolute;
+    		pointer-events: none;
 		}
 		.modal label.number input {
 			text-align: right;

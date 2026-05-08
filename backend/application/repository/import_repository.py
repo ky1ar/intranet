@@ -174,6 +174,7 @@ class ImportRepository:
             fcl=int(data.get("fcl") or 0),
             local_agent_name=(data.get("local_agent") or "").strip(),
             origin_agent_name=(data.get("origin_agent") or "").strip(),
+            reference=data.get("reference"),
         )
 
         g.db_session.add(new_import)
@@ -188,6 +189,7 @@ class ImportRepository:
                 advance_payment_percent=line.get("advance_payment_percent"),
                 balance_days=line.get("balance_days"),
                 position=idx,
+                po_number=line.get("po_number"),
             )
             g.db_session.add(row)
 
@@ -367,6 +369,7 @@ class ImportRepository:
         import_shipment.custom_port_name = data.get("custom_port_name")
         import_shipment.local_agent_name = data.get("local_agent_name")
         import_shipment.origin_agent_name = data.get("origin_agent_name")
+        import_shipment.reference = data.get("reference")
 
         g.db_session.add(import_shipment)
 
@@ -384,6 +387,7 @@ class ImportRepository:
                     advance_payment_percent=row.get("advance_payment_percent"),
                     balance_days=row.get("balance_days"),
                     position=row.get("position"),
+                    po_number=row.get("po_number"),
                 )
             )
 

@@ -148,6 +148,7 @@ class ImportService:
                 "advance_payment_percent": advance_payment_percent,
                 "balance_days": balance_days,
                 "position": i,
+                "po_number": (row.get("po_number") or "").strip() or None,
             })
 
         return normalized, None
@@ -216,6 +217,7 @@ class ImportService:
 
             "advance_payment_percent": float(line.advance_payment_percent or 0),
             "balance_days": line.balance_days or 0,
+            "po_number": getattr(line, "po_number", None) or "",
         }
 
 
@@ -495,6 +497,7 @@ class ImportService:
 
             "local_agent_name": import_shipment.local_agent_name.title() if import_shipment.local_agent_name else None,
             "origin_agent_name": import_shipment.origin_agent_name.title() if import_shipment.origin_agent_name else None,
+            "reference": getattr(import_shipment, "reference", None) or "",
 
             "advance_payment_percent": float(import_shipment.advance_payment_percent or 0),
             "balance_days": import_shipment.balance_days or 0,
@@ -593,6 +596,7 @@ class ImportService:
         type_id = data.get("type_id")
         local_agent = (data.get("local_agent") or "").strip()
         origin_agent = (data.get("origin_agent") or "").strip()
+        reference = (data.get("reference") or "").strip() or None
         lines = data.get("lines")
         fcl = 1 if str(data.get("fcl", 0)) == "1" else 0
 
@@ -616,6 +620,7 @@ class ImportService:
         data["port_id"] = port_id
         data["custom_port_name"] = custom_port_name
         data["fcl"] = fcl
+        data["reference"] = reference
         data["lines"] = normalized_lines
 
         import_id, ncc = self.import_repository.new_import(data)
@@ -1037,6 +1042,7 @@ class ImportService:
 
         local_agent = (data.get("local_agent") or "").strip()
         origin_agent = (data.get("origin_agent") or "").strip()
+        reference = (data.get("reference") or "").strip() or None
         business_id = data.get("business_id")
         type_id = data.get("type_id")
         fcl = 1 if str(data.get("fcl", 0)) == "1" else 0
@@ -1062,6 +1068,7 @@ class ImportService:
             "custom_port_name": custom_port_name,
             "local_agent_name": local_agent,
             "origin_agent_name": origin_agent,
+            "reference": reference,
             "lines": normalized_lines,
         }
 
