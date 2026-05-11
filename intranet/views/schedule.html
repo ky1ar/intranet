@@ -10,6 +10,13 @@
 					<img alt="next" src="/static/icons/line/right.svg" width="20" height="20">
 				</div>
 			</div>
+
+			<div class="right frost-dark" style="margin-left: auto;">
+				<div class="item" @click="openRoomModal()">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/board.svg">
+					<span>Sala</span>
+				</div>
+			</div>
 		</div>
 
 		<div class="main card glass">
@@ -521,6 +528,144 @@
 			</div>
 		</div>
 
+		<!-- ======== MODAL SALA DE REUNIONES ======== -->
+		<div
+			x-show="$store.cache.isVisibleModal('room')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-room"
+			x-cloak
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+		>
+			<div class="modal glass2 small" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="title" style="display:flex; align-items:center; gap:.5rem;">
+					<img alt="" width="18" height="18" src="/static/icons/line/board.svg">
+					<span x-text="room_data.booking_id ? 'Editar reserva' : 'Reservar sala'"></span>
+				</div>
+
+				<!-- Solo lectura para no-creador -->
+				<template x-if="room_data.booking_id && !room_data.is_mine">
+					<div class="modal-content">
+						<div class="readonly-box white">
+							<div class="readonly-row">
+								<span class="readonly-label">
+									<img alt="" src="/static/icons/line/user.svg" width="16" height="16">
+									Reservado por
+								</span>
+								<span class="readonly-value" x-text="room_data.creator_name"></span>
+							</div>
+							<div class="readonly-row">
+								<span class="readonly-label">
+									<img alt="" src="/static/icons/line/calendar.svg" width="16" height="16">
+									Fecha y hora
+								</span>
+								<span class="readonly-value" x-text="roomReadableRange()"></span>
+							</div>
+							<template x-if="room_data.description">
+								<div class="readonly-row">
+									<span class="readonly-label">
+										<img alt="" src="/static/icons/line/board.svg" width="16" height="16">
+										Descripción
+									</span>
+									<span class="readonly-value" x-text="room_data.description"></span>
+								</div>
+							</template>
+						</div>
+					</div>
+				</template>
+
+				<!-- Formulario para crear/editar (creador) -->
+				<template x-if="!room_data.booking_id || room_data.is_mine">
+					<div class="modal-content">
+						<div class="fields options">
+							<label class="white">
+								<img alt="" src="/static/icons/line/calendar.svg" width="16" height="16">
+								<input
+									type="date"
+									x-model="room_data.date"
+									:min="todayISO"
+									style="flex:1;"
+									@change="loadRoomBooked()"
+								>
+							</label>
+						</div>
+
+						<template x-if="room_booked.length > 0">
+							<div style="background:#37474F22; border:1.5px solid #37474F55; border-radius:8px; padding:.5rem .75rem; display:flex; flex-direction:column; gap:.25rem;">
+								<span style="font-size:.72rem; font-weight:600; color:#37474F; letter-spacing:.03em; text-transform:uppercase;">Horarios ocupados</span>
+								<template x-for="b in room_booked" :key="b.start">
+									<div style="display:flex; align-items:center; gap:.4rem; font-size:.8rem;">
+										<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#37474F; flex-shrink:0;"></span>
+										<span style="font-weight:600;" x-text="b.start + ' – ' + b.end"></span>
+										<span style="color:#555; font-size:.75rem;" x-text="'· ' + (b.label.includes('|') ? b.label.split('|')[1].trim() : b.label)"></span>
+									</div>
+								</template>
+							</div>
+						</template>
+
+						<div class="fields options">
+							<label class="white">
+								<b style="min-width: 4rem;">Inicio</b>
+								<select x-model="room_data.start_time" @change="onRoomStartChange()">
+									<option value="" disabled>--:--</option>
+									<template x-for="t in roomTimeOptions('start')" :key="t">
+										<option :value="t" :disabled="isStartConflict(t)" :style="isStartConflict(t) ? 'color:#aaa;' : ''" x-text="isStartConflict(t) ? t + ' (ocupado)' : t"></option>
+									</template>
+								</select>
+							</label>
+
+							<label class="white">
+								<b style="min-width: 4rem;">Fin</b>
+								<select x-model="room_data.end_time">
+									<option value="" disabled>--:--</option>
+									<template x-for="t in roomTimeOptions('end')" :key="t">
+										<option :value="t" :disabled="isEndConflict(t)" :style="isEndConflict(t) ? 'color:#aaa;' : ''" x-text="isEndConflict(t) ? t + ' (ocupado)' : t"></option>
+									</template>
+								</select>
+							</label>
+						</div>
+
+						<textarea
+							placeholder="Motivo o descripción (opcional)"
+							x-model="room_data.description"
+							class="text-area"
+							style="max-width:100%; border: 2px solid white;"
+						></textarea>
+					</div>
+				</template>
+
+				<div class="buttons">
+					<template x-if="room_data.booking_id && room_data.is_mine">
+						<button class="button black hover-opacity" @click="deleteRoomBooking()">
+							<span>Eliminar</span>
+						</button>
+					</template>
+
+					<template x-if="!room_data.booking_id || room_data.is_mine">
+						<button
+							class="button hover-opacity"
+							@click="saveRoomBooking()"
+							:class="buttons.room.class"
+							x-text="buttons.room.text"
+						></button>
+					</template>
+
+					<template x-if="room_data.booking_id && !room_data.is_mine">
+						<button class="button hover-opacity" @click="$store.cache.hideLastModal()">
+							Cerrar
+						</button>
+					</template>
+				</div>
+			</div>
+		</div>
+
 		<div
 			x-show="$store.cache.isVisibleModal('confirm-delete')"
 			@mousedown.self="$store.cache.hideLastModal()"
@@ -576,7 +721,19 @@
 		buttons: {
 			save:   { text: 'Crear evento', class: '' },
 			update: { text: 'Actualizar',   class: '' },
+			room:   { text: 'Reservar',     class: '' },
 		},
+
+		room_data: {
+			booking_id: null,
+			date: '',
+			start_time: '',
+			end_time: '',
+			description: '',
+			creator_name: '',
+			is_mine: true,
+		},
+		room_booked: [],
 
 		event_data: {
 			schedule_id: null,
@@ -782,6 +939,10 @@
 				const res = await fetch(`${this.api}/schedule/event/${eventId}`);
 				const json = await res.json();
 				const d = json?.data || {};
+
+				if (d.is_room_booking) {
+					return this.openRoomBooking(eventId, d);
+				}
 
 				this.event_data.schedule_id  = d.id || null;
 				this.event_data.title        = d.title || '';
@@ -1080,7 +1241,168 @@
 			} finally {
 				this.processing = false;
 			}
-		}
+		},
+
+		openRoomModal(date = null) {
+			this.room_data = {
+				booking_id: null,
+				date: date || this.todayISO,
+				start_time: '09:00',
+				end_time: '10:00',
+				description: '',
+				creator_name: '',
+				is_mine: true,
+			};
+			this.room_booked = [];
+			this.loadRoomBooked();
+			this.buttons.room = { text: 'Reservar', class: '' };
+			Alpine.store('cache').showModal('room');
+		},
+
+		async openRoomBooking(eventId, prefetched = null) {
+			try {
+				let d = prefetched;
+				if (!d) {
+					const res = await fetch(`${this.api}/schedule/event/${eventId}`);
+					const json = await res.json();
+					d = json?.data || {};
+				}
+
+				const toDateOnly = (iso) => (iso && typeof iso === 'string') ? iso.slice(0, 10) : '';
+				const toTime     = (iso) => (iso && typeof iso === 'string') ? iso.slice(11, 16) : '';
+
+				this.room_data = {
+					booking_id: d.id,
+					date: toDateOnly(d.start_datetime),
+					start_time: toTime(d.start_datetime),
+					end_time: toTime(d.end_datetime),
+					description: d.description || '',
+					creator_name: d.creator_name || '',
+					is_mine: Number(d.creator_id) === Number(this.user_id),
+				};
+				this.room_booked = [];
+				this.loadRoomBooked();
+				this.buttons.room = { text: 'Actualizar', class: '' };
+				Alpine.store('cache').showModal('room');
+			} catch (e) {
+				console.error('Error cargando reserva', e);
+			}
+		},
+
+		loadRoomBooked() {
+			const days = Alpine.store('cache').getData('calendar_dashboard') || [];
+			const day = days.find(d => d.date === this.room_data.date);
+			const events = (day?.events || []).filter(e => e.isRoomBooking && e.roomStart && e.roomEnd);
+			this.room_booked = events
+				.filter(e => !this.room_data.booking_id || e.id !== this.room_data.booking_id)
+				.map(e => ({ start: e.roomStart, end: e.roomEnd, label: e.label }));
+		},
+
+		toMins(hhmm) {
+			const [h, m] = hhmm.split(':').map(Number);
+			return h * 60 + m;
+		},
+
+		isStartConflict(t) {
+			const tm = this.toMins(t);
+			return this.room_booked.some(b => tm >= this.toMins(b.start) && tm < this.toMins(b.end));
+		},
+
+		isEndConflict(t) {
+			if (!this.room_data.start_time) return false;
+			const sm = this.toMins(this.room_data.start_time);
+			const em = this.toMins(t);
+			return this.room_booked.some(b => sm < this.toMins(b.end) && em > this.toMins(b.start));
+		},
+
+		roomTimeOptions(type) {
+			const times = [];
+			for (let h = 9; h <= 18; h++) {
+				for (let m = 0; m < 60; m += 30) {
+					if (h === 18 && m > 0) break;
+					times.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+				}
+			}
+			if (type === 'start') return times.filter(t => t < '18:00');
+			// end: min = start+30min, max 18:00
+			if (!this.room_data.start_time) return times.filter(t => t > '09:00');
+			const [sh, sm] = this.room_data.start_time.split(':').map(Number);
+			const startMins = sh * 60 + sm;
+			return times.filter(t => {
+				const [eh, em] = t.split(':').map(Number);
+				const endMins = eh * 60 + em;
+				return endMins > startMins;
+			});
+		},
+
+		onRoomStartChange() {
+			if (!this.room_data.start_time) return;
+			const [h, m] = this.room_data.start_time.split(':').map(Number);
+			const endMins = h * 60 + m + 60;
+			const eh = Math.floor(endMins / 60);
+			const em = endMins % 60;
+			const proposed = `${String(eh).padStart(2,'0')}:${String(em).padStart(2,'0')}`;
+			this.room_data.end_time = eh <= 18 ? proposed : '18:00';
+		},
+
+		roomReadableRange() {
+			const months = ['ene.','feb.','mar.','abr.','may.','jun.',
+							 'jul.','ago.','sep.','oct.','nov.','dic.'];
+			const d = this.room_data.date;
+			if (!d) return '';
+			const [y, mo, day] = d.split('-');
+			const dateStr = `${parseInt(day)} ${months[parseInt(mo)-1]} ${y}`;
+			const s = this.room_data.start_time;
+			const e = this.room_data.end_time;
+			return `${dateStr} · ${s} - ${e}`;
+		},
+
+		async saveRoomBooking() {
+			if (this.processing) return;
+			this.processing = true;
+			try {
+				const payload = {
+					booking_id: this.room_data.booking_id || null,
+					date: this.room_data.date,
+					start_time: this.room_data.start_time,
+					end_time: this.room_data.end_time,
+					description: (this.room_data.description || '').trim(),
+				};
+				const response = await fetch(`${this.api}/schedule/room`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': `Bearer ${this.token}`,
+					},
+					body: JSON.stringify(payload),
+				});
+				const jsonData = await response.json();
+				if (!response.ok) throw new Error(jsonData?.data?.message || 'Error al guardar');
+				Alpine.store('cache').hideLastModal();
+			} catch (error) {
+				this.showError('room', error.message);
+			} finally {
+				this.processing = false;
+			}
+		},
+
+		async deleteRoomBooking() {
+			if (this.processing) return;
+			this.processing = true;
+			try {
+				const response = await fetch(`${this.api}/schedule/room/${this.room_data.booking_id}`, {
+					method: 'DELETE',
+					headers: { 'Authorization': `Bearer ${this.token}` },
+				});
+				const jsonData = await response.json();
+				if (!response.ok) throw new Error(jsonData?.data?.message || 'Error al eliminar');
+				Alpine.store('cache').hideLastModal();
+			} catch (error) {
+				this.showError('room', error.message);
+			} finally {
+				this.processing = false;
+			}
+		},
 	}));
 	</script>
 

@@ -581,6 +581,7 @@ class Events(db.Model):
     title = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
     import_shipment_id = db.Column(db.Integer, db.ForeignKey('import_shipment.id'))
+    is_room_booking = db.Column(db.Integer, nullable=False, default=0)
     start_datetime = db.Column(db.DateTime, nullable=False)
     end_datetime = db.Column(db.DateTime)
     meet = db.Column(db.String(255))

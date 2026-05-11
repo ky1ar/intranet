@@ -264,6 +264,7 @@ class ScheduleRepository:
             repeat_id     = data.get("repeat_id"),
             notify_id     = data.get("notify_id"),
             created_at    = peru_time,
+            is_room_booking = int(data.get("is_room_booking") or 0),
         )
 
         g.db_session.add(event)
@@ -314,6 +315,34 @@ class ScheduleRepository:
         return events, 200
 
         
+    @handle_db_exceptions
+    def get_room_bookings_for_date(self, target_date, exclude_id=None):
+        start_day = datetime.combine(target_date, datetime.min.time())
+        end_day = start_day + timedelta(days=1)
+        q = (
+            g.db_session.query(Events)
+            .filter(
+                Events.deleted_at.is_(None),
+                Events.is_room_booking == 1,
+                Events.start_datetime >= start_day,
+                Events.start_datetime < end_day,
+            )
+        )
+        if exclude_id:
+            q = q.filter(Events.id != exclude_id)
+        return q.all(), 200
+
+
+    @handle_db_exceptions
+    def update_room_booking(self, event, start_dt, end_dt, description):
+        event.start_datetime = start_dt
+        event.end_datetime = end_dt
+        event.description = description
+        g.db_session.add(event)
+        g.db_session.commit()
+        return True, 200
+
+
     @handle_db_exceptions
     def get_delete_event(self, event):
         utc_now = datetime.now(timezone.utc)

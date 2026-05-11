@@ -13,6 +13,10 @@ from application import socketio, redis_client
 from flask_jwt_extended import get_jwt_identity
 
 
+ROOM_BOOKING_COLOR = '#37474F'
+ROOM_BOOKING_TITLE = 'Sala de Reuniones'
+
+
 class ScheduleService:
     def __init__(self):
         self.module_service = ModuleService()
@@ -333,17 +337,30 @@ class ScheduleService:
                 else:
                     time_label = format_time(occ_start)
 
+            is_room = bool(getattr(ev, "is_room_booking", 0))
+            if is_room and ev.user and ev.user.name:
+                first_name = format_name(ev.user.name).split()[0]
+                event_label = f"Sala de reuniones | {first_name}"
+            else:
+                event_label = ev.title
+
+            room_start_hhmm = occ_start.strftime("%H:%M") if (is_room and occ_start and not all_day) else None
+            room_end_hhmm   = occ_end.strftime("%H:%M")   if (is_room and occ_end   and not all_day) else None
+
             occurrences_by_day.setdefault(date_key, []).append({
                 "id": ev.id,
-                "label": ev.title,
+                "label": event_label,
                 "time": time_label,
                 "hexColor": ev.hex_color,
                 "allDay": all_day,
-                "fullColor": bool(ev.hex_color and all_day),
+                "fullColor": is_room or bool(ev.hex_color and all_day),
                 "creatorId": ev.user_id,
                 "creatorImage": ev.user.image,
                 "type": "EVENT",
-                "clickable": True, 
+                "clickable": True,
+                "isRoomBooking": is_room,
+                "roomStart": room_start_hhmm,
+                "roomEnd": room_end_hhmm,
             })
 
         grid_start_date = start_grid_date.date()
@@ -867,7 +884,96 @@ class ScheduleService:
             "created_at": event.created_at.isoformat(),
             "is_import": is_import,
             "import_shipment": import_data,
+            "is_room_booking": bool(getattr(event, "is_room_booking", 0)),
         }, 200
+
+
+    @handle_exceptions
+    def room_booking_process(self, data):
+        user_id = int(get_jwt_identity())
+        booking_id = data.get("booking_id")
+        date_str = (data.get("date") or "").strip()
+        start_time_str = (data.get("start_time") or "").strip()
+        end_time_str = (data.get("end_time") or "").strip()
+        description = (data.get("description") or "").strip()
+
+        if not date_str:
+            return "Selecciona una fecha", 400
+        if not start_time_str or not end_time_str:
+            return "Selecciona hora de inicio y fin", 400
+
+        try:
+            target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            start_dt = datetime.strptime(f"{date_str}T{start_time_str}", "%Y-%m-%dT%H:%M")
+            end_dt = datetime.strptime(f"{date_str}T{end_time_str}", "%Y-%m-%dT%H:%M")
+        except ValueError:
+            return "Formato de fecha u hora inválido", 400
+
+        if start_dt.hour < 9 or end_dt.hour > 18 or (end_dt.hour == 18 and end_dt.minute > 0):
+            return "El horario debe estar entre 9:00 a.m. y 6:00 p.m.", 400
+
+        if end_dt <= start_dt:
+            return "La hora de fin debe ser mayor a la de inicio", 400
+
+        existing, _ = self.schedule_repository.get_room_bookings_for_date(
+            target_date, exclude_id=booking_id
+        )
+        for ev in existing:
+            ev_start = ev.start_datetime
+            ev_end = ev.end_datetime or ev.start_datetime
+            if start_dt < ev_end and end_dt > ev_start:
+                owner = format_name(ev.user.name).split()[0] if ev.user and ev.user.name else "alguien"
+                return f"Horario ocupado: {owner} tiene la sala de {ev_start.strftime('%H:%M')} a {ev_end.strftime('%H:%M')}", 409
+
+        if booking_id:
+            event, ec = self.schedule_repository.get_event_by_id(booking_id)
+            if ec != 200:
+                return event, ec
+            if not getattr(event, "is_room_booking", 0):
+                return "No autorizado", 403
+            if event.user_id != user_id:
+                return "Solo el creador puede editar la reserva", 403
+            ok, rc = self.schedule_repository.update_room_booking(event, start_dt, end_dt, description)
+            if rc != 200:
+                return ok, rc
+        else:
+            event_data = {
+                "user_id": user_id,
+                "title": ROOM_BOOKING_TITLE,
+                "description": description,
+                "start_datetime": start_dt.isoformat(),
+                "end_datetime": end_dt.isoformat(),
+                "hex_color": ROOM_BOOKING_COLOR,
+                "visibility_id": 1,
+                "all_day": False,
+                "repeat_id": 1,
+                "notify_id": 1,
+                "is_room_booking": 1,
+            }
+            _, ec = self.schedule_repository.add_event(event_data)
+            if ec != 200:
+                return _, ec
+
+        socketio.emit("calendar_update_dashboard", {})
+        return "Reserva guardada correctamente", 200
+
+
+    @handle_exceptions
+    def room_booking_delete(self, booking_id, user_id):
+        event, ec = self.schedule_repository.get_event_by_id(booking_id)
+        if ec != 200:
+            return event, ec
+        if not getattr(event, "is_room_booking", 0):
+            return "No es una reserva de sala", 400
+        if event.user_id != user_id:
+            return "Solo el creador puede eliminar la reserva", 403
+
+        ok, dc = self.schedule_repository.get_delete_event(event)
+        if dc != 200:
+            return ok, dc
+
+        socketio.emit("calendar_update_dashboard", {})
+        return "Reserva eliminada", 200
 
 
     @handle_exceptions

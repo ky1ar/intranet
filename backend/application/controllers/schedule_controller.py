@@ -66,3 +66,13 @@ class ScheduleController:
     @handle_logs_and_exceptions
     def schedule_get_departments(self):
         return self.schedule.get_departments_options()
+
+
+    @handle_logs_and_exceptions
+    def schedule_room_process(self, data):
+        return self.schedule.room_booking_process(data)
+
+
+    @handle_logs_and_exceptions
+    def schedule_room_delete(self, booking_id, user_id):
+        return self.schedule.room_booking_delete(booking_id, user_id)
