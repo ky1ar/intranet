@@ -2,10 +2,11 @@ import logging
 from datetime import datetime, timedelta, date, timezone
 from calendar import monthrange
 from application.handlers import handle_exceptions
-from application.utils import format_name
+from application.utils import format_name, format_date
 from application.services.module_service import ModuleService
 from application.repository.schedule_repository import ScheduleRepository
 from application.repository.user_repository import UserRepository
+from application.repository.import_repository import ImportRepository
 from application.services.general_service import GeneralService
 from application.services.push_service import PushSender 
 from application import socketio, redis_client
@@ -17,6 +18,7 @@ class ScheduleService:
         self.module_service = ModuleService()
         self.schedule_repository = ScheduleRepository()
         self.user_repository = UserRepository()
+        self.import_repository = ImportRepository()
         self.general_service = GeneralService()
         self.push_sender = PushSender()
 
@@ -156,9 +158,10 @@ class ScheduleService:
 
         if action == "updated":
             if event.import_shipment_id:
+                new_date = format_date(event.start_datetime) if event.start_datetime else "-"
                 return (
-                    "Nueva de fecha de arribo 🛳️",
-                    f"{actor_name} actualizó la llegada de: {titulo}."
+                    "Nueva fecha de arribo 🛳️",
+                    f"{actor_name} actualizó la llegada de: {titulo}. Nueva fecha: {new_date}."
                 )
             return (
                 "Actualización de evento ✏️",
@@ -729,6 +732,11 @@ class ScheduleService:
         self._notify_bulk(stayed, event, "updated")
 
         socketio.emit("calendar_update_dashboard", {})
+
+        if event.import_shipment_id and event.start_datetime:
+            new_eta = event.start_datetime.date()
+            self.import_repository.update_eta(event.import_shipment_id, new_eta)
+            socketio.emit("imports_dashboard_update", {})
 
         return "Evento actualizado correctamente", 200
 

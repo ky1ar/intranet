@@ -403,6 +403,21 @@ class ImportRepository:
 
 
     @handle_db_exceptions
+    def update_eta(self, import_shipment_id, new_eta_date):
+        shipment = (
+            g.db_session.query(ImportShipment)
+            .filter(ImportShipment.id == import_shipment_id)
+            .first()
+        )
+        if not shipment:
+            return "No localizado", 404
+        shipment.eta_date = new_eta_date
+        g.db_session.add(shipment)
+        g.db_session.commit()
+        return True, 200
+
+
+    @handle_db_exceptions
     def set_status(self, import_shipment, status_id):
         import_shipment.status_id = status_id
         g.db_session.add(import_shipment)
