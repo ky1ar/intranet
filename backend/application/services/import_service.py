@@ -502,6 +502,12 @@ class ImportService:
             "advance_payment_percent": float(import_shipment.advance_payment_percent or 0),
             "balance_days": import_shipment.balance_days or 0,
 
+            "tax_amount": float(import_shipment.tax_amount) if import_shipment.tax_amount is not None else None,
+            "tax_currency": getattr(import_shipment, "tax_currency", None) or "PEN",
+            "perception_amount": float(import_shipment.perception_amount) if import_shipment.perception_amount is not None else None,
+            "perception_currency": getattr(import_shipment, "perception_currency", None) or "PEN",
+            "dua_number": getattr(import_shipment, "dua_number", None) or "",
+
             "lines": [self._serialize_shipment_line(line) for line in sorted_lines],
 
             "dates": {

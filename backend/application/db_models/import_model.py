@@ -84,6 +84,12 @@ class ImportShipment(BaseModel):
     custom_port_name = db.Column(db.String(150), nullable=True)
     tracking_link = db.Column(db.Text, nullable=True)
 
+    tax_amount = db.Column(db.Numeric(12, 2), nullable=True)
+    tax_currency = db.Column(db.String(3), nullable=True)
+    perception_amount = db.Column(db.Numeric(12, 2), nullable=True)
+    perception_currency = db.Column(db.String(3), nullable=True)
+    dua_number = db.Column(db.String(12), nullable=True)
+
     business = db.relationship("ImportBusiness", lazy="joined", foreign_keys=[business_id])
     type = db.relationship("ImportType", lazy="joined", foreign_keys=[type_id])
     port = db.relationship("ImportPort", lazy="joined", foreign_keys=[port_id])

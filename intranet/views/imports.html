@@ -649,6 +649,30 @@
 							</div>
 						</div>
 
+						<div class="box white" x-show="canEdit() && (import_data?.dua_number || import_data?.tax_amount != null || import_data?.perception_amount != null)">
+							<div class="pair-content" x-show="import_data?.dua_number">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/icons/line/board.svg">
+									<span class="black">DUA:</span>
+									<span class="text" x-text="import_data?.dua_number"></span>
+								</div>
+							</div>
+							<div class="pair-content" x-show="import_data?.tax_amount != null">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/icons/line/money.svg">
+									<span class="black">Impuesto:</span>
+									<span class="text" x-text="`${import_data?.tax_currency === 'USD' ? '$' : 'S/'} ${import_data?.tax_amount}`"></span>
+								</div>
+							</div>
+							<div class="pair-content" x-show="import_data?.perception_amount != null">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/icons/line/money.svg">
+									<span class="black">Percepción:</span>
+									<span class="text" x-text="`${import_data?.perception_currency === 'USD' ? '$' : 'S/'} ${import_data?.perception_amount}`"></span>
+								</div>
+							</div>
+						</div>
+
 						<div class="box white" x-show="import_data?.tracking_link">
 							<div class="pair-content">
 								<div class="pair">
@@ -1346,6 +1370,41 @@
 						</div>
 					</template>
 
+					<template x-if="selected_import?.status_id == 8">
+						<div class="fields options">
+							<label class="white number">
+								<b>Impuesto</b>
+								<input type="number" min="0" step="0.01" placeholder="0.00" x-model.number="tax_amount">
+								<select x-model="tax_currency" style="width: auto; min-width: 3rem;">
+									<option value="PEN">S/</option>
+									<option value="USD">$</option>
+								</select>
+							</label>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 8">
+						<div class="fields options">
+							<label class="white number">
+								<b>Percepción</b>
+								<input type="number" min="0" step="0.01" placeholder="0.00" x-model.number="perception_amount">
+								<select x-model="perception_currency" style="width: auto; min-width: 3rem;">
+									<option value="PEN">S/</option>
+									<option value="USD">$</option>
+								</select>
+							</label>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 8">
+						<div class="fields options">
+							<label class="white">
+								<img alt="" src="/static/icons/line/board.svg" width="16" height="16">
+								<input type="text" placeholder="Número de DUA" maxlength="12" x-model="dua_number">
+							</label>
+						</div>
+					</template>
+
 					<template x-if="selected_import?.status_id == 9">
 						<div class="fields options">
 							<label class="white">
@@ -1793,6 +1852,11 @@
 			pallets: null,
 			weight: null,
 			volume: null,
+			tax_amount: null,
+			tax_currency: 'PEN',
+			perception_amount: null,
+			perception_currency: 'PEN',
+			dua_number: '',
 			selected_import: null,
 			import_data: {},
 			new_import: {
@@ -2348,6 +2412,11 @@
 				this.volume = null;
 				this.traffic_light = 'green';
 				this.tracking_link = '';
+				this.tax_amount = null;
+				this.tax_currency = 'PEN';
+				this.perception_amount = null;
+				this.perception_currency = 'PEN';
+				this.dua_number = '';
             },
 
 			cyclePayLight() {
@@ -2473,6 +2542,11 @@
 				const pay_date = this.pay_date == '' ? null:this.pay_date;
 				const status_notes = this.status_notes;
 				const traffic_light = this.traffic_light;
+				const tax_amount = this.tax_amount;
+				const tax_currency = this.tax_currency || 'PEN';
+				const perception_amount = this.perception_amount;
+				const perception_currency = this.perception_currency || 'PEN';
+				const dua_number = (this.dua_number || '').trim();
 				const qty = this.qty;
 				const pallets = this.pallets;
 				const weight = this.weight;
@@ -2496,6 +2570,11 @@
 
 				if (status_id == 7 && deadline_date === null) {
                     this.showError('move_status', 'Selecciona un deadline');
+					return;
+				}
+
+				if (status_id == 8 && !dua_number) {
+					this.showError('move_status', 'Ingresa el número DUA');
 					return;
 				}
 
@@ -2533,6 +2612,11 @@
 					pay_date: pay_date,
   					traffic_light: traffic_light,
 					tracking_link: tracking_link,
+					tax_amount: tax_amount,
+					tax_currency: tax_currency,
+					perception_amount: perception_amount,
+					perception_currency: perception_currency,
+					dua_number: dua_number,
 				};
 				
 				if (this.processing) return;

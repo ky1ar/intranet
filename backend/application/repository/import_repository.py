@@ -265,6 +265,13 @@ class ImportRepository:
             if current_status_id == 7:
                 import_shipment.deadline_date = data.get("deadline_date")
 
+            if current_status_id == 8:
+                import_shipment.tax_amount = data.get("tax_amount")
+                import_shipment.tax_currency = data.get("tax_currency") or "PEN"
+                import_shipment.perception_amount = data.get("perception_amount")
+                import_shipment.perception_currency = data.get("perception_currency") or "PEN"
+                import_shipment.dua_number = (data.get("dua_number") or "").strip() or None
+
             if current_status_id == 9:
                 import_shipment.pay_date = data.get("pay_date")
                 import_shipment.traffic_light = data.get("traffic_light")
