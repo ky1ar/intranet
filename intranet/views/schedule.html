@@ -13,8 +13,8 @@
 
 			<div class="right frost-dark" style="margin-left: auto;">
 				<div class="item" @click="openRoomModal()">
-					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/board.svg">
-					<span>Sala</span>
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/meeting.svg">
+					<span>Reuniones</span>
 				</div>
 			</div>
 		</div>
@@ -545,103 +545,102 @@
 			<div class="modal glass2 small" @click.stop>
 				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
 
-				<div class="title" style="display:flex; align-items:center; gap:.5rem;">
+				<!-- Solo lectura para no-creador -->
+				<div class="readonly-view" x-show="room_data.booking_id && !room_data.is_mine">
+					<div class="readonly-title">
+						<span x-text="room_data.title || 'Sin título'" :style="`color: ${room_data.hex_color}`"></span>
+					</div>
+					
+					<div class="readonly-row">
+						<span class="readonly-creator" x-text="`Reservado por ${room_data.creator_name}`"></span>
+					</div>
+
+					<div class="readonly-box white">
+						<template x-if="room_data.description">
+							<div class="readonly-row">
+								<span class="readonly-label">
+									<img alt="repeat" src="/static/icons/line/board.svg" width="16" height="16">
+									Descripción
+								</span>
+								<span class="readonly-value" x-html="room_data.description"></span>
+							</div>
+						</template>
+
+						<div class="readonly-row">
+							<span class="readonly-label">
+								<img alt="repeat" src="/static/icons/line/calendar.svg" width="16" height="16">
+								Fecha y hora
+							</span>
+							<span class="readonly-value" x-text="roomReadableRange()"></span>
+						</div>
+					</div>
+				</div>
+
+				
+				<!-- Formulario para crear/editar (creador) -->
+				<div class="title" style="display:flex; align-items:center; gap:.5rem;" x-show="!room_data.booking_id || room_data.is_mine">
 					<img alt="" width="18" height="18" src="/static/icons/line/board.svg">
 					<span x-text="room_data.booking_id ? 'Editar reserva' : 'Reservar sala'"></span>
 				</div>
 
-				<!-- Solo lectura para no-creador -->
-				<template x-if="room_data.booking_id && !room_data.is_mine">
-					<div class="modal-content">
-						<div class="readonly-box white">
-							<div class="readonly-row">
-								<span class="readonly-label">
-									<img alt="" src="/static/icons/line/user.svg" width="16" height="16">
-									Reservado por
-								</span>
-								<span class="readonly-value" x-text="room_data.creator_name"></span>
-							</div>
-							<div class="readonly-row">
-								<span class="readonly-label">
-									<img alt="" src="/static/icons/line/calendar.svg" width="16" height="16">
-									Fecha y hora
-								</span>
-								<span class="readonly-value" x-text="roomReadableRange()"></span>
-							</div>
-							<template x-if="room_data.description">
-								<div class="readonly-row">
-									<span class="readonly-label">
-										<img alt="" src="/static/icons/line/board.svg" width="16" height="16">
-										Descripción
-									</span>
-									<span class="readonly-value" x-text="room_data.description"></span>
+				<div class="modal-content" x-show="!room_data.booking_id || room_data.is_mine">
+					<div class="fields options">
+						<label class="white">
+							<img alt="" src="/static/icons/line/calendar.svg" width="16" height="16">
+							<input
+								type="date"
+								x-model="room_data.date"
+								:min="todayISO"
+								style="flex:1;"
+								@change="loadRoomBooked()"
+							>
+						</label>
+					</div>
+
+					<template x-if="room_booked.length > 0">
+						<div style="background:#37474F22; border:1.5px solid #37474F55; border-radius:8px; padding:.5rem .75rem; display:flex; flex-direction:column; gap:.25rem;">
+							<span style="font-size:.72rem; font-weight:600; color:#37474F; letter-spacing:.03em; text-transform:uppercase;">Horarios ocupados</span>
+							<template x-for="b in room_booked" :key="b.start">
+								<div style="display:flex; align-items:center; gap:.4rem; font-size:.8rem;">
+									<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#37474F; flex-shrink:0;"></span>
+									<span style="font-weight:600;" x-text="b.start + ' – ' + b.end"></span>
+									<span style="color:#555; font-size:.75rem;" x-text="'· ' + (b.label.includes('|') ? b.label.split('|')[1].trim() : b.label)"></span>
 								</div>
 							</template>
 						</div>
-					</div>
-				</template>
+					</template>
 
-				<!-- Formulario para crear/editar (creador) -->
-				<template x-if="!room_data.booking_id || room_data.is_mine">
-					<div class="modal-content">
-						<div class="fields options">
-							<label class="white">
-								<img alt="" src="/static/icons/line/calendar.svg" width="16" height="16">
-								<input
-									type="date"
-									x-model="room_data.date"
-									:min="todayISO"
-									style="flex:1;"
-									@change="loadRoomBooked()"
-								>
-							</label>
-						</div>
-
-						<template x-if="room_booked.length > 0">
-							<div style="background:#37474F22; border:1.5px solid #37474F55; border-radius:8px; padding:.5rem .75rem; display:flex; flex-direction:column; gap:.25rem;">
-								<span style="font-size:.72rem; font-weight:600; color:#37474F; letter-spacing:.03em; text-transform:uppercase;">Horarios ocupados</span>
-								<template x-for="b in room_booked" :key="b.start">
-									<div style="display:flex; align-items:center; gap:.4rem; font-size:.8rem;">
-										<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#37474F; flex-shrink:0;"></span>
-										<span style="font-weight:600;" x-text="b.start + ' – ' + b.end"></span>
-										<span style="color:#555; font-size:.75rem;" x-text="'· ' + (b.label.includes('|') ? b.label.split('|')[1].trim() : b.label)"></span>
-									</div>
+					<div class="fields options">
+						<label class="white">
+							<b style="min-width: 4rem;">Inicio</b>
+							<select x-model="room_data.start_time" @change="onRoomStartChange()">
+								<option value="" disabled>--:--</option>
+								<template x-for="t in roomTimeOptions('start')" :key="t">
+									<option :value="t" :disabled="isStartConflict(t)" :style="isStartConflict(t) ? 'color:#aaa;' : ''" x-text="isStartConflict(t) ? t + ' (ocupado)' : t"></option>
 								</template>
-							</div>
-						</template>
+							</select>
+						</label>
 
-						<div class="fields options">
-							<label class="white">
-								<b style="min-width: 4rem;">Inicio</b>
-								<select x-model="room_data.start_time" @change="onRoomStartChange()">
-									<option value="" disabled>--:--</option>
-									<template x-for="t in roomTimeOptions('start')" :key="t">
-										<option :value="t" :disabled="isStartConflict(t)" :style="isStartConflict(t) ? 'color:#aaa;' : ''" x-text="isStartConflict(t) ? t + ' (ocupado)' : t"></option>
-									</template>
-								</select>
-							</label>
-
-							<label class="white">
-								<b style="min-width: 4rem;">Fin</b>
-								<select x-model="room_data.end_time">
-									<option value="" disabled>--:--</option>
-									<template x-for="t in roomTimeOptions('end')" :key="t">
-										<option :value="t" :disabled="isEndConflict(t)" :style="isEndConflict(t) ? 'color:#aaa;' : ''" x-text="isEndConflict(t) ? t + ' (ocupado)' : t"></option>
-									</template>
-								</select>
-							</label>
-						</div>
-
-						<textarea
-							placeholder="Motivo o descripción (opcional)"
-							x-model="room_data.description"
-							class="text-area"
-							style="max-width:100%; border: 2px solid white;"
-						></textarea>
+						<label class="white">
+							<b style="min-width: 4rem;">Fin</b>
+							<select x-model="room_data.end_time">
+								<option value="" disabled>--:--</option>
+								<template x-for="t in roomTimeOptions('end')" :key="t">
+									<option :value="t" :disabled="isEndConflict(t)" :style="isEndConflict(t) ? 'color:#aaa;' : ''" x-text="isEndConflict(t) ? t + ' (ocupado)' : t"></option>
+								</template>
+							</select>
+						</label>
 					</div>
-				</template>
 
-				<div class="buttons">
+					<textarea
+						placeholder="Motivo o descripción (opcional)"
+						x-model="room_data.description"
+						class="text-area"
+						style="max-width:100%; border: 2px solid white;"
+					></textarea>
+				</div>
+
+				<div class="buttons" x-show="!room_data.booking_id || room_data.is_mine">
 					<template x-if="room_data.booking_id && room_data.is_mine">
 						<button class="button black hover-opacity" @click="deleteRoomBooking()">
 							<span>Eliminar</span>
@@ -655,12 +654,6 @@
 							:class="buttons.room.class"
 							x-text="buttons.room.text"
 						></button>
-					</template>
-
-					<template x-if="room_data.booking_id && !room_data.is_mine">
-						<button class="button hover-opacity" @click="$store.cache.hideLastModal()">
-							Cerrar
-						</button>
 					</template>
 				</div>
 			</div>
@@ -1277,7 +1270,9 @@
 					start_time: toTime(d.start_datetime),
 					end_time: toTime(d.end_datetime),
 					description: d.description || '',
+					title: d.title || '',
 					creator_name: d.creator_name || '',
+					hex_color: d.hex_color || '',
 					is_mine: Number(d.creator_id) === Number(this.user_id),
 				};
 				this.room_booked = [];
@@ -1464,12 +1459,12 @@
 			flex-direction: column;
 			overflow: auto;
 		}
-		#modal-event .readonly-view {
+		.readonly-view {
 			display: flex;
 			flex-direction: column;
 			gap: 1rem;
 		}
-		#modal-event .readonly-title {
+		.readonly-title {
 			font-size: 1.05rem;
 			font-weight: 600;
 			display: flex;
@@ -1477,38 +1472,38 @@
 			gap: 0.75rem;
 			width: calc(100% - 1.5rem);
 		}
-		#modal-event .readonly-color {
+		.readonly-color {
 			min-width: 0.75rem;
 			height: 0.75rem;
 			border-radius: 2rem;
 		}
-		#modal-event .readonly-row {
+		.readonly-row {
 			display: flex;
 			flex-direction: column;
 			gap: 0.25rem;
 		}
-		#modal-event .readonly-box {
+		.readonly-box {
 			padding: 1.5rem;
 			display: flex;
 			gap: 1.5rem;
 			flex-direction: column;
 		}
-		#modal-event .readonly-label {
+		.readonly-label {
 			font-size: 0.75rem;
 			opacity: 0.7;
 			display: flex;
 			align-items: center;
 			gap: 0.5rem;
 		}
-		#modal-event .readonly-value {
+		.readonly-value {
 			white-space: break-spaces;
 		}
-		#modal-event .readonly-creator {
+		.readonly-creator {
 			margin-top: -0.75rem;
 			opacity: 0.6;
     		font-size: 0.75rem;
 		}
-		#modal-event .readonly-link {
+		.readonly-link {
 			text-decoration: underline;
 			word-break: break-all;
 			color: var(--primary);
