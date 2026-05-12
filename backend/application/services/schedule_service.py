@@ -13,8 +13,8 @@ from application import socketio, redis_client
 from flask_jwt_extended import get_jwt_identity
 
 
-ROOM_BOOKING_COLOR = '#37474F'
-ROOM_BOOKING_TITLE = 'Sala de Reuniones'
+ROOM_BOOKING_COLOR = '#8b9093'
+ROOM_BOOKING_TITLE = 'Sala de reuniones'
 
 
 class ScheduleService:
