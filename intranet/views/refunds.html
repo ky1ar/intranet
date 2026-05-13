@@ -14,8 +14,8 @@
 			<template x-for="group in $store.cache.getData('refund_dashboard')" :key="group.status_id">
 				<div class="group">
 					<div class="group-head">
+						<img alt="" width="20" height="20" :src="statusIcon(group.status_slug)">
 						<span class="group-name" x-text="group.status_name"></span>
-						<span class="group-count" x-show="group.requests.length > 0" x-text="group.requests.length"></span>
 					</div>
 					<template x-for="req in group.requests" :key="req.id">
 						<div class="req-card white hover-opacity" @click="openDetail(req.id)">
@@ -41,8 +41,8 @@
 
 							<!-- <div class="req-reason" x-text="req.reason"></div> -->
 							<div class="req-bottom">
-								<span class="req-id" x-text="`EX-${req.id}`"></span>
-								<span class="req-date" x-text="req.scheduled_date ? `📅 ${req.scheduled_date}` : req.registered_by_name"></span>
+								<span class="req-reason" x-text="req.reason"></span>
+								<span class="req-amount" x-text="`S/ ${req.net_refund.toFixed(2)}`"></span>
 							</div>
 						</div>
 					</template>
@@ -702,6 +702,19 @@
 				this.sendChat();
 			},
 
+			statusIcon(slug) {
+				const map = {
+					registered:        'requested',
+					reviewing:         'reviewing',
+					area_pending:      'leader',
+					gerencia_pending:  'manager',
+					scheduled:         'time',
+					executed:          'executed',
+					reverted:          'reverted',
+				};
+				return `/static/icons/module/refunds/${map[slug]}.svg`;
+			},
+
 			scrollCommentsToBottom(behavior = 'smooth') {
 				const box = this.$refs.commentsBox;
 				if (!box) return;
@@ -785,6 +798,7 @@
 			border-right: 3px solid #ffffff80;
 			gap: 0.6rem;
 			padding: 0.75rem;
+			min-width: 12rem;
 		}
 		#refunds .group:last-child {
 			border-right: none;
@@ -846,7 +860,6 @@
 			display: flex;
 			justify-content: space-between; align-items: center;
 			font-size: 0.65rem;
-			opacity: 0.4;
 			font-weight: 500;
 		}
 		#refunds .req-id { 
