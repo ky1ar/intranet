@@ -583,24 +583,26 @@
 				const hp  = (p) => Alpine.store('cache').hasPermission('refunds', p);
 				const actions = [];
 
+				if (sid < 6 && this._highPerm())
+					actions.push({ status_id: 7, label: 'Revertir extorno',  icon: 'dislike',  class: 'black' });
+
 				// 1→2
 				if (sid === 1 && hp('move'))
 					actions.push({ status_id: 2, label: 'Iniciar revisión',  icon: 'find',     class: '' });
 				// 2→3
 				if (sid === 2 && hp('validate'))
-					actions.push({ status_id: 3, label: 'Enviar a área',     icon: 'like',     class: 'green' });
+					actions.push({ status_id: 3, label: 'Extorno validado',     icon: 'like',     class: '' });
 				// 3→4
 				if (sid === 3 && hp('approve_area'))
-					actions.push({ status_id: 4, label: 'Aprobar área',      icon: 'like',     class: 'green' });
+					actions.push({ status_id: 4, label: 'Aprobar extorno',      icon: 'like',     class: '' });
 				// 4→5 (approve gerencia → auto-schedule)
 				if (sid === 4 && hp('approve_gerencia'))
-					actions.push({ status_id: 5, label: 'Aprobar y programar', icon: 'schedule', class: 'green' });
+					actions.push({ status_id: 5, label: 'Aprobar y programar', icon: 'schedule', class: '' });
 				// 5→6
 				if (sid === 5 && this._highPerm())
-					actions.push({ status_id: 6, label: 'Marcar ejecutado',  icon: 'check',    class: 'green' });
+					actions.push({ status_id: 6, label: 'Extorno ejecutado',  icon: 'approve',    class: '' });
 				// →7 revert (any state before executed)
-				if (sid < 6 && this._highPerm())
-					actions.push({ status_id: 7, label: 'Revertir extorno',  icon: 'dislike',  class: 'red' });
+				
 
 				return actions;
 			},
@@ -882,20 +884,24 @@
 			opacity: 0.35;
 		}
 		/* Status badge */
-		.detail-status.registered       { background: #7b8fa1; color: white; }
+		.detail-status.registered       { background: #f8954d; color: white; }
 		.detail-status.reviewing        { background: #efae24; color: white; }
-		.detail-status.area_pending     { background: #2980b9; color: white; }
-		.detail-status.gerencia_pending { background: #1abc9c; color: white; }
-		.detail-status.scheduled        { background: #f39c12; color: white; }
-		.detail-status.executed         { background: #88b262; color: white; }
+		.detail-status.area_pending     { background: #88b262; color: white; }
+		.detail-status.gerencia_pending { background: #50afc3; color: white; }
+		.detail-status.scheduled        { background: #508dc3; color: white; }
+		.detail-status.executed         { background: #c490cf; color: white; }
 		.detail-status.reverted         { background: #e36464; color: white; }
 
-		.detail-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+		.detail-head { display: flex; align-items: center; justify-content: space-between; }
 		.detail-head-left { display: flex; align-items: center; gap: 0.5rem; }
 		.detail-title { font-size: 1.1rem; font-weight: 700; }
 		.detail-status {
-			font-size: 0.65rem; font-weight: 700; padding: 0.25rem 0.7rem;
-			border-radius: 1rem; letter-spacing: 0.03em;
+			font-size: 0.65rem;
+			font-weight: 400;
+			padding: 0.5rem 1rem;
+			margin: -0.25rem 0;
+			border-radius: 1rem;
+			letter-spacing: 0.03em;
 		}
 		.admin-badge {
 			font-size: 0.6rem; font-weight: 700; padding: 0.2rem 0.5rem;
