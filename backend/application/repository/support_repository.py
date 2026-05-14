@@ -502,6 +502,19 @@ class SupportRepository:
     
 
     @handle_db_exceptions
+    def delete_service_order(self, service_order):
+        g.db_session.query(ServiceOrderPhotos).filter(
+            ServiceOrderPhotos.service_order_id == service_order.id
+        ).delete(synchronize_session=False)
+        g.db_session.query(ServiceOrderStatus).filter(
+            ServiceOrderStatus.service_order_id == service_order.id
+        ).delete(synchronize_session=False)
+        g.db_session.delete(service_order)
+        g.db_session.commit()
+        return True, 200
+
+
+    @handle_db_exceptions
     def get_orders_like(self, order_number):
         search_term = f"%{order_number}%"
 

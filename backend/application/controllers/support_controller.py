@@ -160,4 +160,10 @@ class SupportController:
         if validation := validate_request(data, {"order_number", "filenames"}):
             return validation, 400
         return self.support.add_photos_to_order(data.get("order_number"), data.get("filenames"))
+
+    @handle_logs_and_exceptions
+    def support_delete_order(self, data):
+        if validation := validate_request(data, {"order_number"}):
+            return validation, 400
+        return self.support.delete_order(data.get("order_number"))
     

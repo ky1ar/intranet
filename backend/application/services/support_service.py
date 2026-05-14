@@ -909,6 +909,18 @@ class SupportService:
     
 
     @handle_exceptions
+    def delete_order(self, order_number):
+        service_order, status = self.support_repository.get_service_order_by_number(order_number)
+        if status != 200:
+            return service_order, status
+
+        if service_order.status_id >= 8:
+            return "No se puede eliminar una orden en estado finalizado", 400
+
+        return self.support_repository.delete_service_order(service_order)
+
+
+    @handle_exceptions
     def find_orders(self, order_number):
         if len(order_number) < 2:
             return None, 400

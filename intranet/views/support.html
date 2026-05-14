@@ -356,11 +356,46 @@
 					<button class="button hover-opacity" :class="{ 'black': service_order && service_order.status_id == 8 }" @click="createPDF(service_order.order_number)">Descargar Reporte</button>
 					<button class="button hover-opacity" @click="finish(service_order)"  x-show="service_order?.status_id == 8">Finalizar</button>
 				</div>
+
+				<div class="buttons" x-show="$store.cache.hasPermission('support', 'delete') && service_order?.status_id < 8">
+					<button class="button hover-opacity" @click="$store.cache.showModal('confirm-delete-order')">Eliminar orden</button>
+				</div>
 			</div>
 		</div>
 
 
-		<div 
+		<div
+			x-show="$store.cache.isVisibleModal('confirm-delete-order')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-confirm-delete-order"
+			x-cloak
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+		>
+			<div class="modal little glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="title center">
+					<span style="text-align: center;">¿Eliminar esta orden de servicio?</span>
+					<p class="created">Esta acción eliminará el historial de estados y no se puede deshacer</p>
+				</div>
+
+				<div class="buttons">
+					<button class="button black hover-opacity" @click="deleteOrder()">Sí, eliminar</button>
+					<button class="button hover-opacity" @click="$store.cache.hideLastModal()">No</button>
+				</div>
+			</div>
+		</div>
+
+
+		<div
 			x-show="$store.cache.isVisibleModal('photos')"
 			@mousedown.self="$store.cache.hideLastModal()"
 			class="modal-wrap"
@@ -1272,6 +1307,27 @@
 				Alpine.store('cache').showModal('status');
 			},
 
+			async deleteOrder() {
+				try {
+					const response = await fetch(`${this.api}/support/order/delete`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${this.token}`,
+						},
+						body: JSON.stringify({ order_number: this.service_order.order_number }),
+					});
+					const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error al eliminar');
+
+					Alpine.store('cache').hideAllModals();
+					this.service_order = {};
+					await Alpine.store('cache').refresh('support_dashboard');
+				} catch (error) {
+					console.error(error.message);
+				}
+			},
+
 			async createPDF(order_number) {
 				if (this.processing) return;
 				this.processing = true;
@@ -1945,6 +2001,9 @@
 
 
 	<style>
+		#modal-confirm-delete-order {
+			z-index: 50;
+		}
 		.mobile-table {
 			flex-direction: column;
 			gap: 0.75rem;

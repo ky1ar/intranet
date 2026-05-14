@@ -174,6 +174,11 @@ def link_pdf(order_number):
     return controller.support_link_pdf(order_number)
 
 
+@support_bp.route("/order/delete", methods=["POST"])
+def service_order_delete():
+    return controller.support_delete_order(request.get_json())
+
+
 @support_bp.route("/photos/add", methods=["POST"])
 def photos_add():
     images = request.files.getlist("images[]")
