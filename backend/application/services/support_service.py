@@ -210,6 +210,7 @@ class SupportService:
             "order_number": service_order.order_number,
             "technician_id": service_order.technician_id,
             "technician_name": service_order.technician.name.split()[0],
+            "machine_id": service_order.machine_id,
             "machine": f"{service_order.machine.brand.name} {service_order.machine.model}",
             "brand_name": service_order.machine.brand.name,
             "machine_model": service_order.machine.model,

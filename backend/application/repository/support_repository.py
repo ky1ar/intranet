@@ -194,7 +194,7 @@ class SupportRepository:
 
     @handle_db_exceptions
     def update_service_order(self, service_order, data):
-        allowed_fields = {'method_id', 'technician_id', 'origin_id', 'pay_amount', 'paid'}
+        allowed_fields = {'method_id', 'technician_id', 'origin_id', 'pay_amount', 'paid', 'machine_id'}
         updated_fields = []
 
         for key in allowed_fields:

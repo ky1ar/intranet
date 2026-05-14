@@ -245,14 +245,14 @@
 							<img class="icon" alt="camera" width="24" height="24" src="/static/icons/line/camera.svg">
 							<img class="thumb" alt="thumb" width="48" height="48" :src="'/static/images/uploads/machines/'+service_order?.machine_image" alt="">
 						</div>
-						
+
 						<div class="data">
-							<div class="head">
+							<div class="head" :class="$store.cache.hasPermission('support', 'edit') ? 'hover-opacity' : ''" @click="$store.cache.hasPermission('support', 'edit') && startEditMachine()" title="Editar equipo">
 								<span class="brand" x-text="service_order?.brand_name"></span>
 								<span class="line">|</span>
 								<span class="model" x-text="service_order?.machine_model"></span>
 							</div>
-							
+
 							<!-- <span class="machine" x-text="service_order?.machine"></span> -->
 							<span class="name" x-text="show_document ? service_order?.client_document : service_order?.client_name"></span>
 						</div>
@@ -390,6 +390,51 @@
 				<div class="buttons">
 					<button class="button black hover-opacity" @click="deleteOrder()">Sí, eliminar</button>
 					<button class="button hover-opacity" @click="$store.cache.hideLastModal()">No</button>
+				</div>
+			</div>
+		</div>
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('edit-machine')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-edit-machine"
+			x-cloak
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+		>
+			<div class="modal little glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="title center">
+					<div class="machine-edit-preview">
+						<img width="48" height="48" :src="'/static/images/uploads/machines/' + (edit_machine.machine_id ? edit_machine.machine_image : service_order?.machine_image)" alt="">
+						<span x-text="edit_machine.machine_id ? edit_machine.machine : service_order?.machine"></span>
+					</div>
+				</div>
+
+				<div class="fields">
+					<label class="white flex1">
+						<img alt="" src="/static/icons/line/printer.svg" width="16" height="16">
+						<input type="text" x-model="edit_machine.machine" placeholder="Modelo de equipo" @input="getMachineView()" @keydown.escape="$store.cache.hideLastModal()">
+						<div class="white machines" x-show="machines.length > 0">
+							<template x-for="machine in machines" :key="machine.id">
+								<span x-text="machine.name" @click="selectMachineForEdit(machine)"></span>
+							</template>
+						</div>
+					</label>
+				</div>
+
+				<div class="buttons">
+					<button class="button black hover-opacity" @click="updateMachine()" :disabled="!edit_machine.machine_id">Guardar</button>
+					<button class="button hover-opacity" @click="$store.cache.hideLastModal()">Cancelar</button>
 				</div>
 			</div>
 		</div>
@@ -982,6 +1027,7 @@
 			current_page: 1,
 			service_order: [],
 			machines: [],
+			edit_machine: {},
 			finded_orders: [],
 			selected_service: null,
 			status_notes: '',
@@ -1065,6 +1111,63 @@
                     return;
                 } 
             },
+
+			startEditMachine() {
+				this.edit_machine = {
+					machine: this.service_order.machine,
+					machine_id: this.service_order.machine_id,
+					machine_image: this.service_order.machine_image,
+				};
+				this.machines = [];
+				Alpine.store('cache').showModal('edit-machine');
+			},
+
+			selectMachineForEdit(machine) {
+				this.edit_machine.machine = machine.name;
+				this.edit_machine.machine_id = machine.id;
+				this.edit_machine.machine_image = machine.image;
+				this.machines = [];
+			},
+
+			async getMachineView() {
+				const machine_search = this.edit_machine.machine;
+				if (machine_search.length < 2) { this.machines = []; return; }
+				try {
+					const response = await fetch(`${this.api}/machine/find/${machine_search}`);
+					const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error');
+					this.machines = jsonData.data;
+				} catch {
+					this.machines = [];
+				}
+			},
+
+			async updateMachine() {
+				if (!this.edit_machine.machine_id) return;
+				try {
+					const response = await fetch(`${this.api}/support/order/update`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${this.token}`,
+						},
+						body: JSON.stringify({
+							order_number: this.service_order.order_number,
+							user_id: Alpine.store('cache').user.id,
+							machine_id: this.edit_machine.machine_id,
+						}),
+					});
+					const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error al actualizar');
+
+					await this.getServiceOrder(this.service_order.order_number);
+					this.edit_machine = {};
+					this.machines = [];
+					Alpine.store('cache').hideLastModal();
+				} catch (error) {
+					console.error(error.message);
+				}
+			},
 
 			payToggle() {
 				this.process_service.payed = !this.process_service.payed
@@ -1363,6 +1466,8 @@
 			async viewOrder(order_number) {
 				try {
 					await this.getServiceOrder(order_number);
+					this.edit_machine = {};
+					this.machines = [];
 					Alpine.store('cache').showModal('view');
 				} catch (error) {
 					console.error('Error en la asignación:', error);
@@ -2003,6 +2108,40 @@
 	<style>
 		#modal-confirm-delete-order {
 			z-index: 50;
+		}
+		#modal-edit-machine {
+			z-index: 50;
+		}
+		#modal-edit-machine .machine-edit-preview {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			font-weight: 500;
+		}
+		#modal-edit-machine .machine-edit-preview img {
+			border-radius: 0.5rem;
+		}
+		#modal-edit-machine .fields label {
+			position: relative;
+		}
+		#modal-edit-machine .fields label .machines {
+			position: absolute;
+			top: 100%;
+			left: 0;
+			right: 0;
+			z-index: 10;
+			border-radius: 0.5rem;
+			overflow: hidden;
+			display: flex;
+			flex-direction: column;
+		}
+		#modal-edit-machine .fields label .machines span {
+			padding: 0.5rem 0.75rem;
+			cursor: pointer;
+			font-size: 0.9rem;
+		}
+		#modal-edit-machine .fields label .machines span:hover {
+			opacity: 0.7;
 		}
 		.mobile-table {
 			flex-direction: column;
@@ -2798,6 +2937,9 @@
 			font-size: 0.95rem;
 			font-weight: 400;
 			opacity: 0.75;
+		}
+		#modal-view .client .data .head.hover-opacity {
+			cursor: pointer;
 		}
 		#modal-view .client .icons {
 			margin-left: auto;
