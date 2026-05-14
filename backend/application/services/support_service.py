@@ -635,6 +635,18 @@ class SupportService:
     def get_service_order_orm_by_number(self, order_number):
         return self.support_repository.get_service_order_by_number(order_number)
 
+    @handle_exceptions
+    def add_photos_to_order(self, order_number, filenames):
+        service_order, status = self.support_repository.get_service_order_by_number(order_number)
+        if status != 200:
+            return service_order, status
+        result, result_status = self.support_repository.add_photos_standalone(
+            service_order.id, service_order.status_id, filenames
+        )
+        if result_status != 200:
+            return result, result_status
+        return "Fotos añadidas correctamente", 200
+
 
     @handle_exceptions
     def finish(self, service_order, data):

@@ -247,6 +247,18 @@ class SupportRepository:
             g.db_session.add(new_photo)
         g.db_session.commit()
         return True, 200
+
+    @handle_db_exceptions
+    def add_photos_standalone(self, service_order_id, status_id, filenames):
+        for filename in filenames:
+            new_photo = ServiceOrderPhotos(
+                service_order_id=service_order_id,
+                status_id=status_id,
+                filename=filename
+            )
+            g.db_session.add(new_photo)
+        g.db_session.commit()
+        return True, 200
     
 
     @handle_db_exceptions

@@ -173,3 +173,26 @@ def link_history():
 def link_pdf(order_number):
     return controller.support_link_pdf(order_number)
 
+
+@support_bp.route("/photos/add", methods=["POST"])
+def photos_add():
+    images = request.files.getlist("images[]")
+    order_number = request.form.get("order_number")
+
+    saved_files = []
+    for image in images:
+        if not image or image.filename == "":
+            continue
+        filename = secure_filename(f"support_{order_number}_{uuid.uuid4().hex[:8]}.jpg")
+        filepath = os.path.join(Config.UPLOAD_FOLDER, filename)
+        img = Image.open(image)
+        img = img.convert("RGB")
+        img.save(filepath, "JPEG", quality=90)
+        saved_files.append(filename)
+
+    data = {
+        "order_number": order_number,
+        "filenames": saved_files,
+    }
+    return controller.support_add_photos(data)
+

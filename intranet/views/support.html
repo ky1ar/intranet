@@ -66,7 +66,8 @@
 									:class="item.priority"
 									:draggable="$store.cache.hasPermission('support', 'move')"
 									@dragstart="dragService(item)"
-									@click="viewOrder(item.order_number)">
+									@click="viewOrder(item.order_number)"
+									class="white hover-opacity">
 									<div class="row">
 										<template x-if="item.protect == 0">
 											<span class="order-number"  x-text="`${item.method_letter}-${item.order_number}`"></span>
@@ -240,16 +241,10 @@
 
 				<div class="flexbox flex-row">
 					<div class="client white">
-						<template x-if="service_order?.photos?.length !== 0">
-							<div class="show-photos hover-opacity" @click="$store.cache.showModal('photos');">
-								<img class="icon" alt="camera" width="24" height="24" src="/static/icons/line/camera.svg">
-								<img class="thumb" alt="thumb" width="48" height="48" :src="'/static/images/uploads/machines/'+service_order?.machine_image" alt="">
-							</div>
-						</template>
-						
-						<template x-if="service_order?.photos?.length == 0">
+						<div class="show-photos hover-opacity" @click="new_photos = []; $store.cache.showModal('photos');">
+							<img class="icon" alt="camera" width="24" height="24" src="/static/icons/line/camera.svg">
 							<img class="thumb" alt="thumb" width="48" height="48" :src="'/static/images/uploads/machines/'+service_order?.machine_image" alt="">
-						</template>
+						</div>
 						
 						<div class="data">
 							<div class="head">
@@ -392,6 +387,40 @@
 							<img class="hover-opacity" :src="'/static/images/uploads/' + photo_item.filename" alt="preview">
 						</div>
 					</template>
+				</div>
+
+				<div class="capture-proof">
+					<span class="name">Añadir fotos</span>
+					<div class="thumbnails-grid">
+						<template x-for="(photo, index) in new_photos" :key="index">
+							<div class="thumb-item" @click="removeNewPhoto(index)">
+								<div class="thumbnail-wrapper">
+									<div class="delete-button">
+										<img class="delete" alt="delete" width="24" height="24"
+											src="/static/icons/line/delete.svg">
+									</div>
+									<img class="thumbnail" :src="photo.preview" alt="preview">
+								</div>
+							</div>
+						</template>
+
+						<div class="add-button hover-opacity" @click.prevent="openPhotoFileInput()">
+							<img alt="" width="24" height="24" src="/static/icons/line/plus.svg">
+						</div>
+
+						<input
+							type="file"
+							accept="image/*"
+							style="display: none;"
+							x-ref="photoFileInput"
+							@change="addPhotoFiles($event)"
+							multiple
+						>
+					</div>
+				</div>
+
+				<div class="buttons" x-show="new_photos.length > 0">
+					<button class="hover-opacity button" @click="uploadNewPhotos()">Subir imágenes</button>
 				</div>
 			</div>
 			
@@ -638,7 +667,7 @@
 			class="modal-wrap"
 			id="modal-search"
 			x-cloak>
-			<div class="modal" @click.stop>
+			<div class="modal little" @click.stop>
 				<div class="bottom glass2">
 					<img alt="" class="ico" width="20" height="20" src="/static/icons/line/find.svg">
 					<input type="text"
@@ -927,6 +956,7 @@
 			processing: false,
             preview: null,
 			proof_photos: [],
+			new_photos: [],
 			showing_photo: '',
 			selected_group_id: null,
 			revert_change: false,
@@ -1187,6 +1217,55 @@
 				this.proof_photos.splice(index, 1);
 			},
 
+			openPhotoFileInput() {
+				if (this.$refs.photoFileInput) {
+					this.$refs.photoFileInput.value = '';
+				}
+				this.$refs.photoFileInput.click();
+			},
+
+			addPhotoFiles(event) {
+				for (let f of event.target.files) {
+					if (f) {
+						let reader = new FileReader();
+						reader.onload = e => this.new_photos.push({ file: f, preview: e.target.result });
+						reader.readAsDataURL(f);
+					}
+				}
+				event.target.value = '';
+			},
+
+			removeNewPhoto(index) {
+				this.new_photos.splice(index, 1);
+			},
+
+			async uploadNewPhotos() {
+				if (this.processing || this.new_photos.length === 0) return;
+				this.processing = true;
+				try {
+					const formData = new FormData();
+					for (let i = 0; i < this.new_photos.length; i++) {
+						const resized = await Alpine.store('cache').resizeImage(this.new_photos[i].file, 1024, 1024);
+						formData.append('images[]', resized);
+					}
+					formData.append('order_number', this.service_order.order_number);
+
+					const response = await fetch(`${this.api}/support/photos/add`, {
+						method: 'POST',
+						body: formData
+					});
+
+					if (!response.ok) throw new Error('Error al subir las fotos.');
+
+					this.new_photos = [];
+					await this.getServiceOrder(this.service_order.order_number);
+				} catch (error) {
+					console.error('Error al subir fotos:', error);
+				} finally {
+					this.processing = false;
+				}
+			},
+
 			finish(service) {
 				this.selected_service = service;
 				this.status_notes = '';
@@ -1219,11 +1298,15 @@
 				}
 			},
 
+			async getServiceOrder(order_number) {
+				const response = await fetch(`${this.api}/support/order_number/${order_number}`);
+				const data = await response.json();
+				this.service_order = data.data;
+			},
+
 			async viewOrder(order_number) {
 				try {
-					const response = await fetch(`${this.api}/support/order_number/${order_number}`);
-					const data = await response.json();
-					this.service_order = data.data;
+					await this.getServiceOrder(order_number);
 					Alpine.store('cache').showModal('view');
 				} catch (error) {
 					console.error('Error en la asignación:', error);
@@ -1973,6 +2056,15 @@
 		#modal-photos {
 			z-index: 40;
 		}
+		#modal-photos .capture-proof {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			user-select: none;
+		}
+		#modal-photos .capture-proof .name {
+			font-weight: 500;
+		}
 		#modal-search .modal {
 			gap: 0.5rem;
 			min-width: initial;
@@ -2347,17 +2439,12 @@
 			flex: 1;
 		}
 		#support-dashboard ul li {
-			border-radius: 0.75rem;
-			cursor: pointer;
 			padding: 0.75rem;
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
 			flex-direction: column;
 			position: relative;
-			transition: var(--transition);
-			background-color: white;
-			box-shadow: 0 0 1rem hsl(0deg 0% 0% / 2.5%);
 		}
 		#support-dashboard .group.drag-over {
 			background-color: #ffffff80;

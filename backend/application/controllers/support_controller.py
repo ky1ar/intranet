@@ -152,6 +152,12 @@ class SupportController:
     def support_find_order(self, order_number):
         if not order_number:
             return None, 400
-        
+
         return self.support.find_orders(order_number)
+
+    @handle_logs_and_exceptions
+    def support_add_photos(self, data):
+        if validation := validate_request(data, {"order_number", "filenames"}):
+            return validation, 400
+        return self.support.add_photos_to_order(data.get("order_number"), data.get("filenames"))
     
