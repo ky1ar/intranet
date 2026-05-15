@@ -433,8 +433,8 @@
 				</div>
 
 				<div class="buttons">
-					<button class="button black hover-opacity" @click="updateMachine()" :disabled="!edit_machine.machine_id">Guardar</button>
-					<button class="button hover-opacity" @click="$store.cache.hideLastModal()">Cancelar</button>
+					<button class="button black hover-opacity" @click="$store.cache.hideLastModal()">Cancelar</button>
+					<button class="button hover-opacity" @click="updateMachine()" :disabled="!edit_machine.machine_id">Guardar</button>
 				</div>
 			</div>
 		</div>
@@ -2120,6 +2120,7 @@
 		}
 		#modal-edit-machine .machine-edit-preview img {
 			border-radius: 0.5rem;
+			mix-blend-mode: multiply;
 		}
 		#modal-edit-machine .fields label {
 			position: relative;
