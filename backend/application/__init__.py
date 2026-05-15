@@ -64,6 +64,7 @@ from application.routes.warehouse_routes import warehouse_bp
 from application.routes.module_routes import module_bp
 from application.routes.safebuy_routes import safebuy_bp
 from application.routes.refund_routes import refund_bp
+from application.routes.approval_routes import approval_bp
 
 
 app.register_blueprint(dev_bp)
@@ -87,6 +88,7 @@ app.register_blueprint(warehouse_bp)
 app.register_blueprint(module_bp)
 app.register_blueprint(safebuy_bp)
 app.register_blueprint(refund_bp)
+app.register_blueprint(approval_bp)
 
 
 def api_key_required():
