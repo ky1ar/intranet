@@ -30,9 +30,8 @@ header.custom { box-shadow: none; }
    KD DASHBOARD — Krear Dashboard
 ═══════════════════════════════════════════════ */
 #kd-dashboard {
-	min-height: 100vh;
-	background: #f0f2f5;
-	padding: 1.5rem;
+	background: #ffffff;
+	padding: 0.5rem;
 	box-sizing: border-box;
 }
 #kd-dashboard .ttl-user { display: none; }
@@ -50,85 +49,100 @@ header.custom { box-shadow: none; }
 	flex-direction: column;
 	gap: 1rem;
 	position: sticky;
-	top: 1.5rem;
+	top: 7.5rem;
 	width: 100% !important;
 }
 
 /* ── Profile Card ── */
 .kd-profile-card {
-	background: #fff;
-	border-radius: 16px;
-	padding: 1.75rem 1.25rem;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 0.5rem;
-	box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    background: #f2f2f2;
+    border-radius: 1.5rem;
+    padding: 1.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+	position: relative;
+    overflow: hidden;
+}
+.kd-deco {
+    position: absolute;
+    top: 0;
+    right: 0;
+    pointer-events: none; /* no interfiere con clicks */
+    z-index: 0;
+}
+
+/* asegurá que el contenido quede por encima del decorado */
+.kd-avatar-wrap,
+.kd-name,
+.kd-username {
+    position: relative;
+    z-index: 1;
 }
 .kd-avatar-wrap {
-	width: 90px;
-	height: 90px;
-	border-radius: 50%;
-	overflow: hidden;
-	background: #f0f2f5;
-	border: 3px solid #fff;
-	box-shadow: 0 2px 10px rgba(0,0,0,0.12);
-	margin-bottom: 0.5rem;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+    padding: 0.4rem;
 }
 .kd-avatar-img {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
+	border-radius: 100%;
 }
 .kd-avatar-default { padding: 12px; }
 .kd-name {
-	font-weight: 700;
-	font-size: 1rem;
-	margin: 0;
-	color: #1a1a2e;
-	text-align: center;
+    font-weight: 700;
+    font-size: 1rem;
+    margin: 0;
+    color: var(--secondary);
 }
 .kd-username {
-	font-size: 0.82rem;
-	color: #e05a00;
-	margin: 0;
-	text-align: center;
+    font-size: 0.8rem;
+    opacity: 0.5;
+    margin: 0;
+    margin-top: -0.85rem;
+    line-height: 0.85rem;
+    font-weight: 500;
 }
 
 /* ── Nav Card ── */
 .kd-nav-card {
-	background: #fff;
-	border-radius: 16px;
-	padding: 0.75rem 0;
-	box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-	overflow: hidden;
+    background: #f2f2f2;
+    border-radius: 1.5rem;
+    padding: 1.5rem 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
 }
 
 /* ── Nav Items ── */
 .kd-nav-item {
-	display: flex;
-	align-items: center;
-	gap: 0.75rem;
-	padding: 0.75rem 1.25rem;
-	cursor: pointer;
-	color: #555;
-	font-size: 0.9rem;
-	font-weight: 500;
-	text-decoration: none !important;
-	border-left: 3px solid transparent;
-	transition: background 0.15s, color 0.15s, border-color 0.15s;
-	position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.25rem 1.75rem;
+    cursor: pointer;
+    color: var(--black);
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none !important;
+    border-left: 3px solid transparent;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    position: relative;
 }
 .kd-nav-item:hover {
-	background: #fdf3ee;
-	color: #e05a00;
-	border-left-color: #f5b89a;
+	opacity: 0.5;
 }
 .kd-nav-item.kd-active {
-	background: #fdf3ee;
-	color: #e05a00;
-	font-weight: 700;
-	border-left-color: #e05a00;
+    color: var(--primary);
+    font-weight: 600;
+    border-left-color: var(--primary);
 }
 .kd-icon {
 	width: 18px;
@@ -194,17 +208,8 @@ header.custom { box-shadow: none; }
 	width: 100% !important;
 }
 
-/* ── Info / Contraseña tab toggle ── */
-#kd-wc-content .woocommerce-EditAccountForm #password_current_field,
-#kd-wc-content .woocommerce-EditAccountForm #password_1_field,
-#kd-wc-content .woocommerce-EditAccountForm #password_2_field { display: none; }
-#kd-wc-content .woocommerce-EditAccountForm.page-pass #account_first_name_field,
-#kd-wc-content .woocommerce-EditAccountForm.page-pass #account_last_name_field,
-#kd-wc-content .woocommerce-EditAccountForm.page-pass #account_display_name_field,
-#kd-wc-content .woocommerce-EditAccountForm.page-pass #account_email_field { display: none; }
-#kd-wc-content .woocommerce-EditAccountForm.page-pass #password_current_field,
-#kd-wc-content .woocommerce-EditAccountForm.page-pass #password_1_field,
-#kd-wc-content .woocommerce-EditAccountForm.page-pass #password_2_field { display: block; }
+/* Ocultar fieldset de contraseña inmediatamente para evitar flash */
+#kd-wc-content .woocommerce-EditAccountForm fieldset { display: none; }
 
 /* ── Responsive ── */
 @media (max-width: 768px) {

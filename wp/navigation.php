@@ -31,6 +31,19 @@ do_action( 'woocommerce_before_account_navigation' );
 
 	<!-- CAJA 1: Perfil -->
 	<div class="kd-profile-card">
+		<svg class="kd-deco" width="140" height="140" viewBox="0 0 140 140"
+			xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+			<g fill="none" stroke="#e2e2e6" stroke-width="0.8">
+				<circle cx="130" cy="10" r="18"></circle>
+				<circle cx="130" cy="10" r="40"></circle>
+				<circle cx="130" cy="10" r="52"></circle>
+				<circle cx="130" cy="10" r="71"></circle>
+				<circle cx="130" cy="10" r="82"></circle>
+				<circle cx="130" cy="10" r="102"></circle>
+				<circle cx="130" cy="10" r="116"></circle>
+			</g>
+		</svg>
+
 		<div class="kd-avatar-wrap">
 			<?php if ( $image_url ) : ?>
 				<img src="<?php echo esc_url( $image_url ); ?>" alt="Perfil" class="kd-avatar-img">
@@ -39,7 +52,7 @@ do_action( 'woocommerce_before_account_navigation' );
 			<?php endif; ?>
 		</div>
 		<p class="kd-name"><?php echo esc_html( $nombre ); ?></p>
-		<p class="kd-username"><?php echo esc_html( $user->display_name ); ?></p>
+		<p class="kd-username"><?php echo esc_html( $user->user_email ); ?></p>
 	</div>
 
 	<!-- CAJA 2: Menú -->
@@ -57,6 +70,14 @@ do_action( 'woocommerce_before_account_navigation' );
 				<button class="kd-sub-btn kd-btn-info active">Información Personal</button>
 				<button class="kd-sub-btn kd-btn-pass">Contraseña</button>
 			</div>
+		</div>
+
+		<!-- Servicios -->
+		<div class="kd-nav-item kd-item-servicios">
+			<svg class="kd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+			</svg>
+			<span>Beneficios</span>
 		</div>
 
 		<!-- Pedidos -->
@@ -95,7 +116,7 @@ do_action( 'woocommerce_before_account_navigation' );
 		<div class="kd-nav-group">
 			<div class="kd-nav-item kd-item-programas custom-menu-item programas" data-section="programas">
 				<svg class="kd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+					<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
 				</svg>
 				<span>Programas</span>
 			</div>
@@ -107,13 +128,7 @@ do_action( 'woocommerce_before_account_navigation' );
 			</div>
 		</div>
 
-		<!-- Servicios -->
-		<div class="kd-nav-item kd-item-servicios">
-			<svg class="kd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
-			</svg>
-			<span>Servicios</span>
-		</div>
+		
 
 		<!-- Salir -->
 		<a class="kd-nav-item kd-item-salir" href="<?php echo esc_url( $logout_url ); ?>">
@@ -135,16 +150,43 @@ document.addEventListener("DOMContentLoaded", function () {
 	const form    = document.querySelector(".woocommerce-EditAccountForm");
 
 	if (btnInfo && btnPass && form) {
-		btnInfo.addEventListener("click", function () {
-			btnInfo.classList.add("active");
-			btnPass.classList.remove("active");
-			form.classList.remove("page-pass");
-		});
-		btnPass.addEventListener("click", function () {
-			btnPass.classList.add("active");
-			btnInfo.classList.remove("active");
-			form.classList.add("page-pass");
-		});
+		const fieldset = form.querySelector('fieldset');
+		if (fieldset) {
+			const allChildren = Array.from(form.children);
+			const submitEl    = form.querySelector('[type="submit"]')?.closest('p') || form.lastElementChild;
+
+			// passSection = fieldset + heading immediately before it (if no inputs)
+			const passSet = new Set([fieldset]);
+			const prevSib = fieldset.previousElementSibling;
+			if (prevSib && !prevSib.querySelector('input,textarea,select')) passSet.add(prevSib);
+
+			const infoSection = allChildren.filter(el => !passSet.has(el) && el !== submitEl);
+			const passSection = allChildren.filter(el => passSet.has(el));
+			const passInputs  = fieldset.querySelectorAll('input[name="password_current"],input[name="password_1"],input[name="password_2"]');
+
+			function setPassDisabled(disabled) {
+				passInputs.forEach(inp => inp.disabled = disabled);
+			}
+
+			// Info mode by default
+			passSection.forEach(el => el.style.display = 'none');
+			setPassDisabled(true);
+
+			btnInfo.addEventListener("click", () => {
+				btnInfo.classList.add("active");
+				btnPass.classList.remove("active");
+				infoSection.forEach(el => el.style.display = '');
+				passSection.forEach(el => el.style.display = 'none');
+				setPassDisabled(true);
+			});
+			btnPass.addEventListener("click", () => {
+				btnPass.classList.add("active");
+				btnInfo.classList.remove("active");
+				infoSection.forEach(el => el.style.display = 'none');
+				passSection.forEach(el => el.style.display = 'block');
+				setPassDisabled(false);
+			});
+		}
 	}
 
 	// ── Secciones de Programas ────────────────────────────────────────────
