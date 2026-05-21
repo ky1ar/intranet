@@ -30,19 +30,9 @@ do_action( 'woocommerce_before_account_navigation' );
 	</ul>
 
 	<!-- CAJA 1: Perfil -->
+
 	<div class="kd-profile-card">
-		<svg class="kd-deco" width="140" height="140" viewBox="0 0 140 140"
-			xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-			<g fill="none" stroke="#e2e2e6" stroke-width="0.8">
-				<circle cx="130" cy="10" r="18"></circle>
-				<circle cx="130" cy="10" r="40"></circle>
-				<circle cx="130" cy="10" r="52"></circle>
-				<circle cx="130" cy="10" r="71"></circle>
-				<circle cx="130" cy="10" r="82"></circle>
-				<circle cx="130" cy="10" r="102"></circle>
-				<circle cx="130" cy="10" r="116"></circle>
-			</g>
-		</svg>
+		<img class="kd-profile-bg" src="https://www.tiendakrear3d.com/wp-content/uploads/2026/05/wp.webp" alt="">
 
 		<div class="kd-avatar-wrap">
 			<?php if ( $image_url ) : ?>
@@ -50,6 +40,7 @@ do_action( 'woocommerce_before_account_navigation' );
 			<?php else : ?>
 				<img src="/wp-content/uploads/2025/07/cuenta.png" alt="Perfil" class="kd-avatar-img kd-avatar-default">
 			<?php endif; ?>
+			<div class="kd-avatar-dot"></div>
 		</div>
 		<p class="kd-name"><?php echo esc_html( $nombre ); ?></p>
 		<p class="kd-username"><?php echo esc_html( $user->user_email ); ?></p>
@@ -72,12 +63,20 @@ do_action( 'woocommerce_before_account_navigation' );
 			</div>
 		</div>
 
-		<!-- Servicios -->
+		<!-- Servicios / Beneficios -->
 		<div class="kd-nav-item kd-item-servicios">
 			<svg class="kd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 				<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
 			</svg>
 			<span>Beneficios</span>
+		</div>
+
+		<!-- Guías -->
+		<div class="kd-nav-item kd-item-guias">
+			<svg class="kd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+			</svg>
+			<span>Guías</span>
 		</div>
 
 		<!-- Pedidos -->
@@ -196,6 +195,7 @@ document.addEventListener("DOMContentLoaded", function () {
 		afiliados:  document.querySelector("#section-afiliados"),
 		trueke:     document.querySelector("#section-trueke"),
 		servicios:  document.querySelector("#section-servicios"),
+		guias:      document.querySelector("#section-guias"),
 	};
 
 	const parrafosDefault = document.querySelectorAll("#kd-dashboard .woocommerce-MyAccount-content > p");
@@ -264,6 +264,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
 	document.querySelector(".kd-item-servicios")?.addEventListener("click", () => {
 		showSection("servicios");
+	});
+
+	document.querySelector(".kd-item-guias")?.addEventListener("click", () => {
+		showSection("guias");
 	});
 
 	function getQueryParam(param) {

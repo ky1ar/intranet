@@ -100,4 +100,6 @@ class Paths:
     SAFEBUY = os.path.abspath("/shared_uploads/safebuy/")
     LEAVES = os.path.abspath("/shared_uploads/leaves/")
     REFUND = os.path.abspath("/shared_uploads/refund/")
+    GUIDES_VOUCHERS = os.path.abspath("/shared_uploads/guides/vouchers/")
+    GUIDES_MEDIA = os.path.abspath("/shared_uploads/guides/media/")
 

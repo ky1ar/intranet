@@ -24,22 +24,27 @@ defined( 'ABSPATH' ) || exit;
  */
 ?>
 <style>
-header.custom { box-shadow: none; }
+header.custom { 
+	box-shadow: 0 0 0.5rem 0 rgba(0, 0, 0, 0.05);
+}
 
 /* ═══════════════════════════════════════════════
    KD DASHBOARD — Krear Dashboard
 ═══════════════════════════════════════════════ */
 #kd-dashboard {
-	background: #ffffff;
-	padding: 0.5rem;
-	box-sizing: border-box;
+	background: #f2f2f2;
+    padding: 1.5rem;
 }
-#kd-dashboard .ttl-user { display: none; }
-#kd-dashboard .wrapper  { max-width: 1200px; margin: 0 auto; }
+#kd-dashboard .ttl-user {
+	display: none;
+}
+#kd-dashboard .wrapper  {
+	max-width: 80rem;
+}
 #kd-dashboard .dash {
 	display: grid;
 	grid-template-columns: 260px 1fr;
-	gap: 1.25rem;
+	gap: 1rem;
 	align-items: start;
 }
 
@@ -55,38 +60,36 @@ header.custom { box-shadow: none; }
 
 /* ── Profile Card ── */
 .kd-profile-card {
-    background: #f2f2f2;
-    border-radius: 1.5rem;
-    padding: 1.5rem 2rem;
+    background: #fff;
+    border-radius: 1rem;
+    padding: 0.5rem;
     display: flex;
     flex-direction: column;
     gap: 1rem;
-	position: relative;
+    position: relative;
     overflow: hidden;
+	box-shadow: 0 0.25rem 0.5rem rgb(0 0 0 / 5%);
+}
+.kd-profile-bg {
+	border-radius: 0.75rem;
+    height: 5rem !important;
 }
 .kd-deco {
     position: absolute;
     top: 0;
     right: 0;
-    pointer-events: none; /* no interfiere con clicks */
+    pointer-events: none;
     z-index: 0;
 }
 
-/* asegurá que el contenido quede por encima del decorado */
-.kd-avatar-wrap,
-.kd-name,
-.kd-username {
-    position: relative;
-    z-index: 1;
-}
 .kd-avatar-wrap {
-    width: 90px;
-    height: 90px;
+    width: 4rem;
+    height: 4rem;
     border-radius: 50%;
-    overflow: hidden;
-    background: #fff;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
-    padding: 0.4rem;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.2);
+    position: absolute;
+    top: 3.25rem;
+    left: 1.5rem;
 }
 .kd-avatar-img {
 	width: 100%;
@@ -94,31 +97,49 @@ header.custom { box-shadow: none; }
 	object-fit: cover;
 	border-radius: 100%;
 }
-.kd-avatar-default { padding: 12px; }
+.kd-avatar-default {
+	padding: 12px;
+}
+.kd-avatar-dot {
+    position: absolute;
+    width: 1rem;
+    height: 1rem;
+    background-color: #15c26f;
+    right: 0;
+    bottom: 0;
+    border: 3px solid #fff;
+    border-radius: 50%;
+}
 .kd-name {
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 0.95rem;
     margin: 0;
     color: var(--secondary);
+    line-height: 1.25rem;
+    margin-top: 1.5rem;
+    padding-left: 0.75rem;
 }
 .kd-username {
-    font-size: 0.8rem;
-    opacity: 0.5;
+    font-size: 0.7rem;
+    opacity: 0.4;
     margin: 0;
     margin-top: -0.85rem;
     line-height: 0.85rem;
     font-weight: 500;
+    padding-left: 0.75rem;
+    margin-bottom: 0.5rem;
 }
 
 /* ── Nav Card ── */
 .kd-nav-card {
-    background: #f2f2f2;
+	background: #fff;
     border-radius: 1.5rem;
     padding: 1.5rem 0;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
+    box-shadow: 0 0.25rem 0.5rem rgb(0 0 0 / 5%);
 }
 
 /* ── Nav Items ── */
@@ -947,6 +968,549 @@ document.addEventListener("DOMContentLoaded", () => {
 			})();
 			</script>
 		  </div>
+
+		  <!-- ═══════════ GUÍAS ═══════════ -->
+		  <div id="section-guias" class="section-content guias-section" style="display:none;">
+			<?php
+			$gwa_user_id    = get_current_user_id();
+			$gwa_user_email = wp_get_current_user()->user_email;
+			$gwa_user_phone = get_user_meta( $gwa_user_id, 'billing_phone', true );
+			$gwa_user_dni   = get_user_meta( $gwa_user_id, 'billing_dni', true );
+			?>
+
+			<div class="guias-header">
+				<h2>Mis Equipos</h2>
+				<p>Accede a las guías de los equipos que has adquirido.</p>
+			</div>
+
+			<!-- Grid de equipos aprobados + card de agregar -->
+			<div class="guias-grid" id="guias-grid">
+				<!-- Las cards aprobadas se insertan aquí via JS -->
+				<div class="guia-add-card" id="guia-add-btn">
+					<div class="guia-add-icon">+</div>
+					<span>Agregar equipo</span>
+				</div>
+			</div>
+
+			<!-- Detalle del equipo seleccionado -->
+			<div class="guia-detail-wrap" id="guia-detail-wrap" style="display:none;">
+				<button class="guia-back-btn" id="guia-back-btn">← Volver</button>
+				<div class="guia-detail-header">
+					<img id="guia-detail-img" src="" alt="" width="72" height="72">
+					<div>
+						<div class="guia-detail-name" id="guia-detail-name"></div>
+						<div class="guia-detail-brand" id="guia-detail-brand"></div>
+					</div>
+				</div>
+				<div class="guia-detail-desc" id="guia-detail-desc"></div>
+				<div class="guia-detail-items" id="guia-detail-items"></div>
+			</div>
+
+			<!-- Modal: solicitar guía -->
+			<div id="modal-guia-request" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+				<div class="guia-modal-inner">
+					<button id="modal-guia-close" class="guia-modal-close">&times;</button>
+					<h3>Solicitar guía de equipo</h3>
+					<p class="guia-modal-sub">Busca tu equipo y adjunta tu boleta o factura de compra.</p>
+
+					<!-- Búsqueda de equipo -->
+					<div class="guia-search-wrap">
+						<div class="guia-search-field">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+							<input type="text" id="guia-machine-input" placeholder="Escribe el modelo del equipo..." autocomplete="off">
+						</div>
+						<div id="guia-machine-list" class="guia-machine-list" style="display:none;"></div>
+						<div id="guia-machine-selected" class="guia-machine-selected" style="display:none;">
+							<img id="guia-sel-img" src="" alt="" width="40" height="40">
+							<span id="guia-sel-name"></span>
+							<button id="guia-sel-clear">✕</button>
+						</div>
+					</div>
+
+					<!-- Adjuntar comprobante -->
+					<div class="guia-upload-wrap">
+						<label class="guia-upload-label" id="guia-upload-label">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+							<span id="guia-upload-text">Adjuntar boleta / factura (PDF o imagen)</span>
+							<input type="file" id="guia-voucher-input" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none">
+						</label>
+					</div>
+
+					<!-- Datos de contacto (solo si faltan en el perfil) -->
+					<div id="guia-profile-fields" style="display:none;">
+						<p style="font-size:0.82rem;color:#888;margin:0 0 0.8rem;">Necesitamos tu teléfono y DNI para la solicitud. Solo te lo pedimos esta vez.</p>
+						<div class="guia-field">
+							<label>Teléfono</label>
+							<input type="tel" id="guia-phone-input" placeholder="Ej: 987654321">
+						</div>
+						<div class="guia-field">
+							<label>DNI</label>
+							<input type="text" id="guia-dni-input" placeholder="Ej: 12345678" maxlength="8">
+						</div>
+					</div>
+
+					<p id="guia-request-error" style="color:red;display:none;margin-top:0.5rem;font-size:0.85rem;"></p>
+					<button id="guia-request-submit" class="guia-submit-btn">Enviar solicitud</button>
+				</div>
+			</div>
+
+			<style>
+			.guias-section { flex-direction: column; gap: 1.5rem; padding: 1.5rem; }
+			.guias-header h2 { margin: 0 0 0.3rem; font-size: 1.4rem; }
+			.guias-header p  { color: #666; margin: 0; font-size: 0.9rem; }
+
+			.guias-grid {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 1.2rem;
+			}
+			.guia-card {
+				background: #fff;
+				border: 1px solid #eee;
+				border-radius: 14px;
+				padding: 1.2rem;
+				width: 160px;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				gap: 0.6rem;
+				cursor: pointer;
+				box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+				transition: transform 0.15s, box-shadow 0.15s;
+				text-align: center;
+			}
+			.guia-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+			.guia-card img { width: 72px; height: 72px; object-fit: contain; border-radius: 8px; background: #f9f9f9; }
+			.guia-card-brand { font-size: 0.7rem; opacity: 0.45; font-weight: 600; text-transform: uppercase; }
+			.guia-card-name  { font-size: 0.85rem; font-weight: 700; color: #222; line-height: 1.2; }
+
+			.guia-add-card {
+				background: #f9f9f9;
+				border: 2px dashed #ddd;
+				border-radius: 14px;
+				padding: 1.2rem;
+				width: 160px;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				gap: 0.5rem;
+				cursor: pointer;
+				transition: background 0.15s, border-color 0.15s;
+				min-height: 140px;
+			}
+			.guia-add-card:hover { background: #f0f0f0; border-color: #e05a00; }
+			.guia-add-icon {
+				font-size: 2rem;
+				color: #e05a00;
+				line-height: 1;
+			}
+			.guia-add-card span { font-size: 0.82rem; color: #888; font-weight: 600; }
+
+			/* Detail */
+			.guia-detail-wrap { display: flex; flex-direction: column; gap: 1rem; }
+			.guia-back-btn {
+				background: none; border: none; cursor: pointer;
+				color: #e05a00; font-weight: 700; font-size: 0.9rem;
+				padding: 0; align-self: flex-start;
+			}
+			.guia-detail-header {
+				display: flex; align-items: center; gap: 1rem;
+				padding: 1rem; background: #f9f9f9; border-radius: 12px;
+			}
+			.guia-detail-header img { object-fit: contain; border-radius: 8px; background: #fff; }
+			.guia-detail-name  { font-size: 1.15rem; font-weight: 700; }
+			.guia-detail-brand { font-size: 0.78rem; opacity: 0.5; margin-top: 2px; }
+			.guia-detail-desc  { color: #444; font-size: 0.9rem; line-height: 1.6; white-space: pre-line; }
+
+			.guia-detail-items { display: flex; flex-direction: column; gap: 1rem; }
+			.guia-item-card {
+				border: 1px solid #eee;
+				border-radius: 10px;
+				padding: 0.8rem 1rem;
+				display: flex;
+				flex-direction: column;
+				gap: 0.4rem;
+			}
+			.guia-item-title { font-weight: 600; font-size: 0.9rem; }
+			.guia-item-card img { max-width: 100%; border-radius: 8px; }
+			.guia-item-link {
+				color: #e05a00; text-decoration: none; font-weight: 600;
+				font-size: 0.88rem; display: inline-flex; align-items: center; gap: 0.3rem;
+			}
+			.guia-item-link:hover { text-decoration: underline; }
+
+			/* Modal */
+			.guia-modal-inner {
+				background: #fff; border-radius: 16px; padding: 1.8rem;
+				max-width: 460px; width: 90%; position: relative;
+				max-height: 90vh; overflow-y: auto;
+			}
+			.guia-modal-inner h3 { margin: 0 0 0.3rem; font-size: 1.15rem; }
+			.guia-modal-sub { color: #666; font-size: 0.88rem; margin: 0 0 1.2rem; }
+			.guia-modal-close {
+				position: absolute; top: 1rem; right: 1rem;
+				background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #999;
+			}
+
+			.guia-search-wrap { position: relative; margin-bottom: 1rem; }
+			.guia-search-field {
+				display: flex; align-items: center; gap: 0.5rem;
+				border: 1.5px solid #ddd; border-radius: 10px; padding: 10px 12px;
+				background: #fafafa;
+			}
+			.guia-search-field input {
+				flex: 1; border: none; background: none;
+				font-size: 0.9rem; outline: none;
+			}
+			.guia-machine-list {
+				position: absolute; top: 100%; left: 0; right: 0;
+				background: #fff; border: 1px solid #eee; border-radius: 10px;
+				box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+				z-index: 100; max-height: 200px; overflow-y: auto;
+				margin-top: 4px;
+			}
+			.guia-machine-item {
+				display: flex; align-items: center; gap: 0.6rem;
+				padding: 0.6rem 0.8rem; cursor: pointer;
+				transition: background 0.1s;
+			}
+			.guia-machine-item:hover { background: #fdf3ee; }
+			.guia-machine-item img { width: 36px; height: 36px; object-fit: contain; border-radius: 6px; }
+			.guia-machine-item span { font-size: 0.88rem; font-weight: 500; }
+			.guia-machine-selected {
+				display: flex; align-items: center; gap: 0.6rem;
+				padding: 0.5rem 0.8rem; background: #fdf3ee;
+				border-radius: 10px; margin-top: 0.4rem;
+			}
+			.guia-machine-selected img { border-radius: 6px; object-fit: contain; }
+			.guia-machine-selected span { flex: 1; font-size: 0.88rem; font-weight: 600; color: #e05a00; }
+			#guia-sel-clear { background: none; border: none; cursor: pointer; color: #999; font-size: 1rem; }
+
+			.guia-upload-wrap { margin-bottom: 1rem; }
+			.guia-upload-label {
+				display: flex; align-items: center; gap: 0.6rem;
+				padding: 12px 14px; border: 1.5px dashed #ddd; border-radius: 10px;
+				cursor: pointer; transition: border-color 0.15s, background 0.15s;
+				font-size: 0.88rem; color: #666;
+			}
+			.guia-upload-label:hover { border-color: #e05a00; background: #fdf3ee; color: #e05a00; }
+			.guia-upload-label.has-file { border-color: #198754; background: #f0faf4; color: #198754; }
+
+			.guia-submit-btn {
+				width: 100%; padding: 13px; background: #e05a00; color: #fff;
+				border: none; border-radius: 10px; font-weight: 700;
+				font-size: 1rem; cursor: pointer; margin-top: 0.5rem;
+				transition: opacity 0.2s;
+			}
+			.guia-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+			.guia-field { margin-bottom: 0.75rem; }
+			.guia-field label { display: block; font-weight: 600; font-size: 0.83rem; margin-bottom: 4px; color: #444; }
+			.guia-field input {
+				width: 100%; padding: 9px 11px; border: 1.5px solid #ddd; border-radius: 8px;
+				font-size: 0.88rem; box-sizing: border-box; outline: none;
+			}
+			.guia-field input:focus { border-color: #e05a00; }
+			</style>
+
+			<script>
+			(function() {
+				const API         = 'https://devapi.krear3d.com';
+				const WP_USER_ID  = <?php echo (int) $gwa_user_id; ?>;
+				const WP_EMAIL    = <?php echo json_encode( $gwa_user_email ); ?>;
+				const WP_PHONE    = <?php echo json_encode( $gwa_user_phone ?: '' ); ?>;
+				const WP_DNI      = <?php echo json_encode( $gwa_user_dni ?: '' ); ?>;
+
+				let selectedMachine = null;
+				let searchTimeout   = null;
+				let cachedProfile   = null;
+
+				// ── Cargar equipos aprobados ─────────────────────────────────────
+				async function loadMyGuides() {
+					try {
+						const r = await fetch(`${API}/guide/my?wp_user_id=${WP_USER_ID}`, { headers: { 'X-No-Toast': '1' } });
+						const j = await r.json();
+						renderGuideCards(j.data || []);
+					} catch(e) {}
+				}
+
+				function renderGuideCards(guides) {
+					const grid   = document.getElementById('guias-grid');
+					const addBtn = document.getElementById('guia-add-btn');
+					// Eliminar cards previas (no el botón de agregar)
+					grid.querySelectorAll('.guia-card').forEach(el => el.remove());
+
+					guides.forEach(g => {
+						const card = document.createElement('div');
+						card.className = 'guia-card';
+						card.innerHTML = `
+							<img src="/static/images/uploads/machines/${g.machine_image}" alt="${g.machine_name}">
+							<div class="guia-card-brand">${g.brand_name}</div>
+							<div class="guia-card-name">${g.machine_name}</div>
+						`;
+						card.addEventListener('click', () => openGuideDetail(g));
+						grid.insertBefore(card, addBtn);
+					});
+				}
+
+				// ── Detalle del equipo ───────────────────────────────────────────
+				async function openGuideDetail(guide) {
+					const grid   = document.getElementById('guias-grid');
+					const detail = document.getElementById('guia-detail-wrap');
+
+					document.getElementById('guia-detail-img').src   = `/static/images/uploads/machines/${guide.machine_image}`;
+					document.getElementById('guia-detail-name').textContent  = guide.machine_name;
+					document.getElementById('guia-detail-brand').textContent = guide.brand_name;
+					document.getElementById('guia-detail-desc').textContent  = '';
+					document.getElementById('guia-detail-items').innerHTML   = '<p style="opacity:0.4;font-size:0.85rem">Cargando contenido...</p>';
+
+					grid.style.display   = 'none';
+					detail.style.display = 'flex';
+
+					try {
+						const r = await fetch(`${API}/guide/content/${guide.machine_id}?wp_user_id=${WP_USER_ID}`, { headers: { 'X-No-Toast': '1' } });
+						const j = await r.json();
+						renderGuideContent(j.data || {}, guide.machine_id);
+					} catch(e) {
+						document.getElementById('guia-detail-items').innerHTML = '<p style="opacity:0.4;font-size:0.85rem">Sin contenido disponible.</p>';
+					}
+				}
+
+				function renderGuideContent(content, machine_id) {
+					document.getElementById('guia-detail-desc').textContent = content.description || '';
+					const container = document.getElementById('guia-detail-items');
+					container.innerHTML = '';
+
+					const items = content.items || [];
+					if (!items.length) {
+						container.innerHTML = '<p style="opacity:0.4;font-size:0.85rem">Sin contenido disponible aún.</p>';
+						return;
+					}
+
+					items.forEach(item => {
+						const card = document.createElement('div');
+						card.className = 'guia-item-card';
+						let inner = `<div class="guia-item-title">${item.title || ''}</div>`;
+
+						if (item.type === 'image' && item.filename) {
+							inner += `<img src="${API}/guide/media/${item.filename}?wp_user_id=${WP_USER_ID}&machine_id=${machine_id}" alt="${item.title}">`;
+						} else if (item.type === 'video' && item.url) {
+							inner += `<a href="${item.url}" target="_blank" rel="noopener" class="guia-item-link">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+								Ver video
+							</a>`;
+						} else if (item.type === 'pdf' && item.filename) {
+							inner += `<a href="${API}/guide/media/${item.filename}?wp_user_id=${WP_USER_ID}&machine_id=${machine_id}" target="_blank" rel="noopener" class="guia-item-link">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+								Ver PDF
+							</a>`;
+						}
+						card.innerHTML = inner;
+						container.appendChild(card);
+					});
+				}
+
+				// ── Perfil cacheado (phone/dni) ─────────────────────────────────
+				async function fetchProfile() {
+					if (cachedProfile !== null) return cachedProfile;
+					try {
+						const r = await fetch(`${API}/approval/wp_profile/${WP_USER_ID}`, { headers: { 'X-No-Toast': '1' } });
+						const j = await r.json();
+						cachedProfile = j.data || {};
+					} catch(e) {
+						cachedProfile = {};
+					}
+					return cachedProfile;
+				}
+
+				// ── Modal de solicitud ──────────────────────────────────────────
+				async function openRequestModal() {
+					selectedMachine = null;
+					document.getElementById('guia-machine-input').value = '';
+					document.getElementById('guia-machine-list').style.display = 'none';
+					document.getElementById('guia-machine-selected').style.display = 'none';
+					document.getElementById('guia-voucher-input').value = '';
+					document.getElementById('guia-upload-text').textContent = 'Adjuntar boleta / factura (PDF o imagen)';
+					document.getElementById('guia-upload-label').classList.remove('has-file');
+					document.getElementById('guia-request-error').style.display = 'none';
+
+					// Mostrar campos de teléfono/DNI solo si no están disponibles
+					const profile = await fetchProfile();
+					const phone = profile.phone || WP_PHONE;
+					const dni   = profile.dni   || WP_DNI;
+					const profileFields = document.getElementById('guia-profile-fields');
+					if (phone && dni) {
+						profileFields.style.display = 'none';
+					} else {
+						profileFields.style.display = 'block';
+						document.getElementById('guia-phone-input').value = phone || '';
+						document.getElementById('guia-dni-input').value   = dni   || '';
+					}
+
+					document.getElementById('modal-guia-request').style.display = 'flex';
+				}
+
+				function closeRequestModal() {
+					document.getElementById('modal-guia-request').style.display = 'none';
+				}
+
+				// ── Búsqueda de máquina ─────────────────────────────────────────
+				async function searchMachines(q) {
+					if (!q || q.length < 2) {
+						document.getElementById('guia-machine-list').style.display = 'none';
+						return;
+					}
+					try {
+						const r = await fetch(`${API}/machine/find/${encodeURIComponent(q)}`, { headers: { 'X-No-Toast': '1' } });
+						const j = await r.json();
+						renderMachineList(j.data || []);
+					} catch(e) {}
+				}
+
+				function renderMachineList(machines) {
+					const list = document.getElementById('guia-machine-list');
+					list.innerHTML = '';
+					if (!machines.length) { list.style.display = 'none'; return; }
+
+					machines.forEach(m => {
+						const item = document.createElement('div');
+						item.className = 'guia-machine-item';
+						item.innerHTML = `
+							<img src="/static/images/uploads/machines/${m.image}" alt="">
+							<span>${m.name}</span>
+						`;
+						item.addEventListener('click', () => selectMachine(m));
+						list.appendChild(item);
+					});
+					list.style.display = 'block';
+				}
+
+				function selectMachine(m) {
+					selectedMachine = m;
+					document.getElementById('guia-machine-list').style.display = 'none';
+					document.getElementById('guia-machine-input').value = '';
+					const sel = document.getElementById('guia-machine-selected');
+					document.getElementById('guia-sel-img').src = `/static/images/uploads/machines/${m.image}`;
+					document.getElementById('guia-sel-name').textContent = m.name;
+					sel.style.display = 'flex';
+				}
+
+				// ── Submit solicitud ────────────────────────────────────────────
+				async function submitRequest() {
+					const errEl = document.getElementById('guia-request-error');
+					errEl.style.display = 'none';
+
+					if (!selectedMachine) {
+						errEl.textContent = 'Selecciona el equipo.';
+						errEl.style.display = 'block';
+						return;
+					}
+
+					const voucher = document.getElementById('guia-voucher-input').files[0];
+					if (!voucher) {
+						errEl.textContent = 'Adjunta tu boleta o factura.';
+						errEl.style.display = 'block';
+						return;
+					}
+
+					// Obtener phone/dni: del perfil cacheado o de los campos del modal
+					const profile = cachedProfile || {};
+					let phone = profile.phone || WP_PHONE;
+					let dni   = profile.dni   || WP_DNI;
+
+					const profileFields = document.getElementById('guia-profile-fields');
+					if (profileFields.style.display !== 'none') {
+						phone = document.getElementById('guia-phone-input').value.trim();
+						dni   = document.getElementById('guia-dni-input').value.trim();
+						if (!phone || !dni) {
+							errEl.textContent = 'Ingresa tu teléfono y DNI.';
+							errEl.style.display = 'block';
+							return;
+						}
+						if (!/^\d{8}$/.test(dni)) {
+							errEl.textContent = 'El DNI debe tener 8 dígitos.';
+							errEl.style.display = 'block';
+							return;
+						}
+					}
+
+					const btn = document.getElementById('guia-request-submit');
+					btn.disabled = true;
+					btn.textContent = 'Enviando...';
+
+					const fd = new FormData();
+					fd.append('wp_user_id',  WP_USER_ID);
+					fd.append('machine_id',  selectedMachine.id);
+					fd.append('email',       WP_EMAIL);
+					fd.append('phone',       phone);
+					fd.append('dni',         dni);
+					fd.append('wp_username', '');
+					fd.append('voucher',     voucher);
+
+					try {
+						const r = await fetch(`${API}/guide/request`, { method: 'POST', body: fd });
+						const j = await r.json();
+						if (j.success) {
+							// Cachear para que futuras solicitudes no vuelvan a pedir datos
+							cachedProfile = { phone, dni, email: WP_EMAIL };
+							closeRequestModal();
+							await loadMyGuides();
+						} else {
+							errEl.textContent = j.data?.message || 'Error al enviar la solicitud.';
+							errEl.style.display = 'block';
+						}
+					} catch(e) {
+						errEl.textContent = 'Error de conexión.';
+						errEl.style.display = 'block';
+					} finally {
+						btn.disabled = false;
+						btn.textContent = 'Enviar solicitud';
+					}
+				}
+
+				// ── Eventos ─────────────────────────────────────────────────────
+				document.addEventListener('DOMContentLoaded', function() {
+					loadMyGuides();
+
+					document.getElementById('guia-add-btn').addEventListener('click', openRequestModal);
+					document.getElementById('modal-guia-close').addEventListener('click', closeRequestModal);
+					document.getElementById('modal-guia-request').addEventListener('click', function(e) {
+						if (e.target === this) closeRequestModal();
+					});
+
+					document.getElementById('guia-machine-input').addEventListener('input', function() {
+						clearTimeout(searchTimeout);
+						searchTimeout = setTimeout(() => searchMachines(this.value.trim()), 280);
+					});
+
+					document.getElementById('guia-sel-clear').addEventListener('click', function() {
+						selectedMachine = null;
+						document.getElementById('guia-machine-selected').style.display = 'none';
+					});
+
+					document.getElementById('guia-voucher-input').addEventListener('change', function() {
+						const label = document.getElementById('guia-upload-label');
+						const text  = document.getElementById('guia-upload-text');
+						if (this.files[0]) {
+							text.textContent = this.files[0].name;
+							label.classList.add('has-file');
+						} else {
+							text.textContent = 'Adjuntar boleta / factura (PDF o imagen)';
+							label.classList.remove('has-file');
+						}
+					});
+
+					document.getElementById('guia-request-submit').addEventListener('click', submitRequest);
+
+					document.getElementById('guia-back-btn').addEventListener('click', function() {
+						document.getElementById('guia-detail-wrap').style.display = 'none';
+						document.getElementById('guias-grid').style.display = 'flex';
+					});
+				});
+			})();
+			</script>
+		  </div>
+		  <!-- ═══════════ /GUÍAS ═══════════ -->
 
 		  <div id="section-trueke" class="section-content"  style="display:none;">
 		     <div class="procedimiento">

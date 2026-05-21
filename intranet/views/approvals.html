@@ -3,6 +3,23 @@
 
 		<div class="controls">
 			<div class="left frost">
+				<div class="item" :class="activeTab === 'servicios' && 'active'" @click="setTab('servicios')">
+					<span>Servicios</span>
+				</div>
+				<div class="item" :class="activeTab === 'guias' && 'active'" @click="setTab('guias')">
+					<span>Guías</span>
+				</div>
+			</div>
+			<div class="right frost">
+				<div class="item" @click="load()">
+					<img alt="" width="18" height="18" src="/static/icons/line/refresh.svg">
+				</div>
+			</div>
+		</div>
+
+		<!-- Sub-filtros de estado -->
+		<div class="controls sub-filters">
+			<div class="left frost">
 				<div class="item" :class="filter === 'pending'  && 'active'" @click="setFilter('pending')">
 					<span>Pendientes</span>
 				</div>
@@ -14,11 +31,6 @@
 				</div>
 				<div class="item" :class="filter === ''          && 'active'" @click="setFilter('')">
 					<span>Todos</span>
-				</div>
-			</div>
-			<div class="right frost">
-				<div class="item" @click="load()">
-					<img alt="" width="18" height="18" src="/static/icons/line/refresh.svg">
 				</div>
 			</div>
 		</div>
@@ -45,8 +57,17 @@
 								<span class="req-id" x-text="`#${req.id}`"></span>
 								<span class="req-badge" :class="statusClass(req.status)" x-text="statusLabel(req.status)"></span>
 							</div>
+							<!-- Guía: muestra imagen + nombre de máquina -->
+							<template x-if="activeTab === 'guias'">
+								<div class="req-machine">
+									<img :src="'/static/images/uploads/machines/' + req.machine_image" width="36" height="36" style="object-fit:contain;border-radius:6px;">
+									<span x-text="req.machine_name"></span>
+								</div>
+							</template>
 							<div class="req-name" x-text="req.client_name || '—'"></div>
-							<div class="req-type" x-text="req.type"></div>
+							<template x-if="activeTab === 'servicios'">
+								<div class="req-type" x-text="req.type"></div>
+							</template>
 							<div class="req-bottom">
 								<span class="req-email" x-text="req.client_email || '—'"></span>
 								<span class="req-date" x-text="req.created_at"></span>
@@ -58,7 +79,7 @@
 
 		</div>
 
-		<!-- Modal detalle / acción -->
+		<!-- ── Modal detalle solicitud servicio ── -->
 		<div
 			x-show="$store.cache.isVisibleModal('approval-detail')"
 			@mousedown.self="$store.cache.hideLastModal()"
@@ -135,15 +156,161 @@
 			</div>
 		</div>
 
+		<!-- ── Modal detalle solicitud GUÍA ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('guide-detail')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap common-modal"
+			id="modal-guide-detail"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2 guide-modal" @click.stop x-show="detail">
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="detail-head">
+					<span class="detail-title" x-text="`Guía #${detail?.id}`"></span>
+					<span class="req-badge" :class="statusClass(detail?.status)" x-text="statusLabel(detail?.status)"></span>
+				</div>
+
+				<div class="modal-content">
+					<!-- Máquina -->
+					<div class="guide-machine-row">
+						<img :src="'/static/images/uploads/machines/' + detail?.machine_image" width="56" height="56" style="object-fit:contain;border-radius:8px;background:#f5f5f5;padding:4px;">
+						<div>
+							<div style="font-weight:700" x-text="detail?.machine_name"></div>
+							<div style="font-size:0.8rem;opacity:0.5" x-text="detail?.brand_name"></div>
+						</div>
+					</div>
+
+					<!-- Voucher -->
+					<template x-if="detail?.voucher_filename">
+						<div class="detail-row">
+							<span class="label">Comprobante</span>
+							<a :href="`${$store.cache.api}/guide/voucher/${detail.voucher_filename}`"
+							   target="_blank" class="voucher-link">Ver archivo</a>
+						</div>
+					</template>
+					<template x-if="!detail?.voucher_filename">
+						<div class="detail-row">
+							<span class="label">Comprobante</span>
+							<span style="opacity:0.4">Sin archivo</span>
+						</div>
+					</template>
+
+					<!-- Cliente -->
+					<div class="detail-row">
+						<span class="label">Cliente</span>
+						<span x-text="detail?.client_name || '—'"></span>
+					</div>
+					<div class="detail-row">
+						<span class="label">DNI</span>
+						<span x-text="detail?.client_dni || '—'"></span>
+					</div>
+					<div class="detail-row">
+						<span class="label">Correo</span>
+						<span x-text="detail?.client_email || '—'"></span>
+					</div>
+					<div class="detail-row">
+						<span class="label">Teléfono</span>
+						<span x-text="detail?.client_phone || '—'"></span>
+					</div>
+					<div class="detail-row">
+						<span class="label">Fecha</span>
+						<span x-text="detail?.created_at"></span>
+					</div>
+
+					<template x-if="detail?.rejection_reason">
+						<div class="detail-row">
+							<span class="label">Motivo rechazo</span>
+							<span x-text="detail.rejection_reason"></span>
+						</div>
+					</template>
+
+					<!-- Acciones pendiente -->
+					<template x-if="detail?.status === 'pending'">
+						<div class="approval-actions">
+							<div class="fields">
+								<label class="white">
+									<input type="text" placeholder="Motivo de rechazo (si aplica)" x-model="actionForm.reason">
+								</label>
+							</div>
+							<div class="action-btns">
+								<button class="btn-approve" @click="approveGuide()">Aprobar</button>
+								<button class="btn-reject"  @click="rejectGuide()">Rechazar</button>
+							</div>
+						</div>
+					</template>
+
+					<!-- Gestionar contenido (solo aprobados) -->
+					<template x-if="detail?.status === 'approved'">
+						<div class="guide-content-section">
+							<div class="guide-content-header">
+								<span>Contenido de la Guía</span>
+								<button class="btn-save-guide" @click="saveGuideContent()" :disabled="savingGuide">
+									<span x-text="savingGuide ? 'Guardando...' : 'Guardar'"></span>
+								</button>
+							</div>
+
+							<textarea class="guide-desc-input" placeholder="Descripción general del equipo..." x-model="guideContent.description" rows="3"></textarea>
+
+							<!-- Items actuales -->
+							<div class="guide-items-list">
+								<template x-for="(item, idx) in guideContent.items" :key="idx">
+									<div class="guide-item-row">
+										<select x-model="item.type" class="item-type-sel">
+											<option value="image">Imagen</option>
+											<option value="video">Video</option>
+											<option value="pdf">PDF</option>
+										</select>
+										<input type="text" placeholder="Título" x-model="item.title" class="item-title-inp">
+										<template x-if="item.type === 'video'">
+											<input type="text" placeholder="URL del video (YouTube, etc.)" x-model="item.url" class="item-url-inp">
+										</template>
+										<template x-if="item.type !== 'video'">
+											<div class="item-file-wrap">
+												<template x-if="item.filename">
+													<a :href="`${$store.cache.api}/guide/media/${item.filename}?wp_user_id=0&machine_id=0`"
+													   target="_blank" class="item-file-preview" x-text="item.filename.substring(0,12)+'...'"></a>
+												</template>
+												<label class="item-upload-btn">
+													<input type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" style="display:none"
+														@change="uploadItemFile($event, idx)">
+													<span x-text="item.filename ? 'Cambiar' : 'Subir'"></span>
+												</label>
+											</div>
+										</template>
+										<button class="item-remove-btn" @click="guideContent.items.splice(idx,1)">✕</button>
+									</div>
+								</template>
+							</div>
+
+							<button class="btn-add-item" @click="guideContent.items.push({type:'video',title:'',url:'',filename:''})">
+								+ Agregar item
+							</button>
+						</div>
+					</template>
+				</div>
+			</div>
+		</div>
+
 	</div>
 
 	<script>
 	Alpine.data('approvals_data', () => ({
-		requests: [],
-		loading: false,
-		filter: 'pending',
-		detail: null,
-		actionForm: { request_id: null, access_url: '', reason: '' },
+		requests:     [],
+		loading:      false,
+		filter:       'pending',
+		activeTab:    'servicios',
+		detail:       null,
+		actionForm:   { request_id: null, access_url: '', reason: '' },
+		guideContent: { description: '', items: [] },
+		savingGuide:  false,
 
 		async init() {
 			await this.load();
@@ -152,12 +319,23 @@
 		async load() {
 			this.loading = true;
 			const api = Alpine.store('cache').api;
-			const url = this.filter
-				? `${api}/approval/list?status=${this.filter}`
-				: `${api}/approval/list`;
-			const r = await fetch(url);
-			const j = await r.json();
-			this.requests = j.data || [];
+
+			if (this.activeTab === 'servicios') {
+				const url = this.filter
+					? `${api}/approval/list?status=${this.filter}`
+					: `${api}/approval/list`;
+				const r = await fetch(url);
+				const j = await r.json();
+				this.requests = j.data || [];
+			} else {
+				const url = this.filter
+					? `${api}/guide/list?status=${this.filter}`
+					: `${api}/guide/list`;
+				const r = await fetch(url);
+				const j = await r.json();
+				this.requests = j.data || [];
+			}
+
 			this.loading = false;
 		},
 
@@ -166,11 +344,75 @@
 			await this.load();
 		},
 
+		async setTab(tab) {
+			this.activeTab = tab;
+			this.filter = 'pending';
+			await this.load();
+		},
+
 		openDetail(req) {
 			this.detail = req;
 			this.actionForm = { request_id: req.id, access_url: '', reason: '' };
-			Alpine.store('cache').showModal('approval-detail');
+
+			if (this.activeTab === 'guias') {
+				this.guideContent = { description: '', items: [] };
+				if (req.status === 'approved') this.loadGuideContent(req.machine_id);
+				Alpine.store('cache').showModal('guide-detail');
+			} else {
+				Alpine.store('cache').showModal('approval-detail');
+			}
 		},
+
+		async loadGuideContent(machine_id) {
+			const api = Alpine.store('cache').api;
+			try {
+				const r = await fetch(`${api}/guide/content/${machine_id}?wp_user_id=0`, {
+					headers: { 'X-No-Toast': '1' }
+				});
+				const j = await r.json();
+				if (j.data) {
+					this.guideContent = {
+						description: j.data.description || '',
+						items: j.data.items || [],
+					};
+				}
+			} catch(e) {}
+		},
+
+		async saveGuideContent() {
+			if (!this.detail?.machine_id) return;
+			this.savingGuide = true;
+			const api = Alpine.store('cache').api;
+			try {
+				const r = await fetch(`${api}/guide/content/save`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						machine_id:  this.detail.machine_id,
+						description: this.guideContent.description,
+						items:       this.guideContent.items,
+					}),
+				});
+				const j = await r.json();
+			} finally {
+				this.savingGuide = false;
+			}
+		},
+
+		async uploadItemFile(event, idx) {
+			const file = event.target.files[0];
+			if (!file) return;
+			const api = Alpine.store('cache').api;
+			const fd = new FormData();
+			fd.append('files[]', file);
+			const r = await fetch(`${api}/guide/media/upload`, { method: 'POST', body: fd });
+			const j = await r.json();
+			if (j.data?.uploaded?.length) {
+				this.guideContent.items[idx].filename = j.data.uploaded[0];
+			}
+		},
+
+		// ── Servicios approve/reject ─────────────────────────────────────────
 
 		async approve() {
 			if (!this.actionForm.request_id) return;
@@ -210,6 +452,46 @@
 			}
 		},
 
+		// ── Guías approve/reject ─────────────────────────────────────────────
+
+		async approveGuide() {
+			if (!this.actionForm.request_id) return;
+			const cache = Alpine.store('cache');
+			const r = await fetch(`${cache.api}/approval/approve`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					request_id: this.actionForm.request_id,
+					user_id: cache.user.id,
+					access_url: null,
+				}),
+			});
+			const j = await r.json();
+			if (j.success) {
+				cache.hideLastModal();
+				await this.load();
+			}
+		},
+
+		async rejectGuide() {
+			if (!this.actionForm.request_id) return;
+			const cache = Alpine.store('cache');
+			const r = await fetch(`${cache.api}/approval/reject`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					request_id: this.actionForm.request_id,
+					user_id: cache.user.id,
+					reason: this.actionForm.reason || null,
+				}),
+			});
+			const j = await r.json();
+			if (j.success) {
+				cache.hideLastModal();
+				await this.load();
+			}
+		},
+
 		statusLabel(s) {
 			return { pending: 'Pendiente', approved: 'Aprobado', rejected: 'Rechazado' }[s] || s;
 		},
@@ -225,10 +507,18 @@
 		flex-direction: column;
 		height: 100%;
 	}
+	#approvals .controls {
+		margin-bottom: 0;
+	}
+	#approvals .sub-filters {
+		margin-top: 0.4rem;
+		margin-bottom: 0;
+	}
 	#approvals .main {
 		flex: 1;
 		overflow-y: auto;
 		padding: 1rem;
+		margin-top: 0.4rem;
 	}
 	.approval-list {
 		display: flex;
@@ -261,6 +551,14 @@
 		font-size: 0.85rem;
 		color: var(--pri, #e05a00);
 		font-weight: 600;
+	}
+	#approvals .req-machine {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 0.85rem;
+		font-weight: 600;
+		color: var(--pri, #e05a00);
 	}
 	#approvals .req-bottom {
 		display: flex;
@@ -327,5 +625,121 @@
 	}
 	.btn-approve { background: #198754; color: #fff; }
 	.btn-reject  { background: #dc3545; color: #fff; }
+
+	/* Guide modal */
+	.modal.guide-modal { max-width: 560px; width: 95%; }
+	.guide-machine-row {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.6rem 0;
+		border-bottom: 1px solid rgba(0,0,0,0.06);
+		margin-bottom: 0.2rem;
+	}
+	.voucher-link {
+		color: var(--pri, #e05a00);
+		text-decoration: none;
+		font-weight: 600;
+		font-size: 0.85rem;
+	}
+	.guide-content-section {
+		margin-top: 1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.6rem;
+		border-top: 2px solid rgba(0,0,0,0.07);
+		padding-top: 0.8rem;
+	}
+	.guide-content-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		font-weight: 700;
+		font-size: 0.95rem;
+	}
+	.btn-save-guide {
+		padding: 6px 14px;
+		background: #198754;
+		color: #fff;
+		border: none;
+		border-radius: 8px;
+		font-weight: 600;
+		cursor: pointer;
+		font-size: 0.85rem;
+	}
+	.btn-save-guide:disabled { opacity: 0.5; cursor: not-allowed; }
+	.guide-desc-input {
+		width: 100%;
+		padding: 8px 10px;
+		border: 1px solid #ddd;
+		border-radius: 8px;
+		font-size: 0.88rem;
+		resize: vertical;
+		box-sizing: border-box;
+	}
+	.guide-items-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+	.guide-item-row {
+		display: flex;
+		gap: 0.4rem;
+		align-items: center;
+		flex-wrap: wrap;
+	}
+	.item-type-sel {
+		padding: 6px 8px;
+		border: 1px solid #ddd;
+		border-radius: 6px;
+		font-size: 0.82rem;
+		background: #fff;
+		min-width: 80px;
+	}
+	.item-title-inp, .item-url-inp {
+		flex: 1;
+		padding: 6px 8px;
+		border: 1px solid #ddd;
+		border-radius: 6px;
+		font-size: 0.82rem;
+		min-width: 100px;
+	}
+	.item-file-wrap { display: flex; align-items: center; gap: 0.3rem; }
+	.item-file-preview {
+		font-size: 0.75rem;
+		color: #555;
+		text-decoration: none;
+		border: 1px solid #ccc;
+		padding: 4px 6px;
+		border-radius: 5px;
+	}
+	.item-upload-btn {
+		padding: 5px 10px;
+		background: #f0f0f0;
+		border-radius: 6px;
+		cursor: pointer;
+		font-size: 0.8rem;
+		font-weight: 600;
+	}
+	.item-remove-btn {
+		padding: 4px 8px;
+		background: #fee2e2;
+		color: #c0392b;
+		border: none;
+		border-radius: 6px;
+		cursor: pointer;
+		font-size: 0.8rem;
+	}
+	.btn-add-item {
+		padding: 8px 14px;
+		background: #f5f5f5;
+		border: 1px dashed #ccc;
+		border-radius: 8px;
+		cursor: pointer;
+		font-size: 0.85rem;
+		font-weight: 600;
+		color: #555;
+	}
+	.btn-add-item:hover { background: #eee; }
 	</style>
 </div>
