@@ -15,10 +15,7 @@
 					<img alt="" width="18" height="18" src="/static/icons/line/refresh.svg">
 				</div>
 			</div>
-		</div>
-
-		<!-- Sub-filtros de estado -->
-		<div class="controls sub-filters">
+	
 			<div class="left frost">
 				<div class="item" :class="filter === 'pending'  && 'active'" @click="setFilter('pending')">
 					<span>Pendientes</span>
@@ -366,7 +363,7 @@
 		async loadGuideContent(machine_id) {
 			const api = Alpine.store('cache').api;
 			try {
-				const r = await fetch(`${api}/guide/content/${machine_id}?wp_user_id=0`, {
+				const r = await fetch(`${api}/guide/admin/content/${machine_id}`, {
 					headers: { 'X-No-Toast': '1' }
 				});
 				const j = await r.json();

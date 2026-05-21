@@ -133,6 +133,15 @@ class GuideService:
             return filenames, sc
         return {"uploaded": filenames}, 200
 
+    @handle_exceptions
+    def get_content_admin(self, machine_id):
+        guide, sc = self.repo.get_machine_guide(machine_id)
+        if sc != 200:
+            return guide, sc
+        if not guide:
+            return {"description": "", "items": []}, 200
+        return {"description": guide.description or "", "items": guide.items or []}, 200
+
     def serve_voucher(self, filename):
         """Return filepath for admin to view voucher."""
         filepath = os.path.join(Paths.GUIDES_VOUCHERS, filename)

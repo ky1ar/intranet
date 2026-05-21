@@ -32,6 +32,12 @@ class GuideController:
         return send_file(filepath)
 
     @handle_logs_and_exceptions
+    def get_content_admin(self, data):
+        if validation := validate_request(data, {"machine_id"}):
+            return validation, 400
+        return self.service.get_content_admin(data["machine_id"])
+
+    @handle_logs_and_exceptions
     def list_requests(self, data):
         return self.service.list_requests(data.get("status"))
 

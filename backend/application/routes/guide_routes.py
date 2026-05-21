@@ -39,6 +39,11 @@ def serve_media(filename):
 
 # ── Intranet-facing ──────────────────────────────────────────────────────────
 
+@guide_bp.route("/admin/content/<int:machine_id>", methods=["GET"])
+def get_content_admin(machine_id):
+    return controller.get_content_admin({"machine_id": machine_id})
+
+
 @guide_bp.route("/list", methods=["GET"])
 def list_requests():
     data = {"status": request.args.get("status")}

@@ -1084,6 +1084,15 @@ document.addEventListener("DOMContentLoaded", () => {
 			.guia-card-brand { font-size: 0.7rem; opacity: 0.45; font-weight: 600; text-transform: uppercase; }
 			.guia-card-name  { font-size: 0.85rem; font-weight: 700; color: #222; line-height: 1.2; }
 
+			.guia-card-pending { opacity: 0.75; cursor: default; }
+			.guia-card-pending:hover { transform: none; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+			.guia-badge-pending {
+				font-size: 0.7rem; font-weight: 700;
+				background: #fff3cd; color: #856404;
+				padding: 3px 10px; border-radius: 20px;
+				align-self: center;
+			}
+
 			.guia-add-card {
 				background: #f9f9f9;
 				border: 2px dashed #ddd;
@@ -1221,6 +1230,9 @@ document.addEventListener("DOMContentLoaded", () => {
 				const WP_PHONE    = <?php echo json_encode( $gwa_user_phone ?: '' ); ?>;
 				const WP_DNI      = <?php echo json_encode( $gwa_user_dni ?: '' ); ?>;
 
+				const INTRANET     = 'https://devintranet.krear3d.com';
+				const MACHINES_URL = `${INTRANET}/static/images/uploads/machines/`;
+
 				let selectedMachine = null;
 				let searchTimeout   = null;
 				let cachedProfile   = null;
@@ -1237,18 +1249,21 @@ document.addEventListener("DOMContentLoaded", () => {
 				function renderGuideCards(guides) {
 					const grid   = document.getElementById('guias-grid');
 					const addBtn = document.getElementById('guia-add-btn');
-					// Eliminar cards previas (no el botón de agregar)
 					grid.querySelectorAll('.guia-card').forEach(el => el.remove());
 
 					guides.forEach(g => {
+						const isPending = g.status === 'pending';
 						const card = document.createElement('div');
-						card.className = 'guia-card';
+						card.className = 'guia-card' + (isPending ? ' guia-card-pending' : '');
 						card.innerHTML = `
-							<img src="/static/images/uploads/machines/${g.machine_image}" alt="${g.machine_name}">
+							${isPending ? '<div class="guia-badge-pending">Pendiente</div>' : ''}
+							<img src="${MACHINES_URL}${g.machine_image}" alt="${g.machine_name}">
 							<div class="guia-card-brand">${g.brand_name}</div>
 							<div class="guia-card-name">${g.machine_name}</div>
 						`;
-						card.addEventListener('click', () => openGuideDetail(g));
+						if (!isPending) {
+							card.addEventListener('click', () => openGuideDetail(g));
+						}
 						grid.insertBefore(card, addBtn);
 					});
 				}
@@ -1258,7 +1273,7 @@ document.addEventListener("DOMContentLoaded", () => {
 					const grid   = document.getElementById('guias-grid');
 					const detail = document.getElementById('guia-detail-wrap');
 
-					document.getElementById('guia-detail-img').src   = `/static/images/uploads/machines/${guide.machine_image}`;
+					document.getElementById('guia-detail-img').src   = `${MACHINES_URL}${guide.machine_image}`;
 					document.getElementById('guia-detail-name').textContent  = guide.machine_name;
 					document.getElementById('guia-detail-brand').textContent = guide.brand_name;
 					document.getElementById('guia-detail-desc').textContent  = '';
@@ -1376,7 +1391,7 @@ document.addEventListener("DOMContentLoaded", () => {
 						const item = document.createElement('div');
 						item.className = 'guia-machine-item';
 						item.innerHTML = `
-							<img src="/static/images/uploads/machines/${m.image}" alt="">
+							<img src="${MACHINES_URL}${m.image}" alt="">
 							<span>${m.name}</span>
 						`;
 						item.addEventListener('click', () => selectMachine(m));
@@ -1390,7 +1405,7 @@ document.addEventListener("DOMContentLoaded", () => {
 					document.getElementById('guia-machine-list').style.display = 'none';
 					document.getElementById('guia-machine-input').value = '';
 					const sel = document.getElementById('guia-machine-selected');
-					document.getElementById('guia-sel-img').src = `/static/images/uploads/machines/${m.image}`;
+					document.getElementById('guia-sel-img').src = `${MACHINES_URL}${m.image}`;
 					document.getElementById('guia-sel-name').textContent = m.name;
 					sel.style.display = 'flex';
 				}

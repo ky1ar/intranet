@@ -85,7 +85,7 @@ class GuideRepository:
             .join(Brands, Machines.brand_id == Brands.id)
             .filter(
                 Clients.wp_user_id == wp_user_id,
-                ApprovalRequest.status == "approved",
+                ApprovalRequest.status.in_(["pending", "approved"]),
             )
             .all()
         )
