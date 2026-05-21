@@ -89,3 +89,8 @@ def token():
 @dev_bp.route("/push", methods=["POST"])
 def push():
     return controller.dev_push(request.get_json())
+
+
+@dev_bp.route("/campaign", methods=["POST"])
+def mkt_campaign():
+    return controller.dev_mkt_campaign(request.get_json())

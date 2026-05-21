@@ -209,6 +209,27 @@ class DevService:
     
 
     @handle_exceptions
+    def mkt_campaign(self, data):
+        template_name = data.get("template_name")
+        phones = data.get("phones")
+        parameters = data.get("parameters")
+        header_image = data.get("header_image")
+
+        results = []
+        for phone in phones:
+            waba_phone = f"51{phone}" if not str(phone).startswith("51") else str(phone)
+            try:
+                _, status = self.whatsapp.mkt_campaign(waba_phone, template_name, header_image, parameters)
+                results.append({"phone": phone, "status": "ok" if status == 200 else "error"})
+                time.sleep(1.5)
+            except Exception as e:
+                results.append({"phone": phone, "status": "exception", "error": str(e)})
+
+        sent = sum(1 for r in results if r["status"] == "ok")
+        return {"sent": sent, "total": len(phones), "results": results}, 200
+
+
+    @handle_exceptions
     def token(self):
         secret = b".Ov3rsku112024l4r43l."
         u = str(uuid.uuid4())

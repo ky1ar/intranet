@@ -474,6 +474,34 @@ class Whatsapp:
     
 
     @handle_exceptions
+    def mkt_campaign(self, phone, template_name, header_image=None, parameters=None):
+        components = []
+
+        if header_image:
+            components.append({
+                "type": "header",
+                "parameters": [{"type": "image", "image": {"link": header_image}}]
+            })
+
+        if parameters:
+            components.append({"type": "body", "parameters": parameters})
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "template",
+            "template": {
+                "name": template_name,
+                "language": {"code": "es_PE"},
+            }
+        }
+        if components:
+            payload["template"]["components"] = components
+
+        return self.post(payload)
+
+
+    @handle_exceptions
     def send_odoo_invoice(self, client_phone, client_name, invoice_number, invoice_date, pdf_filename):
         payload = {
             "messaging_product": "whatsapp",
