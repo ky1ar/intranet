@@ -18,16 +18,26 @@ from application import socketio
 from config import Paths
 
 REASON_LABELS = {
-    "stock":    "Stock",
-    "atencion": "Atención",
-    "precio":   "Precio",
-    "envio":    "Envío",
+    "inconforme": "Atención inconforme",
+    "opinion":    "Cambio de opinión",
+    "producto":   "Cambio de producto",
+    "envio":      "Cambio en tipo de envío",
+    "no_envio":   "Envío no concretado",
+    "stock":      "Falta de stock",
+    "preventa":   "Preventa inconclusa",
+    "otro":       "Otro",
 }
 
 PAYMENT_LABELS = {
-    "transferencia": "Transferencia",
-    "web":           "Web",
-    "link_pago":     "Link de pago",
+    "culqi_web":   "Culqi Web",
+    "link_pago":   "Link de pago",
+    "mercado_pago": "Mercado pago",
+    "plin_yape":   "Plin o Yape",
+    "pos":         "POS",
+    "bbva":        "Transferencia BBVA",
+    "bcp":         "Transferencia BCP",
+    "interbank":   "Transferencia Interbank",
+    "scotiabank":  "Transferencia Scotiabank",
 }
 
 # Fixed Peruvian holidays (month, day)
@@ -251,11 +261,11 @@ class RefundService:
 
         if not reason:
             return "Motivo requerido", 400
-        if reason not in {"stock", "atencion", "precio", "envio"}:
+        if reason not in REASON_LABELS:
             return "Motivo inválido", 400
         if not order_amount or not refund_amount:
             return "Montos requeridos", 400
-        if payment_method not in {"transferencia", "web", "link_pago"}:
+        if payment_method not in PAYMENT_LABELS:
             return "Medio de pago inválido", 400
 
         applies_penalty = request.form.get("applies_penalty") in ("true", "1", "True")
