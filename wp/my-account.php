@@ -225,8 +225,32 @@ header.custom {
 	border-radius: 16px;
 	box-shadow: 0 2px 12px rgba(0,0,0,0.06);
 	padding: 2rem;
-	min-height: 500px;
+	/* min-height: 500px; */
 	width: 100% !important;
+}
+
+/* ── Content area ── */
+#kd-dashboard .k3d-edit-profile {
+	display: flex;
+}
+.k3d-edit-profile .edit-fields {
+}
+.k3d-edit-profile .form-row {
+    padding: 0;
+    margin: 0;
+}
+.k3d-edit-profile .form-row label {
+    opacity: 0.5;
+	font-weight: 500 !important;
+    font-size: 0.8rem;
+}
+.k3d-edit-profile .form-row .input-text {
+    font-weight: 500;
+    font-family: inherit;
+    font-size: 0.85rem;
+    border: 1px solid #00000024;
+    border-radius: 0.75rem;
+    padding: 1rem;
 }
 
 /* Ocultar fieldset de contraseña inmediatamente para evitar flash */
