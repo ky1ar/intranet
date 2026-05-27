@@ -24,8 +24,11 @@ class DevRepository:
 
 
     @handle_db_exceptions
-    def get_all_pending_users(self):
-        users = g.db_session.query(UserContext).filter(UserContext.status == 'idle').all()
+    def get_all_pending_users(self, campaign):
+        users = g.db_session.query(UserContext).filter(
+            UserContext.status == 'idle',
+            UserContext.campaign == campaign
+        ).all()
         if not users:
             return 'No hay usuarios pendientes', 404
         return users, 200
@@ -40,8 +43,12 @@ class DevRepository:
 
 
     @handle_db_exceptions
-    def get_user_by_phone(self, phone):
-        user = g.db_session.query(UserContext).filter_by(phone=phone).first()
+    def get_user_by_phone(self, campaign, phone):
+        user = g.db_session.query(UserContext).filter(
+            UserContext.phone == phone,
+            UserContext.campaign == campaign
+        ).first()
+
         if not user:
             return 'No se encontró el usuario', 404
         return user, 200
@@ -59,7 +66,7 @@ class DevRepository:
     def update_user(self, user, last_message_id=None, status=None):
         if not status:
             user.sended_at = self.peru_time()
-            user.status = 'sended'
+            user.status = 'send'
             user.last_message_id = last_message_id
         else:
             user.updated_at = self.peru_time()
@@ -71,8 +78,10 @@ class DevRepository:
     
 
     @handle_db_exceptions
-    def get_all_users(self):
-        users = g.db_session.query(UserContext).all()
+    def get_all_users(self, campaign):
+        users = g.db_session.query(UserContext).filter(
+            UserContext.campaign == campaign
+        ).all()
         if not users:
             return 'No hay usuarios', 404
         return users, 200

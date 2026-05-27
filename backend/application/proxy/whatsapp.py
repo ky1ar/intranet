@@ -353,24 +353,21 @@ class Whatsapp:
 
 
     @handle_exceptions
-    def confirm_flow_start(self, phone):
-        name ="Bambu Lab Fest por Krear 3D"
-        schedule ="25 de octubre de 10 a.m. a 5 p.m."
-        location ="Cámara de Comercio de Lima - Av. Giuseppe Garibaldi 396, Jesús María (Salón Carlos Ferreyros - Piso 7)"
-        template_name = "confirm_flow_start"
+    def confirm_flow_start(self, campaign, data):
+        templates = {
+            "shining_event": "mkt_shining_start"
+        }
         
         parameters = [
-            {"type": "text", "parameter_name": "name", "text": name},
-            {"type": "text", "parameter_name": "schedule", "text": schedule},
-            {"type": "text", "parameter_name": "location", "text": location},
+            {"type": "text", "parameter_name": "name", "text": data.get("name")},
         ]
 
         payload = {
             "messaging_product": "whatsapp",
-            "to": phone,
+            "to": data.get("phone"),
             "type": "template",
             "template": {
-                "name": template_name,
+                "name": templates.get(campaign),
                 "language": {"code": "es_PE"},
                 "components": [{"type": "body", "parameters": parameters}]
             }
@@ -379,41 +376,48 @@ class Whatsapp:
     
 
     @handle_exceptions
-    def confirm_flow_yes(self, phone):
-        name ="Bambu Lab Fest"
-        maps ="https://maps.app.goo.gl/sisjPduBcsqDRkji6"
-        
-        template_name = "confirm_flow_yes"
+    def confirm_flow_yes(self, campaign, data):
+        templates = {
+            "shining_event": "mkt_shining_yes"
+        }
         
         parameters = [
-            {"type": "text", "parameter_name": "name", "text": name},
-            {"type": "text", "parameter_name": "maps", "text": maps},
+            {"type": "text", "parameter_name": "name", "text": data.get("name")},
         ]
 
         payload = {
             "messaging_product": "whatsapp",
-            "to": phone,
+            "to": data.get("phone"),
             "type": "template",
             "template": {
-                "name": template_name,
+                "name": templates.get(campaign),
                 "language": {"code": "es_PE"},
                 "components": [{"type": "body", "parameters": parameters}]
+
             }
         }
         return self.post(payload)
 
 
     @handle_exceptions
-    def confirm_flow_no(self, phone):
-        template_name = "confirm_flow_no"
+    def confirm_flow_no(self, campaign, data):
+        templates = {
+            "shining_event": "mkt_shining_no"
+        }
+
+        parameters = [
+            {"type": "text", "parameter_name": "name", "text": data.get("name")},
+        ]
    
         payload = {
             "messaging_product": "whatsapp",
-            "to": phone,
+            "to": data.get("phone"),
             "type": "template",
             "template": {
-                "name": template_name,
-                "language": {"code": "es_PE"}
+                "name": templates.get(campaign),
+                "language": {"code": "es_PE"},
+                "components": [{"type": "body", "parameters": parameters}]
+                
             }
         }
         return self.post(payload)

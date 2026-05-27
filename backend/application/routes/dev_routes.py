@@ -63,12 +63,12 @@ def confirm_flow():
 
 @dev_bp.route("/confirm_flow/all", methods=["POST"])
 def confirm_flow_all():
-    return controller.dev_confirm_flow_all()
+    return controller.dev_confirm_flow_all(request.get_json())
 
 
-@dev_bp.route("/confirm_flow/list", methods=["GET"])
+@dev_bp.route("/confirm_flow/list", methods=["POST"])
 def confirm_flow_list():
-    return controller.dev_confirm_flow_list()
+    return controller.dev_confirm_flow_list(request.get_json())
 
 
 @dev_bp.route("/confirm_flow/reminder", methods=["POST"])
