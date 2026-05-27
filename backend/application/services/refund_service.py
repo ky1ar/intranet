@@ -1,5 +1,6 @@
 import os
 import uuid
+import math
 from datetime import timedelta
 from flask import request, send_file
 from flask_jwt_extended import get_jwt_identity
@@ -15,7 +16,7 @@ from application.repository.client_repository import ClientRepository
 from application.services.module_service import ModuleService
 from application.services.push_service import PushSender
 from application import socketio
-from config import Paths
+from config import Paths, Config
 
 REASON_LABELS = {
     "inconforme": "Atención inconforme",
@@ -228,6 +229,7 @@ class RefundService:
             "order_number": str(req.client_order.number) if req.client_order else None,
             "reason": req.reason,
             "reason_label": REASON_LABELS.get(req.reason, req.reason),
+            "reason_detail": req.reason_detail,
             "detail": req.detail,
             "order_amount": float(req.order_amount or 0),
             "refund_amount": float(req.refund_amount or 0),
@@ -248,10 +250,9 @@ class RefundService:
     def create(self):
         user_id = int(get_jwt_identity())
 
-        has_commercial = self._has_perm(user_id, "register_commercial")
-        has_admin_reg  = self._has_perm(user_id, "register_admin")
+        has_admin_reg = self._has_perm(user_id, "register_admin")
 
-        if not has_commercial and not has_admin_reg:
+        if not has_admin_reg:
             return "Sin permiso para registrar extornos", 403
 
         reason         = request.form.get("reason", "").strip()
@@ -269,12 +270,12 @@ class RefundService:
             return "Medio de pago inválido", 400
 
         applies_penalty = request.form.get("applies_penalty") in ("true", "1", "True")
-        is_admin_reg_flag = has_admin_reg and not has_commercial
+        is_admin_reg_flag = True
 
         # Determine initial status based on creator's permissions
         if self._has_perm(user_id, "approve_area"):
             initial_status = 4
-        elif self._has_perm(user_id, "validate") and has_admin_reg:
+        elif self._has_perm(user_id, "validate"):
             initial_status = 3
         else:
             initial_status = 1
@@ -336,8 +337,7 @@ class RefundService:
 
         socketio.emit("refund_update", {})
 
-        # Push to validate-permission holders when it's a commercial register at status 1
-        if initial_status == 1 and not is_admin_reg_flag:
+        if initial_status == 1:
             user, _ = self.user_repository.get_user_by_id(user_id)
             name = format_name(user.name, True) if user else "Alguien"
             self._push_to_perm(
@@ -584,6 +584,154 @@ class RefundService:
         if rc == 200:
             socketio.emit("refund_update", {})
         return result, rc
+
+    # ── Links ──
+
+    @handle_exceptions
+    def create_link(self):
+        user_id = int(get_jwt_identity())
+        if not self._has_perm(user_id, "links"):
+            return "Sin permiso para crear enlaces", 403
+        token = str(uuid.uuid4())
+        link, rc = self.repository.create_link(token, user_id)
+        if rc != 200:
+            return link, rc
+        base_url = Config.EXTERNAL_REGISTER_URL or ""
+        url = f"{base_url}refund/{token}"
+        return {"id": link.id, "url": url}, 200
+
+    @handle_exceptions
+    def link_history(self):
+        user_id = int(get_jwt_identity())
+        if not self._has_perm(user_id, "links"):
+            return "Sin permiso", 403
+        per_page = 20
+        page = int(request.args.get("page", 1))
+        rows, total, rc = self.repository.get_links_page(page, per_page)
+        if rc != 200:
+            return rows, rc
+        base_url = Config.EXTERNAL_REGISTER_URL or ""
+        STATUS_NAMES = {1: "Pendiente", 2: "Abierto", 3: "Registrado", 4: "Eliminado"}
+        items = []
+        for r in rows:
+            items.append({
+                "id": r.id,
+                "status_id": r.status_id,
+                "status": STATUS_NAMES.get(r.status_id, str(r.status_id)),
+                "user_name": format_name(r.user.name) if r.user else "-",
+                "client_name": r.refund.client_order.client.name if r.refund and r.refund.client_order else None,
+                "order_number": str(r.refund.client_order.number) if r.refund and r.refund.client_order else None,
+                "refund_id": r.refund_id,
+                "url": f"{base_url}refund/{r.token}",
+                "created_at": format_datetime(r.created_at),
+            })
+        return {
+            "list": items,
+            "pagination": {"page": page, "pages": max(1, math.ceil(total / per_page)), "total": total},
+        }, 200
+
+    @handle_exceptions
+    def delete_link(self, link_id):
+        user_id = int(get_jwt_identity())
+        if not self._has_perm(user_id, "links"):
+            return "Sin permiso", 403
+        link, rc = self.repository.get_link_by_id(link_id)
+        if rc != 200:
+            return link, rc
+        if link.status_id >= 3:
+            return "El enlace ya fue completado o eliminado", 400
+        result, rc = self.repository.delete_link(link_id)
+        return result, rc
+
+    @handle_exceptions
+    def verify_link(self, token):
+        link, rc = self.repository.get_link_by_token(token)
+        if rc != 200:
+            return "Enlace inválido", 404
+        if link.status_id >= 3:
+            return "Este enlace ya no está disponible", 410
+        if link.status_id == 1:
+            self.repository.mark_link_opened(link.id)
+            socketio.emit("refund_link_update", {})
+        return {"valid": True}, 200
+
+    @handle_exceptions
+    def link_process(self, data):
+        token = (data.get("token") or "").strip()
+        if not token:
+            return "Token requerido", 400
+
+        link, rc = self.repository.get_link_by_token(token)
+        if rc != 200:
+            return "Enlace inválido", 404
+        if link.status_id >= 3:
+            return "Este enlace ya no está disponible", 410
+
+        reason         = (data.get("reason") or "").strip()
+        reason_detail  = (data.get("reason_detail") or "").strip() or None
+        payment_method = (data.get("payment_method") or "").strip()
+        detail         = (data.get("detail") or "").strip() or None
+        refund_amount  = data.get("refund_amount")
+        order_number   = (data.get("order_number") or "").strip()
+        client_dni     = (data.get("client_dni") or "").strip()
+        client_name    = (data.get("client_name") or "").strip()
+
+        if not reason or reason not in REASON_LABELS:
+            return "Motivo inválido", 400
+        if not payment_method or payment_method not in PAYMENT_LABELS:
+            return "Medio de pago inválido", 400
+        if not refund_amount:
+            return "Monto a extornar requerido", 400
+        if not order_number or not client_dni:
+            return "Número de pedido y DNI son requeridos", 400
+
+        # Resolve or create client
+        client, crc = self.client_repository.get_client_by_document(client_dni)
+        if crc == 200:
+            resolved_client_id = client.id
+        else:
+            resolved_client_id, crc2 = self.client_repository.add_client_minimal(client_dni, client_name or client_dni)
+            if crc2 != 200:
+                return resolved_client_id, crc2
+
+        # Resolve or create client_order
+        order, orc = self.client_repository.get_client_order_by_number(order_number)
+        if orc == 200:
+            client_order_id = order.id
+        else:
+            client_order_id, orc2 = self.client_repository.add_client_order(order_number, resolved_client_id)
+            if orc2 != 200:
+                return client_order_id, orc2
+
+        refund_data = {
+            "status_id":       1,
+            "registered_by":   link.user_id,
+            "is_admin_register": False,
+            "client_order_id": client_order_id,
+            "reason":          reason,
+            "reason_detail":   reason_detail,
+            "detail":          detail,
+            "order_amount":    float(refund_amount),
+            "refund_amount":   float(refund_amount),
+            "applies_penalty": False,
+            "payment_method":  payment_method,
+        }
+
+        refund_id, rc = self.repository.create(refund_data)
+        if rc != 200:
+            return refund_id, rc
+
+        self.repository.mark_link_used(link.id, refund_id)
+        socketio.emit("refund_update", {})
+
+        self._push_to_perm(
+            "validate",
+            f"Nuevo extorno #{refund_id}",
+            f"Extorno enviado por cliente vía enlace",
+            exclude_id=link.user_id,
+        )
+
+        return {"id": refund_id}, 200
 
     # ── Chat ──
 

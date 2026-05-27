@@ -74,6 +74,36 @@ def delete_attachment(attachment_id):
     return controller.delete_attachment(attachment_id)
 
 
+# ── Links ──
+
+@refund_bp.route("/link", methods=["POST"])
+@jwt_required()
+def create_link():
+    return controller.create_link()
+
+
+@refund_bp.route("/link_history", methods=["GET"])
+@jwt_required()
+def link_history():
+    return controller.link_history()
+
+
+@refund_bp.route("/link/<int:link_id>", methods=["DELETE"])
+@jwt_required()
+def delete_link(link_id):
+    return controller.delete_link(link_id)
+
+
+@refund_bp.route("/link_verify", methods=["POST"])
+def link_verify():
+    return controller.verify_link(request.get_json() or {})
+
+
+@refund_bp.route("/link_process", methods=["POST"])
+def link_process():
+    return controller.link_process(request.get_json() or {})
+
+
 # ── Chat ──
 
 @refund_bp.route("/chat/<int:refund_id>", methods=["POST"])

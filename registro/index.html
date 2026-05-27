@@ -30,6 +30,7 @@
 
 <body class="container" x-data="data">
     <script src="/static/js/main.js?v=1.6.7"></script>
+    <template x-route="/refund/:token" x-handler="refundTokenVerify" x-template.preload.target.content="/views/refund.html"></template>
     <template x-route="/:token" x-handler="tokenVerify" x-template.preload.target.content="/views/guest.html"></template>
     <template x-route="/" x-template.preload.target.content="views/home.html"></template>
 

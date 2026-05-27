@@ -53,7 +53,6 @@ class Users(BaseModel):
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
     level_id = db.Column(db.Integer, db.ForeignKey('user_level.id'), nullable=False, default=1)
     department_id = db.Column(db.Integer, db.ForeignKey('user_department.id'))
-    shipping_app_level = db.Column(db.Integer)
     document = db.Column(db.String(255), nullable=False, unique=True)
     name = db.Column(db.String(255))
     image = db.Column(db.String(255))

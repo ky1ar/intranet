@@ -6,9 +6,35 @@ document.addEventListener('alpine:init', () => {
     }));
 
     Alpine.store('cache', {
-        api: 'https://api.krear3d.com', //https://api.krear3d.com
+        api: 'https://devapi.krear3d.com', //https://api.krear3d.com
     });
 });
+
+async function refundTokenVerify({ params }) {
+    console.log('Verificando token de extorno...');
+    const token = params.token;
+
+    NProgress.start();
+    try {
+        const response = await fetch(`${Alpine.store('cache').api}/refund/link_verify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token }),
+        });
+
+        if (!response.ok) {
+            window.PineconeRouter.context.navigate("/");
+            return;
+        }
+
+        Alpine.store('cache').refund_token = token;
+    } catch (error) {
+        console.error(error);
+        window.PineconeRouter.context.navigate("/");
+    } finally {
+        NProgress.done();
+    }
+}
 
 async function tokenVerify({ params }) {
     console.log('Verificando Token...');

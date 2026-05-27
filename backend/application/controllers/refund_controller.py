@@ -54,6 +54,28 @@ class RefundController:
     def delete_attachment(self, attachment_id):
         return self.service.delete_attachment(attachment_id)
 
+    # ── Links ──
+
+    @handle_logs_and_exceptions
+    def create_link(self):
+        return self.service.create_link()
+
+    @handle_logs_and_exceptions
+    def link_history(self):
+        return self.service.link_history()
+
+    @handle_logs_and_exceptions
+    def delete_link(self, link_id):
+        return self.service.delete_link(link_id)
+
+    @handle_logs_and_exceptions
+    def verify_link(self, data):
+        return self.service.verify_link(data.get("token", ""))
+
+    @handle_logs_and_exceptions
+    def link_process(self, data):
+        return self.service.link_process(data)
+
     # ── Chat ──
 
     @handle_logs_and_exceptions
