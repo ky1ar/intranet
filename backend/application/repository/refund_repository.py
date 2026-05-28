@@ -15,13 +15,11 @@ class RefundRepository:
         return rows or [], 200
 
     @handle_db_exceptions
-    def get_dashboard(self, user_id=None, only_commercial=False):
+    def get_dashboard(self, only_commercial=False):
         q = (
             g.db_session.query(RefundRequest)
             .filter(RefundRequest.deleted_at.is_(None))
         )
-        if user_id is not None:
-            q = q.filter(RefundRequest.registered_by == user_id)
         if only_commercial:
             q = q.filter(RefundRequest.is_admin_register == False)
         return q.order_by(RefundRequest.created_at.desc()).all() or [], 200
@@ -44,8 +42,8 @@ class RefundRepository:
 
         row = RefundRequest(
             status_id=data.get("status_id", 1),
-            registered_by=data["registered_by"],
             is_admin_register=bool(data.get("is_admin_register", False)),
+            assigned_to=data.get("assigned_to"),
             client_order_id=data["client_order_id"],
             reason=data["reason"],
             reason_detail=data.get("reason_detail"),
@@ -67,6 +65,16 @@ class RefundRepository:
         if not row:
             return "No encontrado", 404
         row.status_id = status_id
+        g.db_session.commit()
+        return "OK", 200
+
+    @handle_db_exceptions
+    def update_status_and_assign(self, refund_id, status_id, assigned_to):
+        row = g.db_session.query(RefundRequest).get(refund_id)
+        if not row:
+            return "No encontrado", 404
+        row.status_id = status_id
+        row.assigned_to = assigned_to
         g.db_session.commit()
         return "OK", 200
 
@@ -251,8 +259,8 @@ class RefundRepository:
         user_ids = [r[0] for r in q.distinct().all()]
 
         refund, rc = self.get_by_id(refund_id)
-        if rc == 200 and refund.registered_by != exclude_user_id:
-            if refund.registered_by not in user_ids:
-                user_ids.append(refund.registered_by)
+        if rc == 200 and refund.assigned_to and refund.assigned_to != exclude_user_id:
+            if refund.assigned_to not in user_ids:
+                user_ids.append(refund.assigned_to)
 
         return user_ids, 200

@@ -14,7 +14,6 @@ class RefundRequest(BaseModel):
 
     id                = db.Column(db.Integer, primary_key=True, autoincrement=True)
     status_id         = db.Column(db.Integer, db.ForeignKey("refund_status.id"), nullable=False, default=1)
-    registered_by     = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     is_admin_register = db.Column(db.Boolean, nullable=False, default=False)
 
     client_order_id   = db.Column(db.Integer, db.ForeignKey("client_orders.id"), nullable=False)
@@ -30,13 +29,14 @@ class RefundRequest(BaseModel):
     net_refund        = db.Column(db.Numeric(10, 2), nullable=False)
     payment_method    = db.Column(db.String(30), nullable=False)
     scheduled_date    = db.Column(db.Date)
+    assigned_to       = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
 
     created_at        = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
     updated_at        = db.Column(db.DateTime, onupdate=db.func.now())
     deleted_at        = db.Column(db.DateTime)
 
-    status      = db.relationship("RefundStatus", lazy="joined")
-    registrant  = db.relationship("Users", foreign_keys=[registered_by], lazy="joined")
+    status   = db.relationship("RefundStatus", lazy="joined")
+    assignee = db.relationship("Users", foreign_keys=[assigned_to], lazy="joined")
 
 
 class RefundAttachment(BaseModel):

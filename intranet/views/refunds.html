@@ -31,8 +31,8 @@
 								<template x-if="!req.is_admin_register">
 									<span class="req-id" x-text="`EX-${String(req.id)}`"></span>
 								</template>
-								
-								<div class="req-date" x-text="req.registered_by_name"></div>
+
+								<div class="req-date" x-text="req.assigned_to_name || ''"></div>
 
 <!-- 								
 								<span class="req-client" x-text="req.client_name || req.client_dni || '-'"></span>
@@ -355,9 +355,9 @@
 									<span class="label">Nro. pedido</span>
 									<span x-text="detail?.order_number || '-'"></span>
 								</div>
-								<div class="detail-field" x-show="detail?.is_admin_register">
-									<span class="label">Registrado por</span>
-									<span x-text="detail?.registered_by_name || '-'"></span>
+								<div class="detail-field" x-show="detail?.assigned_to">
+									<span class="label">Responsable</span>
+									<span x-text="detail?.assigned_to_name || '-'"></span>
 								</div>
 								<div class="detail-field" x-show="detail?.scheduled_date">
 									<span class="label">Fecha programada</span>
@@ -426,7 +426,7 @@
 								<span class="section-count" x-text="`(${detail?.attachments?.length || 0})`"></span>
 							</div>
 
-							<div class="thumbnails-grid small-grid" x-show="detail?.attachments?.length > 0">
+							<div class="thumbnails-grid small-grid" x-show="detail?.attachments?.length > 0 || canUploadAttachments()">
 								<template x-for="f in (detail?.attachments || [])" :key="f.id">
 									<div class="thumb-wrapper">
 										<div class="thumb-item hover-opacity" @click="openAttachment(f)">
@@ -442,23 +442,19 @@
 											</div>
 											<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
 										</div>
-										<!-- Delete button: only creator in Registrado -->
 										<button class="thumb-delete hover-opacity" x-show="canDeleteAttachment()"
 											@click.stop="deleteAttachment(f.id)" title="Eliminar">
 											<img alt="×" width="12" height="12" src="/static/icons/line/delete.svg">
 										</button>
 									</div>
 								</template>
+								<template x-if="canUploadAttachments()">
+									<div class="add-button hover-opacity" @click="$refs.refundFileInput.click()">
+										<img alt="" width="24" height="24" src="/static/icons/line/plus.svg">
+									</div>
+								</template>
 							</div>
-
-							<!-- Upload (creator + Registrado only) -->
-							<div class="upload-area" x-show="canUploadAttachments()">
-								<label class="upload-btn hover-opacity">
-									<img alt="" width="14" height="14" src="/static/icons/line/add.svg">
-									<span>Agregar archivos</span>
-									<input type="file" multiple style="display:none" @change="uploadFiles($event)">
-								</label>
-							</div>
+							<input type="file" multiple style="display:none" x-ref="refundFileInput" @change="uploadFiles($event)">
 
 							<div class="no-files" x-show="!detail?.attachments?.length && !canUploadAttachments()">
 								Sin archivos
@@ -466,15 +462,36 @@
 						</div>
 
 						<!-- Comprobante de pago (visible al ejecutar desde Programado) -->
-						<div x-show="detail?.status_id === 5 && _highPerm()" class="comprobante-section">
-							<span class="field-label">Comprobante de pago (WhatsApp)</span>
-							<label class="upload-btn hover-opacity comprobante-btn" :class="comprobante ? 'has-file' : ''">
+						<div x-show="detail?.status_id === 5 && _highPerm()" class="detail-section white files">
+							<div class="section-label-row">
 								<img alt="" width="14" height="14" src="/static/icons/filled/clip.svg">
-								<span x-text="comprobante ? comprobante.name : 'Adjuntar comprobante'"></span>
-								<input type="file" accept="image/*,application/pdf" style="display:none"
-									@change="comprobante = $event.target.files[0]; $event.target.value = ''">
-							</label>
-							<button x-show="comprobante" @click="comprobante = null" class="comprobante-clear">✕ Quitar</button>
+								<span class="section-label" style="margin-bottom:0;">Comprobante de pago</span>
+							</div>
+							<div class="thumbnails-grid small-grid">
+								<template x-if="comprobante">
+									<div class="thumb-wrapper">
+										<div class="thumb-item">
+											<div class="thumbnail-wrapper">
+												<div class="file-card">
+													<div class="file-ext" x-text="(comprobante.name.split('.').pop() || '').toUpperCase()"></div>
+												</div>
+											</div>
+											<div class="thumb-caption" x-text="comprobante.name"></div>
+										</div>
+										<button class="thumb-delete hover-opacity" @click="comprobante = null" title="Quitar">
+											<img alt="×" width="12" height="12" src="/static/icons/line/delete.svg">
+										</button>
+									</div>
+								</template>
+								<template x-if="!comprobante">
+									<div class="add-button hover-opacity" @click="$refs.comprobanteInput.click()">
+										<img alt="" width="24" height="24" src="/static/icons/line/plus.svg">
+									</div>
+								</template>
+							</div>
+							<input type="file" accept="image/*,application/pdf" style="display:none"
+								x-ref="comprobanteInput"
+								@change="comprobante = $event.target.files[0]; $event.target.value = ''">
 						</div>
 
 						<!-- Acciones de estado -->
@@ -523,6 +540,28 @@
 			</div>
 		</div>
 
+		<!-- Modal confirmar eliminar adjunto -->
+		<div
+			x-show="$store.cache.isVisibleModal('refund-confirm-delete')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap common-modal"
+			id="modal-refund-confirm-delete"
+			x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2 small" @click.stop style="max-width:22rem;">
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+				<div class="modal-content" style="text-align:center;">
+					<p style="font-size:0.9rem;font-weight:500;margin:0;">¿Eliminar este archivo?</p>
+				</div>
+				<div class="modal-footer buttons">
+					<button class="button ghost hover-opacity" @click="$store.cache.hideLastModal()">Cancelar</button>
+					<button class="button hover-opacity" style="background:#e36464;" @click="confirmDeleteAttachment()">Eliminar</button>
+				</div>
+			</div>
+		</div>
+
 		<!-- Modal visor adjunto -->
 		<div
 			x-show="$store.cache.isVisibleModal('refund-attachment')"
@@ -561,6 +600,7 @@
 			viewer_file: null,
 			viewer_payload: null,
 			comprobante: null,
+			pending_delete_attachment: null,
 
 			link_list: [],
 			link_page: 1,
@@ -606,24 +646,30 @@
 
 			_highPerm() {
 				const hp = (p) => Alpine.store('cache').hasPermission('refunds', p);
-				return hp('validate') || hp('approve_area') || hp('approve_gerencia');
+				return hp('approve_area') || hp('approve_gerencia');
+			},
+			_validatePerm() {
+				return Alpine.store('cache').hasPermission('refunds', 'validate');
+			},
+			_canRevert() {
+				return Alpine.store('cache').hasPermission('refunds', 'revert');
 			},
 
 			canEditPenalty() {
-				if (!this.detail) return false;
-				if (this.detail.status_id >= 6) return false;  // executed or reverted
-				if (this.detail.status_id === 1)
-					return this.detail.registered_by === this.user.id;
-				return this._highPerm();
+				if (!this.detail || this.detail.status_id >= 6) return false;
+				return Alpine.store('cache').hasPermission('refunds', 'penalty');
 			},
 
 			canUploadAttachments() {
-				if (this.detail?.status_id !== 1) return false;
-				return this.detail?.registered_by === this.user.id || this._highPerm();
+				if (!this.detail || this.detail.status_id >= 6) return false;
+				if (this._validatePerm() && this.detail.status_id < 5) return true;
+				if (this._highPerm()) return true;
+				return false;
 			},
 
 			canDeleteAttachment() {
-				return this.detail?.status_id === 1 && this._highPerm();
+				if (!this.detail || this.detail.status_id >= 6) return false;
+				return this._highPerm();
 			},
 
 			// ── Create ──
@@ -814,26 +860,23 @@
 				const hp  = (p) => Alpine.store('cache').hasPermission('refunds', p);
 				const actions = [];
 
-				if (sid < 6 && this._highPerm())
-					actions.push({ status_id: 7, label: 'Revertir extorno',  icon: 'dislike',  class: 'black' });
-
+				if (sid < 6 && this._canRevert())
+					actions.push({ status_id: 7, label: 'Revertir extorno',   icon: 'dislike',  class: 'black' });
 				// 1→2
-				if (sid === 1 && hp('move'))
-					actions.push({ status_id: 2, label: 'Iniciar revisión',  icon: 'find',     class: '' });
+				if (sid === 1 && this._validatePerm())
+					actions.push({ status_id: 2, label: 'Iniciar validación',   icon: 'find',     class: '' });
 				// 2→3
-				if (sid === 2 && hp('validate'))
-					actions.push({ status_id: 3, label: 'Extorno validado',     icon: 'like',     class: '' });
+				if (sid === 2 && this._validatePerm())
+					actions.push({ status_id: 3, label: 'Extorno validado',   icon: 'like',     class: '' });
 				// 3→4
 				if (sid === 3 && hp('approve_area'))
-					actions.push({ status_id: 4, label: 'Aprobar extorno',      icon: 'like',     class: '' });
-				// 4→5 (approve gerencia → auto-schedule)
+					actions.push({ status_id: 4, label: 'Aprobado por área',    icon: 'like',     class: '' });
+				// 4→5
 				if (sid === 4 && hp('approve_gerencia'))
-					actions.push({ status_id: 5, label: 'Aprobar y programar', icon: 'schedule', class: '' });
+					actions.push({ status_id: 5, label: 'Aprobar extorno', icon: 'like', class: '' });
 				// 5→6
 				if (sid === 5 && this._highPerm())
-					actions.push({ status_id: 6, label: 'Extorno ejecutado',  icon: 'approve',    class: '' });
-				// →7 revert (any state before executed)
-				
+					actions.push({ status_id: 6, label: 'Extorno ejecutado',  icon: 'approve',  class: '' });
 
 				return actions;
 			},
@@ -913,15 +956,22 @@
 				event.target.value = '';
 			},
 
-			async deleteAttachment(attachmentId) {
-				if (!confirm('¿Eliminar este archivo?')) return;
+			deleteAttachment(attachmentId) {
+				this.pending_delete_attachment = attachmentId;
+				Alpine.store('cache').showModal('refund-confirm-delete');
+			},
+
+			async confirmDeleteAttachment() {
+				Alpine.store('cache').hideLastModal();
+				if (!this.pending_delete_attachment) return;
 				try {
-					const res = await fetch(`${this.api}/refund/attachment/${attachmentId}`, {
+					const res = await fetch(`${this.api}/refund/attachment/${this.pending_delete_attachment}`, {
 						method: 'DELETE',
 						headers: { 'Authorization': `Bearer ${this.token}` },
 					});
 					if (res.ok) await this.openDetail(this.detail.id);
 				} catch (e) { console.error(e); }
+				finally { this.pending_delete_attachment = null; }
 			},
 
 			async openAttachment(file) {
@@ -1401,8 +1451,6 @@
 			padding: 0.5rem;
 		}
 
-		/* Upload */
-		.upload-area { margin-top: 0.5rem; }
 		.no-files { font-size: 0.72rem; opacity: 0.35; padding: 0.25rem 0; }
 
 		/* Thumb with delete button */
@@ -1420,23 +1468,6 @@
 			margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--gray);
 		}
 		.penalty-edit-label { font-size: 0.72rem; font-weight: 500; opacity: 0.6; }
-
-		/* Comprobante upload */
-		.comprobante-section {
-			display: flex; align-items: center; gap: 0.5rem;
-			padding: 0.5rem 0; border-top: 1px solid var(--gray);
-		}
-		.comprobante-btn {
-			flex: 1; padding: 0.5rem 0.75rem; font-size: 0.75rem;
-			font-weight: 500; border: 1px dashed #000; background: transparent;
-			opacity: 0.6; justify-content: center;
-		}
-		.comprobante-btn.has-file { opacity: 1; border-style: solid; border-color: var(--primary); }
-		.comprobante-clear {
-			background: none; border: none; cursor: pointer;
-			font-size: 0.7rem; opacity: 0.5; white-space: nowrap;
-		}
-		.comprobante-clear:hover { opacity: 1; }
 
 		/* Actions */
 		.detail-actions { border-top: 1px solid var(--gray); }

@@ -152,12 +152,11 @@ class RefundService:
         if sc != 200:
             return statuses, sc
 
-        if self._has_perm(user_id, "view_all"):
-            requests, rc = self.repository.get_dashboard()
-        elif self._has_perm(user_id, "view_commercial"):
-            requests, rc = self.repository.get_dashboard(only_commercial=True)
-        else:
-            requests, rc = self.repository.get_dashboard(user_id=user_id)
+        only_commercial = (
+            self._has_perm(user_id, "view_commercial")
+            and not self._has_perm(user_id, "view_all")
+        )
+        requests, rc = self.repository.get_dashboard(only_commercial=only_commercial)
         if rc != 200:
             return requests, rc
 
@@ -183,8 +182,8 @@ class RefundService:
                 "reason": REASON_LABELS.get(req.reason, req.reason),
                 "net_refund": float(req.net_refund or 0),
                 "is_admin_register": req.is_admin_register,
-                "registered_by": req.registered_by,
-                "registered_by_name": format_name(req.registrant.name) if req.registrant else None,
+                "assigned_to": req.assigned_to,
+                "assigned_to_name": format_name(req.assignee.name, True) if req.assignee else None,
                 "scheduled_date": req.scheduled_date.isoformat() if req.scheduled_date else None,
                 "created_at": format_datetime(req.created_at),
             })
@@ -231,8 +230,8 @@ class RefundService:
             "status_id": req.status_id,
             "status_name": req.status.name,
             "status_slug": req.status.slug,
-            "registered_by": req.registered_by,
-            "registered_by_name": format_name(req.registrant.name) if req.registrant else None,
+            "assigned_to": req.assigned_to,
+            "assigned_to_name": format_name(req.assignee.name, True) if req.assignee else None,
             "is_admin_register": req.is_admin_register,
             "client_order_id": req.client_order_id,
             "client_dni": req.client_order.client.document if req.client_order else None,
@@ -322,7 +321,7 @@ class RefundService:
 
         data = {
             "status_id":        initial_status,
-            "registered_by":    user_id,
+            "assigned_to":      user_id,
             "is_admin_register": is_admin_reg_flag,
             "client_order_id":  client_order_id,
             "reason":           reason,
@@ -352,7 +351,7 @@ class RefundService:
             user, _ = self.user_repository.get_user_by_id(user_id)
             name = format_name(user.name, True) if user else "Alguien"
             self._push_to_perm(
-                "validate",
+                "notify",
                 f"Nuevo extorno #{refund_id}",
                 f"{name} registró un extorno",
                 exclude_id=user_id,
@@ -422,18 +421,22 @@ class RefundService:
                 if att_id:
                     comprobante_url = f"refund/{stored_name}"
         elif status_id == 7:
-            if not can_high:
+            if not self._has_perm(user_id, "revert"):
                 return "Sin permiso para revertir", 403
             if req.status_id >= 6:
                 return "No se puede revertir un extorno ya ejecutado", 400
         else:
             return "Estado inválido", 400
 
-        # Gerencia approval (→5) auto-schedules
+        # Gerencia approval (→5) auto-schedules; 1→2 auto-assigns
         if status_id == 5:
             now = peru_time()
             scheduled = self._next_valid_friday(now)
             result, rc = self.repository.update_scheduled_date(refund_id, scheduled)
+            if rc != 200:
+                return result, rc
+        elif status_id == 2:
+            result, rc = self.repository.update_status_and_assign(refund_id, status_id, user_id)
             if rc != 200:
                 return result, rc
         else:
@@ -500,13 +503,8 @@ class RefundService:
 
         if req.status_id >= 6:
             return "No se puede modificar la penalidad en este estado", 400
-
-        if req.status_id == 1:
-            if req.registered_by != user_id:
-                return "Solo el creador puede modificar la penalidad en este estado", 403
-        else:
-            if not any(self._has_perm(user_id, p) for p in _HIGH_PERMS):
-                return "Sin permiso para modificar la penalidad", 403
+        if not self._has_perm(user_id, "penalty"):
+            return "Sin permiso para modificar la penalidad", 403
 
         applies = bool(data.get("applies_penalty"))
         result, rc = self.repository.update_penalty(refund_id, applies)
@@ -524,7 +522,7 @@ class RefundService:
         req, rc = self.repository.get_by_id(refund_id)
         if rc != 200:
             return req, rc
-        if req.registered_by != user_id and not any(self._has_perm(user_id, p) for p in _HIGH_PERMS):
+        if not any(self._has_perm(user_id, p) for p in _HIGH_PERMS):
             return "Sin permiso", 403
         result, rc = self.repository.soft_delete(refund_id)
         if rc == 200:
@@ -561,11 +559,14 @@ class RefundService:
         if rc != 200:
             return req, rc
 
-        # Creator OR high-perm can upload in Registrado (status 1)
-        can_upload = req.status_id == 1 and (
-            req.registered_by == user_id or
-            any(self._has_perm(user_id, p) for p in _HIGH_PERMS)
-        )
+        # validate: status < 5 (before scheduled)
+        # approve_area / approve_gerencia: status < 6 (before executed)
+        if self._has_perm(user_id, "validate") and req.status_id < 5:
+            can_upload = True
+        elif any(self._has_perm(user_id, p) for p in _HIGH_PERMS) and req.status_id < 6:
+            can_upload = True
+        else:
+            can_upload = False
         if not can_upload:
             return "Sin permiso para agregar archivos en este estado", 403
 
@@ -634,8 +635,8 @@ class RefundService:
         if rrc != 200:
             return req, rrc
 
-        # Only high-perm users can delete attachments (creator can upload but not delete after creation)
-        if req.status_id != 1 or not any(self._has_perm(user_id, p) for p in _HIGH_PERMS):
+        # approve_area / approve_gerencia can delete while not yet executed
+        if req.status_id >= 6 or not any(self._has_perm(user_id, p) for p in _HIGH_PERMS):
             return "Sin permiso para eliminar archivos en este estado", 403
 
         path = os.path.join(Paths.REFUND, row.stored_name)
@@ -770,7 +771,6 @@ class RefundService:
 
         refund_data = {
             "status_id":       1,
-            "registered_by":   link.user_id,
             "is_admin_register": False,
             "client_order_id": client_order_id,
             "reason":          reason,
@@ -790,10 +790,9 @@ class RefundService:
         socketio.emit("refund_update", {})
 
         self._push_to_perm(
-            "validate",
+            "notify",
             f"Nuevo extorno #{refund_id}",
             f"Extorno enviado por cliente vía enlace",
-            exclude_id=link.user_id,
         )
 
         waba_phone = self._format_waba_phone(client_phone)
