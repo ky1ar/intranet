@@ -237,6 +237,7 @@ class RefundService:
             "client_dni": req.client_order.client.document if req.client_order else None,
             "client_name": req.client_order.client.name if req.client_order else None,
             "order_number": str(req.client_order.number) if req.client_order else None,
+            "original_order_number": req.original_order_number,
             "reason": req.reason,
             "reason_label": REASON_LABELS.get(req.reason, req.reason),
             "reason_detail": req.reason_detail,
@@ -489,6 +490,48 @@ class RefundService:
                     args=(_waba_phone, _disp_name, _refund_num),
                 ).start()
 
+        return "OK", 200
+
+    # ── Edit order number ──
+
+    @handle_exceptions
+    def edit_order_number(self, refund_id, data):
+        user_id = int(get_jwt_identity())
+        new_number = (data.get("order_number") or "").strip()
+        if not new_number:
+            return "Número de pedido requerido", 400
+
+        req, rc = self.repository.get_by_id(refund_id)
+        if rc != 200:
+            return req, rc
+
+        if req.status_id >= 6:
+            return "No se puede editar en este estado", 400
+
+        can_edit = (
+            (self._has_perm(user_id, "validate") and req.status_id < 3) or
+            (any(self._has_perm(user_id, p) for p in _HIGH_PERMS) and req.status_id < 6)
+        )
+        if not can_edit:
+            return "Sin permiso para editar el número de pedido", 403
+
+        current_client_id = req.client_order.client_id if req.client_order else None
+        if not current_client_id:
+            return "No se pudo determinar el cliente", 400
+
+        order, orc = self.client_repository.get_client_order_by_number(new_number)
+        if orc == 200:
+            client_order_id = order.id
+        else:
+            client_order_id, crc = self.client_repository.add_client_order(new_number, current_client_id)
+            if crc != 200:
+                return client_order_id, crc
+
+        result, rc = self.repository.update_client_order(refund_id, client_order_id)
+        if rc != 200:
+            return result, rc
+
+        socketio.emit("refund_update", {})
         return "OK", 200
 
     # ── Update penalty ──
@@ -770,16 +813,17 @@ class RefundService:
                 return client_order_id, orc2
 
         refund_data = {
-            "status_id":       1,
-            "is_admin_register": False,
-            "client_order_id": client_order_id,
-            "reason":          reason,
-            "reason_detail":   reason_detail,
-            "detail":          detail,
-            "order_amount":    float(refund_amount),
-            "refund_amount":   float(refund_amount),
-            "applies_penalty": False,
-            "payment_method":  payment_method,
+            "status_id":            1,
+            "is_admin_register":    False,
+            "client_order_id":      client_order_id,
+            "original_order_number": order_number,
+            "reason":               reason,
+            "reason_detail":        reason_detail,
+            "detail":               detail,
+            "order_amount":         float(refund_amount),
+            "refund_amount":        float(refund_amount),
+            "applies_penalty":      False,
+            "payment_method":       payment_method,
         }
 
         refund_id, rc = self.repository.create(refund_data)

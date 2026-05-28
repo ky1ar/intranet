@@ -45,6 +45,12 @@ def update_status(refund_id):
     return controller.update_status(data)
 
 
+@refund_bp.route("/<int:refund_id>/order_number", methods=["PATCH"])
+@jwt_required()
+def edit_order_number(refund_id):
+    return controller.edit_order_number(refund_id)
+
+
 @refund_bp.route("/<int:refund_id>/penalty", methods=["PATCH"])
 @jwt_required()
 def update_penalty(refund_id):

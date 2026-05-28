@@ -28,6 +28,10 @@ class RefundController:
         return self.service.update_status(data)
 
     @handle_logs_and_exceptions
+    def edit_order_number(self, refund_id):
+        return self.service.edit_order_number(refund_id, request.get_json() or {})
+
+    @handle_logs_and_exceptions
     def update_penalty(self, refund_id):
         return self.service.update_penalty(refund_id, request.get_json() or {})
 

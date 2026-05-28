@@ -44,6 +44,7 @@ class RefundRepository:
             status_id=data.get("status_id", 1),
             is_admin_register=bool(data.get("is_admin_register", False)),
             assigned_to=data.get("assigned_to"),
+            original_order_number=data.get("original_order_number"),
             client_order_id=data["client_order_id"],
             reason=data["reason"],
             reason_detail=data.get("reason_detail"),
@@ -65,6 +66,15 @@ class RefundRepository:
         if not row:
             return "No encontrado", 404
         row.status_id = status_id
+        g.db_session.commit()
+        return "OK", 200
+
+    @handle_db_exceptions
+    def update_client_order(self, refund_id, client_order_id):
+        row = g.db_session.query(RefundRequest).get(refund_id)
+        if not row:
+            return "No encontrado", 404
+        row.client_order_id = client_order_id
         g.db_session.commit()
         return "OK", 200
 
