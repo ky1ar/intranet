@@ -355,7 +355,7 @@
 									<span class="label">Nro. pedido</span>
 									<span x-text="detail?.order_number || '-'"></span>
 								</div>
-								<div class="detail-field">
+								<div class="detail-field" x-show="detail?.is_admin_register">
 									<span class="label">Registrado por</span>
 									<span x-text="detail?.registered_by_name || '-'"></span>
 								</div>
@@ -393,10 +393,6 @@
 						<!-- Montos + penalidad -->
 						<div class="detail-section white">
 							<div class="detail-grid">
-								<div class="detail-field">
-									<span class="label">Monto pedido</span>
-									<span x-text="`S/ ${detail?.order_amount?.toFixed(2) || '0.00'}`"></span>
-								</div>
 								<div class="detail-field">
 									<span class="label">Monto extorno</span>
 									<span x-text="`S/ ${detail?.refund_amount?.toFixed(2) || '0.00'}`"></span>
@@ -467,6 +463,18 @@
 							<div class="no-files" x-show="!detail?.attachments?.length && !canUploadAttachments()">
 								Sin archivos
 							</div>
+						</div>
+
+						<!-- Comprobante de pago (visible al ejecutar desde Programado) -->
+						<div x-show="detail?.status_id === 5 && _highPerm()" class="comprobante-section">
+							<span class="field-label">Comprobante de pago (WhatsApp)</span>
+							<label class="upload-btn hover-opacity comprobante-btn" :class="comprobante ? 'has-file' : ''">
+								<img alt="" width="14" height="14" src="/static/icons/filled/clip.svg">
+								<span x-text="comprobante ? comprobante.name : 'Adjuntar comprobante'"></span>
+								<input type="file" accept="image/*,application/pdf" style="display:none"
+									@change="comprobante = $event.target.files[0]; $event.target.value = ''">
+							</label>
+							<button x-show="comprobante" @click="comprobante = null" class="comprobante-clear">✕ Quitar</button>
 						</div>
 
 						<!-- Acciones de estado -->
@@ -552,6 +560,7 @@
 			processing: false,
 			viewer_file: null,
 			viewer_payload: null,
+			comprobante: null,
 
 			link_list: [],
 			link_page: 1,
@@ -791,6 +800,7 @@
 					const json = await res.json();
 					this.detail = json.data;
 					this.message = '';
+					this.comprobante = null;
 					Alpine.store('cache').showModal('refund-detail');
 					this.$nextTick(() => this.scrollCommentsToBottom('instant'));
 				} catch (e) { console.error(e); }
@@ -831,14 +841,27 @@
 			async changeStatus(statusId) {
 				if (!this.detail) return;
 				try {
-					const res = await fetch(`${this.api}/refund/${this.detail.id}/status`, {
-						method: 'PUT',
-						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
-						body: JSON.stringify({ status_id: statusId }),
-					});
+					let res;
+					if (statusId === 6 && this.comprobante) {
+						const fd = new FormData();
+						fd.append('status_id', statusId);
+						fd.append('comprobante', this.comprobante);
+						res = await fetch(`${this.api}/refund/${this.detail.id}/status`, {
+							method: 'PUT',
+							headers: { 'Authorization': `Bearer ${this.token}` },
+							body: fd,
+						});
+					} else {
+						res = await fetch(`${this.api}/refund/${this.detail.id}/status`, {
+							method: 'PUT',
+							headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+							body: JSON.stringify({ status_id: statusId }),
+						});
+					}
 					const json = await res.json();
 					if (!res.ok) { alert(json?.data?.message || json?.data || 'Error'); return; }
-					await this.openDetail(this.detail.id);
+					this.comprobante = null;
+					Alpine.store('cache').hideLastModal();
 					await Alpine.store('cache').refresh('refund_dashboard');
 				} catch (e) { console.error(e); }
 			},
@@ -1397,6 +1420,23 @@
 			margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--gray);
 		}
 		.penalty-edit-label { font-size: 0.72rem; font-weight: 500; opacity: 0.6; }
+
+		/* Comprobante upload */
+		.comprobante-section {
+			display: flex; align-items: center; gap: 0.5rem;
+			padding: 0.5rem 0; border-top: 1px solid var(--gray);
+		}
+		.comprobante-btn {
+			flex: 1; padding: 0.5rem 0.75rem; font-size: 0.75rem;
+			font-weight: 500; border: 1px dashed #000; background: transparent;
+			opacity: 0.6; justify-content: center;
+		}
+		.comprobante-btn.has-file { opacity: 1; border-style: solid; border-color: var(--primary); }
+		.comprobante-clear {
+			background: none; border: none; cursor: pointer;
+			font-size: 0.7rem; opacity: 0.5; white-space: nowrap;
+		}
+		.comprobante-clear:hover { opacity: 1; }
 
 		/* Actions */
 		.detail-actions { border-top: 1px solid var(--gray); }

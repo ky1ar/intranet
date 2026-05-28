@@ -1,6 +1,7 @@
 import os
 import uuid
 import math
+import threading
 from datetime import timedelta
 from flask import request, send_file
 from flask_jwt_extended import get_jwt_identity
@@ -15,6 +16,7 @@ from application.repository.user_repository import UserRepository
 from application.repository.client_repository import ClientRepository
 from application.services.module_service import ModuleService
 from application.services.push_service import PushSender
+from application.proxy.whatsapp import Whatsapp
 from application import socketio
 from config import Paths, Config
 
@@ -47,7 +49,7 @@ _PERU_HOLIDAYS = frozenset([
     (8, 30), (11, 1), (12, 8), (12, 9), (12, 25),
 ])
 
-_HIGH_PERMS = {"validate", "approve_area", "approve_gerencia"}
+_HIGH_PERMS = {"approve_area", "approve_gerencia"}
 
 
 class RefundService:
@@ -57,6 +59,7 @@ class RefundService:
         self.client_repository = ClientRepository()
         self.module_service = ModuleService()
         self.push_service = PushSender()
+        self.whatsapp = Whatsapp()
 
     def _has_perm(self, user_id, perm_slug):
         result, code = self.module_service.check_permission(user_id, "refunds", perm_slug)
@@ -122,6 +125,14 @@ class RefundService:
             return
         tokens, _ = self.push_service.prefetch_registration_tokens(list(all_ids))
         socketio.start_background_task(self.push_service.send_to_tokens, tokens, title, body, None)
+
+    def _format_waba_phone(self, phone):
+        if not phone:
+            return None
+        p = str(phone).strip()
+        if not p.startswith("51"):
+            p = f"51{p}"
+        return p if len(p) == 11 else None
 
     # ── Statuses ──
 
@@ -364,16 +375,22 @@ class RefundService:
         if rc != 200:
             return req, rc
 
+        # Shared data for WhatsApp notifications
+        _client      = req.client_order.client if req.client_order else None
+        _waba_phone  = self._format_waba_phone(_client.phone if _client else None)
+        _disp_name   = (_client.name or "").title() if _client else ""
+        _refund_num  = f"EX-{refund_id}"
+
         # States: 1=registered 2=reviewing 3=area_pending 4=gerencia_pending
         #         5=scheduled 6=executed 7=reverted
         can_high = any(self._has_perm(user_id, p) for p in _HIGH_PERMS)
 
         if status_id == 2:
-            if not self._has_perm(user_id, "move"):
+            if not self._has_perm(user_id, "validate"):
                 return "Sin permiso para mover a En revisión", 403
         elif status_id == 3:
             if not self._has_perm(user_id, "validate"):
-                return "Sin permiso para enviar a área", 403
+                return "Sin permiso para validar extorno", 403
         elif status_id == 4:
             if not self._has_perm(user_id, "approve_area"):
                 return "Sin permiso para aprobar área", 403
@@ -385,6 +402,25 @@ class RefundService:
                 return "Sin permiso para ejecutar", 403
             if req.status_id != 5:
                 return "Solo se puede ejecutar desde Programado", 400
+            # Save comprobante file if provided (for WhatsApp)
+            comprobante_url = None
+            f = request.files.get("comprobante")
+            if f and f.filename and allowed_extension(f.filename):
+                ext  = file_extension(f.filename)
+                safe = secure_filename(f.filename) or f"comprobante.{ext}"
+                stored_name = f"{uuid.uuid4().hex}_{safe}"
+                path = os.path.join(Paths.REFUND, stored_name)
+                f.save(path)
+                att_id, _ = self.repository.add_attachment(
+                    refund_id=refund_id,
+                    user_id=user_id,
+                    original_name=f.filename,
+                    stored_name=stored_name,
+                    mime_type=getattr(f, "mimetype", None),
+                    size_bytes=os.path.getsize(path),
+                )
+                if att_id:
+                    comprobante_url = f"refund/{stored_name}"
         elif status_id == 7:
             if not can_high:
                 return "Sin permiso para revertir", 403
@@ -423,6 +459,32 @@ class RefundService:
                 f"Agendado para el {scheduled.strftime('%d/%m/%Y')}",
                 user_id,
             )
+            if _waba_phone:
+                _amount = f"{float(req.refund_amount):.2f}"
+                if req.applies_penalty:
+                    _amount_final = f"{float(req.net_refund):.2f}"
+                    threading.Thread(
+                        target=self.whatsapp.refund_approved_penalty,
+                        args=(_waba_phone, _disp_name, _refund_num, _amount, _amount_final),
+                    ).start()
+                else:
+                    threading.Thread(
+                        target=self.whatsapp.refund_approved_no_penalty,
+                        args=(_waba_phone, _disp_name, _refund_num, _amount),
+                    ).start()
+        elif status_id == 6:
+            if _waba_phone:
+                _amount = f"{float(req.net_refund):.2f}"
+                threading.Thread(
+                    target=self.whatsapp.refund_executed,
+                    args=(_waba_phone, _disp_name, _refund_num, _amount, comprobante_url),
+                ).start()
+        elif status_id == 7:
+            if _waba_phone:
+                threading.Thread(
+                    target=self.whatsapp.refund_reverted,
+                    args=(_waba_phone, _disp_name, _refund_num),
+                ).start()
 
         return "OK", 200
 
@@ -675,6 +737,7 @@ class RefundService:
         order_number   = (data.get("order_number") or "").strip()
         client_dni     = (data.get("client_dni") or "").strip()
         client_name    = (data.get("client_name") or "").strip()
+        client_phone   = (data.get("client_phone") or "").strip()
 
         if not reason or reason not in REASON_LABELS:
             return "Motivo inválido", 400
@@ -689,6 +752,8 @@ class RefundService:
         client, crc = self.client_repository.get_client_by_document(client_dni)
         if crc == 200:
             resolved_client_id = client.id
+            if not client_phone and client.phone:
+                client_phone = client.phone.strip()
         else:
             resolved_client_id, crc2 = self.client_repository.add_client_minimal(client_dni, client_name or client_dni)
             if crc2 != 200:
@@ -730,6 +795,16 @@ class RefundService:
             f"Extorno enviado por cliente vía enlace",
             exclude_id=link.user_id,
         )
+
+        waba_phone = self._format_waba_phone(client_phone)
+        if waba_phone:
+            display_name = ((client.name if crc == 200 else None) or client_name or "").title()
+            amount_str   = f"{float(refund_amount):.2f}"
+            refund_num   = f"EX-{refund_id}"
+            threading.Thread(
+                target=self.whatsapp.refund_registered,
+                args=(waba_phone, display_name, refund_num, amount_str),
+            ).start()
 
         return {"id": refund_id}, 200
 

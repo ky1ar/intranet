@@ -32,7 +32,15 @@ def create():
 @refund_bp.route("/<int:refund_id>/status", methods=["PUT"])
 @jwt_required()
 def update_status(refund_id):
-    data = request.get_json() or {}
+    ct = request.content_type or ""
+    if "multipart" in ct or "application/x-www-form-urlencoded" in ct:
+        data = {k: v for k, v in request.form.items()}
+        try:
+            data["status_id"] = int(data["status_id"])
+        except (KeyError, ValueError):
+            pass
+    else:
+        data = request.get_json() or {}
     data["refund_id"] = refund_id
     return controller.update_status(data)
 

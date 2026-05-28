@@ -45,7 +45,7 @@
             <div class="top">
                 <img alt="bot" :src="bot_image" width="80" height="80">
                 <h1>¿Cuál es tu número de celular?</h1>
-                <p>Lo usaremos para mantenernos en contacto.</p>
+                <p>Te enviaremos el estado de tu solicitud por WhatsApp.</p>
             </div>
             <div class="bottom">
                 <input type="text"
@@ -63,12 +63,12 @@
             <div class="top">
                 <img alt="bot" :src="bot_image" width="80" height="80">
                 <h1>¿Cuál es tu número de pedido?</h1>
-                <p>Encuéntralo en tu confirmación de compra o boleta.</p>
+                <p>También puede ser el número de tu boleta o factura. Encuéntralo en tu confirmación de compra o comprobante.</p>
             </div>
             <div class="bottom">
                 <input type="text"
                     x-model="form.order_number"
-                    placeholder="Número de pedido">
+                    placeholder="N° de pedido / boleta / factura">
                 <button class="button hover-opacity" @click="validateOrderNumber()" :class="buttons.order.class" x-text="buttons.order.text"></button>
             </div>
         </div>
@@ -146,7 +146,7 @@
             <div class="top">
                 <img alt="bot" :src="bot_image" width="80" height="80">
                 <h1>Indica el monto solicitado</h1>
-                <p>Indica el monto de tu pedido que estás solicitando extornar.</p>
+                <p>Ingresa el monto exacto que deseas extornar.</p>
             </div>
             <div class="bottom">
                 <div class="amount-input-wrap">
@@ -185,7 +185,7 @@
                         <span x-text="form.client_phone"></span>
                     </div>
                     <div class="review-row">
-                        <span class="review-label">N° pedido</span>
+                        <span class="review-label">N° pedido / comprobante</span>
                         <span x-text="form.order_number"></span>
                     </div>
                     <div class="review-row">
@@ -221,8 +221,8 @@
         <div x-show="currentStep == 'success'" class="content">
             <div class="top">
                 <img alt="bot" :src="bot_image" width="80" height="80">
-                <h1>¡Solicitud enviada!</h1>
-                <p>Recibimos tu solicitud de extorno. Nos comunicaremos contigo pronto.</p>
+                <h1>¡Solicitud registrada!</h1>
+                <p>Recibimos tu solicitud de extorno. Te notificaremos el avance por WhatsApp en un plazo máximo de 7 días hábiles.</p>
             </div>
         </div>
     </div>
@@ -338,22 +338,9 @@
                 setTimeout(() => { this.buttons[key] = orig; }, 1200);
             },
 
-            async validateDni() {
+            validateDni() {
                 const doc = this.form.client_dni.trim();
-                if (!doc) { this.showError('dni', 'Ingresa un documento válido'); return; }
-                NProgress.start();
-                try {
-                    const res = await fetch(`${this.api}/client/data/${doc}`, {
-                        headers: { 'X-No-Toast': '1' },
-                    });
-                    if (res.ok) {
-                        const json = await res.json();
-                        if (json.success) {
-                            this.client_found = true;
-                        }
-                    }
-                } catch (e) { /* ignore, let user fill manually */ }
-                finally { NProgress.done(); }
+                if (!doc || !/^\d+$/.test(doc)) { this.showError('dni', 'Ingresa un documento válido'); return; }
                 this.next();
             },
 
@@ -373,7 +360,7 @@
 
             validateOrderNumber() {
                 const n = this.form.order_number.trim();
-                if (!n) { this.showError('order', 'Ingresa el número de pedido'); return; }
+                if (!n) { this.showError('order', 'Ingresa el número de pedido o comprobante'); return; }
                 this.next();
             },
 
@@ -404,7 +391,7 @@
             async submitRefund() {
                 const orig = { ...this.buttons.submit };
                 if (orig.class === 'loading') return;
-                this.buttons.submit = { class: 'loading', text: 'Enviando...' };
+                this.buttons.submit = { class: 'loading', text: 'Registrando...' };
 
                 const payload = {
                     token:          Alpine.store('cache').refund_token,

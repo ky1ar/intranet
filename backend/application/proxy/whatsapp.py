@@ -553,3 +553,109 @@ class Whatsapp:
         }
 
         return self.post(payload)
+
+
+    @handle_exceptions
+    def refund_registered(self, phone, name, number, amount):
+        parameters = [
+            {"type": "text", "parameter_name": "name",   "text": name},
+            {"type": "text", "parameter_name": "number", "text": number},
+            {"type": "text", "parameter_name": "amount", "text": amount},
+        ]
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "template",
+            "template": {
+                "name": "refunds_register",
+                "language": {"code": "es_PE"},
+                "components": [{"type": "body", "parameters": parameters}]
+            }
+        }
+        return self.post(payload)
+
+
+    @handle_exceptions
+    def refund_approved_no_penalty(self, phone, name, number, amount):
+        parameters = [
+            {"type": "text", "parameter_name": "name",   "text": name},
+            {"type": "text", "parameter_name": "number", "text": number},
+            {"type": "text", "parameter_name": "amount", "text": amount},
+        ]
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "template",
+            "template": {
+                "name": "refunds_no_penality",
+                "language": {"code": "es_PE"},
+                "components": [{"type": "body", "parameters": parameters}]
+            }
+        }
+        return self.post(payload)
+
+
+    @handle_exceptions
+    def refund_approved_penalty(self, phone, name, number, amount, amount_final):
+        parameters = [
+            {"type": "text", "parameter_name": "name",         "text": name},
+            {"type": "text", "parameter_name": "number",       "text": number},
+            {"type": "text", "parameter_name": "amount",       "text": amount},
+            {"type": "text", "parameter_name": "amount_final", "text": amount_final},
+        ]
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "template",
+            "template": {
+                "name": "refunds_penality",
+                "language": {"code": "es_PE"},
+                "components": [{"type": "body", "parameters": parameters}]
+            }
+        }
+        return self.post(payload)
+
+
+    @handle_exceptions
+    def refund_reverted(self, phone, name, number):
+        parameters = [
+            {"type": "text", "parameter_name": "name",   "text": name},
+            {"type": "text", "parameter_name": "number", "text": number},
+        ]
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "template",
+            "template": {
+                "name": "refunds_reverted",
+                "language": {"code": "es_PE"},
+                "components": [{"type": "body", "parameters": parameters}]
+            }
+        }
+        return self.post(payload)
+
+
+    @handle_exceptions
+    def refund_executed(self, phone, name, number, amount, image_url=None):
+        parameters = [
+            {"type": "text", "parameter_name": "name",   "text": name},
+            {"type": "text", "parameter_name": "number", "text": number},
+            {"type": "text", "parameter_name": "amount", "text": amount},
+        ]
+        components = [{"type": "body", "parameters": parameters}]
+        if image_url:
+            components.insert(0, {
+                "type": "header",
+                "parameters": [{"type": "image", "image": {"link": f"{self.image_base_url}{image_url}"}}]
+            })
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "template",
+            "template": {
+                "name": "refunds_executed",
+                "language": {"code": "es_PE"},
+                "components": components
+            }
+        }
+        return self.post(payload)
