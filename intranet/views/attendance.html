@@ -243,7 +243,7 @@
 						<span class="amount" x-show="show_salary" x-text="`S/ ${salary_data?.final_salary?.toFixed(2) || '0.00'}`"></span>
 						<span class="amount" x-show="!show_salary">S/ ••••••••</span>
 						<div class="eye hover-opacity" @click="show_salary = !show_salary">
-							<img alt="" width="16" height="16" src="/static/images/icons/eye.svg">
+							<img alt="" width="16" height="16" src="/static/icons/line/eye.svg">
 						</div>
 
 						<div class="final" x-show="show_salary">
@@ -360,7 +360,7 @@
 						<template x-if="$store.cache.hasPermission('attendance', 'leave_balance')">
 							<div class="leave-adj-toggle hover-opacity" @click="leave_adj_open = !leave_adj_open"
 								title="Ajustar saldo de vacaciones">
-								<img alt="" width="12" height="12" src="/static/icons/line/edit.svg" style="opacity:0.4">
+								<img alt="" width="12" height="12" src="/static/icons/line/pencil.svg" style="opacity:0.4">
 							</div>
 						</template>
 					</div>
@@ -1887,11 +1887,12 @@
 			const did = permitInfo?.duration_id || null;
 
 			if (did === 1) {
-				// ===== PERMISO MAÑANA: mañana cubierta, índice 0 es la tarde =====
-				// intervalsRaw[0] es la tarde porque la mañana no tiene marcaciones              // permiso en la mañana: permiso primero
+				// ===== PERMISO MAÑANA: primer intervalo = Mañana (sin estilo alt), segundo = Tarde =====
 				if (permitInfo?.morning) items.push(makePermitItem("Mañana"));
-				const afternoonForMorningPermit = makeTimeItem("Tarde", intervalsRaw[0] || null);
-				if (afternoonForMorningPermit) items.push(afternoonForMorningPermit);
+				const int0 = makeTimeItem("Mañana", intervalsRaw[0] || null);
+				if (int0) { int0.class = 'no-alt-bg'; items.push(int0); }
+				const int1 = makeTimeItem("Tarde", intervalsRaw[1] || null);
+				if (int1) items.push(int1);
 			} else {
 				// ===== SLOT MAÑANA (sin permiso de mañana) =====
 				const morningInterval = makeTimeItem("Mañana", intervalsRaw[0] || null);
@@ -3835,6 +3836,14 @@
 		}
 		#attendance .main .middle .bottom .month .body .item + .item {
 			background-color: #fce9d8;
+		}
+		#attendance .main .middle .bottom .month .body .item.no-alt-bg {
+			background-color: #e6e6e6;
+		}
+		#attendance .main .middle .bottom .month .body .item.no-alt-bg .label {
+			color: inherit;
+			opacity: 0.4 !important;
+    		color: var(--black) !important;
 		}
 		#attendance .main .middle .bottom .month .body .item.holiday {
 			box-shadow: inset 0 0 0 2px #e6e6e6;
