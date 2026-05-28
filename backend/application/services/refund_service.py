@@ -791,8 +791,8 @@ class RefundService:
 
         self._push_to_perm(
             "notify",
-            f"Nuevo extorno #{refund_id}",
-            f"Extorno enviado por cliente vía enlace",
+            f"Nuevo extorno EX-{refund_id}",
+            f"Extorno registrado por cliente pendiente de validación.",
         )
 
         waba_phone = self._format_waba_phone(client_phone)
