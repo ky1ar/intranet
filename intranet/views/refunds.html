@@ -221,6 +221,18 @@
 
 					<div class="fields">
 						<label class="white">
+							<img alt="phone" src="/static/icons/line/phone.svg" width="16" height="16">
+							<input
+								type="tel"
+								maxlength="15"
+								x-model="form.client_phone"
+								placeholder="Celular del cliente"
+								@input="form.client_phone = form.client_phone.replace(/\D/g, '')">
+						</label>
+					</div>
+
+					<div class="fields">
+						<label class="white">
 							<select x-model="form.reason">
 								<option value="" selected disabled>Motivo</option>
 								<option value="inconforme">Atención inconforme</option>
@@ -639,7 +651,7 @@
 			form: {
 				client_order_id: '',
 				client_order_found: false, client_found: false,
-				client_dni: '', client_name: '',
+				client_dni: '', client_name: '', client_phone: '',
 				order_number: '', reason: '', detail: '',
 				order_amount: 0, refund_amount: 0, applies_penalty: false,
 				net_refund: 0, payment_method: '', files: [],
@@ -707,7 +719,7 @@
 				this.form = {
 					client_order_id: '',
 					client_order_found: false, client_found: false,
-					client_dni: '', client_name: '',
+					client_dni: '', client_name: '', client_phone: '',
 					order_number: '', reason: '', detail: '',
 					order_amount: 0, refund_amount: 0, applies_penalty: false,
 					net_refund: 0, payment_method: '', files: [],
@@ -721,6 +733,7 @@
 					this.form.client_order_id = '';
 					this.form.client_dni = '';
 					this.form.client_name = '';
+					this.form.client_phone = '';
 					this.form.client_order_found = false;
 					this.form.client_found = false;
 					return;
@@ -740,6 +753,7 @@
 						this.form.client_order_id    = json.data.client_order_id;
 						this.form.client_dni         = c.document;
 						this.form.client_name        = c.name;
+						this.form.client_phone       = c.phone || '';
 						this.form.client_order_found = true;
 					}
 				} catch (e) { console.error(e); }
@@ -750,6 +764,7 @@
 				const doc = this.form.client_dni;
 				if (!doc) {
 					this.form.client_name = '';
+					this.form.client_phone = '';
 					this.form.client_found = false;
 					return;
 				}
@@ -761,6 +776,7 @@
 					const json = await res.json();
 					if (json.success) {
 						this.form.client_name  = json.data.name;
+						this.form.client_phone = json.data.phone || '';
 						this.form.client_found = true;
 					}
 				} catch (e) { console.error(e); }
@@ -786,6 +802,7 @@
 				fd.append('order_number',    this.form.order_number || '');
 				fd.append('client_dni',      this.form.client_dni || '');
 				fd.append('client_name',     this.form.client_name || '');
+				fd.append('client_phone',    this.form.client_phone || '');
 				fd.append('reason',          this.form.reason);
 				fd.append('detail',          this.form.detail || '');
 				fd.append('order_amount',    this.form.order_amount);

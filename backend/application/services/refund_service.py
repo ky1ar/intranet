@@ -291,9 +291,15 @@ class RefundService:
         else:
             initial_status = 1
 
+        client_phone = request.form.get("client_phone", "").strip()
+
         raw_client_order_id = request.form.get("client_order_id") or None
         if raw_client_order_id:
             client_order_id = int(raw_client_order_id)
+            if client_phone:
+                order, orc = self.client_repository.get_client_order_by_id(client_order_id)
+                if orc == 200 and order.client:
+                    self.client_repository.update_client_contact(order.client, phone=client_phone)
         else:
             # Resolve or create client + client_order from form fields
             order_number = request.form.get("order_number", "").strip()
@@ -306,8 +312,10 @@ class RefundService:
             client, client_rc = self.client_repository.get_client_by_document(client_dni)
             if client_rc == 200:
                 resolved_client_id = client.id
+                if client_phone:
+                    self.client_repository.update_client_contact(client, phone=client_phone)
             else:
-                resolved_client_id, crc = self.client_repository.add_client_minimal(client_dni, client_name or client_dni)
+                resolved_client_id, crc = self.client_repository.add_client_minimal(client_dni, client_name or client_dni, phone=client_phone or None)
                 if crc != 200:
                     return resolved_client_id, crc
 
