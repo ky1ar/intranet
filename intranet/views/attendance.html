@@ -101,35 +101,51 @@
 								<template x-if="day.is_summary">
 									<div class="body week_summary">
 										<div class="week_summary_box">
-										<div class="row">
-											<span class="k">
-												Meta
-											</span>
-											<b class="v" x-text="minutesToText(day.summary?.target_min ?? 0)"></b>
-										</div>
-
-										<div class="row">
-											<span class="k">
-												Trabajado
-											</span>
-											<b class="v" x-text="minutesToText(day.summary?.worked_min ?? 0)"></b>
-										</div>
-
-										<template x-if="(day.summary?.sunday_min ?? 0) > 0">
 											<div class="row">
-												<span class="k">Domingo</span>
-												<b class="v pos" x-text="`+${minutesToText(day.summary.sunday_min)}`"></b>
+												<span class="k">Meta</span>
+												<b class="v" x-text="minutesToText(day.summary?.target_min ?? 0)"></b>
 											</div>
-										</template>
+											<div class="row">
+												<span class="k">Trabajado</span>
+												<b class="v" x-text="minutesToText((day.summary?.worked_min ?? 0) - (day.summary?.sunday_min ?? 0))"></b>
+											</div>
 
-										<div class="row">
-											<span class="k">
-												Saldo
-											</span>
-											<b class="v"
-											:class="(day.summary?.delta_min ?? 0) < 0 ? 'neg' : 'pos'"
-											x-text="minutesToText(day.summary?.delta_min ?? 0, true)"></b>
-										</div>
+											<template x-if="(day.summary?.sunday_min ?? 0) > 0">
+												<div class="wk-gap"></div>
+											</template>
+											<template x-if="(day.summary?.sunday_min ?? 0) === 0">
+												<div class="wk-sep"></div>
+											</template>
+
+											<div class="row">
+												<span class="k">Saldo</span>
+												<b class="v"
+													:class="((day.summary?.worked_min ?? 0) - (day.summary?.sunday_min ?? 0) - (day.summary?.target_min ?? 0)) < 0 ? 'neg' : 'pos'"
+													x-text="minutesToText((day.summary?.worked_min ?? 0) - (day.summary?.sunday_min ?? 0) - (day.summary?.target_min ?? 0), true)">
+												</b>
+											</div>
+
+											<template x-if="(day.summary?.sunday_min ?? 0) > 0">
+												<div class="wk-sunday-section">
+													<div class="row">
+														<span class="k">Domingo</span>
+														<b class="v pos" x-text="`+${minutesToText(day.summary.sunday_min)}`"></b>
+													</div>
+												</div>
+											</template>
+
+											<template x-if="(day.summary?.sunday_min ?? 0) > 0">
+												<div>
+													<div class="wk-sep"></div>
+													<div class="row">
+														<span class="k">Saldo final</span>
+														<b class="v"
+															:class="(day.summary?.delta_min ?? 0) < 0 ? 'neg' : 'pos'"
+															x-text="minutesToText(day.summary?.delta_min ?? 0, true)">
+														</b>
+													</div>
+												</div>
+											</template>
 										</div>
 									</div>
 								</template>
@@ -3198,11 +3214,16 @@
 			justify-content: space-between;
 			font-size: 0.8rem;
 		}
-		.week_summary_box .row:last-child {
-			border-top: 2px solid #eee;
-			padding-top: 0.5rem;
+		.week_summary_box .wk-gap {
 			margin-top: 0.5rem;
-			gap: 0.5rem;
+		}
+		.week_summary_box .wk-sep {
+			border-top: 2px solid #eee;
+			margin: 0.5rem 0;
+		}
+		.week_summary_box .wk-sunday-section {
+			display: flex;
+			flex-direction: column;
 		}
 		.week_summary_box .k {
 			display: flex;
@@ -3797,8 +3818,6 @@
 			grid-template-columns: repeat(7, 1fr);
 			gap: 0.75rem;
 			flex: 1;
-			grid-auto-rows: minmax(0, 1fr);
-			align-items: stretch;
 		}
 		#attendance .main .middle .bottom .month {
 			padding: 0.5rem;
@@ -3843,7 +3862,7 @@
 			display: flex;
 			flex-direction: column;
 			gap: 0.5rem;
-			margin-top: 2rem;
+			margin-top: 1.5rem;
 		}
 		#attendance .main .middle .bottom .month .body .item {
 			display: flex;
