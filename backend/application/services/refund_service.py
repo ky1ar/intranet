@@ -825,10 +825,17 @@ class RefundService:
         # Resolve or create client
         client, crc = self.client_repository.get_client_by_document(client_dni)
         if crc == 200:
+            logging.info("cliend finded")
             resolved_client_id = client.id
             if client_phone:
-                self.client_repository.update_client_contact(client, phone=client_phone)
+                logging.info("updating phone")
+                update_con, ucc = self.client_repository.update_client_contact(client, phone=client_phone)
+                if ucc != 200:
+                    return update_con, ucc
+                logging.info("phone updated")
+                
             elif client.phone:
+                logging.info("getting phone")
                 client_phone = client.phone.strip()
         else:
             resolved_client_id, crc2 = self.client_repository.add_client_minimal(client_dni, client_name or client_dni, phone=client_phone or None)

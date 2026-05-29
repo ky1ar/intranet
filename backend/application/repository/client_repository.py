@@ -146,7 +146,9 @@ class ClientRepository:
         if email:
             client.email = email
         if phone:
+            logging.info(f"new phone 51{phone}")
             client.phone = f'51{phone}'
+        g.db_session.add(client)
         g.db_session.commit()
         return client, 200
 
