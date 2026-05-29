@@ -657,14 +657,21 @@ class AttendanceService:
                     continue
 
                 if wd == 6:
+                    sunday_worked = 0
+                    for it in (day.get("intervals") or []):
+                        sunday_worked += self._interval_minutes(it)
+                    week_worked += sunday_worked
+
                     day["is_summary"] = True
                     day["label"] = "Σ"
+                    day["worked_min"] = sunday_worked
                     day["intervals"] = []
                     day["summary"] = {
                         "worked_min": week_worked,
                         "target_min": week_target,
                         "delta_min": week_worked - week_target,
                         "incomplete": week_incomplete,
+                        "sunday_min": sunday_worked,
                     }
                     continue
 
@@ -1425,6 +1432,14 @@ class AttendanceService:
                             if late_min > 0:
                                 tardies += 1
                                 tolerance_accum += late_min
+
+                    # Domingo (is_summary=True, se saltea arriba) — sumar su worked_min
+                    days_list = w.get("days", [])
+                    if len(days_list) > 6:
+                        sun = days_list[6]
+                        sun_date = sun.get("date", "")
+                        if sun.get("in_period") and sun_date and sun_date <= today_iso:
+                            worked += int(sun.get("worked_min") or 0)
 
                 # Fórmula idéntica al frontend
                 tolerance_planned = round(target * 0.01)

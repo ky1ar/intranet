@@ -14,28 +14,30 @@ class RefundRequest(BaseModel):
 
     id                = db.Column(db.Integer, primary_key=True, autoincrement=True)
     status_id         = db.Column(db.Integer, db.ForeignKey("refund_status.id"), nullable=False, default=1)
-    registered_by     = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     is_admin_register = db.Column(db.Boolean, nullable=False, default=False)
 
     client_order_id   = db.Column(db.Integer, db.ForeignKey("client_orders.id"), nullable=False)
 
     client_order = db.relationship("ClientOrders", lazy="joined", foreign_keys=[client_order_id])
     reason            = db.Column(db.String(30), nullable=False)
+    reason_detail     = db.Column(db.String(255))
     detail            = db.Column(db.Text)
     order_amount      = db.Column(db.Numeric(10, 2), nullable=False)
     refund_amount     = db.Column(db.Numeric(10, 2), nullable=False)
     applies_penalty   = db.Column(db.Boolean, nullable=False, default=False)
     penalty_amount    = db.Column(db.Numeric(10, 2), nullable=False, default=0)
     net_refund        = db.Column(db.Numeric(10, 2), nullable=False)
-    payment_method    = db.Column(db.String(30), nullable=False)
-    scheduled_date    = db.Column(db.Date)
+    payment_method         = db.Column(db.String(30), nullable=False)
+    scheduled_date         = db.Column(db.Date)
+    assigned_to            = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+    original_order_number  = db.Column(db.String(50), nullable=True)
 
     created_at        = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
     updated_at        = db.Column(db.DateTime, onupdate=db.func.now())
     deleted_at        = db.Column(db.DateTime)
 
-    status      = db.relationship("RefundStatus", lazy="joined")
-    registrant  = db.relationship("Users", foreign_keys=[registered_by], lazy="joined")
+    status   = db.relationship("RefundStatus", lazy="joined")
+    assignee = db.relationship("Users", foreign_keys=[assigned_to], lazy="joined")
 
 
 class RefundAttachment(BaseModel):
@@ -52,6 +54,20 @@ class RefundAttachment(BaseModel):
 
     refund = db.relationship("RefundRequest", lazy="joined", foreign_keys=[refund_id])
     user   = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
+
+
+class RefundLink(BaseModel):
+    __tablename__ = "refund_link"
+
+    id         = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    token      = db.Column(db.String(255), unique=True, nullable=False)
+    user_id    = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    refund_id  = db.Column(db.Integer, db.ForeignKey("refund_request.id"))
+    status_id  = db.Column(db.Integer, nullable=False, default=1)  # 1=pendiente 2=usado 3=eliminado
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
+
+    user   = db.relationship("Users", lazy="joined", foreign_keys=[user_id])
+    refund = db.relationship("RefundRequest", lazy="joined", foreign_keys=[refund_id])
 
 
 class RefundChat(db.Model):

@@ -1,5 +1,8 @@
 import os
 import uuid
+import math
+import threading
+import logging
 from datetime import timedelta
 from flask import request, send_file
 from flask_jwt_extended import get_jwt_identity
@@ -14,20 +17,31 @@ from application.repository.user_repository import UserRepository
 from application.repository.client_repository import ClientRepository
 from application.services.module_service import ModuleService
 from application.services.push_service import PushSender
+from application.proxy.whatsapp import Whatsapp
 from application import socketio
-from config import Paths
+from config import Paths, Config
 
 REASON_LABELS = {
-    "stock":    "Stock",
-    "atencion": "Atención",
-    "precio":   "Precio",
-    "envio":    "Envío",
+    "inconforme": "Atención inconforme",
+    "opinion":    "Cambio de opinión",
+    "producto":   "Cambio de producto",
+    "envio":      "Cambio en tipo de envío",
+    "no_envio":   "Envío no concretado",
+    "stock":      "Falta de stock",
+    "preventa":   "Preventa inconclusa",
+    "otro":       "Otro",
 }
 
 PAYMENT_LABELS = {
-    "transferencia": "Transferencia",
-    "web":           "Web",
-    "link_pago":     "Link de pago",
+    "culqi_web":   "Culqi Web",
+    "link_pago":   "Link de pago",
+    "mercado_pago": "Mercado pago",
+    "plin_yape":   "Plin o Yape",
+    "pos":         "POS",
+    "bbva":        "Transferencia BBVA",
+    "bcp":         "Transferencia BCP",
+    "interbank":   "Transferencia Interbank",
+    "scotiabank":  "Transferencia Scotiabank",
 }
 
 # Fixed Peruvian holidays (month, day)
@@ -36,7 +50,7 @@ _PERU_HOLIDAYS = frozenset([
     (8, 30), (11, 1), (12, 8), (12, 9), (12, 25),
 ])
 
-_HIGH_PERMS = {"validate", "approve_area", "approve_gerencia"}
+_HIGH_PERMS = {"approve_area", "approve_gerencia"}
 
 
 class RefundService:
@@ -46,6 +60,7 @@ class RefundService:
         self.client_repository = ClientRepository()
         self.module_service = ModuleService()
         self.push_service = PushSender()
+        self.whatsapp = Whatsapp()
 
     def _has_perm(self, user_id, perm_slug):
         result, code = self.module_service.check_permission(user_id, "refunds", perm_slug)
@@ -112,6 +127,14 @@ class RefundService:
         tokens, _ = self.push_service.prefetch_registration_tokens(list(all_ids))
         socketio.start_background_task(self.push_service.send_to_tokens, tokens, title, body, None)
 
+    def _format_waba_phone(self, phone):
+        if not phone:
+            return None
+        p = str(phone).strip()
+        if not p.startswith("51"):
+            p = f"51{p}"
+        return p if len(p) == 11 else None
+
     # ── Statuses ──
 
     @handle_exceptions
@@ -130,12 +153,11 @@ class RefundService:
         if sc != 200:
             return statuses, sc
 
-        if self._has_perm(user_id, "view_all"):
-            requests, rc = self.repository.get_dashboard()
-        elif self._has_perm(user_id, "view_commercial"):
-            requests, rc = self.repository.get_dashboard(only_commercial=True)
-        else:
-            requests, rc = self.repository.get_dashboard(user_id=user_id)
+        only_commercial = (
+            self._has_perm(user_id, "view_commercial")
+            and not self._has_perm(user_id, "view_all")
+        )
+        requests, rc = self.repository.get_dashboard(only_commercial=only_commercial)
         if rc != 200:
             return requests, rc
 
@@ -161,8 +183,8 @@ class RefundService:
                 "reason": REASON_LABELS.get(req.reason, req.reason),
                 "net_refund": float(req.net_refund or 0),
                 "is_admin_register": req.is_admin_register,
-                "registered_by": req.registered_by,
-                "registered_by_name": format_name(req.registrant.name) if req.registrant else None,
+                "assigned_to": req.assigned_to,
+                "assigned_to_name": format_name(req.assignee.name, True) if req.assignee else None,
                 "scheduled_date": req.scheduled_date.isoformat() if req.scheduled_date else None,
                 "created_at": format_datetime(req.created_at),
             })
@@ -209,15 +231,17 @@ class RefundService:
             "status_id": req.status_id,
             "status_name": req.status.name,
             "status_slug": req.status.slug,
-            "registered_by": req.registered_by,
-            "registered_by_name": format_name(req.registrant.name) if req.registrant else None,
+            "assigned_to": req.assigned_to,
+            "assigned_to_name": format_name(req.assignee.name, True) if req.assignee else None,
             "is_admin_register": req.is_admin_register,
             "client_order_id": req.client_order_id,
             "client_dni": req.client_order.client.document if req.client_order else None,
             "client_name": req.client_order.client.name if req.client_order else None,
             "order_number": str(req.client_order.number) if req.client_order else None,
+            "original_order_number": req.original_order_number,
             "reason": req.reason,
             "reason_label": REASON_LABELS.get(req.reason, req.reason),
+            "reason_detail": req.reason_detail,
             "detail": req.detail,
             "order_amount": float(req.order_amount or 0),
             "refund_amount": float(req.refund_amount or 0),
@@ -238,10 +262,9 @@ class RefundService:
     def create(self):
         user_id = int(get_jwt_identity())
 
-        has_commercial = self._has_perm(user_id, "register_commercial")
-        has_admin_reg  = self._has_perm(user_id, "register_admin")
+        has_admin_reg = self._has_perm(user_id, "register_admin")
 
-        if not has_commercial and not has_admin_reg:
+        if not has_admin_reg:
             return "Sin permiso para registrar extornos", 403
 
         reason         = request.form.get("reason", "").strip()
@@ -251,27 +274,33 @@ class RefundService:
 
         if not reason:
             return "Motivo requerido", 400
-        if reason not in {"stock", "atencion", "precio", "envio"}:
+        if reason not in REASON_LABELS:
             return "Motivo inválido", 400
         if not order_amount or not refund_amount:
             return "Montos requeridos", 400
-        if payment_method not in {"transferencia", "web", "link_pago"}:
+        if payment_method not in PAYMENT_LABELS:
             return "Medio de pago inválido", 400
 
         applies_penalty = request.form.get("applies_penalty") in ("true", "1", "True")
-        is_admin_reg_flag = has_admin_reg and not has_commercial
+        is_admin_reg_flag = True
 
         # Determine initial status based on creator's permissions
         if self._has_perm(user_id, "approve_area"):
             initial_status = 4
-        elif self._has_perm(user_id, "validate") and has_admin_reg:
+        elif self._has_perm(user_id, "validate"):
             initial_status = 3
         else:
             initial_status = 1
 
+        client_phone = request.form.get("client_phone", "").strip()
+
         raw_client_order_id = request.form.get("client_order_id") or None
         if raw_client_order_id:
             client_order_id = int(raw_client_order_id)
+            if client_phone:
+                order, orc = self.client_repository.get_client_order_by_id(client_order_id)
+                if orc == 200 and order.client:
+                    self.client_repository.update_client_contact(order.client, phone=client_phone)
         else:
             # Resolve or create client + client_order from form fields
             order_number = request.form.get("order_number", "").strip()
@@ -284,8 +313,10 @@ class RefundService:
             client, client_rc = self.client_repository.get_client_by_document(client_dni)
             if client_rc == 200:
                 resolved_client_id = client.id
+                if client_phone:
+                    self.client_repository.update_client_contact(client, phone=client_phone)
             else:
-                resolved_client_id, crc = self.client_repository.add_client_minimal(client_dni, client_name or client_dni)
+                resolved_client_id, crc = self.client_repository.add_client_minimal(client_dni, client_name or client_dni, phone=client_phone or None)
                 if crc != 200:
                     return resolved_client_id, crc
 
@@ -300,7 +331,7 @@ class RefundService:
 
         data = {
             "status_id":        initial_status,
-            "registered_by":    user_id,
+            "assigned_to":      user_id,
             "is_admin_register": is_admin_reg_flag,
             "client_order_id":  client_order_id,
             "reason":           reason,
@@ -326,12 +357,11 @@ class RefundService:
 
         socketio.emit("refund_update", {})
 
-        # Push to validate-permission holders when it's a commercial register at status 1
-        if initial_status == 1 and not is_admin_reg_flag:
+        if initial_status == 1:
             user, _ = self.user_repository.get_user_by_id(user_id)
             name = format_name(user.name, True) if user else "Alguien"
             self._push_to_perm(
-                "validate",
+                "notify",
                 f"Nuevo extorno #{refund_id}",
                 f"{name} registró un extorno",
                 exclude_id=user_id,
@@ -354,16 +384,24 @@ class RefundService:
         if rc != 200:
             return req, rc
 
+        # Shared data for WhatsApp notifications
+        _client      = req.client_order.client if req.client_order else None
+        _waba_phone  = self._format_waba_phone(_client.phone if _client else None)
+        _disp_name   = (_client.name or "").title() if _client else ""
+        _refund_num  = f"EX-{refund_id}"
+
+        logging.info(f"_waba_phone update {_waba_phone}")
+
         # States: 1=registered 2=reviewing 3=area_pending 4=gerencia_pending
         #         5=scheduled 6=executed 7=reverted
         can_high = any(self._has_perm(user_id, p) for p in _HIGH_PERMS)
 
         if status_id == 2:
-            if not self._has_perm(user_id, "move"):
+            if not self._has_perm(user_id, "validate"):
                 return "Sin permiso para mover a En revisión", 403
         elif status_id == 3:
             if not self._has_perm(user_id, "validate"):
-                return "Sin permiso para enviar a área", 403
+                return "Sin permiso para validar extorno", 403
         elif status_id == 4:
             if not self._has_perm(user_id, "approve_area"):
                 return "Sin permiso para aprobar área", 403
@@ -375,19 +413,44 @@ class RefundService:
                 return "Sin permiso para ejecutar", 403
             if req.status_id != 5:
                 return "Solo se puede ejecutar desde Programado", 400
+            # Save comprobante file if provided (for WhatsApp)
+            comprobante_url = None
+            f = request.files.get("comprobante")
+            if f and f.filename and allowed_extension(f.filename):
+                ext  = file_extension(f.filename)
+                safe = secure_filename(f.filename) or f"comprobante.{ext}"
+                stored_name = f"{uuid.uuid4().hex}_{safe}"
+                path = os.path.join(Paths.REFUND, stored_name)
+                f.save(path)
+                att_id, _ = self.repository.add_attachment(
+                    refund_id=refund_id,
+                    user_id=user_id,
+                    original_name=f.filename,
+                    stored_name=stored_name,
+                    mime_type=getattr(f, "mimetype", None),
+                    size_bytes=os.path.getsize(path),
+                )
+                if att_id:
+                    comprobante_url = f"refund/{stored_name}"
         elif status_id == 7:
-            if not can_high:
+            if not self._has_perm(user_id, "revert"):
                 return "Sin permiso para revertir", 403
             if req.status_id >= 6:
                 return "No se puede revertir un extorno ya ejecutado", 400
         else:
             return "Estado inválido", 400
 
-        # Gerencia approval (→5) auto-schedules
+        logging.info(f"passed validations")
+
+        # Gerencia approval (→5) auto-schedules; 1→2 auto-assigns
         if status_id == 5:
             now = peru_time()
             scheduled = self._next_valid_friday(now)
             result, rc = self.repository.update_scheduled_date(refund_id, scheduled)
+            if rc != 200:
+                return result, rc
+        elif status_id == 2:
+            result, rc = self.repository.update_status_and_assign(refund_id, status_id, user_id)
             if rc != 200:
                 return result, rc
         else:
@@ -396,24 +459,108 @@ class RefundService:
                 return result, rc
 
         socketio.emit("refund_update", {})
+        logging.info(f"socket emit")
 
         user, _ = self.user_repository.get_user_by_id(user_id)
         name = format_name(user.name, True) if user else "Alguien"
 
         if status_id == 3:
+            logging.info(f"push status 3")
             self._push_to_perm("approve_area", f"Extorno #{refund_id} pendiente", f"{name} envió el extorno a área", user_id)
         elif status_id == 4:
+            logging.info(f"push status 4")
             self._push_to_perm("approve_gerencia", f"Extorno #{refund_id} pendiente", f"{name} aprobó en área", user_id)
         elif status_id == 5:
             now = peru_time()
             scheduled = self._next_valid_friday(now)
+            logging.info(f"push status 5")
             self._push_to_perms(
                 ["validate", "approve_area"],
                 f"Extorno #{refund_id} programado",
                 f"Agendado para el {scheduled.strftime('%d/%m/%Y')}",
                 user_id,
             )
+            if _waba_phone:
+                logging.info(f"_waba_phone finded to send {_waba_phone}")
 
+                _amount = f"{float(req.refund_amount):.2f}"
+                if req.applies_penalty:
+                    logging.info(f"applies_penalty")
+                    _amount_final = f"{float(req.net_refund):.2f}"
+                    threading.Thread(
+                        target=self.whatsapp.refund_approved_penalty,
+                        args=(_waba_phone, _disp_name, _refund_num, _amount, _amount_final),
+                    ).start()
+                else:
+                    logging.info(f"no_applies_penalty")
+                    threading.Thread(
+                        target=self.whatsapp.refund_approved_no_penalty,
+                        args=(_waba_phone, _disp_name, _refund_num, _amount),
+                    ).start()
+        elif status_id == 6:
+            logging.info(f"status 6")
+
+            if _waba_phone:
+                logging.info(f"_waba_phone finded to send {_waba_phone}")
+
+                _amount = f"{float(req.net_refund):.2f}"
+                threading.Thread(
+                    target=self.whatsapp.refund_executed,
+                    args=(_waba_phone, _disp_name, _refund_num, _amount, comprobante_url),
+                ).start()
+        elif status_id == 7:
+            logging.info(f"status 7")
+
+            if _waba_phone:
+                logging.info(f"_waba_phone finded to send {_waba_phone}")
+
+                threading.Thread(
+                    target=self.whatsapp.refund_reverted,
+                    args=(_waba_phone, _disp_name, _refund_num),
+                ).start()
+
+        return "OK", 200
+
+    # ── Edit order number ──
+
+    @handle_exceptions
+    def edit_order_number(self, refund_id, data):
+        user_id = int(get_jwt_identity())
+        new_number = (data.get("order_number") or "").strip()
+        if not new_number:
+            return "Número de pedido requerido", 400
+
+        req, rc = self.repository.get_by_id(refund_id)
+        if rc != 200:
+            return req, rc
+
+        if req.status_id >= 6:
+            return "No se puede editar en este estado", 400
+
+        can_edit = (
+            (self._has_perm(user_id, "validate") and req.status_id < 3) or
+            (any(self._has_perm(user_id, p) for p in _HIGH_PERMS) and req.status_id < 6)
+        )
+        if not can_edit:
+            return "Sin permiso para editar el número de pedido", 403
+
+        current_client_id = req.client_order.client_id if req.client_order else None
+        if not current_client_id:
+            return "No se pudo determinar el cliente", 400
+
+        order, orc = self.client_repository.get_client_order_by_number(new_number)
+        if orc == 200:
+            client_order_id = order.id
+        else:
+            client_order_id, crc = self.client_repository.add_client_order(new_number, current_client_id)
+            if crc != 200:
+                return client_order_id, crc
+
+        result, rc = self.repository.update_client_order(refund_id, client_order_id)
+        if rc != 200:
+            return result, rc
+
+        socketio.emit("refund_update", {})
         return "OK", 200
 
     # ── Update penalty ──
@@ -428,13 +575,8 @@ class RefundService:
 
         if req.status_id >= 6:
             return "No se puede modificar la penalidad en este estado", 400
-
-        if req.status_id == 1:
-            if req.registered_by != user_id:
-                return "Solo el creador puede modificar la penalidad en este estado", 403
-        else:
-            if not any(self._has_perm(user_id, p) for p in _HIGH_PERMS):
-                return "Sin permiso para modificar la penalidad", 403
+        if not self._has_perm(user_id, "penalty"):
+            return "Sin permiso para modificar la penalidad", 403
 
         applies = bool(data.get("applies_penalty"))
         result, rc = self.repository.update_penalty(refund_id, applies)
@@ -452,7 +594,7 @@ class RefundService:
         req, rc = self.repository.get_by_id(refund_id)
         if rc != 200:
             return req, rc
-        if req.registered_by != user_id and not any(self._has_perm(user_id, p) for p in _HIGH_PERMS):
+        if not any(self._has_perm(user_id, p) for p in _HIGH_PERMS):
             return "Sin permiso", 403
         result, rc = self.repository.soft_delete(refund_id)
         if rc == 200:
@@ -489,11 +631,14 @@ class RefundService:
         if rc != 200:
             return req, rc
 
-        # Creator OR high-perm can upload in Registrado (status 1)
-        can_upload = req.status_id == 1 and (
-            req.registered_by == user_id or
-            any(self._has_perm(user_id, p) for p in _HIGH_PERMS)
-        )
+        # validate: status < 5 (before scheduled)
+        # approve_area / approve_gerencia: status < 6 (before executed)
+        if self._has_perm(user_id, "validate") and req.status_id < 5:
+            can_upload = True
+        elif any(self._has_perm(user_id, p) for p in _HIGH_PERMS) and req.status_id < 6:
+            can_upload = True
+        else:
+            can_upload = False
         if not can_upload:
             return "Sin permiso para agregar archivos en este estado", 403
 
@@ -562,8 +707,8 @@ class RefundService:
         if rrc != 200:
             return req, rrc
 
-        # Only high-perm users can delete attachments (creator can upload but not delete after creation)
-        if req.status_id != 1 or not any(self._has_perm(user_id, p) for p in _HIGH_PERMS):
+        # approve_area / approve_gerencia can delete while not yet executed
+        if req.status_id >= 6 or not any(self._has_perm(user_id, p) for p in _HIGH_PERMS):
             return "Sin permiso para eliminar archivos en este estado", 403
 
         path = os.path.join(Paths.REFUND, row.stored_name)
@@ -574,6 +719,177 @@ class RefundService:
         if rc == 200:
             socketio.emit("refund_update", {})
         return result, rc
+
+    # ── Links ──
+
+    @handle_exceptions
+    def create_link(self):
+        user_id = int(get_jwt_identity())
+        if not self._has_perm(user_id, "links"):
+            return "Sin permiso para crear enlaces", 403
+        token = str(uuid.uuid4())
+        link, rc = self.repository.create_link(token, user_id)
+        if rc != 200:
+            return link, rc
+        base_url = Config.EXTERNAL_REGISTER_URL or ""
+        url = f"{base_url}refund/{token}"
+        return {"id": link.id, "url": url}, 200
+
+    @handle_exceptions
+    def link_history(self):
+        user_id = int(get_jwt_identity())
+        if not self._has_perm(user_id, "links"):
+            return "Sin permiso", 403
+        per_page = 20
+        page = int(request.args.get("page", 1))
+        rows, total, rc = self.repository.get_links_page(page, per_page)
+        if rc != 200:
+            return rows, rc
+        base_url = Config.EXTERNAL_REGISTER_URL or ""
+        STATUS_NAMES = {1: "Pendiente", 2: "Abierto", 3: "Registrado", 4: "Eliminado"}
+        items = []
+        for r in rows:
+            items.append({
+                "id": r.id,
+                "status_id": r.status_id,
+                "status": STATUS_NAMES.get(r.status_id, str(r.status_id)),
+                "user_name": format_name(r.user.name) if r.user else "-",
+                "client_name": r.refund.client_order.client.name if r.refund and r.refund.client_order else None,
+                "order_number": str(r.refund.client_order.number) if r.refund and r.refund.client_order else None,
+                "refund_id": r.refund_id,
+                "url": f"{base_url}refund/{r.token}",
+                "created_at": format_datetime(r.created_at),
+            })
+        return {
+            "list": items,
+            "pagination": {"page": page, "pages": max(1, math.ceil(total / per_page)), "total": total},
+        }, 200
+
+    @handle_exceptions
+    def delete_link(self, link_id):
+        user_id = int(get_jwt_identity())
+        if not self._has_perm(user_id, "links"):
+            return "Sin permiso", 403
+        link, rc = self.repository.get_link_by_id(link_id)
+        if rc != 200:
+            return link, rc
+        if link.status_id >= 3:
+            return "El enlace ya fue completado o eliminado", 400
+        result, rc = self.repository.delete_link(link_id)
+        return result, rc
+
+    @handle_exceptions
+    def verify_link(self, token):
+        link, rc = self.repository.get_link_by_token(token)
+        if rc != 200:
+            return "Enlace inválido", 404
+        if link.status_id >= 3:
+            return "Este enlace ya no está disponible", 410
+        if link.status_id == 1:
+            self.repository.mark_link_opened(link.id)
+            socketio.emit("refund_link_update", {})
+        return {"valid": True}, 200
+
+    @handle_exceptions
+    def link_process(self, data):
+        token = (data.get("token") or "").strip()
+        if not token:
+            return "Token requerido", 400
+
+        link, rc = self.repository.get_link_by_token(token)
+        if rc != 200:
+            return "Enlace inválido", 404
+        if link.status_id >= 3:
+            return "Este enlace ya no está disponible", 410
+
+        reason         = (data.get("reason") or "").strip()
+        reason_detail  = (data.get("reason_detail") or "").strip() or None
+        payment_method = (data.get("payment_method") or "").strip()
+        detail         = (data.get("detail") or "").strip() or None
+        refund_amount  = data.get("refund_amount")
+        order_number   = (data.get("order_number") or "").strip()
+        client_dni     = (data.get("client_dni") or "").strip()
+        client_name    = (data.get("client_name") or "").strip()
+        client_phone   = (data.get("client_phone") or "").strip()
+
+        logging.info(f"client_phone registered {client_phone}")
+        if not reason or reason not in REASON_LABELS:
+            return "Motivo inválido", 400
+        if not payment_method or payment_method not in PAYMENT_LABELS:
+            return "Medio de pago inválido", 400
+        if not refund_amount:
+            return "Monto a extornar requerido", 400
+        if not order_number or not client_dni:
+            return "Número de pedido y DNI son requeridos", 400
+
+        # Resolve or create client
+        client, crc = self.client_repository.get_client_by_document(client_dni)
+        if crc == 200:
+            logging.info("cliend finded")
+            resolved_client_id = client.id
+            if client_phone:
+                logging.info("updating phone")
+                update_con, ucc = self.client_repository.update_client_contact(client, phone=client_phone)
+                if ucc != 200:
+                    return update_con, ucc
+                logging.info("phone updated")
+                
+            elif client.phone:
+                logging.info("getting phone")
+                client_phone = client.phone.strip()
+        else:
+            resolved_client_id, crc2 = self.client_repository.add_client_minimal(client_dni, client_name or client_dni, phone=client_phone or None)
+            if crc2 != 200:
+                return resolved_client_id, crc2
+
+        # Resolve or create client_order
+        order, orc = self.client_repository.get_client_order_by_number(order_number)
+        if orc == 200:
+            client_order_id = order.id
+        else:
+            client_order_id, orc2 = self.client_repository.add_client_order(order_number, resolved_client_id)
+            if orc2 != 200:
+                return client_order_id, orc2
+
+        refund_data = {
+            "status_id":            1,
+            "is_admin_register":    False,
+            "client_order_id":      client_order_id,
+            "original_order_number": order_number,
+            "reason":               reason,
+            "reason_detail":        reason_detail,
+            "detail":               detail,
+            "order_amount":         float(refund_amount),
+            "refund_amount":        float(refund_amount),
+            "applies_penalty":      False,
+            "payment_method":       payment_method,
+        }
+
+        refund_id, rc = self.repository.create(refund_data)
+        if rc != 200:
+            return refund_id, rc
+
+        self.repository.mark_link_used(link.id, refund_id)
+        socketio.emit("refund_update", {})
+
+        self._push_to_perm(
+            "notify",
+            f"Nuevo extorno EX-{refund_id}",
+            f"Extorno registrado por cliente pendiente de validación.",
+        )
+
+        waba_phone = self._format_waba_phone(client_phone)
+        if waba_phone:
+            logging.info(f"waba_phone registered {waba_phone}")
+            display_name = ((client.name if crc == 200 else None) or client_name or "").title()
+            amount_str   = f"{float(refund_amount):.2f}"
+            refund_num   = f"EX-{refund_id}"
+            threading.Thread(
+                target=self.whatsapp.refund_registered,
+                args=(waba_phone, display_name, refund_num, amount_str),
+            ).start()
+
+        return {"id": refund_id}, 200
 
     # ── Chat ──
 

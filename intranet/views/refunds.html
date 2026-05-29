@@ -1,8 +1,12 @@
 <div x-data="refunds_data">
 	<div id="refunds">
 		<div class="controls">
-			<div class="right frost-dark" x-show="canRegister()">
-				<div class="item" @click="openCreate()">
+			<div class="right frost-dark" x-show="canRegister() || canLinks()">
+				<div class="item" x-show="canLinks()" @click="viewLinks()">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/link.svg">
+					<span>Enlaces</span>
+				</div>
+				<div class="item" x-show="canRegister()" @click="openCreate()">
 					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/add.svg">
 					<span>Registrar</span>
 				</div>
@@ -27,8 +31,8 @@
 								<template x-if="!req.is_admin_register">
 									<span class="req-id" x-text="`EX-${String(req.id)}`"></span>
 								</template>
-								
-								<div class="req-date" x-text="req.registered_by_name"></div>
+
+								<div class="req-date" x-text="req.assigned_to_name || ''"></div>
 
 <!-- 								
 								<span class="req-client" x-text="req.client_name || req.client_dni || '-'"></span>
@@ -48,6 +52,136 @@
 					</template>
 				</div>
 			</template>
+		</div>
+
+		<!-- ── Modal enlaces ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('refund-links')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap common-modal"
+			id="modal-refund-links"
+			x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="top">
+					<button class="create-link button hover-opacity" @click="newRefundLink()">
+						<img alt="" width="16" height="16" src="/static/icons/line/add.svg">
+						Nuevo
+					</button>
+
+					<template x-if="link_list.length !== 0">
+						<div class="pagination">
+							<span class="white hover-opacity left" :class="link_page > 1 ? '':'disabled'" @click="firstLinkPage()" title="Primera página">
+								<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity left" :class="link_page > 1 ? '':'disabled'" @click="prevLinkPage()" title="Página anterior">
+								<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity" :class="link_page < link_total_pages ? '':'disabled'" @click="nextLinkPage()" title="Siguiente página">
+								<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity" :class="link_page < link_total_pages ? '':'disabled'" @click="lastLinkPage()" title="Última página">
+								<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+							</span>
+						</div>
+					</template>
+				</div>
+
+				<div class="modal-content">
+					<template x-if="link_list.length == 0">
+						<span style="padding: 1rem;">Aún no has creado enlaces, añade uno y aparecerá aquí.</span>
+					</template>
+
+					<template x-if="link_list.length > 0">
+						<div class="history">
+							<table class="static mobile-hide">
+								<thead>
+									<tr>
+										<th>ID</th>
+										<th>Cliente</th>
+										<th>Pedido</th>
+										<th>Estado</th>
+										<th>Creado por</th>
+										<th>Fecha</th>
+										<th></th>
+									</tr>
+								</thead>
+								<tbody>
+									<template x-for="link in link_list" :key="link.id">
+										<tr>
+											<td><b class="link-id" x-text="link.id"></b></td>
+											<td x-text="link.client_name || '-'"></td>
+											<td x-text="link.order_number || '-'"></td>
+											<td>
+												<span class="link-status" :class="`status-${link.status_id}`" x-text="link.status"></span>
+											</td>
+											<td x-text="link.user_name"></td>
+											<td x-text="link.created_at"></td>
+											<td>
+												<template x-if="link.status_id <= 2">
+													<div class="controlls">
+														<div class="action hover-opacity" title="Copiar enlace" @click="navigator.clipboard.writeText(link.url)">
+															<img alt="" src="/static/icons/line/copy.svg" width="16" height="16">
+														</div>
+														<div class="action hover-opacity" title="Eliminar enlace" @click="deleteRefundLink(link.id)">
+															<img alt="" src="/static/icons/line/delete.svg" width="16" height="16">
+														</div>
+													</div>
+												</template>
+												<template x-if="link.status_id === 3">
+													<div class="controlls">
+														<div class="action hover-opacity" title="Ver extorno" @click="openDetail(link.refund_id)">
+															<img alt="" src="/static/icons/line/eye.svg" width="16" height="16">
+														</div>
+													</div>
+												</template>
+											</td>
+										</tr>
+									</template>
+								</tbody>
+							</table>
+
+							<div class="mobile-show mobile-table">
+								<template x-for="link in link_list" :key="link.id">
+									<div class="row white">
+										<div class="head">
+											<div class="info">
+												<span class="id" x-text="link.client_name || 'Pendiente'" :class="{'pending': !link.client_name}"></span>
+												<span class="date" x-text="link.created_at"></span>
+											</div>
+											<div class="status" :class="`status-${link.status_id}`" x-text="link.status"></div>
+										</div>
+										<div class="body">
+											<span class="label">Creado por</span>
+											<span class="name" x-text="link.user_name"></span>
+										</div>
+										<div class="options" x-show="link.status_id <= 2">
+											<div class="action hover-opacity" @click="navigator.clipboard.writeText(link.url)">
+												<span>Copiar enlace</span>
+												<img alt="" src="/static/icons/line/copy.svg" width="16" height="16">
+											</div>
+											<div class="action hover-opacity" @click="deleteRefundLink(link.id)">
+												<span>Eliminar</span>
+												<img alt="" src="/static/icons/line/delete.svg" width="16" height="16">
+											</div>
+										</div>
+										<div class="options" x-show="link.status_id === 3">
+											<div class="action hover-opacity" @click="openDetail(link.refund_id)">
+												<span>Ver extorno</span>
+												<img alt="" src="/static/icons/line/eye.svg" width="16" height="16">
+											</div>
+										</div>
+									</div>
+								</template>
+							</div>
+						</div>
+					</template>
+				</div>
+			</div>
 		</div>
 
 		<!-- ── Modal crear ── -->
@@ -87,21 +221,43 @@
 
 					<div class="fields">
 						<label class="white">
+							<img alt="phone" src="/static/icons/line/phone.svg" width="16" height="16">
+							<input
+								type="tel"
+								maxlength="15"
+								x-model="form.client_phone"
+								placeholder="Celular del cliente"
+								@input="form.client_phone = form.client_phone.replace(/\D/g, '')">
+						</label>
+					</div>
+
+					<div class="fields">
+						<label class="white">
 							<select x-model="form.reason">
 								<option value="" selected disabled>Motivo</option>
-								<option value="stock">Stock</option>
-								<option value="atencion">Atención</option>
-								<option value="precio">Precio</option>
-								<option value="envio">Envío</option>
+								<option value="inconforme">Atención inconforme</option>
+								<option value="opinion">Cambio de opinión</option>
+								<option value="producto">Cambio de producto</option>
+								<option value="envio">Cambio en tipo de envío</option>
+								<option value="no_envio">Envío no concretado</option>
+								<option value="stock">Falta de stock</option>
+								<option value="preventa">Preventa inconclusa</option>
+								<option value="otro">Otro</option>
 							</select>
 						</label>
 
 						<label class="white">
 							<select x-model="form.payment_method">
 								<option value="" selected disabled>Medio de pago</option>
-								<option value="transferencia">Transferencia</option>
-								<option value="web">Web</option>
+								<option value="culqi_web">Culqi Web</option>
 								<option value="link_pago">Link de pago</option>
+								<option value="mercado_pago">Mercado pago</option>
+								<option value="plin_yape">Plin o Yape</option>
+								<option value="pos">POS</option>
+								<option value="bbva">Transferencia BBVA</option>
+								<option value="bcp">Transferencia BCP</option>
+								<option value="interbank">Transferencia Interbank</option>
+								<option value="scotiabank">Transferencia Scotiabank</option>
 							</select>
 						</label>
 					</div>
@@ -209,11 +365,38 @@
 								</div>
 								<div class="detail-field">
 									<span class="label">Nro. pedido</span>
-									<span x-text="detail?.order_number || '-'"></span>
+									<div class="editable-field">
+										<template x-if="!editing_order">
+											<span x-text="detail?.order_number || '-'"></span>
+										</template>
+										<template x-if="editing_order">
+											<input class="inline-order-input" type="text" x-model="edit_order_value"
+												@keydown.enter="saveOrderNumber()"
+												@keydown.escape="editing_order = false">
+										</template>
+										<template x-if="canEditOrderNumber() && !editing_order">
+											<button class="order-edit-btn hover-opacity" @click="startEditOrder()" title="Editar número">
+												<img alt="" width="12" height="12" src="/static/icons/line/pencil.svg">
+											</button>
+										</template>
+										<template x-if="editing_order">
+											<button class="order-edit-btn hover-opacity" @click="saveOrderNumber()" title="Guardar">
+												<img alt="" width="12" height="12" src="/static/icons/line/approve.svg">
+											</button>
+										</template>
+										<template x-if="editing_order">
+											<button class="order-edit-btn hover-opacity" @click="editing_order = false" title="Cancelar">
+												<img alt="" width="12" height="12" src="/static/icons/line/delete.svg">
+											</button>
+										</template>
+									</div>
+									<template x-if="detail?.original_order_number && detail?.original_order_number !== detail?.order_number">
+										<span class="original-hint">El cliente registró: <b x-text="detail.original_order_number"></b></span>
+									</template>
 								</div>
-								<div class="detail-field">
-									<span class="label">Registrado por</span>
-									<span x-text="detail?.registered_by_name || '-'"></span>
+								<div class="detail-field" x-show="detail?.assigned_to">
+									<span class="label">Responsable</span>
+									<span x-text="detail?.assigned_to_name || '-'"></span>
 								</div>
 								<div class="detail-field" x-show="detail?.scheduled_date">
 									<span class="label">Fecha programada</span>
@@ -229,6 +412,12 @@
 									<span class="label">Motivo</span>
 									<span x-text="detail?.reason_label || '-'"></span>
 								</div>
+								<template x-if="detail?.reason === 'otro' && detail?.reason_detail">
+									<div class="detail-field full">
+										<span class="label">Detalle motivo</span>
+										<span x-text="detail.reason_detail"></span>
+									</div>
+								</template>
 								<div class="detail-field">
 									<span class="label">Medio de pago</span>
 									<span x-text="detail?.payment_method_label || '-'"></span>
@@ -243,10 +432,6 @@
 						<!-- Montos + penalidad -->
 						<div class="detail-section white">
 							<div class="detail-grid">
-								<div class="detail-field">
-									<span class="label">Monto pedido</span>
-									<span x-text="`S/ ${detail?.order_amount?.toFixed(2) || '0.00'}`"></span>
-								</div>
 								<div class="detail-field">
 									<span class="label">Monto extorno</span>
 									<span x-text="`S/ ${detail?.refund_amount?.toFixed(2) || '0.00'}`"></span>
@@ -280,7 +465,7 @@
 								<span class="section-count" x-text="`(${detail?.attachments?.length || 0})`"></span>
 							</div>
 
-							<div class="thumbnails-grid small-grid" x-show="detail?.attachments?.length > 0">
+							<div class="thumbnails-grid small-grid" x-show="detail?.attachments?.length > 0 || canUploadAttachments()">
 								<template x-for="f in (detail?.attachments || [])" :key="f.id">
 									<div class="thumb-wrapper">
 										<div class="thumb-item hover-opacity" @click="openAttachment(f)">
@@ -296,31 +481,64 @@
 											</div>
 											<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
 										</div>
-										<!-- Delete button: only creator in Registrado -->
 										<button class="thumb-delete hover-opacity" x-show="canDeleteAttachment()"
 											@click.stop="deleteAttachment(f.id)" title="Eliminar">
 											<img alt="×" width="12" height="12" src="/static/icons/line/delete.svg">
 										</button>
 									</div>
 								</template>
+								<template x-if="canUploadAttachments()">
+									<div class="add-button hover-opacity" @click="$refs.refundFileInput.click()">
+										<img alt="" width="24" height="24" src="/static/icons/line/plus.svg">
+									</div>
+								</template>
 							</div>
-
-							<!-- Upload (creator + Registrado only) -->
-							<div class="upload-area" x-show="canUploadAttachments()">
-								<label class="upload-btn hover-opacity">
-									<img alt="" width="14" height="14" src="/static/icons/line/add.svg">
-									<span>Agregar archivos</span>
-									<input type="file" multiple style="display:none" @change="uploadFiles($event)">
-								</label>
-							</div>
+							<input type="file" multiple style="display:none" x-ref="refundFileInput" @change="uploadFiles($event)">
 
 							<div class="no-files" x-show="!detail?.attachments?.length && !canUploadAttachments()">
 								Sin archivos
 							</div>
 						</div>
 
+						<!-- Comprobante de pago (visible al ejecutar desde Programado) -->
+						<div x-show="detail?.status_id === 5 && _highPerm()" class="detail-section white files">
+							<div class="section-label-row">
+								<img alt="" width="14" height="14" src="/static/icons/filled/clip.svg">
+								<span class="section-label" style="margin-bottom:0;">Comprobante de pago</span>
+							</div>
+							<div class="thumbnails-grid small-grid">
+								<template x-if="comprobante">
+									<div class="thumb-wrapper">
+										<div class="thumb-item">
+											<div class="thumbnail-wrapper">
+												<div class="file-card">
+													<div class="file-ext" x-text="(comprobante.name.split('.').pop() || '').toUpperCase()"></div>
+												</div>
+											</div>
+											<div class="thumb-caption" x-text="comprobante.name"></div>
+										</div>
+										<button class="thumb-delete hover-opacity" @click="comprobante = null" title="Quitar">
+											<img alt="×" width="12" height="12" src="/static/icons/line/delete.svg">
+										</button>
+									</div>
+								</template>
+								<template x-if="!comprobante">
+									<div class="add-button hover-opacity" @click="$refs.comprobanteInput.click()">
+										<img alt="" width="24" height="24" src="/static/icons/line/plus.svg">
+									</div>
+								</template>
+							</div>
+							<input type="file" accept="image/*,application/pdf" style="display:none"
+								x-ref="comprobanteInput"
+								@change="comprobante = $event.target.files[0]; comprobante_error = false; $event.target.value = ''">
+						</div>
+
 						<!-- Acciones de estado -->
 						<div class="detail-actions" x-show="getAvailableActions().length > 0">
+							<div class="comprobante-error" x-show="comprobante_error" x-transition.opacity.duration.200ms>
+								<img alt="" width="14" height="14" src="/static/icons/filled/late.svg">
+								<span>Debes adjuntar el comprobante de pago antes de ejecutar el extorno.</span>
+							</div>
 							<div class="action-btns buttons">
 								<template x-for="action in getAvailableActions()" :key="action.status_id">
 									<button class="button icon hover-opacity" :class="action.class || ''"
@@ -365,6 +583,28 @@
 			</div>
 		</div>
 
+		<!-- Modal confirmar eliminar adjunto -->
+		<div
+			x-show="$store.cache.isVisibleModal('refund-confirm-delete')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap common-modal"
+			id="modal-refund-confirm-delete"
+			x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2 small" @click.stop style="max-width:22rem;">
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+				<div class="modal-content" style="text-align:center;">
+					<p style="font-size:0.9rem;font-weight:500;margin:0;">¿Eliminar este archivo?</p>
+				</div>
+				<div class="modal-footer buttons">
+					<button class="button ghost hover-opacity" @click="$store.cache.hideLastModal()">Cancelar</button>
+					<button class="button hover-opacity" style="background:#e36464;" @click="confirmDeleteAttachment()">Eliminar</button>
+				</div>
+			</div>
+		</div>
+
 		<!-- Modal visor adjunto -->
 		<div
 			x-show="$store.cache.isVisibleModal('refund-attachment')"
@@ -402,11 +642,21 @@
 			processing: false,
 			viewer_file: null,
 			viewer_payload: null,
+			comprobante: null,
+			comprobante_error: false,
+			pending_delete_attachment: null,
+			editing_order: false,
+			edit_order_value: '',
+
+			link_list: [],
+			link_page: 1,
+			link_total_pages: 1,
+			link_processing: false,
 
 			form: {
 				client_order_id: '',
 				client_order_found: false, client_found: false,
-				client_dni: '', client_name: '',
+				client_dni: '', client_name: '', client_phone: '',
 				order_number: '', reason: '', detail: '',
 				order_amount: 0, refund_amount: 0, applies_penalty: false,
 				net_refund: 0, payment_method: '', files: [],
@@ -418,6 +668,11 @@
 					socket.on("refund_update", async () => {
 						await Alpine.store('cache').refresh('refund_dashboard');
 					});
+					socket.on("refund_link_update", async () => {
+						if (Alpine.store('cache').isVisibleModal('refund-links')) {
+							await this.getLinkHistory();
+						}
+					});
 				}
 				await Alpine.store('cache').fetchData([
 					{ key: 'refund_dashboard', url: '/refund/dashboard', force: true },
@@ -428,30 +683,39 @@
 			// ── Permissions ──
 
 			canRegister() {
-				return Alpine.store('cache').hasPermission('refunds', 'register_commercial')
-					|| Alpine.store('cache').hasPermission('refunds', 'register_admin');
+				return Alpine.store('cache').hasPermission('refunds', 'register_admin');
+			},
+
+			canLinks() {
+				return Alpine.store('cache').hasPermission('refunds', 'links');
 			},
 
 			_highPerm() {
 				const hp = (p) => Alpine.store('cache').hasPermission('refunds', p);
-				return hp('validate') || hp('approve_area') || hp('approve_gerencia');
+				return hp('approve_area') || hp('approve_gerencia');
+			},
+			_validatePerm() {
+				return Alpine.store('cache').hasPermission('refunds', 'validate');
+			},
+			_canRevert() {
+				return Alpine.store('cache').hasPermission('refunds', 'revert');
 			},
 
 			canEditPenalty() {
-				if (!this.detail) return false;
-				if (this.detail.status_id >= 6) return false;  // executed or reverted
-				if (this.detail.status_id === 1)
-					return this.detail.registered_by === this.user.id;
-				return this._highPerm();
+				if (!this.detail || this.detail.status_id >= 6) return false;
+				return Alpine.store('cache').hasPermission('refunds', 'penalty');
 			},
 
 			canUploadAttachments() {
-				if (this.detail?.status_id !== 1) return false;
-				return this.detail?.registered_by === this.user.id || this._highPerm();
+				if (!this.detail || this.detail.status_id >= 6) return false;
+				if (this._validatePerm() && this.detail.status_id < 5) return true;
+				if (this._highPerm()) return true;
+				return false;
 			},
 
 			canDeleteAttachment() {
-				return this.detail?.status_id === 1 && this._highPerm();
+				if (!this.detail || this.detail.status_id >= 6) return false;
+				return this._highPerm();
 			},
 
 			// ── Create ──
@@ -460,7 +724,7 @@
 				this.form = {
 					client_order_id: '',
 					client_order_found: false, client_found: false,
-					client_dni: '', client_name: '',
+					client_dni: '', client_name: '', client_phone: '',
 					order_number: '', reason: '', detail: '',
 					order_amount: 0, refund_amount: 0, applies_penalty: false,
 					net_refund: 0, payment_method: '', files: [],
@@ -474,6 +738,7 @@
 					this.form.client_order_id = '';
 					this.form.client_dni = '';
 					this.form.client_name = '';
+					this.form.client_phone = '';
 					this.form.client_order_found = false;
 					this.form.client_found = false;
 					return;
@@ -493,6 +758,7 @@
 						this.form.client_order_id    = json.data.client_order_id;
 						this.form.client_dni         = c.document;
 						this.form.client_name        = c.name;
+						this.form.client_phone       = c.phone || '';
 						this.form.client_order_found = true;
 					}
 				} catch (e) { console.error(e); }
@@ -503,6 +769,7 @@
 				const doc = this.form.client_dni;
 				if (!doc) {
 					this.form.client_name = '';
+					this.form.client_phone = '';
 					this.form.client_found = false;
 					return;
 				}
@@ -514,6 +781,7 @@
 					const json = await res.json();
 					if (json.success) {
 						this.form.client_name  = json.data.name;
+						this.form.client_phone = json.data.phone || '';
 						this.form.client_found = true;
 					}
 				} catch (e) { console.error(e); }
@@ -539,6 +807,7 @@
 				fd.append('order_number',    this.form.order_number || '');
 				fd.append('client_dni',      this.form.client_dni || '');
 				fd.append('client_name',     this.form.client_name || '');
+				fd.append('client_phone',    this.form.client_phone || '');
 				fd.append('reason',          this.form.reason);
 				fd.append('detail',          this.form.detail || '');
 				fd.append('order_amount',    this.form.order_amount);
@@ -560,6 +829,64 @@
 				} catch (e) { console.error(e); }
 			},
 
+			// ── Links ──
+
+			async viewLinks() {
+				await this.firstLinkPage();
+				Alpine.store('cache').showModal('refund-links');
+			},
+
+			async getLinkHistory() {
+				try {
+					const res = await fetch(`${this.api}/refund/link_history?page=${this.link_page}`, {
+						headers: { 'Authorization': `Bearer ${this.token}` },
+					});
+					const json = await res.json();
+					const data = json.data || {};
+					this.link_list = data.list || [];
+					this.link_total_pages = data.pagination?.pages || 1;
+				} catch (e) { console.error(e); }
+			},
+
+			async newRefundLink() {
+				if (this.link_processing) return;
+				this.link_processing = true;
+				try {
+					const res = await fetch(`${this.api}/refund/link`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+						body: JSON.stringify({}),
+					});
+					const json = await res.json();
+					if (!res.ok) { alert(json?.data?.message || json?.data || 'Error'); return; }
+					await navigator.clipboard.writeText(json.data.url).catch(() => {});
+					await this.getLinkHistory();
+				} catch (e) { console.error(e); }
+				finally { this.link_processing = false; }
+			},
+
+			async deleteRefundLink(link_id) {
+				if (this.link_processing) return;
+				this.link_processing = true;
+				try {
+					const res = await fetch(`${this.api}/refund/link/${link_id}`, {
+						method: 'DELETE',
+						headers: { 'Authorization': `Bearer ${this.token}` },
+					});
+					if (res.ok) await this.getLinkHistory();
+				} catch (e) { console.error(e); }
+				finally { this.link_processing = false; }
+			},
+
+			async firstLinkPage() { this.link_page = 1; await this.getLinkHistory(); },
+			async lastLinkPage()  { this.link_page = this.link_total_pages; await this.getLinkHistory(); },
+			async nextLinkPage()  {
+				if (this.link_page < this.link_total_pages) { this.link_page++; await this.getLinkHistory(); }
+			},
+			async prevLinkPage()  {
+				if (this.link_page > 1) { this.link_page--; await this.getLinkHistory(); }
+			},
+
 			// ── Detail ──
 
 			async openDetail(id) {
@@ -570,8 +897,41 @@
 					const json = await res.json();
 					this.detail = json.data;
 					this.message = '';
+					this.comprobante = null;
+					this.comprobante_error = false;
+					this.editing_order = false;
 					Alpine.store('cache').showModal('refund-detail');
 					this.$nextTick(() => this.scrollCommentsToBottom('instant'));
+				} catch (e) { console.error(e); }
+			},
+
+			// ── Order number edit ──
+
+			canEditOrderNumber() {
+				if (!this.detail || this.detail.status_id >= 6) return false;
+				if (this._validatePerm() && this.detail.status_id < 3) return true;
+				if (this._highPerm()) return true;
+				return false;
+			},
+
+			startEditOrder() {
+				this.edit_order_value = this.detail.order_number || '';
+				this.editing_order = true;
+				this.$nextTick(() => this.$el.querySelector('.inline-order-input')?.focus());
+			},
+
+			async saveOrderNumber() {
+				if (!this.edit_order_value.trim()) return;
+				try {
+					const res = await fetch(`${this.api}/refund/${this.detail.id}/order_number`, {
+						method: 'PATCH',
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+						body: JSON.stringify({ order_number: this.edit_order_value.trim() }),
+					});
+					const json = await res.json();
+					if (!res.ok) { alert(json?.data?.message || json?.data || 'Error'); return; }
+					this.editing_order = false;
+					await this.openDetail(this.detail.id);
 				} catch (e) { console.error(e); }
 			},
 
@@ -583,41 +943,56 @@
 				const hp  = (p) => Alpine.store('cache').hasPermission('refunds', p);
 				const actions = [];
 
-				if (sid < 6 && this._highPerm())
-					actions.push({ status_id: 7, label: 'Revertir extorno',  icon: 'dislike',  class: 'black' });
-
+				if (sid < 6 && this._canRevert())
+					actions.push({ status_id: 7, label: 'Revertir extorno',   icon: 'dislike',  class: 'black' });
 				// 1→2
-				if (sid === 1 && hp('move'))
-					actions.push({ status_id: 2, label: 'Iniciar revisión',  icon: 'find',     class: '' });
+				if (sid === 1 && this._validatePerm())
+					actions.push({ status_id: 2, label: 'Iniciar validación',   icon: 'find',     class: '' });
 				// 2→3
-				if (sid === 2 && hp('validate'))
-					actions.push({ status_id: 3, label: 'Extorno validado',     icon: 'like',     class: '' });
+				if (sid === 2 && this._validatePerm())
+					actions.push({ status_id: 3, label: 'Extorno validado',   icon: 'like',     class: '' });
 				// 3→4
 				if (sid === 3 && hp('approve_area'))
-					actions.push({ status_id: 4, label: 'Aprobar extorno',      icon: 'like',     class: '' });
-				// 4→5 (approve gerencia → auto-schedule)
+					actions.push({ status_id: 4, label: 'Aprobado por área',    icon: 'like',     class: '' });
+				// 4→5
 				if (sid === 4 && hp('approve_gerencia'))
-					actions.push({ status_id: 5, label: 'Aprobar y programar', icon: 'schedule', class: '' });
+					actions.push({ status_id: 5, label: 'Aprobar extorno', icon: 'like', class: '' });
 				// 5→6
 				if (sid === 5 && this._highPerm())
-					actions.push({ status_id: 6, label: 'Extorno ejecutado',  icon: 'approve',    class: '' });
-				// →7 revert (any state before executed)
-				
+					actions.push({ status_id: 6, label: 'Extorno ejecutado',  icon: 'approve',  class: '' });
 
 				return actions;
 			},
 
 			async changeStatus(statusId) {
 				if (!this.detail) return;
+				if (statusId === 6 && !this.comprobante) {
+					this.comprobante_error = true;
+					return;
+				}
+				this.comprobante_error = false;
 				try {
-					const res = await fetch(`${this.api}/refund/${this.detail.id}/status`, {
-						method: 'PUT',
-						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
-						body: JSON.stringify({ status_id: statusId }),
-					});
+					let res;
+					if (statusId === 6 && this.comprobante) {
+						const fd = new FormData();
+						fd.append('status_id', statusId);
+						fd.append('comprobante', this.comprobante);
+						res = await fetch(`${this.api}/refund/${this.detail.id}/status`, {
+							method: 'PUT',
+							headers: { 'Authorization': `Bearer ${this.token}` },
+							body: fd,
+						});
+					} else {
+						res = await fetch(`${this.api}/refund/${this.detail.id}/status`, {
+							method: 'PUT',
+							headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+							body: JSON.stringify({ status_id: statusId }),
+						});
+					}
 					const json = await res.json();
 					if (!res.ok) { alert(json?.data?.message || json?.data || 'Error'); return; }
-					await this.openDetail(this.detail.id);
+					this.comprobante = null;
+					Alpine.store('cache').hideLastModal();
 					await Alpine.store('cache').refresh('refund_dashboard');
 				} catch (e) { console.error(e); }
 			},
@@ -669,15 +1044,22 @@
 				event.target.value = '';
 			},
 
-			async deleteAttachment(attachmentId) {
-				if (!confirm('¿Eliminar este archivo?')) return;
+			deleteAttachment(attachmentId) {
+				this.pending_delete_attachment = attachmentId;
+				Alpine.store('cache').showModal('refund-confirm-delete');
+			},
+
+			async confirmDeleteAttachment() {
+				Alpine.store('cache').hideLastModal();
+				if (!this.pending_delete_attachment) return;
 				try {
-					const res = await fetch(`${this.api}/refund/attachment/${attachmentId}`, {
+					const res = await fetch(`${this.api}/refund/attachment/${this.pending_delete_attachment}`, {
 						method: 'DELETE',
 						headers: { 'Authorization': `Bearer ${this.token}` },
 					});
 					if (res.ok) await this.openDetail(this.detail.id);
 				} catch (e) { console.error(e); }
+				finally { this.pending_delete_attachment = null; }
 			},
 
 			async openAttachment(file) {
@@ -746,6 +1128,156 @@
 	<style>
 		.controls {
 			justify-content: end;
+		}
+		#modal-refund-links .modal {
+			max-width: fit-content;
+		}
+		#modal-refund-links .top {
+			justify-content: space-between;
+			display: flex;
+			align-items: center;
+			gap: 1rem;
+		}
+		#modal-refund-links .pagination {
+			display: flex;
+			gap: 0.75rem;
+		}
+		#modal-refund-links .pagination .disabled {
+			opacity: 0.5;
+			cursor: default !important;
+		}
+		#modal-refund-links .pagination .left img {
+			transform: rotate(180deg);
+		}
+		#modal-refund-links .pagination span {
+			width: 2rem;
+			height: 2rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			border-radius: 2rem;
+		}
+		#modal-refund-links .create-link {
+			display: flex;
+			gap: 0.25rem;
+			justify-content: center;
+			align-items: center;
+			width: initial;
+			padding: 0 1rem;
+			line-height: 2rem;
+			font-size: 0.8rem;
+			font-weight: 400;
+		}
+		#modal-refund-links .create-link img {
+			filter: invert(1);
+		}
+		#modal-refund-links table {
+			border-collapse: collapse;
+		}
+		#modal-refund-links table th {
+			padding: 0.5rem 0.75rem;
+			text-align: left;
+			font-weight: 600;
+			font-size: 0.8rem;
+			opacity: 0.75;
+		}
+		#modal-refund-links table.static tbody tr {
+			transition: none;
+		}
+		#modal-refund-links table.static tbody tr:hover {
+			background-color: transparent;
+		}
+		#modal-refund-links table.static td {
+			cursor: default;
+			line-height: 2rem;
+			padding: 0.5rem 0.75rem;
+			white-space: nowrap;
+		}
+		#modal-refund-links table td .controlls {
+			display: flex;
+			gap: 0.5rem;
+		}
+		#modal-refund-links table td .controlls .action {
+			width: 1.5rem;
+			height: 1.5rem;
+			display: flex;
+			justify-content: center;
+		}
+		#modal-refund-links table .link-id {
+			background-color: var(--white);
+			width: 1.75rem;
+			height: 1.75rem;
+			border-radius: 1rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-weight: 500;
+			font-size: 0.8rem;
+			border: 1px solid var(--graydark);
+		}
+		#modal-refund-links table .link-status {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#modal-refund-links table .status-1 {
+			background-color: #fff0de;
+			border: 2px solid #fcdab1;
+		}
+		#modal-refund-links table .status-2 {
+			background-color: #dff5ff;
+			border: 2px solid #b4e1f2;
+		}
+		#modal-refund-links table .status-3 {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+		}
+		#modal-refund-links table .status-4 {
+			background-color: #fee3e1;
+			border: 2px solid #ffceca;
+		}
+		#modal-refund-links .mobile-table .head .status {
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#modal-refund-links .mobile-table .head .status.status-1 {
+			background-color: #fff0de;
+			border: 2px solid #fcdab1;
+		}
+		#modal-refund-links .mobile-table .head .status.status-2 {
+			background-color: #dff5ff;
+			border: 2px solid #b4e1f2;
+		}
+		#modal-refund-links .mobile-table .head .status.status-3 {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+		}
+		#modal-refund-links .mobile-table .head .status.status-4 {
+			background-color: #fee3e1;
+			border: 2px solid #ffceca;
+		}
+		#modal-refund-links .mobile-table .options {
+			display: flex;
+			gap: 0.75rem;
+			margin-top: 0.5rem;
+		}
+		#modal-refund-links .mobile-table .options .action {
+			flex: 1;
+			background-color: var(--newgray);
+			padding: 0.5rem 0.75rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.5rem;
+			border-radius: 2rem;
+			box-shadow: 0 1px 0 hsl(0deg 0% 0% / 15%);
+			font-size: 0.8rem;
+			font-weight: 500;
 		}
 		#modal-refund-create .title {
 			font-family: inherit;
@@ -1010,9 +1542,24 @@
 			padding: 0.5rem;
 		}
 
-		/* Upload */
-		.upload-area { margin-top: 0.5rem; }
 		.no-files { font-size: 0.72rem; opacity: 0.35; padding: 0.25rem 0; }
+
+		/* Order number inline edit */
+		.editable-field { display: flex; align-items: center; gap: 0.3rem; }
+		.inline-order-input {
+			font-size: 0.8rem; font-weight: 500; font-family: inherit;
+			border: none; border-bottom: 1.5px solid var(--primary);
+			outline: none; background: transparent; width: 8rem; padding: 0;
+		}
+		.order-edit-btn {
+			display: flex; align-items: center; justify-content: center;
+			background: none; border: none; cursor: pointer; padding: 0.1rem;
+			opacity: 0.5;
+		}
+		.order-edit-btn:hover { opacity: 1; }
+		.original-hint {
+			font-size: 0.65rem; opacity: 0.45; margin-top: 0.1rem; display: block;
+		}
 
 		/* Thumb with delete button */
 		.thumb-wrapper { position: relative; }
@@ -1033,6 +1580,19 @@
 		/* Actions */
 		.detail-actions { border-top: 1px solid var(--gray); }
 		.action-btns { flex: 1; }
+		.comprobante-error {
+			display: flex;
+			align-items: center;
+			gap: 0.4rem;
+			padding: 0.5rem 0.75rem;
+			background: #fff0de;
+			border: 1.5px solid #fcdab1;
+			border-radius: 0.5rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+			color: #b45300;
+			margin-bottom: 0.5rem;
+		}
 
 		@media (max-width: 48rem) {
 			#refunds .main { flex-direction: column; }

@@ -63,12 +63,12 @@ def confirm_flow():
 
 @dev_bp.route("/confirm_flow/all", methods=["POST"])
 def confirm_flow_all():
-    return controller.dev_confirm_flow_all()
+    return controller.dev_confirm_flow_all(request.get_json())
 
 
-@dev_bp.route("/confirm_flow/list", methods=["GET"])
+@dev_bp.route("/confirm_flow/list", methods=["POST"])
 def confirm_flow_list():
-    return controller.dev_confirm_flow_list()
+    return controller.dev_confirm_flow_list(request.get_json())
 
 
 @dev_bp.route("/confirm_flow/reminder", methods=["POST"])
@@ -89,3 +89,8 @@ def token():
 @dev_bp.route("/push", methods=["POST"])
 def push():
     return controller.dev_push(request.get_json())
+
+
+@dev_bp.route("/campaign", methods=["POST"])
+def mkt_campaign():
+    return controller.dev_mkt_campaign(request.get_json())

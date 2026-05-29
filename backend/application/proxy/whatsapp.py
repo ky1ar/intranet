@@ -353,24 +353,21 @@ class Whatsapp:
 
 
     @handle_exceptions
-    def confirm_flow_start(self, phone):
-        name ="Bambu Lab Fest por Krear 3D"
-        schedule ="25 de octubre de 10 a.m. a 5 p.m."
-        location ="Cámara de Comercio de Lima - Av. Giuseppe Garibaldi 396, Jesús María (Salón Carlos Ferreyros - Piso 7)"
-        template_name = "confirm_flow_start"
+    def confirm_flow_start(self, campaign, data):
+        templates = {
+            "shining_event": "mkt_shining_start"
+        }
         
         parameters = [
-            {"type": "text", "parameter_name": "name", "text": name},
-            {"type": "text", "parameter_name": "schedule", "text": schedule},
-            {"type": "text", "parameter_name": "location", "text": location},
+            {"type": "text", "parameter_name": "name", "text": data.get("name")},
         ]
 
         payload = {
             "messaging_product": "whatsapp",
-            "to": phone,
+            "to": data.get("phone"),
             "type": "template",
             "template": {
-                "name": template_name,
+                "name": templates.get(campaign),
                 "language": {"code": "es_PE"},
                 "components": [{"type": "body", "parameters": parameters}]
             }
@@ -379,41 +376,48 @@ class Whatsapp:
     
 
     @handle_exceptions
-    def confirm_flow_yes(self, phone):
-        name ="Bambu Lab Fest"
-        maps ="https://maps.app.goo.gl/sisjPduBcsqDRkji6"
-        
-        template_name = "confirm_flow_yes"
+    def confirm_flow_yes(self, campaign, data):
+        templates = {
+            "shining_event": "mkt_shining_yes"
+        }
         
         parameters = [
-            {"type": "text", "parameter_name": "name", "text": name},
-            {"type": "text", "parameter_name": "maps", "text": maps},
+            {"type": "text", "parameter_name": "name", "text": data.get("name")},
         ]
 
         payload = {
             "messaging_product": "whatsapp",
-            "to": phone,
+            "to": data.get("phone"),
             "type": "template",
             "template": {
-                "name": template_name,
+                "name": templates.get(campaign),
                 "language": {"code": "es_PE"},
                 "components": [{"type": "body", "parameters": parameters}]
+
             }
         }
         return self.post(payload)
 
 
     @handle_exceptions
-    def confirm_flow_no(self, phone):
-        template_name = "confirm_flow_no"
+    def confirm_flow_no(self, campaign, data):
+        templates = {
+            "shining_event": "mkt_shining_no"
+        }
+
+        parameters = [
+            {"type": "text", "parameter_name": "name", "text": data.get("name")},
+        ]
    
         payload = {
             "messaging_product": "whatsapp",
-            "to": phone,
+            "to": data.get("phone"),
             "type": "template",
             "template": {
-                "name": template_name,
-                "language": {"code": "es_PE"}
+                "name": templates.get(campaign),
+                "language": {"code": "es_PE"},
+                "components": [{"type": "body", "parameters": parameters}]
+                
             }
         }
         return self.post(payload)
@@ -474,6 +478,34 @@ class Whatsapp:
     
 
     @handle_exceptions
+    def mkt_campaign(self, phone, template_name, header_image=None, parameters=None):
+        components = []
+
+        if header_image:
+            components.append({
+                "type": "header",
+                "parameters": [{"type": "image", "image": {"link": header_image}}]
+            })
+
+        if parameters:
+            components.append({"type": "body", "parameters": parameters})
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "template",
+            "template": {
+                "name": template_name,
+                "language": {"code": "es_PE"},
+            }
+        }
+        if components:
+            payload["template"]["components"] = components
+
+        return self.post(payload)
+
+
+    @handle_exceptions
     def send_odoo_invoice(self, client_phone, client_name, invoice_number, invoice_date, pdf_filename):
         payload = {
             "messaging_product": "whatsapp",
@@ -520,4 +552,110 @@ class Whatsapp:
             }
         }
 
+        return self.post(payload)
+
+
+    @handle_exceptions
+    def refund_registered(self, phone, name, number, amount):
+        parameters = [
+            {"type": "text", "parameter_name": "name",   "text": name},
+            {"type": "text", "parameter_name": "number", "text": number},
+            {"type": "text", "parameter_name": "amount", "text": amount},
+        ]
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "template",
+            "template": {
+                "name": "refunds_register",
+                "language": {"code": "es_PE"},
+                "components": [{"type": "body", "parameters": parameters}]
+            }
+        }
+        return self.post(payload)
+
+
+    @handle_exceptions
+    def refund_approved_no_penalty(self, phone, name, number, amount):
+        parameters = [
+            {"type": "text", "parameter_name": "name",   "text": name},
+            {"type": "text", "parameter_name": "number", "text": number},
+            {"type": "text", "parameter_name": "amount", "text": amount},
+        ]
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "template",
+            "template": {
+                "name": "refunds_no_penality",
+                "language": {"code": "es_PE"},
+                "components": [{"type": "body", "parameters": parameters}]
+            }
+        }
+        return self.post(payload)
+
+
+    @handle_exceptions
+    def refund_approved_penalty(self, phone, name, number, amount, amount_final):
+        parameters = [
+            {"type": "text", "parameter_name": "name",         "text": name},
+            {"type": "text", "parameter_name": "number",       "text": number},
+            {"type": "text", "parameter_name": "amount",       "text": amount},
+            {"type": "text", "parameter_name": "amount_final", "text": amount_final},
+        ]
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "template",
+            "template": {
+                "name": "refunds_penality",
+                "language": {"code": "es_PE"},
+                "components": [{"type": "body", "parameters": parameters}]
+            }
+        }
+        return self.post(payload)
+
+
+    @handle_exceptions
+    def refund_reverted(self, phone, name, number):
+        parameters = [
+            {"type": "text", "parameter_name": "name",   "text": name},
+            {"type": "text", "parameter_name": "number", "text": number},
+        ]
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "template",
+            "template": {
+                "name": "refunds_reverted",
+                "language": {"code": "es_PE"},
+                "components": [{"type": "body", "parameters": parameters}]
+            }
+        }
+        return self.post(payload)
+
+
+    @handle_exceptions
+    def refund_executed(self, phone, name, number, amount, image_url=None):
+        parameters = [
+            {"type": "text", "parameter_name": "name",   "text": name},
+            {"type": "text", "parameter_name": "number", "text": number},
+            {"type": "text", "parameter_name": "amount", "text": amount},
+        ]
+        components = [{"type": "body", "parameters": parameters}]
+        if image_url:
+            components.insert(0, {
+                "type": "header",
+                "parameters": [{"type": "image", "image": {"link": f"{self.image_base_url}{image_url}"}}]
+            })
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "template",
+            "template": {
+                "name": "refunds_executed",
+                "language": {"code": "es_PE"},
+                "components": components
+            }
+        }
         return self.post(payload)

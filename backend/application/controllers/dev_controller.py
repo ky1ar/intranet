@@ -36,13 +36,19 @@ class DevController:
     
 
     @handle_logs_and_exceptions
-    def dev_confirm_flow_all(self):
-        return self.dev.confirm_flow_all()
+    def dev_confirm_flow_all(self, data):
+        if validation_error := validate_request(data, {"campaign"}):
+            return validation_error, 422
+        campaign = data.get("campaign")
+        return self.dev.confirm_flow_all(campaign)
     
 
     @handle_logs_and_exceptions
-    def dev_confirm_flow_list(self):
-        return self.dev.confirm_flow_list()
+    def dev_confirm_flow_list(self, data):
+        if validation_error := validate_request(data, {"campaign"}):
+            return validation_error, 422
+        campaign = data.get("campaign")
+        return self.dev.confirm_flow_list(campaign)
     
 
     @handle_logs_and_exceptions
@@ -62,4 +68,13 @@ class DevController:
 
     @handle_logs_and_exceptions
     def dev_push(self, data):
-        return self.dev.push(data)   
+        return self.dev.push(data)
+
+
+    @handle_logs_and_exceptions
+    def dev_mkt_campaign(self, data):
+        if validation_error := validate_request(data, {"template_name", "phones"}):
+            return validation_error, 422
+        if not isinstance(data.get("phones"), list) or not data["phones"]:
+            return "phones debe ser un array no vacío", 422
+        return self.dev.mkt_campaign(data)

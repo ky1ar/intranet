@@ -27,6 +27,14 @@ class ClientRepository:
             return 'Orden de cliente no encontrada', 404
 
         return user_order, 200
+
+    @handle_db_exceptions
+    def get_client_order_by_id(self, order_id):
+        user_order = g.db_session.query(ClientOrders).filter_by(id=order_id).first()
+        if not user_order:
+            return 'Orden de cliente no encontrada', 404
+
+        return user_order, 200
     
 
     @handle_db_exceptions
@@ -135,11 +143,13 @@ class ClientRepository:
 
     @handle_db_exceptions
     def update_client_contact(self, client, email=None, phone=None):
-        if email:
-            client.email = email
-        if phone:
-            client.phone = f'51{phone}'
-        g.db_session.commit()
+        fresh = g.db_session.query(Clients).filter_by(id=client.id).first()
+        if fresh:
+            if email:
+                fresh.email = email
+            if phone:
+                fresh.phone = f'51{phone}'
+            g.db_session.commit()
         return client, 200
 
     @handle_db_exceptions

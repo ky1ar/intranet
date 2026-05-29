@@ -5,9 +5,9 @@
 			<div class="menu">
 				<div class="item">
 					<div class="button">
-						<img alt="" width="20" height="20" src="">
+						<img alt="" width="20" height="20" src="/static/icons/line/marketing.svg">
 					</div>
-					<span>Bambu Lab Fest</span>
+					<span>Evento Shining 3D</span>
             	</div>
             </div>
 
@@ -15,7 +15,7 @@
 				<div class="item">
 					<div class="button">
 					</div>
-					<span>Asistentes: <span x-text="clients.total_users"></span></span>
+					<span>Asistentes: <span x-text="clients.users ? clients.users.filter(u => u.status === 'yes').length : 0"></span></span>
             	</div>
             </div>
 		</div>
@@ -30,17 +30,17 @@
 					<th></th>
 				</tr>
 
-				<template x-for="client in clients.users" :key="client.id">
+				<template x-for="(client, index) in clients.users" :key="client.id">
 					<tr class="row">
-						<td x-text="client.id"></td>
+						<td class="idx" x-text="index + 1"></td>
 						<td class="name">
 							<span class="short" x-text="client.name"></span>
 						</td>
-						<td class="big" x-text="client.phone"></td>
-						<td x-text="translateStatus(client.status)"></td>
+						<td class="big phone" x-text="client.phone"></td>
+						<td :style="client.status === 'yes' ? 'color: var(--green); font-weight: 600' : client.status === 'no' ? 'color: var(--red); font-weight: 600' : 'opacity: 0.45'" x-text="translateStatus(client.status)"></td>
 						<td>
 							<div class="action">
-								<img alt="" alt="icon" :src="`/static/icons/filled/${getIcon(client.status)}.svg`" width="20" height="20">
+								<img alt="" alt="icon" :src="`/static/icons/module/${getIcon(client.status)}.svg`" width="16" height="16">
 							</div>
 						</td>
 					</tr>
@@ -58,43 +58,36 @@
 
 			async init() {
 				console.log('Inicializando Clients...');
-				
-				//const loginVerification = Alpine.store('auth').loginVerify();
 				await this.fetchData();
 
 			},
 
 			translateStatus(status) {
 				switch (status) {
-					case 'sended':
-						return 'Pendiente';
-					case 'accepted':
+					case 'yes':
 						return 'Sí';
-					case 'declined':
+					case 'no':
 						return 'No';
 					default:
-						return 'Registrado';
+						return 'Pendiente';
 				}
 			},
 
 			getIcon(status) {
 				switch (status) {
-					case 'sended':
-						return 'timer';
-					case 'accepted':
-						return 'accept';
-					case 'declined':
-						return 'decline';
+					case 'yes':
+						return 'safebuy/approved';
+					case 'no':
+						return 'safebuy/rejected';
 					default:
-						return 'timer';
+						return 'refunds/time';
 				}
 			},
 
 			async fetchData() {
 				try {
-					console.log('Obteniendo datos desde API')
-					const [clientsRes, serviceMethodsRes, techniciansRes] = await Promise.all([
-						fetch(Alpine.store('cache').api + '/dev/confirm_flow/list').then(res => res.json()),
+					const [clientsRes] = await Promise.all([
+						fetch(Alpine.store('cache').api + '/dev/confirm_flow/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ campaign: 'shining_event' }) }).then(res => res.json()),
 					]);
 
 					this.clients = clientsRes.data;
@@ -114,12 +107,11 @@
 		#clients {
 			width: 100%;
 			user-select: none;
-			padding: 1rem;
 			min-height: calc(100vh - 6.5rem);
 			display: flex;
 			flex-direction: column;
 			gap: 1rem;
-			margin: 0 auto;
+			margin: -4.5rem auto 0 auto;
 			max-width: 64rem;
 		}
 		#clients table {
@@ -127,11 +119,34 @@
 		}
 		#clients table th {
 			text-align: left;
+			font-size: 0.7rem;
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+			opacity: 0.5;
+			padding-bottom: 0.5rem;
+		}
+		#clients table .row {
+			border-top: 1px solid rgba(0,0,0,0.05);
+		}
+		#clients table .row td {
+			font-size: 0.85rem;
+			padding: 0.1rem 0;
+		}
+		#clients table .row .idx {
+			font-size: 0.7rem;
+			opacity: 0.35;
+			width: 1.5rem;
+		}
+		#clients table .row .phone {
+			font-size: 0.78rem;
+			font-family: monospace;
+			opacity: 0.6;
+			letter-spacing: 0.02em;
 		}
 		#clients table .row .name {
 			align-items: center;
 			display: flex;
-			padding: 0.4rem;
+			padding: 0.4rem 0;
 		}
 		#clients table .row .letter {
 			display: flex;

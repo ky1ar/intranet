@@ -32,9 +32,23 @@ def create():
 @refund_bp.route("/<int:refund_id>/status", methods=["PUT"])
 @jwt_required()
 def update_status(refund_id):
-    data = request.get_json() or {}
+    ct = request.content_type or ""
+    if "multipart" in ct or "application/x-www-form-urlencoded" in ct:
+        data = {k: v for k, v in request.form.items()}
+        try:
+            data["status_id"] = int(data["status_id"])
+        except (KeyError, ValueError):
+            pass
+    else:
+        data = request.get_json() or {}
     data["refund_id"] = refund_id
     return controller.update_status(data)
+
+
+@refund_bp.route("/<int:refund_id>/order_number", methods=["PATCH"])
+@jwt_required()
+def edit_order_number(refund_id):
+    return controller.edit_order_number(refund_id)
 
 
 @refund_bp.route("/<int:refund_id>/penalty", methods=["PATCH"])
@@ -72,6 +86,36 @@ def attachment_preview(attachment_id):
 @jwt_required()
 def delete_attachment(attachment_id):
     return controller.delete_attachment(attachment_id)
+
+
+# ── Links ──
+
+@refund_bp.route("/link", methods=["POST"])
+@jwt_required()
+def create_link():
+    return controller.create_link()
+
+
+@refund_bp.route("/link_history", methods=["GET"])
+@jwt_required()
+def link_history():
+    return controller.link_history()
+
+
+@refund_bp.route("/link/<int:link_id>", methods=["DELETE"])
+@jwt_required()
+def delete_link(link_id):
+    return controller.delete_link(link_id)
+
+
+@refund_bp.route("/link_verify", methods=["POST"])
+def link_verify():
+    return controller.verify_link(request.get_json() or {})
+
+
+@refund_bp.route("/link_process", methods=["POST"])
+def link_process():
+    return controller.link_process(request.get_json() or {})
 
 
 # ── Chat ──
