@@ -115,6 +115,13 @@
 											<b class="v" x-text="minutesToText(day.summary?.worked_min ?? 0)"></b>
 										</div>
 
+										<template x-if="(day.summary?.sunday_min ?? 0) > 0">
+											<div class="row">
+												<span class="k">Domingo</span>
+												<b class="v pos" x-text="`+${minutesToText(day.summary.sunday_min)}`"></b>
+											</div>
+										</template>
+
 										<div class="row">
 											<span class="k">
 												Saldo
@@ -1668,6 +1675,7 @@
 				const shouldShowSummary = week_has_past_or_today && week_has_data;
 
 				const weekSummary = w?.summary || wdays?.[6]?.summary || null;
+				const sundayWorkedMin = shouldShowSummary ? Number(weekSummary?.sunday_min || 0) : 0;
 
 				if (shouldShowSummary && weekSummary) {
 					cumWorked += Number(weekSummary.worked_min || 0);
@@ -1686,6 +1694,7 @@
 							target_min: cumTarget,
 							delta_min: cumWorked - cumTarget,
 							incomplete: cumIncomplete,
+							sunday_min: sundayWorkedMin,
 						} : null;
 					} else {
 						d.is_summary = false;
@@ -1728,6 +1737,15 @@
 					if (this.isLateDay(day)) {
 						tardies += 1;
 						toleranceAccum += this.lateMinutes(day);
+					}
+				}
+				// Sunday is folded into the week summary by the backend as sunday_min
+				const wSummary = w.summary || w.days?.[6]?.summary;
+				const wkSunday = Number(wSummary?.sunday_min || 0);
+				if (wkSunday > 0) {
+					const sundayDay = w.days?.[6];
+					if (sundayDay?.date && sundayDay.date <= todayISO) {
+						worked += wkSunday;
 					}
 				}
 			}
