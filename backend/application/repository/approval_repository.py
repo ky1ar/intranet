@@ -131,12 +131,15 @@ class ApprovalRepository:
         )
         if not req:
             return "Solicitud no encontrada", 404
+        client_name  = req.client.name  if req.client  else None
+        client_email = req.client.email if req.client  else None
+        type_slug    = req.type_rel.slug if req.type_rel else None
         req.status      = "approved"
         req.approved_by = approved_by
         req.approved_at = peru_time()
         req.access_url  = access_url
         g.db_session.commit()
-        return {"id": req.id}, 200
+        return {"id": req.id, "client_name": client_name, "client_email": client_email, "type_slug": type_slug}, 200
 
     @handle_db_exceptions
     def reject_request(self, request_id, approved_by, reason=None):

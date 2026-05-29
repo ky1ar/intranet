@@ -734,30 +734,29 @@ document.addEventListener("DOMContentLoaded", () => {
 				<p>Accede a nuestros servicios especiales para clientes Krear 3D.</p>
 			</div>
 			<div class="servicios-cards">
-
-				<div class="servicio-card" data-type="stl">
-					<div class="servicio-icon">
-						<img src="/wp-content/uploads/2025/07/cuenta.png" alt="STL" class="servicio-img-icon">
-					</div>
-					<h3>STL</h3>
-					<p class="servicio-desc">Accede a nuestra biblioteca de archivos STL exclusivos para impresión 3D.</p>
-					<div class="servicio-action">
-						<span class="servicio-status-badge" style="display:none;"></span>
-						<button class="btn-solicitar" data-type="stl">Solicitar acceso</button>
-						<a class="btn-acceder" data-type="stl" href="#" target="_blank" style="display:none;">Acceder</a>
-					</div>
-				</div>
-
 				<div class="servicio-card" data-type="cursos">
 					<div class="servicio-icon">
 						<img src="/wp-content/uploads/2025/07/cuenta.png" alt="Cursos" class="servicio-img-icon">
 					</div>
-					<h3>Cursos</h3>
+					<h3>K3D LAB</h3>
 					<p class="servicio-desc">Accede a cursos especializados en impresión 3D, diseño y más.</p>
 					<div class="servicio-action">
 						<span class="servicio-status-badge" style="display:none;"></span>
 						<button class="btn-solicitar" data-type="cursos">Solicitar acceso</button>
 						<a class="btn-acceder" data-type="cursos" href="#" target="_blank" style="display:none;">Acceder</a>
+					</div>
+				</div>
+
+				<div class="servicio-card" data-type="stl">
+					<div class="servicio-icon">
+						<img src="/wp-content/uploads/2025/07/cuenta.png" alt="STL" class="servicio-img-icon">
+					</div>
+					<h3>K3D FAB</h3>
+					<p class="servicio-desc">Accede a nuestra biblioteca de archivos STL exclusivos para impresión 3D.</p>
+					<div class="servicio-action">
+						<span class="servicio-status-badge" style="display:none;"></span>
+						<button class="btn-solicitar" data-type="stl">Solicitar acceso</button>
+						<a class="btn-acceder" data-type="stl" href="#" target="_blank" style="display:none;">Acceder</a>
 					</div>
 				</div>
 

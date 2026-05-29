@@ -1,4 +1,8 @@
 import logging
+from datetime import datetime
+from flask import render_template
+from flask_mail import Message
+from application import mail
 from application.handlers import handle_exceptions
 from application.utils import format_datetime
 from application.repository.approval_repository import ApprovalRepository
@@ -66,7 +70,31 @@ class ApprovalService:
         )
         if sc != 200:
             return result, sc
+        self._send_lab_approval_email(result)
         return {"message": "Solicitud aprobada"}, 200
+
+    def _send_lab_approval_email(self, result):
+        email = result.get("client_email")
+        name  = result.get("client_name") or "Cliente"
+        if not email:
+            return
+        try:
+            html_content = render_template(
+                "k3d_lab_approved.html",
+                client_name=name,
+                client_email=email,
+                temp_password="Krear3D@2025",
+                current_year=datetime.now().year,
+            )
+            msg = Message(
+                subject="Tu acceso a K3D Lab ha sido aprobado",
+                sender=("Krear 3D", "web@tiendakrear3d.com"),
+                recipients=[email],
+                html=html_content,
+            )
+            mail.send(msg)
+        except Exception:
+            logging.exception("Error enviando correo de aprobación K3D Lab a %s", email)
 
     @handle_exceptions
     def reject_request(self, data):
