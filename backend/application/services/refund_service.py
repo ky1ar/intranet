@@ -2,6 +2,7 @@ import os
 import uuid
 import math
 import threading
+import logging
 from datetime import timedelta
 from flask import request, send_file
 from flask_jwt_extended import get_jwt_identity
@@ -389,6 +390,8 @@ class RefundService:
         _disp_name   = (_client.name or "").title() if _client else ""
         _refund_num  = f"EX-{refund_id}"
 
+        logging.info(f"_waba_phone update {_waba_phone}")
+
         # States: 1=registered 2=reviewing 3=area_pending 4=gerencia_pending
         #         5=scheduled 6=executed 7=reverted
         can_high = any(self._has_perm(user_id, p) for p in _HIGH_PERMS)
@@ -437,6 +440,8 @@ class RefundService:
         else:
             return "Estado inválido", 400
 
+        logging.info(f"passed validations")
+
         # Gerencia approval (→5) auto-schedules; 1→2 auto-assigns
         if status_id == 5:
             now = peru_time()
@@ -454,17 +459,21 @@ class RefundService:
                 return result, rc
 
         socketio.emit("refund_update", {})
+        logging.info(f"socket emit")
 
         user, _ = self.user_repository.get_user_by_id(user_id)
         name = format_name(user.name, True) if user else "Alguien"
 
         if status_id == 3:
+            logging.info(f"push status 3")
             self._push_to_perm("approve_area", f"Extorno #{refund_id} pendiente", f"{name} envió el extorno a área", user_id)
         elif status_id == 4:
+            logging.info(f"push status 4")
             self._push_to_perm("approve_gerencia", f"Extorno #{refund_id} pendiente", f"{name} aprobó en área", user_id)
         elif status_id == 5:
             now = peru_time()
             scheduled = self._next_valid_friday(now)
+            logging.info(f"push status 5")
             self._push_to_perms(
                 ["validate", "approve_area"],
                 f"Extorno #{refund_id} programado",
@@ -472,27 +481,39 @@ class RefundService:
                 user_id,
             )
             if _waba_phone:
+                logging.info(f"_waba_phone finded to send {_waba_phone}")
+
                 _amount = f"{float(req.refund_amount):.2f}"
                 if req.applies_penalty:
+                    logging.info(f"applies_penalty")
                     _amount_final = f"{float(req.net_refund):.2f}"
                     threading.Thread(
                         target=self.whatsapp.refund_approved_penalty,
                         args=(_waba_phone, _disp_name, _refund_num, _amount, _amount_final),
                     ).start()
                 else:
+                    logging.info(f"no_applies_penalty")
                     threading.Thread(
                         target=self.whatsapp.refund_approved_no_penalty,
                         args=(_waba_phone, _disp_name, _refund_num, _amount),
                     ).start()
         elif status_id == 6:
+            logging.info(f"status 6")
+
             if _waba_phone:
+                logging.info(f"_waba_phone finded to send {_waba_phone}")
+
                 _amount = f"{float(req.net_refund):.2f}"
                 threading.Thread(
                     target=self.whatsapp.refund_executed,
                     args=(_waba_phone, _disp_name, _refund_num, _amount, comprobante_url),
                 ).start()
         elif status_id == 7:
+            logging.info(f"status 7")
+
             if _waba_phone:
+                logging.info(f"_waba_phone finded to send {_waba_phone}")
+
                 threading.Thread(
                     target=self.whatsapp.refund_reverted,
                     args=(_waba_phone, _disp_name, _refund_num),
@@ -791,6 +812,7 @@ class RefundService:
         client_name    = (data.get("client_name") or "").strip()
         client_phone   = (data.get("client_phone") or "").strip()
 
+        logging.info(f"client_phone registered {client_phone}")
         if not reason or reason not in REASON_LABELS:
             return "Motivo inválido", 400
         if not payment_method or payment_method not in PAYMENT_LABELS:
@@ -851,6 +873,7 @@ class RefundService:
 
         waba_phone = self._format_waba_phone(client_phone)
         if waba_phone:
+            logging.info(f"waba_phone registered {waba_phone}")
             display_name = ((client.name if crc == 200 else None) or client_name or "").title()
             amount_str   = f"{float(refund_amount):.2f}"
             refund_num   = f"EX-{refund_id}"
