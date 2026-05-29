@@ -143,13 +143,13 @@ class ClientRepository:
 
     @handle_db_exceptions
     def update_client_contact(self, client, email=None, phone=None):
-        if email:
-            client.email = email
-        if phone:
-            logging.info(f"new phone 51{phone}")
-            client.phone = f'51{phone}'
-        g.db_session.add(client)
-        g.db_session.commit()
+        fresh = g.db_session.query(Clients).filter_by(id=client.id).first()
+        if fresh:
+            if email:
+                fresh.email = email
+            if phone:
+                fresh.phone = f'51{phone}'
+            g.db_session.commit()
         return client, 200
 
     @handle_db_exceptions
