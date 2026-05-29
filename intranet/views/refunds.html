@@ -530,11 +530,15 @@
 							</div>
 							<input type="file" accept="image/*,application/pdf" style="display:none"
 								x-ref="comprobanteInput"
-								@change="comprobante = $event.target.files[0]; $event.target.value = ''">
+								@change="comprobante = $event.target.files[0]; comprobante_error = false; $event.target.value = ''">
 						</div>
 
 						<!-- Acciones de estado -->
 						<div class="detail-actions" x-show="getAvailableActions().length > 0">
+							<div class="comprobante-error" x-show="comprobante_error" x-transition.opacity.duration.200ms>
+								<img alt="" width="14" height="14" src="/static/icons/filled/late.svg">
+								<span>Debes adjuntar el comprobante de pago antes de ejecutar el extorno.</span>
+							</div>
 							<div class="action-btns buttons">
 								<template x-for="action in getAvailableActions()" :key="action.status_id">
 									<button class="button icon hover-opacity" :class="action.class || ''"
@@ -639,6 +643,7 @@
 			viewer_file: null,
 			viewer_payload: null,
 			comprobante: null,
+			comprobante_error: false,
 			pending_delete_attachment: null,
 			editing_order: false,
 			edit_order_value: '',
@@ -893,6 +898,7 @@
 					this.detail = json.data;
 					this.message = '';
 					this.comprobante = null;
+					this.comprobante_error = false;
 					this.editing_order = false;
 					Alpine.store('cache').showModal('refund-detail');
 					this.$nextTick(() => this.scrollCommentsToBottom('instant'));
@@ -960,6 +966,11 @@
 
 			async changeStatus(statusId) {
 				if (!this.detail) return;
+				if (statusId === 6 && !this.comprobante) {
+					this.comprobante_error = true;
+					return;
+				}
+				this.comprobante_error = false;
 				try {
 					let res;
 					if (statusId === 6 && this.comprobante) {
@@ -1566,6 +1577,19 @@
 		/* Actions */
 		.detail-actions { border-top: 1px solid var(--gray); }
 		.action-btns { flex: 1; }
+		.comprobante-error {
+			display: flex;
+			align-items: center;
+			gap: 0.4rem;
+			padding: 0.5rem 0.75rem;
+			background: #fff0de;
+			border: 1.5px solid #fcdab1;
+			border-radius: 0.5rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+			color: #b45300;
+			margin-bottom: 0.5rem;
+		}
 
 		@media (max-width: 48rem) {
 			#refunds .main { flex-direction: column; }
