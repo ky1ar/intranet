@@ -804,10 +804,12 @@ class RefundService:
         client, crc = self.client_repository.get_client_by_document(client_dni)
         if crc == 200:
             resolved_client_id = client.id
-            if not client_phone and client.phone:
+            if client_phone:
+                self.client_repository.update_client_contact(client, phone=client_phone)
+            elif client.phone:
                 client_phone = client.phone.strip()
         else:
-            resolved_client_id, crc2 = self.client_repository.add_client_minimal(client_dni, client_name or client_dni)
+            resolved_client_id, crc2 = self.client_repository.add_client_minimal(client_dni, client_name or client_dni, phone=client_phone or None)
             if crc2 != 200:
                 return resolved_client_id, crc2
 
