@@ -1,6 +1,7 @@
 import logging, time, hmac, hashlib, uuid
 from application.repository.dev_repository import DevRepository
 from application.repository.waba_reply_repository import WabaReplyRepository
+from application.repository.waba_message_repository import WabaMessageRepository
 from application.handlers import handle_exceptions
 from application.proxy.whatsapp import Whatsapp
 from application.services.push_service import PushSender
@@ -14,6 +15,7 @@ class DevService:
     def __init__(self):
         self.dev_repository = DevRepository()
         self.waba_reply_repository = WabaReplyRepository()
+        self.waba_message_repository = WabaMessageRepository()
         self.user_repository = UserRepository()
         self.whatsapp = Whatsapp()
         self.push_service = PushSender()
@@ -110,6 +112,18 @@ class DevService:
             )
         except Exception as e:
             logging.exception(f"[WabaReply] Error al guardar: {e}")
+
+        try:
+            self.waba_message_repository.log_inbound(
+                wa_id          = wa_id,
+                contact_name   = contact_name,
+                wamid          = wamid,
+                msg_type       = msg_type,
+                content        = content,
+                waba_timestamp = waba_ts,
+            )
+        except Exception as e:
+            logging.exception(f"[WabaMessage] Error al guardar inbound: {e}")
 
         # Push a usuario 23
         try:

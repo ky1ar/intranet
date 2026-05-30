@@ -66,9 +66,59 @@ class Whatsapp:
         if response.status_code != 200:
             logging.info(response.text)
             return f"Error {response_data}", response.status_code
-        
+
         logging.info(response_data)
+        self._log_outbound(payload)
         return response_data, 200
+
+
+    def _log_outbound(self, payload):
+        try:
+            from application import app, db
+            from sqlalchemy import text as sa_text
+            import time as _time
+
+            to        = payload.get("to", "")
+            msg_type  = payload.get("type", "")
+            content   = None
+            tmpl_name = None
+
+            if msg_type == "template":
+                tmpl      = payload.get("template", {})
+                tmpl_name = tmpl.get("name")
+                for comp in tmpl.get("components", []):
+                    if comp.get("type") == "body":
+                        params  = [p.get("text", "") for p in comp.get("parameters", []) if p.get("type") == "text"]
+                        content = " | ".join(filter(None, params)) or None
+                        break
+            elif msg_type == "text":
+                content = payload.get("text", {}).get("body")
+
+            with app.app_context():
+                with db.engine.connect() as conn:
+                    conn.execute(
+                        sa_text(
+                            "INSERT INTO waba_message "
+                            "(wa_id, direction, msg_type, content, template_name, waba_timestamp, created_at) "
+                            "VALUES (:wa_id, 'out', :msg_type, :content, :tmpl_name, :ts, NOW())"
+                        ),
+                        {"wa_id": to, "msg_type": msg_type, "content": content,
+                         "tmpl_name": tmpl_name, "ts": int(_time.time())}
+                    )
+                    conn.commit()
+        except Exception as e:
+            logging.exception(f"[WabaMessage] Log outbound failed: {e}")
+
+
+    @handle_exceptions
+    def send_text(self, phone, text):
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "text",
+            "text": {"body": text},
+        }
+        return self.post(payload)
     
 
     @handle_exceptions
