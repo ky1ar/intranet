@@ -72,12 +72,12 @@ do_action( 'woocommerce_before_account_navigation' );
 		</div>
 
 		<!-- Guías -->
-		<div class="kd-nav-item kd-item-guias">
+		<!-- <div class="kd-nav-item kd-item-guias">
 			<svg class="kd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 				<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
 			</svg>
 			<span>Guías</span>
-		</div>
+		</div> -->
 
 		<!-- Pedidos -->
 		<a class="kd-nav-item <?php echo $is_orders ? 'kd-active' : ''; ?>" href="/mi-cuenta/orders/">

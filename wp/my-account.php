@@ -39,7 +39,7 @@ header.custom {
 	display: none;
 }
 #kd-dashboard .wrapper  {
-	max-width: 80rem;
+	max-width: 92rem;
 }
 #kd-dashboard .dash {
 	display: grid;
@@ -720,7 +720,8 @@ document.addEventListener("DOMContentLoaded", () => {
 				</div>
 			  </section>
 		  	</div>
-		  <div id="section-servicios" class="section-content servicios-section" style="display:none;">
+		  
+			<div id="section-servicios" class="section-content servicios-section" style="display:none;">
 			<?php
 			$current_user    = wp_get_current_user();
 			$wp_user_id      = get_current_user_id();
@@ -730,24 +731,66 @@ document.addEventListener("DOMContentLoaded", () => {
 			$wp_user_dni     = get_user_meta( $wp_user_id, 'billing_dni', true );
 			?>
 			<div class="servicios-header">
-				<h2>Servicios Exclusivos</h2>
+				<h2>Beneficios exclusivos</h2>
 				<p>Accede a nuestros servicios especiales para clientes Krear 3D.</p>
 			</div>
+
 			<div class="servicios-cards">
 				<div class="servicio-card" data-type="cursos">
-					<div class="servicio-icon">
-						<img src="/wp-content/uploads/2025/07/cuenta.png" alt="Cursos" class="servicio-img-icon">
+					<div class="top">
+						<div class="data">
+							<span>Curso online</span>
+							<div class="title">Impresión 3D</div>
+							<div class="type">FDM</div>
+							<p>Introducción a la impresión 3D, uso de impresoras FDM y sus aplicaciones.</p>
+							<ul>
+								<li><b></b>Preparación y mantenimiento</li>
+								<li><b></b>Software de laminado</li>
+								<li><b></b>Uso correcto de filamentos</li></ul>
+						</div>
+
+						<div class="image">
+							<img src="https://www.tiendakrear3d.com/wp-content/uploads/2026/05/fdm.webp">
+						</div>
 					</div>
-					<h3>K3D LAB</h3>
-					<p class="servicio-desc">Accede a cursos especializados en impresión 3D, diseño y más.</p>
-					<div class="servicio-action">
-						<span class="servicio-status-badge" style="display:none;"></span>
-						<button class="btn-solicitar" data-type="cursos">Solicitar acceso</button>
-						<a class="btn-acceder" data-type="cursos" href="#" target="_blank" style="display:none;">Acceder</a>
+
+					<div class="bottom">
+						<div class="icon">
+							<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" x="0" y="0" viewBox="0 0 512 512" style="enable-background:new 0 0 512 512" xml:space="preserve" class=""><g transform="matrix(0.8500000000000008,0,0,0.8500000000000008,38.399999427795166,38.39999885559058)"><path d="M130 161c-30.918 0-45 49.245-45 95s14.082 95 45 95 45-49.245 45-95-14.082-95-45-95zm0 159.359c-5.216-4.926-15-26.749-15-64.359s9.784-59.434 15-64.359c5.216 4.926 15 26.749 15 64.359s-9.784 59.434-15 64.359z" fill="#ea7134" opacity="1" data-original="#000000" class=""></path><path d="M476.855 432.873C499.519 385.377 512 322.563 512 256s-12.481-129.377-35.145-176.873C452.507 28.101 418.819 0 382 0c-42.206 0-79.849 36.664-104.163 101h-43.676c-2.88-7.594-5.98-14.902-9.306-21.873C200.506 28.101 166.82 0 130 0S59.494 28.101 35.145 79.127C12.481 126.623 0 189.437 0 256s12.481 129.377 35.145 176.873C59.494 483.899 93.18 512 130 512s70.506-28.101 94.855-79.127c3.326-6.97 6.426-14.279 9.306-21.873h43.676C302.151 475.336 339.794 512 382 512c17.236 0 33.785-6.159 49.011-17.944C455.634 505.559 483.077 512 512 512v-30c-20.566 0-40.244-3.861-58.361-10.881 8.413-10.769 16.204-23.551 23.216-38.246zm-279.076-12.92C178.963 459.385 154.259 482 130 482c-24.259 0-48.963-22.615-67.779-62.047C41.443 376.41 30 318.184 30 256S41.443 135.59 62.221 92.047C81.037 52.615 105.741 30 130 30c24.259 0 48.963 22.615 67.779 62.047C218.557 135.59 230 193.816 230 256s-11.443 120.41-32.221 163.953zM243.947 381C254.415 343.31 260 300.497 260 256s-5.585-87.31-16.054-125H297.4c2.645 2.589 8.859 12.664 14.294 37.353C317.051 192.678 320 223.806 320 256v64c0 21.315 3.497 41.827 9.938 61h-85.991zM382 482c-14.385 0-28.556-7.535-42.122-22.396-11.061-12.118-21.162-28.709-29.689-48.604h32.784c14.229 26.323 34.428 48.96 58.77 66.095C395.213 480.318 388.591 482 382 482zm-43.064-328.736c-2.171-8.43-4.604-15.868-7.267-22.264h31.735c2.648 2.598 8.86 12.682 14.291 37.352C383.051 192.678 386 223.806 386 256c0 32.194-2.949 63.322-8.306 87.648-5.431 24.67-11.643 34.754-14.291 37.352h-1.47C354.248 362.162 350 341.569 350 320v-64c0-38.546-3.93-75.032-11.064-102.736zm87.183 304.037a163.274 163.274 0 0 1-49.867-48.993c5.072-2.532 10.516-7.218 15.556-15.538 5.035-8.313 9.452-19.763 13.128-34.034C412.07 331.032 416 294.546 416 256c0-38.546-3.93-75.032-11.064-102.736-3.676-14.271-8.093-25.721-13.128-34.034-9.127-15.068-19.582-18.23-26.745-18.23H310.19c8.526-19.896 18.627-36.487 29.688-48.604C353.444 37.535 367.615 30 382 30c24.259 0 48.964 22.615 67.779 62.047C470.558 135.59 482 193.816 482 256s-11.442 120.41-32.221 163.953c-7.151 14.987-15.155 27.538-23.66 37.348z" fill="#ea7134" opacity="1" data-original="#000000" class=""></path></g></svg>
+						</div>
+						<p>Ideal para prototipos, pieza funcionales y proyectos de uso diario.</p>
+						<div class="action">Acceder al curso</div>
 					</div>
 				</div>
 
-				<div class="servicio-card" data-type="stl">
+				<div class="servicio-card" data-type="cursos">
+					<div class="top">
+						<div class="data">
+							<span>Curso online</span>
+							<div class="title">Impresión 3D</div>
+							<div class="type">LCD</div>
+							<p>Curso de impresión 3D en resina, enfocado en precisión, materiales y postprocesado.</p>
+							<ul>
+								<li><b></b>Impresión, uso y seguridad</li>
+								<li><b></b>Software y soportes</li>
+								<li><b></b>Tipos de resina</li></ul>
+						</div>
+
+						<div class="image">
+							<img src="https://www.tiendakrear3d.com/wp-content/uploads/2026/05/lcd.webp">
+						</div>
+					</div>
+
+					<div class="bottom">
+						<div class="icon">
+							<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" x="0" y="0" viewBox="0 0 513.398 513.398" style="enable-background:new 0 0 512 512" xml:space="preserve" class=""><g><path d="M414.315 19.258H99.112L0 154.41l257.764 339.73 255.635-339.769zm-273.4 150 72.622 216.961L48.922 169.258zm31.637 0h168.412l-83.628 253.297zm200.006 0h92.098L300.541 387.385zm26.553-120 66 90h-92.533l-29.531-90zm-87.638 0 29.531 90H172.422l29.531-90zm-197.159 0h56.064l-29.531 90H48.314z" fill="#ea7134" opacity="1" data-original="#000000" class=""></path></g></svg>
+						</div>
+						<p>Ideal para miniaturas, joyería, dental, modelismo y alta precisión.</p>
+						<div class="action">Acceder al curso</div>
+					</div>
+				</div>
+
+				<!-- <div class="servicio-card" data-type="stl">
 					<div class="servicio-icon">
 						<img src="/wp-content/uploads/2025/07/cuenta.png" alt="STL" class="servicio-img-icon">
 					</div>
@@ -758,7 +801,7 @@ document.addEventListener("DOMContentLoaded", () => {
 						<button class="btn-solicitar" data-type="stl">Solicitar acceso</button>
 						<a class="btn-acceder" data-type="stl" href="#" target="_blank" style="display:none;">Acceder</a>
 					</div>
-				</div>
+				</div> -->
 
 			</div>
 
@@ -783,23 +826,134 @@ document.addEventListener("DOMContentLoaded", () => {
 			</div>
 
 			<style>
-			.servicios-section { flex-direction: column; gap: 1.5rem; padding: 1.5rem; }
+			.servicios-section {
+				flex-direction: column;
+				gap: 1.5rem;
+			}
 			.servicios-header h2 { margin: 0 0 0.3rem; font-size: 1.4rem; }
 			.servicios-header p { color: #666; margin: 0; }
 			.servicios-cards { display: flex; flex-wrap: wrap; gap: 1.5rem; }
+			
 			.servicio-card {
 				background: #fff;
 				border: 1px solid #eee;
 				border-radius: 12px;
 				padding: 1.5rem;
 				flex: 1 1 220px;
-				max-width: 280px;
 				display: flex;
 				flex-direction: column;
+				width: 50%;
 				gap: 0.8rem;
-				box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+				overflow: hidden;
 			}
-			.servicio-card h3 { margin: 0; font-size: 1.1rem; }
+			.servicio-card .top {
+				display: flex;
+			}
+			.servicio-card .top .data {
+				display: flex;
+				flex-direction: column;
+				align-items: start;
+				gap: 0.25rem;
+			}
+			.servicio-card .top .data span {
+				background: var(--primaryopacity);
+				color: var(--primary);
+				font-size: 0.7rem;
+				font-weight: 700;
+				padding: 0.25rem 0.75rem;
+				border-radius: 1rem;
+			}
+			.servicio-card .top .data .title {
+				font-size: 1.2rem;
+				font-weight: 800;
+				margin-top: 0.25rem;
+			}
+			.servicio-card .top .data .type {
+				font-size: 1.2rem;
+				font-weight: 800;
+				color: var(--primary);
+				margin-top: -0.5rem;
+			}
+			.servicio-card .top .data p {
+				font-size: 0.75rem;
+				font-weight: 500;
+				margin-top: -0.125rem;
+				margin-bottom: 0.75rem;
+				max-width: 75%;
+			}
+			.servicio-card .top .data ul {
+				font-size: 0.7rem;
+				font-weight: 500;
+				display: flex;
+				flex-direction: column;
+				gap: 0.4rem;
+			}
+			.servicio-card .top .data ul li {
+				display: flex;
+				gap: 0.5rem;
+				align-items: center;
+			}
+			.servicio-card .top .data ul li b {
+				width: 0.75rem;
+				height: 0.75rem;
+				display: block;
+				background-color: var(--primary);
+				border-radius: 1rem;
+			}
+			.servicio-card .top .image {
+				max-width: 12rem;
+				margin-right: -0.5rem;
+				display: flex;
+				align-items: end;
+				justify-content: end;
+			}
+			.servicio-card .top .image img {
+				width: 90%;
+			}
+			.servicio-card .bottom {
+				color: var(--primary);
+				margin: 0 -1rem -1rem -1rem;
+				display: flex;
+				padding: 0.75rem 1rem;
+				justify-content: space-between;
+				gap: 1rem;
+				align-items: center;
+			}
+			.servicio-card .bottom .icon {
+				display: flex;
+				align-items: center;
+				background-color: #ea713433;
+				width: 2.5rem;
+				min-width: 2.5rem;
+				height: 2.5rem;
+				border-radius: 2rem;
+				justify-content: center;
+			}
+			.servicio-card .bottom .icon svg {
+				width: 1.5rem;
+				height: 1.5rem;
+			}
+			.servicio-card .bottom p {
+				font-size: 0.7rem;
+				line-height: 1.15rem;
+				margin: 0;
+				font-weight: 500;
+				opacity: 0.75;
+			}
+			.servicio-card .bottom .action {
+				background-color: var(--primary);
+				color: white;
+				align-items: center;
+				justify-content: center;
+				display: flex;
+				padding: 0.5rem 1rem;
+				border-radius: 0.5rem;
+				white-space: nowrap;
+				font-weight: 500;
+				margin-right: 0.25rem;
+			}
+
 			.servicio-desc { color: #555; font-size: 0.9rem; margin: 0; }
 			.servicio-img-icon { width: 48px; height: 48px; object-fit: contain; }
 			.servicio-action { display: flex; flex-direction: column; gap: 0.5rem; margin-top: auto; }
