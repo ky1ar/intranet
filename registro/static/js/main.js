@@ -6,7 +6,7 @@ document.addEventListener('alpine:init', () => {
     }));
 
     Alpine.store('cache', {
-        api: 'https://devapi.krear3d.com', //https://api.krear3d.com
+        api: 'https://api.krear3d.com', //https://api.krear3d.com
     });
 });
 
