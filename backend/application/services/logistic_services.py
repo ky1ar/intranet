@@ -276,12 +276,17 @@ class LogisticService:
 
         logging.info(shipping_order.assigned.phone)
         if status_id in (2, 3, 4, 6):
+            proof_file = None
+            if status_id in (4, 6) and shipping_order.attachments:
+                proof_file = shipping_order.attachments[-1].filename
+
             payload = {
                 "phone": client.phone,
                 "username": client.name.title(),
                 "order_number": shipping_order.client_order.number,
                 "schedule_id": shipping_order.schedule_id,
                 "delivery_date": delivery_date,
+                "file": proof_file,
             }
             if shipping_order.method_id < 3:
                 threading.Thread(target=self.whatsapp.logistic_status_change, args=(payload, status_id)).start()

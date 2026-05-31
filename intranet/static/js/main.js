@@ -104,7 +104,7 @@ document.addEventListener('alpine:init', () => {
     }));
 
     Alpine.store('cache', {
-        api: 'https://api.krear3d.com', //https://devapi.krear3d.com
+        api: 'https://devapi.krear3d.com', //https://devapi.krear3d.com
         user: {},
         active_page: window.location.pathname,
          module_ui: {
@@ -124,7 +124,9 @@ document.addEventListener('alpine:init', () => {
             schedules:   { image: 'schedule.svg',   label: 'Horarios',      title: 'Krear 3D - Horarios' },
             refunds:     { image: 'refund.svg',     label: 'Extornos',      title: 'Krear 3D - Extornos' },
             safebuy:     { image: 'safebuy.svg',    label: 'Compra Segura', title: 'Krear 3D - Compra Segura' },
-            admin:       { image: 'admin.svg',      label: 'Admin',         title: 'Krear 3D - Admin' },
+            approvals:     { image: 'approval.svg',       label: 'Aprobaciones',   title: 'Krear 3D - Aprobaciones' },
+            conversations: { image: 'marketing.svg',     label: 'Conversaciones', title: 'Krear 3D - Conversaciones' },
+            admin:         { image: 'admin.svg',         label: 'Admin',          title: 'Krear 3D - Admin' },
         },
 
 

@@ -1,6 +1,8 @@
-import logging, requests, json
+import logging, requests, json, time
 from datetime import datetime
 from application.handlers import handle_exceptions
+from application.db_models.waba_message_model import WabaMessage
+from application import app, db
 from config import WABA as API
 from config import Config
 from config import Odoo
@@ -63,12 +65,67 @@ class Whatsapp:
         }
         response = requests.post(url, headers=headers, data=json.dumps(payload))
         response_data = response.json()
+
+        self._log_outbound(payload)
+
         if response.status_code != 200:
             logging.info(response.text)
             return f"Error {response_data}", response.status_code
-        
+
         logging.info(response_data)
         return response_data, 200
+
+
+    def _log_outbound(self, payload):
+        try:
+            to        = payload.get("to", "")
+            msg_type  = payload.get("type", "")
+            content   = None
+            tmpl_name = None
+            media_url = None
+
+            if msg_type == "template":
+                tmpl      = payload.get("template", {})
+                tmpl_name = tmpl.get("name")
+                for comp in tmpl.get("components", []):
+                    if comp.get("type") == "header":
+                        p = (comp.get("parameters") or [{}])[0]
+                        if p.get("type") == "image":
+                            media_url = p.get("image", {}).get("link")
+                        elif p.get("type") == "document":
+                            media_url = p.get("document", {}).get("link")
+                    elif comp.get("type") == "body":
+                        params  = [str(p.get("text", "")) for p in comp.get("parameters", []) if p.get("type") == "text"]
+                        content = " | ".join(filter(None, params)) or None
+            elif msg_type == "text":
+                content = payload.get("text", {}).get("body")
+
+            with app.app_context():
+                msg = WabaMessage(
+                    wa_id          = to,
+                    direction      = 'out',
+                    msg_type       = msg_type,
+                    content        = content,
+                    template_name  = tmpl_name,
+                    media_url      = media_url,
+                    waba_timestamp = int(time.time()),
+                )
+                db.session.add(msg)
+                db.session.commit()
+                db.session.remove()
+        except Exception as e:
+            logging.exception(f"[WabaMessage] Log outbound failed: {e}")
+
+
+    @handle_exceptions
+    def send_text(self, phone, text):
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone,
+            "type": "text",
+            "text": {"body": text},
+        }
+        return self.post(payload)
     
 
     @handle_exceptions
@@ -294,8 +351,8 @@ class Whatsapp:
             1: (Config.T1_START, Config.T1_END),
             2: (Config.T2_START, Config.T2_END)
         }
-        start, end = schedules.get(schedule_id)
-        timer = 10
+        start, end = schedules.get(schedule_id) or ('', '')
+        timer = "10"
 
         parameters = [{"type": "text", "parameter_name": "username", "text": username}]
 

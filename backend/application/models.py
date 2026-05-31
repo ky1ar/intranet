@@ -155,6 +155,7 @@ class Clients(BaseModel):
     province_id = db.Column(db.Integer, db.ForeignKey('location_province.id'), nullable=False)
     district_id = db.Column(db.Integer, db.ForeignKey('location_district.id'), nullable=False)
     address = db.Column(db.String(255), nullable=False)
+    wp_user_id = db.Column(db.Integer, nullable=True, unique=True)
 
     department = db.relationship("Department", lazy="joined", foreign_keys=[department_id])
     province = db.relationship("Province", lazy="joined", foreign_keys=[province_id])
