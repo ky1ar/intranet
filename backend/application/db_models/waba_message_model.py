@@ -12,5 +12,6 @@ class WabaMessage(BaseModel):
     msg_type      = db.Column(db.String(30), nullable=False)  # 'text', 'template', 'image', etc.
     content       = db.Column(db.Text, nullable=True)
     template_name = db.Column(db.String(100), nullable=True)
+    media_url     = db.Column(db.String(500), nullable=True)
     waba_timestamp= db.Column(db.BigInteger, nullable=True)
     created_at    = db.Column(db.DateTime, nullable=False, server_default=db.func.now())

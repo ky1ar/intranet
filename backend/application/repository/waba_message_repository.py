@@ -1,5 +1,6 @@
 from application.handlers import handle_db_exceptions
 from application.db_models.waba_message_model import WabaMessage
+from application.models import Clients
 from sqlalchemy import func
 from flask import g
 
@@ -55,10 +56,22 @@ class WabaMessageRepository:
             if row.wa_id not in name_map:
                 name_map[row.wa_id] = row.contact_name
 
+        # For wa_ids still without a name, look up in clients by phone (stored as "51XXXXXXXXX")
+        unnamed = [m.wa_id for m in last_msgs if m.wa_id not in name_map]
+        if unnamed:
+            clients = (
+                g.db_session.query(Clients.phone, Clients.name)
+                .filter(Clients.phone.in_(unnamed))
+                .all()
+            )
+            for c in clients:
+                if c.name:
+                    name_map[c.phone] = c.name.title()
+
         return [
             {
                 "wa_id":         m.wa_id,
-                "contact_name":  name_map.get(m.wa_id, m.wa_id),
+                "contact_name":  name_map.get(m.wa_id) or m.wa_id,
                 "direction":     m.direction,
                 "msg_type":      m.msg_type,
                 "content":       m.content,

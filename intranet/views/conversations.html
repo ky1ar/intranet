@@ -68,7 +68,7 @@
 							<div class="conv-thread-avatar" x-text="initials(selected.contact_name)"></div>
 							<div>
 								<div class="conv-thread-name" x-text="selected.contact_name"></div>
-								<div class="conv-thread-phone" x-text="selected.wa_id"></div>
+								<div class="conv-thread-phone" x-text="formatPhone(selected.wa_id)"></div>
 							</div>
 						</div>
 
@@ -81,17 +81,21 @@
 							<template x-for="msg in messages" :key="msg.id">
 								<div class="conv-msg" :class="msg.direction === 'out' ? 'conv-msg-out' : 'conv-msg-in'">
 									<div class="conv-bubble" :class="msg.direction === 'out' ? 'bubble-out' : 'bubble-in'">
-										<template x-if="msg.template_name && !msg.content">
-											<div class="bubble-template-label" x-text="`[${msg.template_name}]`"></div>
+										<!-- Media header -->
+										<template x-if="msg.media_url && bubbleMediaType(msg) === 'pdf'">
+											<a class="bubble-pdf-link" :href="msg.media_url" target="_blank" rel="noopener">
+												<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+												Ver PDF adjunto
+											</a>
 										</template>
-										<template x-if="msg.template_name && msg.content">
-											<div>
-												<div class="bubble-template-label" x-text="`[${msg.template_name}]`"></div>
-												<div class="bubble-text" x-text="msg.content"></div>
-											</div>
+										<template x-if="msg.media_url && bubbleMediaType(msg) !== 'pdf'">
+											<img class="bubble-media-img" :src="msg.media_url" alt="Imagen adjunta" loading="lazy">
 										</template>
-										<template x-if="!msg.template_name">
-											<div class="bubble-text" x-text="msgLabel(msg)"></div>
+										<!-- Body -->
+										<div class="bubble-text" x-html="renderBubbleHtml(msg)"></div>
+										<!-- Template badge -->
+										<template x-if="msg.template_name">
+											<div class="bubble-tmpl-badge" x-text="msg.template_name"></div>
 										</template>
 										<div class="bubble-time" x-text="formatMsgTime(msg.created_at)"></div>
 									</div>
@@ -135,6 +139,108 @@
 
 
 	<script>
+	const WA_TEMPLATES = {
+		'soporte_0_registro': {
+			body: `Hola 😊, se ha registrado una nueva solicitud de soporte.\n\n📦 Equipo: *{{device_model}}*\n📝 Orden N.º: *{{order_number}}*\n\nPodrás revisar el estado de tu equipo con el número de orden y el DNI o RUC usados para el registro desde:\n👉 {{url}}\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático, por favor no respondas._`,
+			params: ['device_model', 'order_number', 'url'],
+		},
+		'soporte_0_ingreso': {
+			body: `Hola {{username}} 😊\n\nHemos recibido tu {{machine}} para revisión por nuestro equipo técnico.\n{{notes}}\n\n✅ El ingreso fue realizado correctamente. Te mantendremos informado sobre el estado de tu equipo.\n📄 Puedes revisar los términos y condiciones aceptados aquí: {{terms_link}}\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático, por favor no respondas._`,
+			params: ['username', 'machine', 'notes', 'terms_link'],
+		},
+		'soporte_1_revision': {
+			body: `Hola {{username}} 😊\n\n🔍 Ya iniciamos la revisión técnica de tu equipo. Pronto te informaremos sobre el diagnóstico y las posibles soluciones.\n📝 Ten en cuenta que este proceso puede tomar varios días, ya que realizamos pruebas exhaustivas para garantizar el buen funcionamiento.\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático, por favor no respondas._`,
+			params: ['username'],
+		},
+		'soporte_2_diagnostico': {
+			body: `Hola {{username}} 😊\n\n📋 Hemos finalizado la revisión de tu equipo y ya contamos con un diagnóstico. Si es necesario, te enviaremos los detalles y las opciones de reparación. ¡Seguimos avanzando!\n⚠ Si necesitas hablar con alguien de nuestro equipo de soporte técnico, contáctanos al WhatsApp \u202A{{number}}\u202C.\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático, por favor no respondas._`,
+			params: ['username', 'number'],
+		},
+		'soporte_3_repuesto': {
+			body: `Hola {{username}} 😊\n\n🔧 Ya hemos identificado el repuesto necesario para la reparación de tu equipo. Si no lo tenemos en stock, procederemos con la importación. Te mantendremos informado.\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático, por favor no respondas._`,
+			params: ['username'],
+		},
+		'soporte_4_reparacion': {
+			body: `Hola {{username}} 😊\n\n⚙ Tu equipo está en proceso de reparación. Nuestro equipo técnico está trabajando para que vuelva a funcionar perfectamente. Te avisaremos cuando finalice.\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático, por favor no respondas._`,
+			params: ['username'],
+		},
+		'soporte_5_pruebas': {
+			body: `Hola {{username}} 😊\n\n🖨 Tu equipo ha sido reparado y estamos realizando las pruebas finales para garantizar su correcto funcionamiento. En breve te confirmaremos cuándo podrás venir a recogerlo.\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático, por favor no respondas._`,
+			params: ['username'],
+		},
+		'soporte_6_recojo': {
+			body: `Hola {{username}} 😊\n\n✅ ¡Tu equipo está listo para ser recogido! Puedes pasar por nuestra tienda de lunes a sábado.\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático, por favor no respondas._`,
+			params: ['username'],
+		},
+		'soporte_7_entrega': {
+			body: `Hola {{username}} 😊\n\n✅ ¡Tu equipo fue entregado con éxito! Esperamos que todo esté en orden y hayas tenido una excelente experiencia.\n\n⭐ Tu opinión es muy importante para nosotros, déjanos una reseña aquí 👉 {{link}}\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático, por favor no respondas._`,
+			params: ['username', 'link'],
+			media: 'image',
+		},
+		'logistica_agendado': {
+			body: `👋 ¡Hola {{username}}!\n\n📦 Tu pedido {{order_number}} ya está listo y programado para ser entregado el día {{delivery_date}} 🗓\n\n📲 Te avisaré nuevamente el mismo día cuando el repartidor esté en camino 🚚\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático por favor no respondas._`,
+			params: ['username', 'order_number', 'delivery_date'],
+		},
+		'entrega': {
+			body: `👋 ¡Hola {{username}}!\n\n📦 Tu pedido {{order_number}} será entregado hoy, entre {{start}} y {{end}}, en la dirección indicada.\n\n🚚 Nuestro repartidor se comunicará contigo al llegar y podrá esperarte hasta {{timer}} minutos.\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático por favor no respondas._`,
+			params: ['username', 'order_number', 'start', 'end', 'timer'],
+		},
+		'entrega_exitosa_img': {
+			body: `👋 ¡Hola {{username}}!\n\n🥳 Tu pedido ha sido entregado con éxito. ¡Gracias por confiar en Krear 3D!\n\n📩 Si necesitas ayuda, escríbenos por WhatsApp al {{number}}.\n\n⭐ ¿Nos dejas una reseña? Tu opinión es importante 👉 {{link}}\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático por favor no respondas._`,
+			params: ['username', 'number', 'link'],
+			media: 'image',
+		},
+		'no_entrega_img': {
+			body: `👋 ¡Hola {{username}}!\n\n😕 No pudimos entregar tu pedido {{order_number}}.\n\n🛠 Por favor contáctate con uno de nuestros asesores para reprogramar la entrega o brindarte más información.\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático por favor no respondas._`,
+			params: ['username', 'order_number'],
+			media: 'image',
+		},
+		'refunds_register': {
+			body: `👋 Hola {{name}}, recibimos tu solicitud de extorno {{number}} por S/ {{amount}} ✅\n\nNuestro equipo la revisará y te responderá en máx. 7 días hábiles.\n\nGracias por confiar en Krear 3D 🧡`,
+			params: ['name', 'number', 'amount'],
+		},
+		'refunds_no_penality': {
+			body: `✅ ¡Buenas noticias {{name}}! Tu extorno {{number}} fue aprobado 🎉\n\nTe devolveremos el monto completo de S/ {{amount}}.\n\nPronto realizaremos el abono al medio de pago indicado.\n\nKrear 3D 🧡`,
+			params: ['name', 'number', 'amount'],
+		},
+		'refunds_penality': {
+			body: `✅ ¡Hola {{name}}! Tu extorno {{number}} fue aprobado 🎉\n\nMonto solicitado: S/ {{amount}}\nPenalidad aplicada: S/ 10\nMonto a devolver: S/ {{amount_final}}\n\nPronto realizaremos el abono al medio de pago indicado.\n\nKrear 3D 🧡`,
+			params: ['name', 'number', 'amount', 'amount_final'],
+		},
+		'refunds_reverted': {
+			body: `Hola {{name}} 😔 Lamentamos informarte que tu extorno {{number}} no procedió en esta oportunidad.\n\nEscríbenos para conocer los motivos o gestionar una nueva 💬\n\nKrear 3D 🧡`,
+			params: ['name', 'number'],
+		},
+		'refunds_executed': {
+			body: `💸 ¡Listo {{name}}! Tu extorno {{number}} por S/ {{amount}} ya fue abonado 🎉\n\nAdjuntamos la constancia de la operación 📎\n\n¡Gracias por tu confianza! Krear 3D 🧡`,
+			params: ['name', 'number', 'amount'],
+			media: 'image',
+		},
+		'tracking_alert': {
+			body: `👋 ¡Hola {{username}}!\n\nTu pedido {{order}} ha sido enviado vía {{agency}} 🚚\n\n{{code1}}\n{{code2}}\n{{code3}}\n\n📍 Puedes rastrear tu envío aquí 👉 {{url}} 🌐\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático por favor no respondas._`,
+			params: ['username', 'order', 'agency', 'code1', 'code2', 'code3', 'url'],
+		},
+		'odoo_invoice_prod': {
+			body: `Hola {{name}} 👋\n\nGracias por tu compra en Krear 3D.\n\nTe adjuntamos el comprobante electrónico en PDF:\n🧾 Número: {{number}}\n📅 Fecha de emisión: {{date}}\n\n_🤖 Soy Fabrix, asistente virtual de Krear 3D. Mensaje automático, por favor no respondas._`,
+			params: ['name', 'number', 'date'],
+			media: 'pdf',
+		},
+	};
+
+	function _escHtml(s) {
+		return String(s ?? '')
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;');
+	}
+
+	function _fmtWa(text) {
+		return text
+			.replace(/\*(.*?)\*/g, (_, m) => `<strong>${m}</strong>`)
+			.replace(/_(.*?)_/g,   (_, m) => `<em>${m}</em>`)
+			.replace(/\n/g, '<br>');
+	}
+
 	Alpine.data('conversations_data', () => ({
 		conversations:   [],
 		selected:        null,
@@ -257,9 +363,54 @@
 			return `(${msg.msg_type})`;
 		},
 
+		renderBubbleHtml(msg) {
+			if (msg.direction === 'out' && msg.template_name) {
+				const tmpl = WA_TEMPLATES[msg.template_name];
+				if (tmpl) {
+					const values = (msg.content || '').split(' | ');
+					let text = tmpl.body;
+					tmpl.params.forEach((name, i) => {
+						text = text.replaceAll(`{{${name}}}`, _escHtml(values[i] ?? ''));
+					});
+					return _fmtWa(text);
+				}
+				// Fallback: not in map
+				const raw = msg.content ? `[${msg.template_name}]\n${msg.content}` : `[${msg.template_name}]`;
+				return _fmtWa(_escHtml(raw));
+			}
+			// Inbound or free text — plain text, no x-html risk
+			return _fmtWa(_escHtml(msg.content || `(${msg.msg_type})`));
+		},
+
+		bubbleMediaType(msg) {
+			const tmpl = WA_TEMPLATES[msg.template_name];
+			return tmpl?.media || 'image';
+		},
+
+		formatPhone(wa_id) {
+			if (!wa_id) return '';
+			const d = String(wa_id).replace(/\D/g, '');
+			if (d.length === 11 && d.startsWith('51')) {
+				const n = d.slice(2);
+				return `+51 ${n.slice(0,3)} ${n.slice(3,6)} ${n.slice(6)}`;
+			}
+			return `+${d}`;
+		},
+
 		previewMsg(conv) {
-			const raw = conv.content || (conv.template_name ? `[${conv.template_name}]` : `(${conv.msg_type})`);
-			return raw.length > 42 ? raw.substring(0, 42) + '…' : raw;
+			let text;
+			if (conv.direction === 'out' && conv.template_name && WA_TEMPLATES[conv.template_name]) {
+				const tmpl = WA_TEMPLATES[conv.template_name];
+				const values = (conv.content || '').split(' | ');
+				text = tmpl.body;
+				tmpl.params.forEach((name, i) => {
+					text = text.replaceAll(`{{${name}}}`, values[i] ?? '');
+				});
+				text = text.replace(/\*(.*?)\*/g, '$1').replace(/_(.*?)_/g, '$1').replace(/\n+/g, ' ').trim();
+			} else {
+				text = conv.content || (conv.template_name ? `[${conv.template_name}]` : `(${conv.msg_type})`);
+			}
+			return text.length > 50 ? text.substring(0, 50) + '…' : text;
 		},
 	}));
 	</script>
@@ -267,15 +418,16 @@
 
 	<style>
 	#conversations {
-		height: calc(100vh - 5rem);
+		height: calc(100vh - 2rem);
 		display: flex;
 		flex-direction: column;
+		margin-top: -4.5rem;
 	}
 
 	/* ── Layout ── */
 	.conv-layout {
 		display: grid;
-		grid-template-columns: 300px 1fr;
+		grid-template-columns: 400px 1fr;
 		height: 100%;
 		gap: 0;
 		border-radius: 1rem;
@@ -401,6 +553,8 @@
 		display: flex;
 		flex-direction: column;
 		height: 100%;
+		background-image: url(https://www.tiendakrear3d.com/wp-content/uploads/2026/02/wspbg.png);
+    	background-color: #ebebeb;
 	}
 	.conv-thread-header {
 		display: flex;
@@ -430,7 +584,7 @@
 	.conv-messages {
 		flex: 1;
 		overflow-y: auto;
-		padding: 1.25rem;
+		padding: 1rem 2.5rem;
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
@@ -447,7 +601,7 @@
 	.conv-msg-out { justify-content: flex-end; }
 
 	.conv-bubble {
-		max-width: 68%;
+		max-width: 55%;
 		padding: 0.6rem 0.85rem;
 		border-radius: 1rem;
 		font-size: 0.875rem;
@@ -460,23 +614,45 @@
 		box-shadow: 0 1px 4px rgba(0,0,0,0.07);
 	}
 	.bubble-out {
-		background: var(--primary, #e05a00);
-		color: #fff;
+		background: white;
 		border-bottom-right-radius: 0.25rem;
+		box-shadow: 0 0 1rem hsl(0deg 0% 0% / 5%);
 	}
-	.bubble-template-label {
-		font-size: 0.7rem;
-		font-weight: 700;
-		opacity: 0.6;
-		margin-bottom: 0.2rem;
-	}
-	.bubble-text { word-break: break-word; }
+	.bubble-text { word-break: break-word; line-height: 1.5; }
+	.bubble-text strong { font-weight: 700; }
+	.bubble-text em { font-style: italic; opacity: 0.8; }
 	.bubble-time {
 		font-size: 0.65rem;
-		margin-top: 0.3rem;
+		margin-top: 0.4rem;
 		opacity: 0.55;
 		text-align: right;
 	}
+	.bubble-tmpl-badge {
+		font-size: 0.6rem;
+		opacity: 0.4;
+		margin-top: 0.35rem;
+		font-family: monospace;
+	}
+	.bubble-media-img {
+		max-width: 100%;
+		border-radius: 0.5rem;
+		margin-bottom: 0.5rem;
+		display: block;
+	}
+	.bubble-pdf-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		background: rgba(255,255,255,0.18);
+		padding: 0.45rem 0.75rem;
+		border-radius: 0.5rem;
+		text-decoration: none;
+		color: inherit;
+		font-size: 0.8rem;
+		font-weight: 600;
+		margin-bottom: 0.5rem;
+	}
+	.bubble-pdf-link:hover { background: rgba(255,255,255,0.3); }
 
 	/* ── Reply bar ── */
 	.conv-reply-bar {
@@ -484,8 +660,7 @@
 		align-items: center;
 		gap: 0.5rem;
 		padding: 0.85rem 1.25rem;
-		background: #fff;
-		border-top: 1px solid #f0f0f0;
+		padding-top: 0;
 		flex-shrink: 0;
 	}
 	.conv-reply-input {
