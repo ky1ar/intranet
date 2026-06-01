@@ -28,6 +28,7 @@ class RefundRequest(BaseModel):
     penalty_amount    = db.Column(db.Numeric(10, 2), nullable=False, default=0)
     net_refund        = db.Column(db.Numeric(10, 2), nullable=False)
     payment_method         = db.Column(db.String(30), nullable=False)
+    refund_account         = db.Column(db.String(40), nullable=True)
     scheduled_date         = db.Column(db.Date)
     assigned_to            = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
     original_order_number  = db.Column(db.String(50), nullable=True)

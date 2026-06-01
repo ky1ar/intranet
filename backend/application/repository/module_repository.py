@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timezone, timedelta
-from application.models import Users
+from application.models import Users, UserDepartment
 from application.db_models.module_model import Module, ModulePermission, UserModuleAccess, UserModulePermission
 from application.handlers import handle_db_exceptions
 from application.utils import peru_time
@@ -77,7 +77,11 @@ class ModuleRepository:
         if editor_level_id == 3:
             query = query.filter(Users.level_id == 2)
 
-        users = query.order_by(Users.name).all()
+        users = (
+            query.outerjoin(UserDepartment, Users.department_id == UserDepartment.id)
+            .order_by(UserDepartment.name.is_(None), UserDepartment.name.asc(), Users.name.asc())
+            .all()
+        )
         return users, 200
 
 

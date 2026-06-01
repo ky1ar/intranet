@@ -247,7 +247,7 @@
 						</label>
 
 						<label class="white">
-							<select x-model="form.payment_method">
+							<select x-model="form.payment_method" @change="form.refund_account = ''">
 								<option value="" selected disabled>Medio de pago</option>
 								<option value="culqi_web">Culqi Web</option>
 								<option value="link_pago">Link de pago</option>
@@ -262,16 +262,15 @@
 						</label>
 					</div>
 
+					<div class="fields" x-show="formRequiresAccount()">
+						<label class="white">
+							<input type="text" x-model="form.refund_account" :placeholder="`N° de cuenta ${formAccountBankLabel()}`" inputmode="numeric" @input="form.refund_account = form.refund_account.replace(/\D/g, '')">
+						</label>
+					</div>
+
 					<textarea class="text-area glass2" x-model="form.detail" placeholder="Descripción del caso..." rows="2"></textarea>
 
 					<div class="fields">
-						<div class="field-group">
-							<span class="field-label">Monto del pedido</span>
-							<label class="white">
-								<input type="number" min="0" step="0.01" x-model.number="form.order_amount" placeholder="0.00">
-							</label>
-						</div>
-
 						<div class="field-group">
 							<span class="field-label">Monto a extornar</span>
 							<label class="white">
@@ -421,6 +420,10 @@
 								<div class="detail-field">
 									<span class="label">Medio de pago</span>
 									<span x-text="detail?.payment_method_label || '-'"></span>
+								</div>
+								<div class="detail-field" x-show="detail?.refund_account">
+									<span class="label" x-text="`Cuenta para extorno${accountBankLabel() ? ' (' + accountBankLabel() + ')' : ''}`"></span>
+									<span x-text="detail?.refund_account"></span>
 								</div>
 								<div class="detail-field full" x-show="detail?.detail">
 									<span class="label">Detalle</span>
@@ -659,7 +662,7 @@
 				client_dni: '', client_name: '', client_phone: '',
 				order_number: '', reason: '', detail: '',
 				order_amount: 0, refund_amount: 0, applies_penalty: false,
-				net_refund: 0, payment_method: '', files: [],
+				net_refund: 0, payment_method: '', refund_account: '', files: [],
 			},
 
 			async init() {
@@ -727,7 +730,7 @@
 					client_dni: '', client_name: '', client_phone: '',
 					order_number: '', reason: '', detail: '',
 					order_amount: 0, refund_amount: 0, applies_penalty: false,
-					net_refund: 0, payment_method: '', files: [],
+					net_refund: 0, payment_method: '', refund_account: '', files: [],
 				};
 				Alpine.store('cache').showModal('refund-create');
 			},
@@ -802,6 +805,13 @@
 			},
 
 			async submitCreate() {
+				if (this.formRequiresAccount()) {
+					const acc = (this.form.refund_account || '').trim();
+					if (!acc || acc.length < 8) {
+						alert(`Ingresa el número de cuenta ${this.formAccountBankLabel()} para continuar.`);
+						return;
+					}
+				}
 				const fd = new FormData();
 				fd.append('client_order_id', this.form.client_order_id || '');
 				fd.append('order_number',    this.form.order_number || '');
@@ -810,10 +820,11 @@
 				fd.append('client_phone',    this.form.client_phone || '');
 				fd.append('reason',          this.form.reason);
 				fd.append('detail',          this.form.detail || '');
-				fd.append('order_amount',    this.form.order_amount);
+				fd.append('order_amount',    this.form.refund_amount);
 				fd.append('refund_amount',   this.form.refund_amount);
 				fd.append('applies_penalty', this.form.applies_penalty ? 'true' : 'false');
 				fd.append('payment_method',  this.form.payment_method);
+				fd.append('refund_account',  this.form.refund_account || '');
 				for (const f of this.form.files) fd.append('files[]', f);
 
 				try {
@@ -1084,6 +1095,25 @@
 				if (e.shiftKey) return;
 				e.preventDefault();
 				this.sendChat();
+			},
+
+			formRequiresAccount() {
+				return ['plin_yape', 'bbva', 'bcp', 'interbank', 'scotiabank']
+					.includes(this.form.payment_method);
+			},
+
+			formAccountBankLabel() {
+				const pm = this.form.payment_method;
+				if (pm === 'plin_yape') return 'BCP';
+				const labels = { bbva: 'BBVA', bcp: 'BCP', interbank: 'Interbank', scotiabank: 'Scotiabank' };
+				return labels[pm] || '';
+			},
+
+			accountBankLabel() {
+				const pm = this.detail?.payment_method;
+				if (pm === 'plin_yape') return 'BCP';
+				const labels = { bbva: 'BBVA', bcp: 'BCP', interbank: 'Interbank', scotiabank: 'Scotiabank' };
+				return labels[pm] || '';
 			},
 
 			statusIcon(slug) {

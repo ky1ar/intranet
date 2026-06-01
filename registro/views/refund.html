@@ -110,7 +110,7 @@
                 <p>El extorno será por el mismo medio que hiciste el pago.</p>
             </div>
             <div class="bottom">
-                <select x-model="form.payment_method" class="select-input">
+                <select x-model="form.payment_method" class="select-input" @change="form.refund_account = ''">
                     <option value="" disabled selected>Selecciona un medio</option>
                     <option value="culqi_web">Culqi Web</option>
                     <option value="link_pago">Link de pago</option>
@@ -122,6 +122,16 @@
                     <option value="interbank">Transferencia Interbank</option>
                     <option value="scotiabank">Transferencia Scotiabank</option>
                 </select>
+                <template x-if="requiresAccount()">
+                    <div class="account-block">
+                        <p class="account-notice" x-text="accountMessage()"></p>
+                        <input type="text"
+                            x-model="form.refund_account"
+                            :placeholder="`N° de cuenta ${accountBankLabel()}`"
+                            inputmode="numeric"
+                            oninput="this.value = this.value.replace(/\D/g, '').slice(0, 25)">
+                    </div>
+                </template>
                 <button class="button hover-opacity" @click="validatePayment()" :class="buttons.payment.class" x-text="buttons.payment.text"></button>
             </div>
         </div>
@@ -202,6 +212,12 @@
                         <span class="review-label">Medio de pago</span>
                         <span x-text="paymentLabel()"></span>
                     </div>
+                    <template x-if="requiresAccount() && form.refund_account">
+                        <div class="review-row">
+                            <span class="review-label" x-text="`Cuenta ${accountBankLabel()}`"></span>
+                            <span x-text="form.refund_account"></span>
+                        </div>
+                    </template>
                     <template x-if="form.detail">
                         <div class="review-row full">
                             <span class="review-label">Descripción</span>
@@ -258,6 +274,7 @@
                 reason: '',
                 reason_detail: '',
                 payment_method: '',
+                refund_account: '',
                 detail: '',
                 refund_amount: '',
             },
@@ -317,7 +334,7 @@
                 this.form = {
                     client_dni: '', client_name: '', client_phone: '',
                     order_number: '', reason: '', reason_detail: '',
-                    payment_method: '', detail: '', refund_amount: '',
+                    payment_method: '', refund_account: '', detail: '', refund_amount: '',
                 };
                 this.client_found = false;
                 this.currentStep = 'start';
@@ -329,6 +346,24 @@
 
             paymentLabel() {
                 return this.PAYMENT_LABELS[this.form.payment_method] || this.form.payment_method;
+            },
+
+            requiresAccount() {
+                return ['plin_yape', 'bbva', 'bcp', 'interbank', 'scotiabank']
+                    .includes(this.form.payment_method);
+            },
+
+            accountBankLabel() {
+                if (this.form.payment_method === 'plin_yape') return 'BCP';
+                return (this.PAYMENT_LABELS[this.form.payment_method] || '')
+                    .replace('Transferencia ', '');
+            },
+
+            accountMessage() {
+                if (this.form.payment_method === 'plin_yape') {
+                    return 'Por favor, para hacer efectivo el extorno indícanos una cuenta BCP. Solo podemos depositar a cuentas BCP.';
+                }
+                return `Indícanos tu número de cuenta ${this.accountBankLabel()}. El depósito se hará a una cuenta del mismo banco que seleccionaste.`;
             },
 
             showError(key, msg) {
@@ -374,6 +409,11 @@
 
             validatePayment() {
                 if (!this.form.payment_method) { this.showError('payment', 'Selecciona un medio'); return; }
+                if (this.requiresAccount()) {
+                    const acc = (this.form.refund_account || '').trim();
+                    if (!acc) { this.showError('payment', `Ingresa tu cuenta ${this.accountBankLabel()}`); return; }
+                    if (acc.length < 8) { this.showError('payment', 'Número de cuenta inválido'); return; }
+                }
                 this.next();
             },
 
@@ -402,6 +442,7 @@
                     reason:         this.form.reason,
                     reason_detail:  this.form.reason === 'otro' ? this.form.reason_detail : null,
                     payment_method: this.form.payment_method,
+                    refund_account: this.form.refund_account || null,
                     detail:         this.form.detail || null,
                     refund_amount:  parseFloat(this.form.refund_amount),
                 };
@@ -521,6 +562,18 @@
             color: var(--primary);
             font-weight: 500;
             text-align: center;
+            line-height: 1.4;
+        }
+        #refund-guest .account-block {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        #refund-guest .account-notice {
+            margin: 0;
+            font-size: 0.85rem;
+            color: var(--primary);
+            font-weight: 500;
             line-height: 1.4;
         }
         #refund-guest .amount-input-wrap .currency {

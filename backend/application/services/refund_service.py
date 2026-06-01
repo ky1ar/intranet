@@ -44,6 +44,13 @@ PAYMENT_LABELS = {
     "scotiabank":  "Transferencia Scotiabank",
 }
 
+# Payment methods that require the client to provide a deposit account.
+# plin_yape must be refunded to a BCP account; bank transfers to an account of
+# the same bank the client selected.
+ACCOUNT_REQUIRED_METHODS = frozenset(
+    {"plin_yape", "bbva", "bcp", "interbank", "scotiabank"}
+)
+
 # Fixed Peruvian holidays (month, day)
 _PERU_HOLIDAYS = frozenset([
     (1, 1), (5, 1), (6, 29), (7, 28), (7, 29),
@@ -250,6 +257,7 @@ class RefundService:
             "net_refund": float(req.net_refund or 0),
             "payment_method": req.payment_method,
             "payment_method_label": PAYMENT_LABELS.get(req.payment_method, req.payment_method),
+            "refund_account": req.refund_account,
             "scheduled_date": req.scheduled_date.isoformat() if req.scheduled_date else None,
             "created_at": format_datetime(req.created_at),
             "attachments": [self._serialize_attachment(a) for a in attachments],
@@ -271,6 +279,7 @@ class RefundService:
         order_amount   = request.form.get("order_amount")
         refund_amount  = request.form.get("refund_amount")
         payment_method = request.form.get("payment_method", "").strip()
+        refund_account = request.form.get("refund_account", "").strip() or None
 
         if not reason:
             return "Motivo requerido", 400
@@ -280,6 +289,8 @@ class RefundService:
             return "Montos requeridos", 400
         if payment_method not in PAYMENT_LABELS:
             return "Medio de pago inválido", 400
+        if payment_method in ACCOUNT_REQUIRED_METHODS and not refund_account:
+            return "Número de cuenta requerido para el medio de pago seleccionado", 400
 
         applies_penalty = request.form.get("applies_penalty") in ("true", "1", "True")
         is_admin_reg_flag = True
@@ -340,6 +351,7 @@ class RefundService:
             "refund_amount":    refund_amount,
             "applies_penalty":  applies_penalty,
             "payment_method":   payment_method,
+            "refund_account":   refund_account,
         }
 
         refund_id, rc = self.repository.create(data)
@@ -805,6 +817,7 @@ class RefundService:
         reason         = (data.get("reason") or "").strip()
         reason_detail  = (data.get("reason_detail") or "").strip() or None
         payment_method = (data.get("payment_method") or "").strip()
+        refund_account = (data.get("refund_account") or "").strip() or None
         detail         = (data.get("detail") or "").strip() or None
         refund_amount  = data.get("refund_amount")
         order_number   = (data.get("order_number") or "").strip()
@@ -817,6 +830,8 @@ class RefundService:
             return "Motivo inválido", 400
         if not payment_method or payment_method not in PAYMENT_LABELS:
             return "Medio de pago inválido", 400
+        if payment_method in ACCOUNT_REQUIRED_METHODS and not refund_account:
+            return "Número de cuenta requerido para el medio de pago seleccionado", 400
         if not refund_amount:
             return "Monto a extornar requerido", 400
         if not order_number or not client_dni:
@@ -863,6 +878,7 @@ class RefundService:
             "refund_amount":        float(refund_amount),
             "applies_penalty":      False,
             "payment_method":       payment_method,
+            "refund_account":       refund_account,
         }
 
         refund_id, rc = self.repository.create(refund_data)

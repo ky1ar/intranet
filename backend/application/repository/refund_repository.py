@@ -55,6 +55,7 @@ class RefundRepository:
             penalty_amount=round(penalty, 2),
             net_refund=round(net, 2),
             payment_method=data["payment_method"],
+            refund_account=data.get("refund_account"),
         )
         g.db_session.add(row)
         g.db_session.commit()
