@@ -6,6 +6,10 @@ from application import mail
 from application.handlers import handle_exceptions
 from application.utils import format_datetime
 from application.repository.approval_repository import ApprovalRepository
+from application.services.courses_provisioning_service import (
+    CoursesProvisioningService, is_course_slug,
+)
+from config import Courses
 
 
 class ApprovalService:
@@ -65,13 +69,69 @@ class ApprovalService:
 
     @handle_exceptions
     def approve_request(self, data):
-        result, sc = self.repository.approve_request(
-            data.get("request_id"), data.get("user_id"), data.get("access_url")
-        )
+        request_id = data.get("request_id")
+        user_id    = data.get("user_id")
+        access_url = data.get("access_url")
+
+        info, sc = self.repository.get_request_info(request_id)
+        if sc != 200:
+            return info, sc
+
+        type_slug    = info.get("type_slug")
+        client_email = info.get("client_email")
+        client_name  = info.get("client_name")
+
+        # Cursos: primero aprovisionamos en la plataforma; si falla, NO aprobamos
+        # (así la solicitud no queda "aprobada" sin acceso real). Es idempotente.
+        if is_course_slug(type_slug):
+            if not client_email:
+                return "El cliente no tiene un correo registrado", 400
+            prov, psc = CoursesProvisioningService().provision(client_email, client_name, type_slug)
+            if psc != 200:
+                return prov, psc
+            result, sc = self.repository.approve_request(request_id, user_id, access_url)
+            if sc != 200:
+                return result, sc
+            self._send_course_email(client_email, client_name, prov)
+            return {"message": "Solicitud aprobada y acceso al curso creado"}, 200
+
+        result, sc = self.repository.approve_request(request_id, user_id, access_url)
         if sc != 200:
             return result, sc
         self._send_lab_approval_email(result)
         return {"message": "Solicitud aprobada"}, 200
+
+    def _send_course_email(self, email, name, prov):
+        """Correo de curso: con credenciales si la cuenta es nueva; sin ellas si ya existía."""
+        if not email:
+            return
+        try:
+            created     = bool(prov.get("created_account"))
+            course_name = prov.get("course_name") or "tu curso"
+            if created:
+                template = "course_account_created.html"
+                subject  = "Tu acceso al curso ha sido aprobado"
+            else:
+                template = "course_added.html"
+                subject  = "Se agregó un nuevo curso a tu cuenta"
+            html_content = render_template(
+                template,
+                client_name=name or "Cliente",
+                client_email=email,
+                temp_password=prov.get("temp_password"),
+                course_name=course_name,
+                platform_url=Courses.PLATFORM_URL,
+                current_year=datetime.now().year,
+            )
+            msg = Message(
+                subject=subject,
+                sender=("Krear 3D", "web@tiendakrear3d.com"),
+                recipients=[email],
+                html=html_content,
+            )
+            mail.send(msg)
+        except Exception:
+            logging.exception("Error enviando correo de curso a %s", email)
 
     def _send_lab_approval_email(self, result):
         email = result.get("client_email")

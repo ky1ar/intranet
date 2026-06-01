@@ -123,6 +123,24 @@ class ApprovalRepository:
         return req, 200
 
     @handle_db_exceptions
+    def get_request_info(self, request_id):
+        """Datos mínimos de la solicitud, extraídos dentro de la sesión."""
+        req = (
+            g.db_session.query(ApprovalRequest)
+            .filter(ApprovalRequest.id == request_id)
+            .first()
+        )
+        if not req:
+            return "Solicitud no encontrada", 404
+        return {
+            "id": req.id,
+            "status": req.status,
+            "client_email": req.client.email if req.client else None,
+            "client_name": req.client.name if req.client else None,
+            "type_slug": req.type_rel.slug if req.type_rel else None,
+        }, 200
+
+    @handle_db_exceptions
     def approve_request(self, request_id, approved_by, access_url=None):
         req = (
             g.db_session.query(ApprovalRequest)

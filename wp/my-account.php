@@ -736,7 +736,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			</div>
 
 			<div class="servicios-cards">
-				<div class="servicio-card" data-type="cursos">
+				<div class="servicio-card" data-type="curso-fdm">
 					<div class="top">
 						<div class="data">
 							<span>Curso online</span>
@@ -763,7 +763,7 @@ document.addEventListener("DOMContentLoaded", () => {
 					</div>
 				</div>
 
-				<div class="servicio-card" data-type="cursos">
+				<div class="servicio-card" data-type="curso-lcd">
 					<div class="top">
 						<div class="data">
 							<span>Curso online</span>
@@ -988,162 +988,167 @@ document.addEventListener("DOMContentLoaded", () => {
 			.badge-pending { background: #fff3cd; color: #856404; }
 			.badge-approved { background: #d1e7dd; color: #0a3622; }
 			.badge-rejected { background: #f8d7da; color: #842029; }
+			.servicio-card .bottom .action { cursor: pointer; transition: opacity 0.15s; }
+			.servicio-card .bottom .action:hover { opacity: 0.9; }
+			.servicio-card .bottom .action.is-pending { background-color: #9ca3af; cursor: default; }
+			.servicio-card .bottom .action.is-pending:hover { opacity: 1; }
 			</style>
 
 			<script>
-			(function() {
-				const API = 'https://devapi.krear3d.com';
-				const WP_USER_ID   = <?php echo (int) $wp_user_id; ?>;
-				const WP_EMAIL     = <?php echo json_encode( $wp_user_email ); ?>;
-				const WP_USERNAME  = <?php echo json_encode( $wp_user_display ); ?>;
-				const WP_PHONE     = <?php echo json_encode( $wp_user_phone ?: '' ); ?>;
-				const WP_DNI       = <?php echo json_encode( $wp_user_dni ?: '' ); ?>;
+            (function() {
+                const API        = 'https://devapi.krear3d.com';
+                const PLATFORM   = 'https://cursos.krear3d.com/';
+                const WP_USER_ID = <?php echo (int) $wp_user_id; ?>;
+                const WP_EMAIL   = <?php echo json_encode( $wp_user_email ); ?>;
+                const WP_USERNAME = <?php echo json_encode( $wp_user_display ); ?>;
+                const WP_PHONE   = <?php echo json_encode( $wp_user_phone ?: '' ); ?>;
+                const WP_DNI     = <?php echo json_encode( $wp_user_dni ?: '' ); ?>;
 
-				let cachedProfile = null;
+                const TYPES = ['curso-fdm', 'curso-lcd'];
+                let cachedProfile = null;
 
-				async function fetchProfile() {
-					if (cachedProfile !== null) return cachedProfile;
-					try {
-						const r = await fetch(`${API}/approval/wp_profile/${WP_USER_ID}`, { headers: { 'X-No-Toast': '1' } });
-						const j = await r.json();
-						cachedProfile = j.data || {};
-					} catch(e) {
-						cachedProfile = {};
-					}
-					return cachedProfile;
-				}
+                async function fetchProfile() {
+                    if (cachedProfile !== null) return cachedProfile;
+                    try {
+                        const r = await fetch(`${API}/approval/wp_profile/${WP_USER_ID}`, { headers: { 'X-No-Toast': '1' } });
+                        const j = await r.json();
+                        cachedProfile = j.data || {};
+                    } catch(e) { cachedProfile = {}; }
+                    return cachedProfile;
+                }
 
-				async function checkStatuses() {
-					const types = ['stl', 'cursos'];
-					for (const type of types) {
-						try {
-							const r = await fetch(`${API}/approval/status?wp_user_id=${WP_USER_ID}&type=${type}`, { headers: { 'X-No-Toast': '1' } });
-							const j = await r.json();
-							const data = j.data || {};
-							applyStatus(type, data);
-						} catch(e) {}
-					}
-				}
+                async function checkStatuses() {
+                    for (const type of TYPES) {
+                        try {
+                            const r = await fetch(`${API}/approval/status?wp_user_id=${WP_USER_ID}&type=${type}`, { headers: { 'X-No-Toast': '1' } });
+                            const j = await r.json();
+                            applyStatus(type, j.data || {});
+                        } catch(e) {}
+                    }
+                }
 
-				function applyStatus(type, data) {
-					const card = document.querySelector(`.servicio-card[data-type="${type}"]`);
-					if (!card) return;
-					const badge    = card.querySelector('.servicio-status-badge');
-					const btnSolic = card.querySelector('.btn-solicitar');
-					const btnAcc   = card.querySelector('.btn-acceder');
+                function applyStatus(type, data) {
+                    const card = document.querySelector(`.servicio-card[data-type="${type}"]`);
+                    if (!card) return;
+                    const action = card.querySelector('.action');
+                    if (!action) return;
 
-					if (data.status === 'approved') {
-						btnSolic.style.display = 'none';
-						badge.style.display    = 'inline-block';
-						badge.className        = 'servicio-status-badge badge-approved';
-						badge.textContent      = 'Aprobado';
-						if (data.access_url) {
-							btnAcc.href          = data.access_url;
-							btnAcc.style.display = 'inline-block';
-						}
-					} else if (data.status === 'pending') {
-						btnSolic.disabled      = true;
-						btnSolic.textContent   = 'Solicitud enviada';
-						badge.style.display    = 'inline-block';
-						badge.className        = 'servicio-status-badge badge-pending';
-						badge.textContent      = 'En revisión';
-					} else if (data.status === 'rejected') {
-						badge.style.display    = 'inline-block';
-						badge.className        = 'servicio-status-badge badge-rejected';
-						badge.textContent      = 'Rechazado';
-					}
-				}
+                    const status = data.status || 'none';
+                    card.dataset.state     = status;
+                    card.dataset.accessUrl = data.access_url || PLATFORM;
 
-				async function submitRequest(type, phone, dni) {
-					const body = {
-						wp_user_id:  WP_USER_ID,
-						type_slug:   type,
-						email:       WP_EMAIL,
-						phone:       phone,
-						dni:         dni,
-						wp_username: WP_USERNAME,
-					};
-					const r = await fetch(`${API}/approval/request`, {
-						method:  'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body:    JSON.stringify(body),
-					});
-					return r.json();
-				}
+                    action.classList.remove('is-pending');
+                    if (status === 'approved') {
+                        action.textContent = 'Acceder al curso';
+                    } else if (status === 'pending') {
+                        action.textContent = 'En revisión';
+                        action.classList.add('is-pending');
+                    } else {
+                        action.textContent = 'Solicitar acceso';
+                    }
+                }
 
-				async function handleSolicitar(type) {
-					const profile = await fetchProfile();
-					const phone = profile.phone || WP_PHONE;
-					const dni   = profile.dni   || WP_DNI;
+                function onActionClick(card) {
+                    const state = card.dataset.state || 'none';
+                    const type  = card.dataset.type;
+                    if (state === 'approved') {
+                        window.open(card.dataset.accessUrl || PLATFORM, '_blank');
+                    } else if (state === 'pending') {
+                        /* en revisión: sin acción */
+                    } else {
+                        handleSolicitar(type);
+                    }
+                }
 
-					if (phone && dni) {
-						await doSubmit(type, phone, dni);
-					} else {
-						openModal(type, phone, dni);
-					}
-				}
+                async function submitRequest(type, phone, dni) {
+                    const body = {
+                        wp_user_id:  WP_USER_ID,
+                        type_slug:   type,
+                        email:       WP_EMAIL,
+                        phone:       phone,
+                        dni:         dni,
+                        wp_username: WP_USERNAME,
+                    };
+                    const r = await fetch(`${API}/approval/request`, {
+                        method:  'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body:    JSON.stringify(body),
+                    });
+                    return r.json();
+                }
 
-				async function doSubmit(type, phone, dni) {
-					if (!phone || !dni) return;
-					if (!WP_EMAIL) { alert('No se encontró tu correo electrónico.'); return; }
-					cachedProfile = { phone, dni, email: WP_EMAIL };
-					const j = await submitRequest(type, phone, dni);
-					closeModal();
-					await checkStatuses();
-				}
+                async function handleSolicitar(type) {
+                    const profile = await fetchProfile();
+                    const phone = profile.phone || WP_PHONE;
+                    const dni   = profile.dni   || WP_DNI;
+                    if (phone && dni) {
+                        await doSubmit(type, phone, dni);
+                    } else {
+                        openModal(type, phone, dni);
+                    }
+                }
 
-				function openModal(type, existingPhone, existingDni) {
-					document.getElementById('modal-servicio-type').value = type;
-					document.getElementById('input-phone').value = existingPhone || '';
-					document.getElementById('input-dni').value   = existingDni   || '';
-					document.getElementById('modal-perfil-error').style.display = 'none';
-					const modal = document.getElementById('modal-perfil-servicio');
-					modal.style.display = 'flex';
-				}
+                async function doSubmit(type, phone, dni) {
+                    if (!phone || !dni) return;
+                    if (!WP_EMAIL) { alert('No se encontró tu correo electrónico.'); return; }
+                    cachedProfile = { phone, dni, email: WP_EMAIL };
+                    await submitRequest(type, phone, dni);
+                    closeModal();
+                    await checkStatuses();
+                }
 
-				function closeModal() {
-					document.getElementById('modal-perfil-servicio').style.display = 'none';
-				}
+                function openModal(type, existingPhone, existingDni) {
+                    document.getElementById('modal-servicio-type').value = type;
+                    document.getElementById('input-phone').value = existingPhone || '';
+                    document.getElementById('input-dni').value   = existingDni   || '';
+                    document.getElementById('modal-perfil-error').style.display = 'none';
+                    document.getElementById('modal-perfil-servicio').style.display = 'flex';
+                }
 
-				document.addEventListener('DOMContentLoaded', function() {
-					checkStatuses();
+                function closeModal() {
+                    document.getElementById('modal-perfil-servicio').style.display = 'none';
+                }
 
-					document.querySelectorAll('.btn-solicitar').forEach(btn => {
-						btn.addEventListener('click', () => handleSolicitar(btn.dataset.type));
-					});
+                document.addEventListener('DOMContentLoaded', function() {
+                    checkStatuses();
 
-					document.getElementById('modal-perfil-close').addEventListener('click', closeModal);
+                    document.querySelectorAll('.servicio-card[data-type^="curso-"]').forEach(card => {
+                        const action = card.querySelector('.action');
+                        if (action) action.addEventListener('click', () => onActionClick(card));
+                    });
 
-					document.getElementById('modal-perfil-submit').addEventListener('click', async function() {
-						const type  = document.getElementById('modal-servicio-type').value;
-						const phone = document.getElementById('input-phone').value.trim();
-						const dni   = document.getElementById('input-dni').value.trim();
-						const errEl = document.getElementById('modal-perfil-error');
+                    document.getElementById('modal-perfil-close').addEventListener('click', closeModal);
 
-						if (!phone || !dni) {
-							errEl.textContent = 'Por favor ingresa tu teléfono y DNI.';
-							errEl.style.display = 'block';
-							return;
-						}
-						if (!/^\d{8}$/.test(dni)) {
-							errEl.textContent = 'El DNI debe tener 8 dígitos.';
-							errEl.style.display = 'block';
-							return;
-						}
-						errEl.style.display = 'none';
-						this.disabled = true;
-						this.textContent = 'Enviando...';
-						await doSubmit(type, phone, dni);
-						this.disabled = false;
-						this.textContent = 'Enviar solicitud';
-					});
+                    document.getElementById('modal-perfil-submit').addEventListener('click', async function() {
+                        const type  = document.getElementById('modal-servicio-type').value;
+                        const phone = document.getElementById('input-phone').value.trim();
+                        const dni   = document.getElementById('input-dni').value.trim();
+                        const errEl = document.getElementById('modal-perfil-error');
 
-					document.getElementById('modal-perfil-servicio').addEventListener('click', function(e) {
-						if (e.target === this) closeModal();
-					});
-				});
-			})();
-			</script>
+                        if (!phone || !dni) {
+                            errEl.textContent = 'Por favor ingresa tu teléfono y DNI.';
+                            errEl.style.display = 'block';
+                            return;
+                        }
+                        if (!/^\d{8}$/.test(dni)) {
+                            errEl.textContent = 'El DNI debe tener 8 dígitos.';
+                            errEl.style.display = 'block';
+                            return;
+                        }
+                        errEl.style.display = 'none';
+                        this.disabled = true;
+                        this.textContent = 'Enviando...';
+                        await doSubmit(type, phone, dni);
+                        this.disabled = false;
+                        this.textContent = 'Enviar solicitud';
+                    });
+
+                    document.getElementById('modal-perfil-servicio').addEventListener('click', function(e) {
+                        if (e.target === this) closeModal();
+                    });
+                });
+            })();
+            </script>
 		  </div>
 
 		  <!-- ═══════════ GUÍAS ═══════════ -->

@@ -9,6 +9,11 @@ load_dotenv(dotenv_path, override=True)
 class Config:
     VERSION = "1.0"
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI")
+    SQLALCHEMY_BINDS = {
+        key: uri
+        for key, uri in {"courses": os.getenv("COURSES_DATABASE_URI")}.items()
+        if uri
+    }
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_size": 15,
@@ -50,6 +55,16 @@ class Config:
 
     COMPLAINT_ATTACHMENTS_MAX_BYTES = 25 * 1024 * 1024
     MAX_CONTENT_LENGTH = 30 * 1024 * 1024
+
+
+class Courses:
+    # Plataforma de cursos (cursos.krear3d.com). La conexión se inyecta vía
+    # COURSES_DATABASE_URI en SQLALCHEMY_BINDS['courses'] (ver clase Config).
+    PLATFORM_URL = os.getenv("COURSES_PLATFORM_URL", "https://cursos.krear3d.com/")
+    DEFAULT_COUNTRY_ISO = os.getenv("COURSES_DEFAULT_COUNTRY_ISO", "PE")
+    # UUIDs de los cursos en la plataforma (distintos en dev y prod).
+    FDM_COURSE_UUID = os.getenv("COURSES_FDM_UUID")
+    LCD_COURSE_UUID = os.getenv("COURSES_LCD_UUID")
 
 
 class Redis:
