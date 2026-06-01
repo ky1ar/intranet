@@ -95,10 +95,10 @@ class ApprovalService:
             self._send_course_email(client_email, client_name, prov)
             return {"message": "Solicitud aprobada y acceso al curso creado"}, 200
 
+        # Otros tipos (p.ej. guías): solo se aprueba, sin correo de cursos.
         result, sc = self.repository.approve_request(request_id, user_id, access_url)
         if sc != 200:
             return result, sc
-        self._send_lab_approval_email(result)
         return {"message": "Solicitud aprobada"}, 200
 
     def _send_course_email(self, email, name, prov):
@@ -132,29 +132,6 @@ class ApprovalService:
             mail.send(msg)
         except Exception:
             logging.exception("Error enviando correo de curso a %s", email)
-
-    def _send_lab_approval_email(self, result):
-        email = result.get("client_email")
-        name  = result.get("client_name") or "Cliente"
-        if not email:
-            return
-        try:
-            html_content = render_template(
-                "k3d_lab_approved.html",
-                client_name=name,
-                client_email=email,
-                temp_password="Krear3D@2025",
-                current_year=datetime.now().year,
-            )
-            msg = Message(
-                subject="Tu acceso a K3D Lab ha sido aprobado",
-                sender=("Krear 3D", "web@tiendakrear3d.com"),
-                recipients=[email],
-                html=html_content,
-            )
-            mail.send(msg)
-        except Exception:
-            logging.exception("Error enviando correo de aprobación K3D Lab a %s", email)
 
     @handle_exceptions
     def reject_request(self, data):
