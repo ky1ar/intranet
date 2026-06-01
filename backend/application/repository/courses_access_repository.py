@@ -56,6 +56,7 @@ class CoursesAccessRepository:
                 language="es",
                 country_id=country.id if country else None,
                 created_at=peru_time(),
+                change_pass=1,
             )
             g.db_session.add(account)
             g.db_session.flush()

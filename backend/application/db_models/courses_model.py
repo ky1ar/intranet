@@ -25,7 +25,8 @@ class CourseAccount(BaseModel):
     language   = db.Column(db.String(2))
     country_id = db.Column(db.Integer)
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.current_timestamp())
-
+    change_pass = db.Column(db.Boolean, nullable=False, default=False)
+    
 
 class Course(BaseModel):
     __bind_key__ = "courses"
