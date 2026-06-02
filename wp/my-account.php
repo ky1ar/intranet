@@ -318,28 +318,58 @@ header.custom {
 #kd-wc-content .woocommerce-EditAccountForm .k3d-actions .button { display: flex; width: 100%; align-self: stretch; }
 
 /* ── Lista de pedidos ── */
-#section-pedidos { flex-direction: column; gap: 1rem; align-items: stretch; }
-#section-pedidos .kd-orders-head h2 { margin: 0; font-size: 1.1rem; font-weight: 700; }
-.kd-orders-list { display: flex; flex-direction: column; gap: 0.75rem; }
-.kd-order-card {
-	display: flex; align-items: center; gap: 1rem;
-	padding: 1rem 1.25rem; border: 1px solid #00000012; border-radius: 1rem;
-	text-decoration: none; color: inherit;
-	transition: box-shadow .15s, border-color .15s, transform .1s;
+#section-pedidos { flex-direction: column; gap: 1.25rem; align-items: stretch; }
+#section-pedidos .kd-orders-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+#section-pedidos .kd-orders-head h2 { margin: 0; font-size: 1.25rem; font-weight: 800; }
+.kd-orders-filter {
+	display: inline-flex; align-items: center; gap: 0.5rem;
+	border: 1px solid #e4e4e4; border-radius: 0.75rem; padding: 0.5rem 0.85rem; background: #fff;
 }
-.kd-order-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,.08); }
+.kd-orders-filter svg { width: 1rem; height: 1rem; opacity: 0.5; }
+.kd-orders-filter select {
+	border: none; background: none; font-family: inherit; font-size: 0.85rem;
+	font-weight: 600; color: #444; outline: none; cursor: pointer;
+}
+.kd-orders-list { display: flex; flex-direction: column; gap: 0.85rem; }
+.kd-order-card {
+	display: flex; align-items: center; gap: 1.25rem;
+	padding: 1rem 1.25rem; border: 1px solid #00000010; border-radius: 1rem;
+	background: #fff; text-decoration: none; color: inherit;
+	transition: box-shadow .15s, transform .1s;
+}
+.kd-order-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,.07); }
 .kd-order-card:active { transform: scale(.997); }
-.kd-order-main { display: flex; flex-direction: column; gap: 0.2rem; }
-.kd-order-num { font-weight: 700; font-size: 0.95rem; }
-.kd-order-date { font-size: 0.75rem; opacity: 0.5; }
-.kd-order-meta { margin-left: auto; display: flex; align-items: center; gap: 1.25rem; }
-.kd-order-status { font-size: 0.72rem; font-weight: 700; padding: 0.25rem 0.7rem; border-radius: 1rem; background: var(--primaryopacity, #fdeee4); color: var(--primary, #e05a00); white-space: nowrap; }
-.kd-order-total { font-weight: 800; font-size: 0.95rem; color: var(--primary, #e05a00); white-space: nowrap; }
-.kd-order-card .kd-arrow { opacity: 0.3; flex-shrink: 0; }
+.kd-order-ico {
+	width: 3rem; height: 3rem; min-width: 3rem; border-radius: 50%;
+	background: var(--primaryopacity, #fdeee4); color: var(--primary, #e05a00);
+	display: flex; align-items: center; justify-content: center;
+}
+.kd-order-ico svg { width: 1.4rem; height: 1.4rem; }
+.kd-order-main { display: flex; flex-direction: column; gap: 0.2rem; flex: 1; min-width: 0; }
+.kd-order-num { font-weight: 700; font-size: 0.95rem; color: #222; }
+.kd-order-date { font-size: 0.78rem; color: #9aa0a6; }
+.kd-order-status {
+	display: inline-flex; align-items: center; gap: 0.45rem;
+	font-size: 0.78rem; font-weight: 700; padding: 0.4rem 0.85rem; border-radius: 2rem; white-space: nowrap;
+}
+.kd-order-status svg { width: 1rem; height: 1rem; flex-shrink: 0; }
+.kd-order-totals { display: flex; flex-direction: column; align-items: flex-end; gap: 0.1rem; min-width: 5rem; }
+.kd-order-total-lbl { font-size: 0.72rem; color: #9aa0a6; }
+.kd-order-total { font-weight: 700; font-size: 0.95rem; color: var(--primary, #e05a00); white-space: nowrap; }
+.kd-order-total del { opacity: 0.5; font-weight: 500; color: #999; margin-right: 0.25rem; }
+.kd-order-total ins { text-decoration: none; }
+.kd-order-chev { color: #c9c9c9; flex-shrink: 0; display: flex; }
+.kd-order-chev svg { width: 1.1rem; height: 1.1rem; }
 .kd-orders-empty { opacity: 0.5; }
-@media (max-width: 600px) {
+.kd-st-completed { background: #e6f4ea; color: #1e7e44; }
+.kd-st-processing, .kd-st-refunded { background: #e8f0fe; color: #1a56c4; }
+.kd-st-hold { background: #fff3e0; color: #b25b00; }
+.kd-st-cancelled { background: #fdecec; color: #c0392b; }
+@media (max-width: 680px) {
 	.kd-order-card { flex-wrap: wrap; }
-	.kd-order-meta { margin-left: 0; width: 100%; justify-content: space-between; }
+	.kd-order-status { order: 4; }
+	.kd-order-totals { order: 3; margin-left: auto; }
+	.kd-order-chev { display: none; }
 }
 
 /* ═══ Detalle de pedido (view-order) ═══ */
@@ -384,8 +414,7 @@ header.custom {
 	font-size: 1rem; color: var(--primary, #e05a00); border-bottom: none;
 }
 
-/* ═══ Direcciones ═══ */
-#kd-wc-content .woocommerce-Addresses,
+/* ═══ Direcciones dentro del pedido (customer-details) ═══ */
 #kd-wc-content .woocommerce-columns--addresses {
 	display: flex;
 	flex-wrap: wrap;
@@ -393,41 +422,92 @@ header.custom {
 	margin: 0;
 	width: 100%;
 }
-#kd-wc-content .woocommerce-Address {
-	flex: 1 1 240px;
-	background: #fff;
-	border: 1px solid #eee;
-	border-radius: 12px;
-	padding: 1.25rem 1.5rem;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-	box-sizing: border-box;
-}
-#kd-wc-content .woocommerce-Address-title {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 1rem;
-	margin-bottom: 0.75rem;
-}
-#kd-wc-content .woocommerce-Address-title h2,
-#kd-wc-content .woocommerce-Address-title h3 { margin: 0; font-size: 1rem; font-weight: 800; }
-#kd-wc-content .woocommerce-Address-title .edit {
-	font-size: 0.72rem;
-	font-weight: 700;
-	color: var(--primary, #e05a00);
-	text-decoration: none;
-	border: 1px solid var(--primary, #e05a00);
-	padding: 0.3rem 0.85rem;
-	border-radius: 2rem;
-	transition: background 0.2s, color 0.2s;
-	white-space: nowrap;
-}
-#kd-wc-content .woocommerce-Address-title .edit:hover { background: var(--primary, #e05a00); color: #fff; }
 #kd-wc-content address {
 	font-style: normal;
 	line-height: 1.7;
 	font-size: 0.85rem;
 	color: #555;
+}
+
+/* ═══ Página de Direcciones (tarjetas estilo referencia) ═══ */
+#kd-wc-content .kd-addr-intro { margin: 0 0 1.5rem; color: #555; font-size: 0.95rem; }
+#kd-wc-content .kd-addr-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: 1.5rem;
+	margin: 0;
+}
+#kd-wc-content .kd-addr-card {
+	background: #fff;
+	border: 1px solid #eee;
+	border-radius: 16px;
+	box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}
+#kd-wc-content .kd-addr-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 1.5rem;
+	border-bottom: 1px solid #f0f0f0;
+}
+#kd-wc-content .kd-addr-head-title { display: flex; align-items: center; gap: 0.9rem; }
+#kd-wc-content .kd-addr-head-ico {
+	width: 2.75rem; height: 2.75rem; min-width: 2.75rem;
+	border-radius: 50%;
+	background: var(--primaryopacity, #fdeee4);
+	color: var(--primary, #e05a00);
+	display: flex; align-items: center; justify-content: center;
+}
+#kd-wc-content .kd-addr-head-ico svg { width: 1.35rem; height: 1.35rem; }
+#kd-wc-content .kd-addr-head h3 {
+	margin: 0; font-size: 1rem; font-weight: 800; line-height: 1.2;
+	text-transform: uppercase; color: var(--secondary, #1f2937);
+}
+#kd-wc-content .kd-addr-edit {
+	display: inline-flex; align-items: center; gap: 0.4rem;
+	font-size: 0.8rem; font-weight: 700;
+	color: var(--primary, #e05a00); text-decoration: none;
+	border: 1px solid var(--primary, #e05a00);
+	padding: 0.5rem 1rem; border-radius: 2rem;
+	transition: background 0.2s, color 0.2s; white-space: nowrap;
+}
+#kd-wc-content .kd-addr-edit svg { width: 0.9rem; height: 0.9rem; }
+#kd-wc-content .kd-addr-edit:hover { background: var(--primary, #e05a00); color: #fff; }
+#kd-wc-content .kd-addr-rows { padding: 0.5rem 1.5rem; }
+#kd-wc-content .kd-addr-row {
+	display: flex; align-items: center; gap: 1rem;
+	padding: 1rem 0; border-bottom: 1px solid #f4f4f4;
+}
+#kd-wc-content .kd-addr-row:last-child { border-bottom: none; }
+#kd-wc-content .kd-addr-row-ico {
+	width: 2.5rem; height: 2.5rem; min-width: 2.5rem;
+	border-radius: 50%;
+	background: var(--primaryopacity, #fdeee4);
+	color: var(--primary, #e05a00);
+	display: flex; align-items: center; justify-content: center;
+}
+#kd-wc-content .kd-addr-row-ico svg { width: 1.15rem; height: 1.15rem; }
+#kd-wc-content .kd-addr-row-data { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+#kd-wc-content .kd-addr-row-lbl { font-size: 0.78rem; color: #9aa0a6; }
+#kd-wc-content .kd-addr-row-val { font-size: 0.95rem; font-weight: 600; color: #2b2b2b; word-break: break-word; }
+#kd-wc-content .kd-addr-badge {
+	display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+	margin: 0.5rem 1.5rem 1.5rem; padding: 0.85rem 1rem;
+	border-radius: 0.85rem; font-size: 0.85rem; font-weight: 600;
+}
+#kd-wc-content .kd-addr-badge svg { width: 1.1rem; height: 1.1rem; flex-shrink: 0; }
+#kd-wc-content .kd-addr-badge--billing { background: #e6f4ea; color: #1e7e44; }
+#kd-wc-content .kd-addr-badge--shipping { background: #e8f0fe; color: #1a56c4; }
+#kd-wc-content .kd-addr-empty { padding: 1.5rem; text-align: center; }
+#kd-wc-content .kd-addr-empty p { color: #888; font-size: 0.88rem; margin: 0 0 1rem; }
+#kd-wc-content .kd-addr-empty-btn {
+	display: inline-flex; background: var(--primary, #e05a00); color: #fff;
+	padding: 0.6rem 1.25rem; border-radius: 2rem; text-decoration: none;
+	font-size: 0.8rem; font-weight: 600;
 }
 
 /* Formulario de direccion (al editar) */
@@ -2060,7 +2140,6 @@ document.addEventListener("DOMContentLoaded", () => {
 			  </div>
 		  </div>
 			<div id="section-pedidos" class="section-content" style="display:none;">
-				<div class="kd-orders-head"><h2>Mis pedidos</h2></div>
 				<?php
 					$kd_orders = wc_get_orders( array(
 						'customer_id' => get_current_user_id(),
@@ -2068,28 +2147,84 @@ document.addEventListener("DOMContentLoaded", () => {
 						'orderby'     => 'date',
 						'order'       => 'DESC',
 					) );
-					if ( $kd_orders ) :
+
+					$kd_oicons = array(
+						'bag'     => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
+						'check'   => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>',
+						'clock'   => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 7 12 12 15 14"/></svg>',
+						'x'       => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+						'refresh' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>',
+						'chev'    => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
+						'cal'     => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+					);
+					$kd_smeta = array(
+						'completed'  => array( 'check',   'kd-st-completed' ),
+						'processing' => array( 'refresh', 'kd-st-processing' ),
+						'on-hold'    => array( 'clock',   'kd-st-hold' ),
+						'pending'    => array( 'clock',   'kd-st-hold' ),
+						'cancelled'  => array( 'x',       'kd-st-cancelled' ),
+						'failed'     => array( 'x',       'kd-st-cancelled' ),
+						'refunded'   => array( 'refresh', 'kd-st-refunded' ),
+					);
+
+					$kd_present = array();
+					foreach ( $kd_orders as $kd_o ) {
+						$kd_present[ $kd_o->get_status() ] = wc_get_order_status_name( $kd_o->get_status() );
+					}
 				?>
+				<div class="kd-orders-head">
+					<h2>Mis pedidos</h2>
+					<?php if ( $kd_orders ) : ?>
+						<div class="kd-orders-filter">
+							<?php echo $kd_oicons['cal']; ?>
+							<select id="kd-orders-filter-select">
+								<option value="">Todos los pedidos</option>
+								<?php foreach ( $kd_present as $kd_slug => $kd_label ) : ?>
+									<option value="<?php echo esc_attr( $kd_slug ); ?>"><?php echo esc_html( $kd_label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</div>
+					<?php endif; ?>
+				</div>
+
+				<?php if ( $kd_orders ) : ?>
 					<div class="kd-orders-list">
-						<?php foreach ( $kd_orders as $kd_o ) : ?>
-							<a class="kd-order-card" href="<?php echo esc_url( $kd_o->get_view_order_url() ); ?>">
+						<?php foreach ( $kd_orders as $kd_o ) :
+							$kd_slug = $kd_o->get_status();
+							$kd_m    = isset( $kd_smeta[ $kd_slug ] ) ? $kd_smeta[ $kd_slug ] : array( 'clock', 'kd-st-hold' );
+						?>
+							<a class="kd-order-card" data-status="<?php echo esc_attr( $kd_slug ); ?>" href="<?php echo esc_url( $kd_o->get_view_order_url() ); ?>">
+								<span class="kd-order-ico"><?php echo $kd_oicons['bag']; ?></span>
 								<div class="kd-order-main">
 									<span class="kd-order-num">Pedido #<?php echo esc_html( $kd_o->get_order_number() ); ?></span>
-									<span class="kd-order-date"><?php echo esc_html( wc_format_datetime( $kd_o->get_date_created() ) ); ?></span>
+									<span class="kd-order-date"><?php echo esc_html( wc_format_datetime( $kd_o->get_date_created(), 'j \d\e F \d\e Y' ) ); ?></span>
 								</div>
-								<div class="kd-order-meta">
-									<span class="kd-order-status"><?php echo esc_html( wc_get_order_status_name( $kd_o->get_status() ) ); ?></span>
+								<span class="kd-order-status <?php echo esc_attr( $kd_m[1] ); ?>"><?php echo $kd_oicons[ $kd_m[0] ]; ?><span><?php echo esc_html( wc_get_order_status_name( $kd_slug ) ); ?></span></span>
+								<div class="kd-order-totals">
+									<span class="kd-order-total-lbl">Total</span>
 									<span class="kd-order-total"><?php echo wp_kses_post( $kd_o->get_formatted_order_total() ); ?></span>
 								</div>
-								<svg class="kd-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+								<span class="kd-order-chev"><?php echo $kd_oicons['chev']; ?></span>
 							</a>
 						<?php endforeach; ?>
 					</div>
 				<?php else : ?>
 					<p class="kd-orders-empty">Aún no tienes pedidos.</p>
 				<?php endif; ?>
-			</div>
 
+				<script>
+				(function(){
+					var sel = document.getElementById('kd-orders-filter-select');
+					if (!sel) return;
+					sel.addEventListener('change', function(){
+						var v = this.value;
+						document.querySelectorAll('#section-pedidos .kd-order-card').forEach(function(c){
+							c.style.display = (!v || c.getAttribute('data-status') === v) ? '' : 'none';
+						});
+					});
+				})();
+				</script>
+			</div>
 			<div id="kd-wc-content" style="display:<?php echo $kd_is_wc ? 'block' : 'none'; ?>;">
 			<?php do_action( 'woocommerce_account_content' ); ?>
 			</div>
