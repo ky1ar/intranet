@@ -8,29 +8,27 @@ $last_name      = $user->last_name  ? explode(' ', $user->last_name)[0]  : '';
 $nombre         = trim($first_name . ' ' . $last_name) ?: $user->display_name;
 $image_url      = get_user_meta( $user_id, 'custom_profile_picture', true );
 $logout_url     = wc_get_account_endpoint_url('customer-logout');
+
 $is_orders      = is_wc_endpoint_url('orders') || is_wc_endpoint_url('view-order');
 $is_address     = is_wc_endpoint_url('edit-address');
-$is_account     = is_wc_endpoint_url('edit-account') || ( !$is_orders && !$is_address );
+$is_account     = is_wc_endpoint_url('edit-account');
+$is_default     = ! $is_orders && ! $is_address && ! $is_account; // landing /mi-cuenta/ => Beneficios
 
 do_action( 'woocommerce_before_account_navigation' );
 ?>
 
 <nav class="kd-sidebar woocommerce-MyAccount-navigation" aria-label="Navegación de cuenta">
 
-	<!-- WooCommerce ul oculto — necesario para que WC detecte el endpoint activo -->
+	<!-- WooCommerce ul oculto - necesario para que WC detecte el endpoint activo -->
 	<ul style="display:none; visibility:hidden; pointer-events:none;">
 		<?php foreach ( wc_get_account_menu_items() as $endpoint => $label ) : ?>
 			<li class="<?php echo wc_get_account_menu_item_classes( $endpoint ); ?>">
 				<a href="<?php echo esc_url( wc_get_account_endpoint_url( $endpoint ) ); ?>"><?php echo esc_html( $label ); ?></a>
 			</li>
 		<?php endforeach; ?>
-		<li class="custom-menu-item programas" data-section="programas">
-			<a href="<?php echo esc_url( home_url( '/mi-cuenta/?section=programas' ) ); ?>" class="nav-link">Programas</a>
-		</li>
 	</ul>
 
 	<!-- CAJA 1: Perfil -->
-
 	<div class="kd-profile-card">
 		<img class="kd-profile-bg" src="https://www.tiendakrear3d.com/wp-content/uploads/2026/05/wp.webp" alt="">
 
@@ -46,88 +44,42 @@ do_action( 'woocommerce_before_account_navigation' );
 		<p class="kd-username"><?php echo esc_html( $user->user_email ); ?></p>
 	</div>
 
-	<!-- CAJA 2: Menú -->
+	<!-- CAJA 2: Menu -->
 	<div class="kd-nav-card">
 
-		<!-- Perfil -->
-		<div class="kd-nav-group <?php echo $is_account ? 'kd-group-open' : ''; ?>">
-			<a href="/mi-cuenta/edit-account/" class="kd-nav-item kd-item-perfil <?php echo $is_account ? 'kd-active' : ''; ?>">
-				<svg class="kd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-				</svg>
-				<span>Perfil</span>
-			</a>
-			<div class="kd-nav-sub <?php echo $is_account ? '' : 'kd-sub-hidden'; ?>">
-				<button class="kd-sub-btn kd-btn-info active">Información Personal</button>
-				<button class="kd-sub-btn kd-btn-pass">Contraseña</button>
-			</div>
-		</div>
-
-		<!-- Servicios / Beneficios -->
-		<div class="kd-nav-item kd-item-servicios">
+		<!-- Beneficios (seccion local: servicios) -->
+		<a href="/mi-cuenta/" class="kd-nav-item kd-item-servicios <?php echo $is_default ? 'kd-active' : ''; ?>" data-nav data-kind="section" data-section="servicios">
 			<svg class="kd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 				<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
 			</svg>
 			<span>Beneficios</span>
-		</div>
+		</a>
 
-		<!-- Guías -->
-		<!-- <div class="kd-nav-item kd-item-guias">
+		<!-- Perfil -->
+		<a href="/mi-cuenta/edit-account/" class="kd-nav-item kd-item-perfil <?php echo $is_account ? 'kd-active' : ''; ?>" data-nav data-kind="wc" data-endpoint="edit-account">
 			<svg class="kd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+				<circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
 			</svg>
-			<span>Guías</span>
-		</div> -->
+			<span>Perfil</span>
+		</a>
 
 		<!-- Pedidos -->
-		<a class="kd-nav-item <?php echo $is_orders ? 'kd-active' : ''; ?>" href="/mi-cuenta/orders/">
+		<a href="/mi-cuenta/orders/" class="kd-nav-item kd-item-pedidos <?php echo $is_orders ? 'kd-active' : ''; ?>" data-nav data-kind="wc" data-endpoint="orders">
 			<svg class="kd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 				<path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
 			</svg>
 			<span>Pedidos</span>
 		</a>
 
-		<?php if ( $is_orders ) :
-			$customer_orders = wc_get_orders(['customer_id' => $user_id, 'limit' => -1]);
-			if ( $customer_orders ) :
-				$current_order_id = get_query_var('view-order');
-		?>
-			<div class="kd-orders-sub">
-				<?php foreach ( $customer_orders as $order ) :
-					$active_cl = ( $order->get_id() == $current_order_id ) ? 'kd-sub-active' : '';
-				?>
-					<a href="<?php echo esc_url( $order->get_view_order_url() ); ?>" class="kd-order-link <?php echo $active_cl; ?>">
-						Pedido <span>#<?php echo esc_html( $order->get_order_number() ); ?></span>
-					</a>
-				<?php endforeach; ?>
-			</div>
-		<?php endif; endif; ?>
-
 		<!-- Direcciones -->
-		<a class="kd-nav-item <?php echo $is_address ? 'kd-active' : ''; ?>" href="/mi-cuenta/edit-address/">
+		<a href="/mi-cuenta/edit-address/" class="kd-nav-item kd-item-direcciones <?php echo $is_address ? 'kd-active' : ''; ?>" data-nav data-kind="wc" data-endpoint="edit-address">
 			<svg class="kd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 				<path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
 			</svg>
 			<span>Direcciones</span>
 		</a>
 
-		<!-- Programas -->
-		<div class="kd-nav-group">
-			<div class="kd-nav-item kd-item-programas custom-menu-item programas" data-section="programas">
-				<svg class="kd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
-				</svg>
-				<span>Programas</span>
-			</div>
-			<div class="kd-nav-sub kd-programas-sub kd-sub-hidden">
-				<button class="kd-sub-btn kd-prog-btn beneficios active">+Beneficios</button>
-				<button class="kd-sub-btn kd-prog-btn prime">Prime</button>
-				<button class="kd-sub-btn kd-prog-btn afiliados">Afiliados</button>
-				<button class="kd-sub-btn kd-prog-btn trueke">Trueke</button>
-			</div>
-		</div>
-
-		
+		<!-- Programas (oculto temporalmente) -->
 
 		<!-- Salir -->
 		<a class="kd-nav-item kd-item-salir" href="<?php echo esc_url( $logout_url ); ?>">
@@ -142,140 +94,240 @@ do_action( 'woocommerce_before_account_navigation' );
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+	const dash    = document.getElementById("kd-dashboard");
+	if (!dash) return;
+	const content = dash.querySelector(".woocommerce-MyAccount-content");
+	const wcPane  = document.getElementById("kd-wc-content");
+	if (!content || !wcPane) return;
 
-	// ── Info / Contraseña toggle ──────────────────────────────────────────
-	const btnInfo = document.querySelector(".kd-btn-info");
-	const btnPass = document.querySelector(".kd-btn-pass");
-	const form    = document.querySelector(".woocommerce-EditAccountForm");
+	const DEFAULT_SECTION = "servicios"; // "Beneficios" del menu
 
-	if (btnInfo && btnPass && form) {
-		const fieldset = form.querySelector('fieldset');
-		if (fieldset) {
-			const allChildren = Array.from(form.children);
-			const submitEl    = form.querySelector('[type="submit"]')?.closest('p') || form.lastElementChild;
-
-			// passSection = fieldset + heading immediately before it (if no inputs)
-			const passSet = new Set([fieldset]);
-			const prevSib = fieldset.previousElementSibling;
-			if (prevSib && !prevSib.querySelector('input,textarea,select')) passSet.add(prevSib);
-
-			const infoSection = allChildren.filter(el => !passSet.has(el) && el !== submitEl);
-			const passSection = allChildren.filter(el => passSet.has(el));
-			const passInputs  = fieldset.querySelectorAll('input[name="password_current"],input[name="password_1"],input[name="password_2"]');
-
-			function setPassDisabled(disabled) {
-				passInputs.forEach(inp => inp.disabled = disabled);
-			}
-
-			// Info mode by default
-			passSection.forEach(el => el.style.display = 'none');
-			setPassDisabled(true);
-
-			btnInfo.addEventListener("click", () => {
-				btnInfo.classList.add("active");
-				btnPass.classList.remove("active");
-				infoSection.forEach(el => el.style.display = '');
-				passSection.forEach(el => el.style.display = 'none');
-				setPassDisabled(true);
-			});
-			btnPass.addEventListener("click", () => {
-				btnPass.classList.add("active");
-				btnInfo.classList.remove("active");
-				infoSection.forEach(el => el.style.display = 'none');
-				passSection.forEach(el => el.style.display = 'block');
-				setPassDisabled(false);
-			});
-		}
-	}
-
-	// ── Secciones de Programas ────────────────────────────────────────────
-	const secciones = {
-		beneficios: document.querySelector("#section-beneficios"),
-		prime:      document.querySelector("#section-prime"),
-		afiliados:  document.querySelector("#section-afiliados"),
-		trueke:     document.querySelector("#section-trueke"),
-		servicios:  document.querySelector("#section-servicios"),
-		guias:      document.querySelector("#section-guias"),
+	const sections = {
+		beneficios: document.getElementById("section-beneficios"),
+		prime:      document.getElementById("section-prime"),
+		afiliados:  document.getElementById("section-afiliados"),
+		servicios:  document.getElementById("section-servicios"),
+		guias:      document.getElementById("section-guias"),
+		trueke:     document.getElementById("section-trueke"),
 	};
 
-	const parrafosDefault = document.querySelectorAll("#kd-dashboard .woocommerce-MyAccount-content > p");
+	// endpoint WC -> selector del item de menu a marcar activo
+	const WC_KEYS = {
+		"edit-account": ".kd-item-perfil",
+		"orders":       ".kd-item-pedidos",
+		"view-order":   ".kd-item-pedidos",
+		"edit-address": ".kd-item-direcciones",
+	};
 
-	function updateActiveNavItem(section) {
-		document.querySelectorAll("nav .custom-menu-item").forEach(item => {
-			item.classList.toggle("is-active", item.dataset.section === section);
-		});
+	// Loader
+	const loader = document.createElement("div");
+	loader.className = "kd-loading";
+	loader.innerHTML = '<span class="kd-spinner"></span>';
+
+	// scripts ya ejecutados (evita redeclarar const al re-inyectar)
+	const ranScripts = new Set();
+
+	function clearActive() {
+		dash.querySelectorAll(".kd-nav-item.kd-active").forEach(el => el.classList.remove("kd-active"));
+	}
+	function setActive(selector) {
+		clearActive();
+		if (selector) dash.querySelector(selector)?.classList.add("kd-active");
+	}
+	function hideSections() {
+		Object.values(sections).forEach(s => s && (s.style.display = "none"));
 	}
 
-	function manejarVisibilidadProgramas(section) {
-		const dash = document.querySelector("#kd-dashboard");
-		if (dash) dash.classList.toggle("programas-activa", section === "programas");
+	function showProgram(name) {
+		dash.querySelectorAll(".kd-prog-btn").forEach(b => b.classList.remove("active"));
+		dash.querySelector(".kd-prog-btn." + name)?.classList.add("active");
+		hideSections();
+		if (sections[name]) sections[name].style.display = "flex";
 	}
 
-	function clearAllActive() {
-		document.querySelectorAll(".kd-nav-item.kd-active").forEach(el => el.classList.remove("kd-active"));
-	}
+	function showSection(key) {
+		hideSections();
+		wcPane.style.display = "none";
+		dash.classList.toggle("programas-activa", key === "programas");
 
-	function showSection(section) {
-		Object.values(secciones).forEach(s => s && (s.style.display = "none"));
-		parrafosDefault.forEach(p => p.style.display = "none");
-
-		const wcContent = document.getElementById("kd-wc-content");
-
-		if (section === "programas") {
-			clearAllActive();
-			cambiarProgramaActivo("beneficios");
-			const progSub = document.querySelector(".kd-programas-sub");
-			if (progSub) progSub.classList.remove("kd-sub-hidden");
-			document.querySelector(".kd-item-programas")?.classList.add("kd-active");
-			if (wcContent) wcContent.style.display = "none";
-		} else if (secciones[section]) {
-			clearAllActive();
-			secciones[section].style.display = "flex";
-			if (wcContent) wcContent.style.display = "none";
-			document.querySelector(`.kd-item-${section}`)?.classList.add("kd-active");
+		if (key === "programas") {
+			dash.querySelector(".kd-programas-sub")?.classList.remove("kd-sub-hidden");
+			setActive(".kd-item-programas");
+			showProgram("beneficios");
 		} else {
-			parrafosDefault.forEach(p => p.style.display = "");
-			if (wcContent) wcContent.style.display = "";
+			if (!sections[key]) key = DEFAULT_SECTION;
+			sections[key].style.display = "flex";
+			setActive(".kd-item-" + key);
 		}
-
-		updateActiveNavItem(section);
-		manejarVisibilidadProgramas(section);
 	}
 
-	function cambiarProgramaActivo(nombre) {
-		document.querySelectorAll(".kd-prog-btn").forEach(btn => btn.classList.remove("active"));
-		document.querySelector(".kd-prog-btn." + nombre)?.classList.add("active");
-		Object.values(secciones).forEach(s => s && (s.style.display = "none"));
-		if (secciones[nombre]) secciones[nombre].style.display = "flex";
+	function showWcPane(menuSelector) {
+		hideSections();
+		dash.classList.remove("programas-activa");
+		wcPane.style.display = "";
+		setActive(menuSelector);
 	}
 
-	document.querySelectorAll(".kd-prog-btn").forEach(btn => {
-		btn.addEventListener("click", () => {
-			const nombre = Array.from(btn.classList).find(c =>
-				["beneficios","prime","afiliados","trueke","servicios"].includes(c)
-			);
-			if (nombre) cambiarProgramaActivo(nombre);
+	function extractContent(html) {
+		const doc  = new DOMParser().parseFromString(html, "text/html");
+		const node = doc.querySelector("#kd-wc-content");
+		if (!node) return { html: null, notices: "" };
+		// Evita duplicar avisos: si ya vienen dentro del contenido, no los repetimos.
+		let notices = "";
+		const hasInside = node.querySelector(".woocommerce-message, .woocommerce-error, .woocommerce-info");
+		if (!hasInside) {
+			const outside = [...doc.querySelectorAll(".woocommerce-message, .woocommerce-error, .woocommerce-info")];
+			if (outside.length) {
+				notices = '<div class="woocommerce-notices-wrapper">' + outside.map(n => n.outerHTML).join("") + '</div>';
+			}
+		}
+		return { html: node.innerHTML, notices };
+	}
+
+	function runScripts(container) {
+		container.querySelectorAll("script").forEach(old => {
+			const key = old.src || old.textContent;
+			if (ranScripts.has(key)) { old.remove(); return; }
+			ranScripts.add(key);
+			const s = document.createElement("script");
+			[...old.attributes].forEach(a => s.setAttribute(a.name, a.value));
+			s.textContent = old.textContent;
+			old.replaceWith(s);
+		});
+	}
+
+	function inject(html, notices) {
+		wcPane.innerHTML = (notices || "") + html;
+		runScripts(wcPane);
+		try { content.scrollIntoView({ block: "nearest", behavior: "smooth" }); } catch (e) {}
+	}
+
+	function addOrdersBackLink() {
+		if (wcPane.querySelector(".kd-back-orders")) return;
+		const back = document.createElement("a");
+		back.href = "/mi-cuenta/orders/";
+		back.className = "kd-back-orders";
+		back.textContent = "← Mis pedidos";
+		back.style.cssText = "display:inline-flex;align-items:center;gap:.35rem;margin:0 0 1rem;color:var(--primary,#e05a00);font-weight:600;text-decoration:none;cursor:pointer;";
+		wcPane.insertBefore(back, wcPane.firstChild);
+	}
+
+	async function loadWc(url, opts) {
+		const push = !opts || opts.push !== false;
+		wcPane.appendChild(loader);
+		try {
+			const res  = await fetch(url, { credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } });
+			const text = await res.text();
+			const data = extractContent(text);
+			if (data.html === null) { window.location.href = url; return; }
+			inject(data.html, data.notices);
+			if (detectEndpoint(new URL(url, location.origin).pathname) === "view-order") addOrdersBackLink();
+			if (push) history.pushState({ kd: true }, "", res.url || url);
+		} catch (e) {
+			window.location.href = url; // fallback duro
+		}
+	}
+
+	function detectEndpoint(pathname) {
+		const path = pathname.replace(/\/+$/, "");
+		const m = path.match(/\/(edit-account|orders|view-order|edit-address)(?:\/|$)/);
+		return m ? m[1] : null;
+	}
+
+	function route(fetchWc) {
+		const ep = detectEndpoint(location.pathname);
+		if (ep && WC_KEYS[ep]) {
+			showWcPane(WC_KEYS[ep]);
+			if (fetchWc) loadWc(location.href, { push: false });
+		} else {
+			const section = new URLSearchParams(location.search).get("section") || DEFAULT_SECTION;
+			showSection(section);
+		}
+	}
+
+	function navigate(url) {
+		let target;
+		try { target = new URL(url, location.origin); } catch (e) { return; }
+		const ep = detectEndpoint(target.pathname);
+		if (ep && WC_KEYS[ep]) {
+			showWcPane(WC_KEYS[ep]);
+			loadWc(target.href, { push: true });
+		} else {
+			const section = target.searchParams.get("section") || DEFAULT_SECTION;
+			showSection(section);
+			history.pushState({ kd: true }, "", target.pathname + target.search);
+		}
+	}
+
+	// Items del menu
+	dash.querySelectorAll("[data-nav]").forEach(item => {
+		item.addEventListener("click", (e) => {
+			e.preventDefault();
+			navigate(item.getAttribute("href") || item.dataset.url || "/mi-cuenta/");
 		});
 	});
 
-	document.querySelector(".kd-item-programas")?.addEventListener("click", () => {
-		showSection("programas");
+	// Sub-botones de Programas
+	dash.querySelectorAll(".kd-prog-btn").forEach(btn => {
+		btn.addEventListener("click", () => {
+			const name = ["beneficios", "prime", "afiliados", "trueke", "servicios"].find(c => btn.classList.contains(c));
+			if (name) showProgram(name);
+		});
 	});
 
-	document.querySelector(".kd-item-servicios")?.addEventListener("click", () => {
-		showSection("servicios");
+	// Links internos dentro del contenido WC (ver pedido, editar direccion, paginacion)
+	wcPane.addEventListener("click", (e) => {
+		const a = e.target.closest("a");
+		if (!a || !wcPane.contains(a)) return;
+		const href = a.getAttribute("href") || "";
+		if (!href || href.charAt(0) === "#") return;
+		let u; try { u = new URL(href, location.origin); } catch (e2) { return; }
+		if (u.origin === location.origin && /\/mi-cuenta\/(edit-account|orders|view-order|edit-address)/.test(u.pathname)) {
+			e.preventDefault();
+			navigate(u.href);
+		}
 	});
 
-	document.querySelector(".kd-item-guias")?.addEventListener("click", () => {
-		showSection("guias");
+	// Submit de formularios WC (perfil, direcciones) sin recargar
+	let lastSubmitter = null;
+	wcPane.addEventListener("click", (e) => {
+		const b = e.target.closest("button[type=submit], input[type=submit], button:not([type])");
+		if (b && wcPane.contains(b)) lastSubmitter = b;
+	});
+	wcPane.addEventListener("submit", async (e) => {
+		const form = e.target.closest("form");
+		if (!form || !wcPane.contains(form)) return;
+		e.preventDefault();
+		const fd = new FormData(form);
+		if (lastSubmitter && lastSubmitter.name) fd.append(lastSubmitter.name, lastSubmitter.value || "");
+		// Guardado independiente: al guardar la info no mandamos los campos de contrasena
+		// (evita el error de "rellena todos los campos de contrasena" por autocompletado).
+		if (lastSubmitter && lastSubmitter.value === "save_info") {
+			fd.delete("password_current");
+			fd.delete("password_1");
+			fd.delete("password_2");
+		}
+		const action = (form.getAttribute("action") || "").trim();
+		const url = action || location.href;
+		wcPane.appendChild(loader);
+		try {
+			const res  = await fetch(url, { method: "POST", body: fd, credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } });
+			const text = await res.text();
+			const data = extractContent(text);
+			if (data.html === null) { form.submit(); return; }
+			inject(data.html, data.notices);
+		} catch (err) {
+			form.submit();
+		} finally {
+			lastSubmitter = null;
+		}
 	});
 
-	function getQueryParam(param) {
-		return new URLSearchParams(window.location.search).get(param);
-	}
+	// Atras / Adelante
+	window.addEventListener("popstate", () => route(true));
 
-	const seccionInicial = getQueryParam("section") || "";
-	showSection(seccionInicial);
+	// Init: en la carga inicial el contenido WC ya viene renderizado por PHP
+	route(false);
 });
 </script>
 

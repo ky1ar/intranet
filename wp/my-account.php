@@ -22,6 +22,12 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since 2.6.0
  */
+
+$kd_is_orders  = is_wc_endpoint_url('orders') || is_wc_endpoint_url('view-order');
+$kd_is_address = is_wc_endpoint_url('edit-address');
+$kd_is_account = is_wc_endpoint_url('edit-account');
+$kd_is_wc      = $kd_is_orders || $kd_is_address || $kd_is_account;
+$kd_default    = ! $kd_is_wc; // landing /mi-cuenta/ => Beneficios (seccion servicios)
 ?>
 <style>
 header.custom { 
@@ -253,8 +259,37 @@ header.custom {
     padding: 1rem;
 }
 
-/* Ocultar fieldset de contraseña inmediatamente para evitar flash */
-#kd-wc-content .woocommerce-EditAccountForm fieldset { display: none; }
+/* ── Loader AJAX ── */
+#kd-wc-content { position: relative; min-height: 120px; }
+.kd-loading {
+	position: absolute; inset: 0;
+	display: flex; align-items: center; justify-content: center;
+	background: rgba(255,255,255,0.6); border-radius: 16px; z-index: 5;
+}
+.kd-spinner {
+	width: 28px; height: 28px; border-radius: 50%;
+	border: 3px solid #e9e9e9; border-top-color: var(--primary, #e05a00);
+	animation: kd-spin .7s linear infinite;
+}
+@keyframes kd-spin { to { transform: rotate(360deg); } }
+
+/* ── Tarjetas de Perfil (Informacion / Contrasena) ── */
+.woocommerce-EditAccountForm .k3d-card {
+	border: 1px solid #00000012;
+	border-radius: 1rem;
+	padding: 1.25rem 1.5rem;
+	margin-bottom: 1.25rem;
+}
+.woocommerce-EditAccountForm .k3d-card:last-of-type { margin-bottom: 0; }
+.woocommerce-EditAccountForm .k3d-card-head { margin-bottom: 1rem; }
+.woocommerce-EditAccountForm .k3d-card-head h3 {
+	margin: 0; font-size: 1rem; font-weight: 700; color: var(--secondary, #1f2937);
+}
+.woocommerce-EditAccountForm .k3d-card-head p { margin: 0.15rem 0 0; font-size: 0.8rem; opacity: 0.5; }
+.woocommerce-EditAccountForm fieldset { display: block; border: none; padding: 0; margin: 0; }
+.woocommerce-EditAccountForm fieldset legend { display: none; }
+.woocommerce-EditAccountForm .k3d-actions { margin: 1.25rem 0 0; }
+.woocommerce-EditAccountForm .k3d-actions .button { cursor: pointer; width: auto; }
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
@@ -266,13 +301,6 @@ header.custom {
 }
 </style>
 <script>
-(function() {
-  const path = window.location.pathname.replace(/\/$/, '');
-  if (path === '/mi-cuenta') {
-    window.location.replace('/mi-cuenta/edit-account/');
-  }
-})();
-
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelector("header")?.classList.add("custom");
 });
@@ -721,7 +749,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			  </section>
 		  	</div>
 		  
-			<div id="section-servicios" class="section-content servicios-section" style="display:none;">
+			<div id="section-servicios" class="section-content servicios-section" style="display:<?php echo $kd_default ? 'flex' : 'none'; ?>;">
 			<?php
 			$current_user    = wp_get_current_user();
 			$wp_user_id      = get_current_user_id();
@@ -1875,7 +1903,7 @@ document.addEventListener("DOMContentLoaded", () => {
 				<a href="/trueke/">¡Únete a Trueke!</a>
 			  </div>
 		  </div>
-			<div id="kd-wc-content">
+			<div id="kd-wc-content" style="display:<?php echo $kd_is_wc ? 'block' : 'none'; ?>;">
 			<?php do_action( 'woocommerce_account_content' ); ?>
 			</div>
 		</div>
