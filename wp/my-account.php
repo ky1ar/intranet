@@ -289,7 +289,33 @@ header.custom {
 .woocommerce-EditAccountForm fieldset { display: block; border: none; padding: 0; margin: 0; }
 .woocommerce-EditAccountForm fieldset legend { display: none; }
 .woocommerce-EditAccountForm .k3d-actions { margin: 1.25rem 0 0; }
-.woocommerce-EditAccountForm .k3d-actions .button { cursor: pointer; width: auto; }
+/* ── Botones (Perfil / Direcciones / Pedido) ── */
+#kd-wc-content .button,
+#kd-wc-content .woocommerce-Button,
+#kd-wc-content button[type="submit"] {
+	margin: 0;
+	background-color: var(--primary, #e05a00);
+	color: var(--white, #fff);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 2.75rem;
+	border-radius: 2rem;
+	padding: 0 1.5rem;
+	font-size: 0.8rem;
+	font-family: inherit;
+	font-weight: 600;
+	border: none;
+	cursor: pointer;
+	user-select: none;
+	text-decoration: none;
+	transition: opacity 0.3s ease;
+}
+#kd-wc-content .button:hover,
+#kd-wc-content .woocommerce-Button:hover,
+#kd-wc-content button[type="submit"]:hover { opacity: 0.85; }
+#kd-wc-content .woocommerce-EditAccountForm .k3d-actions { display: flex; margin: 1.25rem 0 0; }
+#kd-wc-content .woocommerce-EditAccountForm .k3d-actions .button { display: flex; width: 100%; align-self: stretch; }
 
 /* ── Lista de pedidos ── */
 #section-pedidos { flex-direction: column; gap: 1rem; align-items: stretch; }
@@ -307,13 +333,118 @@ header.custom {
 .kd-order-num { font-weight: 700; font-size: 0.95rem; }
 .kd-order-date { font-size: 0.75rem; opacity: 0.5; }
 .kd-order-meta { margin-left: auto; display: flex; align-items: center; gap: 1.25rem; }
-.kd-order-status { font-size: 0.72rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 1rem; background: #f3f3f3; color: #555; white-space: nowrap; }
-.kd-order-total { font-weight: 700; font-size: 0.9rem; white-space: nowrap; }
+.kd-order-status { font-size: 0.72rem; font-weight: 700; padding: 0.25rem 0.7rem; border-radius: 1rem; background: var(--primaryopacity, #fdeee4); color: var(--primary, #e05a00); white-space: nowrap; }
+.kd-order-total { font-weight: 800; font-size: 0.95rem; color: var(--primary, #e05a00); white-space: nowrap; }
 .kd-order-card .kd-arrow { opacity: 0.3; flex-shrink: 0; }
 .kd-orders-empty { opacity: 0.5; }
 @media (max-width: 600px) {
 	.kd-order-card { flex-wrap: wrap; }
 	.kd-order-meta { margin-left: 0; width: 100%; justify-content: space-between; }
+}
+
+/* ═══ Detalle de pedido (view-order) ═══ */
+#kd-wc-content .woocommerce-order-details,
+#kd-wc-content .woocommerce-customer-details,
+#kd-wc-content .woocommerce-order-downloads {
+	background: #fff;
+	border: 1px solid #eee;
+	border-radius: 12px;
+	padding: 1.5rem;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+	margin-bottom: 1.25rem;
+}
+#kd-wc-content .woocommerce-order-details__title,
+#kd-wc-content .woocommerce-column__title,
+#kd-wc-content .woocommerce-order-downloads__title {
+	margin: 0 0 1rem;
+	font-size: 1.1rem;
+	font-weight: 800;
+}
+#kd-wc-content .woocommerce-table--order-details {
+	width: 100%;
+	border-collapse: collapse;
+}
+#kd-wc-content .woocommerce-table--order-details th,
+#kd-wc-content .woocommerce-table--order-details td {
+	padding: 0.75rem 0;
+	border-bottom: 1px solid #f0f0f0;
+	text-align: left;
+	font-size: 0.85rem;
+	vertical-align: top;
+}
+#kd-wc-content .woocommerce-table--order-details .product-total,
+#kd-wc-content .woocommerce-table--order-details tfoot td { text-align: right; }
+#kd-wc-content .woocommerce-table--order-details tfoot th { font-weight: 600; text-align: left; }
+#kd-wc-content .woocommerce-table--order-details .product-name a {
+	color: inherit; text-decoration: none; font-weight: 600;
+}
+#kd-wc-content .woocommerce-table--order-details .product-name a:hover { color: var(--primary, #e05a00); }
+#kd-wc-content .woocommerce-table--order-details tfoot tr:last-child th,
+#kd-wc-content .woocommerce-table--order-details tfoot tr:last-child td {
+	font-size: 1rem; color: var(--primary, #e05a00); border-bottom: none;
+}
+
+/* ═══ Direcciones ═══ */
+#kd-wc-content .woocommerce-Addresses,
+#kd-wc-content .woocommerce-columns--addresses {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1.25rem;
+	margin: 0;
+	width: 100%;
+}
+#kd-wc-content .woocommerce-Address {
+	flex: 1 1 240px;
+	background: #fff;
+	border: 1px solid #eee;
+	border-radius: 12px;
+	padding: 1.25rem 1.5rem;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+	box-sizing: border-box;
+}
+#kd-wc-content .woocommerce-Address-title {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: 0.75rem;
+}
+#kd-wc-content .woocommerce-Address-title h2,
+#kd-wc-content .woocommerce-Address-title h3 { margin: 0; font-size: 1rem; font-weight: 800; }
+#kd-wc-content .woocommerce-Address-title .edit {
+	font-size: 0.72rem;
+	font-weight: 700;
+	color: var(--primary, #e05a00);
+	text-decoration: none;
+	border: 1px solid var(--primary, #e05a00);
+	padding: 0.3rem 0.85rem;
+	border-radius: 2rem;
+	transition: background 0.2s, color 0.2s;
+	white-space: nowrap;
+}
+#kd-wc-content .woocommerce-Address-title .edit:hover { background: var(--primary, #e05a00); color: #fff; }
+#kd-wc-content address {
+	font-style: normal;
+	line-height: 1.7;
+	font-size: 0.85rem;
+	color: #555;
+}
+
+/* Formulario de direccion (al editar) */
+#kd-wc-content .woocommerce-address-fields .form-row { margin: 0 0 0.6rem; }
+#kd-wc-content .woocommerce-address-fields .form-row label {
+	font-size: 0.8rem; font-weight: 500; opacity: 0.6; display: block; margin-bottom: 0.2rem;
+}
+#kd-wc-content .woocommerce-address-fields .input-text,
+#kd-wc-content .woocommerce-address-fields select,
+#kd-wc-content .woocommerce-address-fields .select2-selection {
+	border: 1px solid #00000024;
+	border-radius: 0.75rem;
+	padding: 0.85rem 1rem;
+	font-family: inherit;
+	font-size: 0.85rem;
+	width: 100%;
+	box-sizing: border-box;
 }
 
 /* ── Responsive ── */
