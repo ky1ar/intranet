@@ -1,15 +1,25 @@
 import logging
+import os
 from datetime import datetime
-from flask import render_template
+from flask import render_template, request
 from flask_mail import Message
-from application import mail
+from application import mail, socketio
 from application.handlers import handle_exceptions
-from application.utils import format_datetime
+from application.utils import format_datetime, file_extension
 from application.repository.approval_repository import ApprovalRepository
 from application.services.courses_provisioning_service import (
     CoursesProvisioningService, is_course_slug,
 )
-from config import Courses
+from config import Courses, Paths
+
+
+# Estados del tablero (kanban). El status de approval_request es string libre.
+STATUS_GROUPS = [
+    {"slug": "pending",   "name": "Pendiente"},
+    {"slug": "in_review", "name": "En revisión"},
+    {"slug": "approved",  "name": "Aprobado"},
+    {"slug": "rejected",  "name": "Rechazado"},
+]
 
 
 class ApprovalService:
@@ -48,16 +58,25 @@ class ApprovalService:
 
     @handle_exceptions
     def create_request(self, data):
+        voucher = request.files.get("voucher")
+        if not voucher or not voucher.filename:
+            return "Debes adjuntar la boleta o factura (imagen o PDF)", 400
+        if file_extension(voucher.filename) not in {"pdf", "png", "jpg", "jpeg", "webp"}:
+            return "El archivo adjunto debe ser una imagen o PDF", 400
+
         client_id, sc = self.repository.get_or_create_client(data)
         if sc != 200:
             return client_id, sc
 
-        result, sc = self.repository.create_request(client_id, data["type_slug"])
+        result, sc = self.repository.create_request(
+            client_id, data["type_slug"], data.get("invoice_number")
+        )
         if sc != 200:
             return result, sc
 
         if result.get("already_exists"):
             return {"message": "Ya existe una solicitud activa para este servicio", "id": result["id"]}, 200
+        socketio.emit("approval_update", {})
         return {"message": "Solicitud enviada correctamente", "id": result["id"]}, 200
 
     @handle_exceptions
@@ -66,6 +85,35 @@ class ApprovalService:
         if sc != 200:
             return requests, sc
         return [self._format_request(r) for r in requests], 200
+
+    @handle_exceptions
+    def dashboard(self):
+        requests, sc = self.repository.get_dashboard()
+        if sc != 200:
+            return requests, sc
+        grouped = {
+            g["slug"]: {"status_slug": g["slug"], "status_name": g["name"], "requests": []}
+            for g in STATUS_GROUPS
+        }
+        for req in requests:
+            st = req.status if req.status in grouped else "pending"
+            grouped[st]["requests"].append(self._format_request(req))
+        return [grouped[g["slug"]] for g in STATUS_GROUPS], 200
+
+    @handle_exceptions
+    def start_review(self, data):
+        result, sc = self.repository.set_review(data.get("request_id"))
+        if sc != 200:
+            return result, sc
+        socketio.emit("approval_update", {})
+        return {"message": "Solicitud en revisión"}, 200
+
+    def serve_voucher(self, filename):
+        """Ruta del adjunto para que el intranet lo visualice/valide."""
+        filepath = os.path.join(Paths.APPROVAL_VOUCHERS, filename)
+        if not os.path.isfile(filepath):
+            return None
+        return filepath
 
     @handle_exceptions
     def approve_request(self, data):
@@ -93,12 +141,14 @@ class ApprovalService:
             if sc != 200:
                 return result, sc
             self._send_course_email(client_email, client_name, prov)
+            socketio.emit("approval_update", {})
             return {"message": "Solicitud aprobada y acceso al curso creado"}, 200
 
         # Otros tipos (p.ej. guías): solo se aprueba, sin correo de cursos.
         result, sc = self.repository.approve_request(request_id, user_id, access_url)
         if sc != 200:
             return result, sc
+        socketio.emit("approval_update", {})
         return {"message": "Solicitud aprobada"}, 200
 
     def _send_course_email(self, email, name, prov):
@@ -140,6 +190,7 @@ class ApprovalService:
         )
         if sc != 200:
             return result, sc
+        socketio.emit("approval_update", {})
         return {"message": "Solicitud rechazada"}, 200
 
     def _format_request(self, req):
@@ -155,6 +206,8 @@ class ApprovalService:
             "type": req.type_rel.name if req.type_rel else None,
             "type_slug": req.type_rel.slug if req.type_rel else None,
             "status": req.status,
+            "invoice_number": req.invoice_number,
+            "voucher_filename": req.voucher_filename,
             "access_url": req.access_url,
             "rejection_reason": req.rejection_reason,
             "approved_by_name": req.approver.name if req.approver else None,

@@ -1,3 +1,4 @@
+from flask import send_file
 from application.handlers import handle_logs_and_exceptions, validate_request
 from application.services.approval_service import ApprovalService
 
@@ -19,7 +20,7 @@ class ApprovalController:
 
     @handle_logs_and_exceptions
     def create_request(self, data):
-        if validation := validate_request(data, {"wp_user_id", "type_slug", "email", "phone", "dni"}):
+        if validation := validate_request(data, {"wp_user_id", "type_slug", "email", "phone", "dni", "invoice_number"}):
             return validation, 400
         return self.service.create_request(data)
 
@@ -27,6 +28,22 @@ class ApprovalController:
     def get_all_requests(self, data):
         status_filter = data.get("status") if data else None
         return self.service.get_all_requests(status_filter)
+
+    @handle_logs_and_exceptions
+    def get_dashboard(self, data):
+        return self.service.dashboard()
+
+    @handle_logs_and_exceptions
+    def start_review(self, data):
+        if validation := validate_request(data, {"request_id", "user_id"}):
+            return validation, 400
+        return self.service.start_review(data)
+
+    def serve_voucher(self, filename):
+        filepath = self.service.serve_voucher(filename)
+        if not filepath:
+            return {"error": "Archivo no encontrado"}, 404
+        return send_file(filepath)
 
     @handle_logs_and_exceptions
     def approve_request(self, data):

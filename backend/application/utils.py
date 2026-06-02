@@ -44,6 +44,16 @@ def peru_time():
     return datetime.now(timezone.utc) - timedelta(hours=5)
 
 
+def normalize_phone(phone):
+    """Celular peruano: si empieza con 9 y tiene 9 dígitos, antepone el 51 (519XXXXXXXX)."""
+    if not phone:
+        return phone
+    cleaned = phone.strip()
+    if len(cleaned) == 9 and cleaned.isdigit() and cleaned.startswith("9"):
+        return f"51{cleaned}"
+    return phone
+
+
 def parse_time(hhmm):
     return datetime.strptime(hhmm, "%H:%M").time()
 

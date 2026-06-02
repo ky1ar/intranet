@@ -810,8 +810,9 @@ document.addEventListener("DOMContentLoaded", () => {
 				<div style="background:#fff; border-radius:12px; padding:2rem; max-width:400px; width:90%; position:relative;">
 					<button id="modal-perfil-close" style="position:absolute; top:1rem; right:1rem; background:none; border:none; font-size:1.4rem; cursor:pointer;">&times;</button>
 					<h3 style="margin-bottom:0.5rem;">Completa tus datos</h3>
-					<p style="margin-bottom:1.2rem; color:#666; font-size:0.9rem;">Necesitamos tu teléfono y DNI para procesar tu solicitud. Solo te lo pediremos esta vez.</p>
+					<p style="margin-bottom:1.2rem; color:#666; font-size:0.9rem;">Necesitamos tus datos y el comprobante (boleta o factura) para procesar tu solicitud.</p>
 					<input type="hidden" id="modal-servicio-type" value="">
+					<div id="perfil-fields">
 					<div style="margin-bottom:1rem;">
 						<label style="font-weight:600; display:block; margin-bottom:4px;">Teléfono</label>
 						<input type="tel" id="input-phone" placeholder="Ej: 987654321" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;">
@@ -819,6 +820,15 @@ document.addEventListener("DOMContentLoaded", () => {
 					<div style="margin-bottom:1.5rem;">
 						<label style="font-weight:600; display:block; margin-bottom:4px;">DNI</label>
 						<input type="text" id="input-dni" placeholder="Ej: 12345678" maxlength="8" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;">
+					</div>
+					</div>
+					<div style="margin-bottom:1rem;">
+						<label style="font-weight:600; display:block; margin-bottom:4px;">N° de boleta / factura</label>
+						<input type="text" id="input-invoice" placeholder="Ej: B001-12345" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;">
+					</div>
+					<div style="margin-bottom:1.5rem;">
+						<label style="font-weight:600; display:block; margin-bottom:4px;">Boleta / factura (imagen o PDF)</label>
+						<input type="file" id="input-voucher" accept="image/*,application/pdf" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box; background:#fff;">
 					</div>
 					<button id="modal-perfil-submit" style="width:100%; padding:12px; background:#e05a00; color:#fff; border:none; border-radius:8px; font-weight:700; font-size:1rem; cursor:pointer;">Enviar solicitud</button>
 					<p id="modal-perfil-error" style="color:red; margin-top:0.7rem; display:none;"></p>
@@ -992,6 +1002,8 @@ document.addEventListener("DOMContentLoaded", () => {
 			.servicio-card .bottom .action:hover { opacity: 0.9; }
 			.servicio-card .bottom .action.is-pending { background-color: #9ca3af; cursor: default; }
 			.servicio-card .bottom .action.is-pending:hover { opacity: 1; }
+			.servicio-card .bottom .action.is-rejected { background-color: #dc3545; cursor: default; }
+			.servicio-card .bottom .action.is-rejected:hover { opacity: 1; }
 			</style>
 
 			<script>
@@ -1037,12 +1049,15 @@ document.addEventListener("DOMContentLoaded", () => {
                     card.dataset.state     = status;
                     card.dataset.accessUrl = data.access_url || PLATFORM;
 
-                    action.classList.remove('is-pending');
+                    action.classList.remove('is-pending', 'is-rejected');
                     if (status === 'approved') {
                         action.textContent = 'Acceder al curso';
-                    } else if (status === 'pending') {
+                    } else if (status === 'pending' || status === 'in_review') {
                         action.textContent = 'En revisión';
                         action.classList.add('is-pending');
+                    } else if (status === 'rejected') {
+                        action.textContent = 'Solicitud rechazada';
+                        action.classList.add('is-rejected');
                     } else {
                         action.textContent = 'Solicitar acceso';
                     }
@@ -1053,26 +1068,26 @@ document.addEventListener("DOMContentLoaded", () => {
                     const type  = card.dataset.type;
                     if (state === 'approved') {
                         window.open(card.dataset.accessUrl || PLATFORM, '_blank');
-                    } else if (state === 'pending') {
-                        /* en revisión: sin acción */
+                    } else if (state === 'pending' || state === 'in_review' || state === 'rejected') {
+                        /* en revisión / rechazado: sin acción */
                     } else {
                         handleSolicitar(type);
                     }
                 }
 
-                async function submitRequest(type, phone, dni) {
-                    const body = {
-                        wp_user_id:  WP_USER_ID,
-                        type_slug:   type,
-                        email:       WP_EMAIL,
-                        phone:       phone,
-                        dni:         dni,
-                        wp_username: WP_USERNAME,
-                    };
+                async function submitRequest(type, phone, dni, invoiceNumber, file) {
+                    const fd = new FormData();
+                    fd.append('wp_user_id',     WP_USER_ID);
+                    fd.append('type_slug',      type);
+                    fd.append('email',          WP_EMAIL);
+                    fd.append('phone',          phone);
+                    fd.append('dni',            dni);
+                    fd.append('wp_username',    WP_USERNAME);
+                    fd.append('invoice_number', invoiceNumber);
+                    fd.append('voucher',        file);
                     const r = await fetch(`${API}/approval/request`, {
-                        method:  'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body:    JSON.stringify(body),
+                        method: 'POST',
+                        body:   fd,
                     });
                     return r.json();
                 }
@@ -1081,26 +1096,26 @@ document.addEventListener("DOMContentLoaded", () => {
                     const profile = await fetchProfile();
                     const phone = profile.phone || WP_PHONE;
                     const dni   = profile.dni   || WP_DNI;
-                    if (phone && dni) {
-                        await doSubmit(type, phone, dni);
-                    } else {
-                        openModal(type, phone, dni);
-                    }
+                    const known = !!(profile.phone && profile.dni); // ya tiene datos guardados
+                    openModal(type, phone, dni, known);
                 }
 
-                async function doSubmit(type, phone, dni) {
+                async function doSubmit(type, phone, dni, invoiceNumber, file) {
                     if (!phone || !dni) return;
                     if (!WP_EMAIL) { alert('No se encontró tu correo electrónico.'); return; }
                     cachedProfile = { phone, dni, email: WP_EMAIL };
-                    await submitRequest(type, phone, dni);
+                    await submitRequest(type, phone, dni, invoiceNumber, file);
                     closeModal();
                     await checkStatuses();
                 }
 
-                function openModal(type, existingPhone, existingDni) {
+                function openModal(type, existingPhone, existingDni, known) {
                     document.getElementById('modal-servicio-type').value = type;
                     document.getElementById('input-phone').value = existingPhone || '';
                     document.getElementById('input-dni').value   = existingDni   || '';
+                    document.getElementById('input-invoice').value = '';
+                    document.getElementById('input-voucher').value = '';
+                    document.getElementById('perfil-fields').style.display = known ? 'none' : 'block';
                     document.getElementById('modal-perfil-error').style.display = 'none';
                     document.getElementById('modal-perfil-servicio').style.display = 'flex';
                 }
@@ -1121,24 +1136,44 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     document.getElementById('modal-perfil-submit').addEventListener('click', async function() {
                         const type  = document.getElementById('modal-servicio-type').value;
-                        const phone = document.getElementById('input-phone').value.trim();
-                        const dni   = document.getElementById('input-dni').value.trim();
-                        const errEl = document.getElementById('modal-perfil-error');
+                        const phone   = document.getElementById('input-phone').value.trim();
+                        const dni     = document.getElementById('input-dni').value.trim();
+                        const invoice = document.getElementById('input-invoice').value.trim();
+                        const file    = document.getElementById('input-voucher').files[0];
+                        const errEl   = document.getElementById('modal-perfil-error');
+                        const perfilVisible = document.getElementById('perfil-fields').style.display !== 'none';
 
-                        if (!phone || !dni) {
-                            errEl.textContent = 'Por favor ingresa tu teléfono y DNI.';
+                        if (perfilVisible) {
+                            if (!phone || !dni) {
+                                errEl.textContent = 'Por favor ingresa tu teléfono y DNI.';
+                                errEl.style.display = 'block';
+                                return;
+                            }
+                            if (!/^\d{8}$/.test(dni)) {
+                                errEl.textContent = 'El DNI debe tener 8 dígitos.';
+                                errEl.style.display = 'block';
+                                return;
+                            }
+                        }
+                        if (!invoice) {
+                            errEl.textContent = 'Ingresa el número de boleta o factura.';
                             errEl.style.display = 'block';
                             return;
                         }
-                        if (!/^\d{8}$/.test(dni)) {
-                            errEl.textContent = 'El DNI debe tener 8 dígitos.';
+                        if (!file) {
+                            errEl.textContent = 'Adjunta la boleta o factura (imagen o PDF).';
+                            errEl.style.display = 'block';
+                            return;
+                        }
+                        if (!/\.(pdf|png|jpe?g|webp)$/i.test(file.name)) {
+                            errEl.textContent = 'El archivo debe ser una imagen o PDF.';
                             errEl.style.display = 'block';
                             return;
                         }
                         errEl.style.display = 'none';
                         this.disabled = true;
                         this.textContent = 'Enviando...';
-                        await doSubmit(type, phone, dni);
+                        await doSubmit(type, phone, dni, invoice, file);
                         this.disabled = false;
                         this.textContent = 'Enviar solicitud';
                     });

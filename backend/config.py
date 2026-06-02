@@ -116,5 +116,6 @@ class Paths:
     LEAVES = os.path.abspath("/shared_uploads/leaves/")
     REFUND = os.path.abspath("/shared_uploads/refund/")
     GUIDES_VOUCHERS = os.path.abspath("/shared_uploads/guides/vouchers/")
+    APPROVAL_VOUCHERS = os.path.abspath("/shared_uploads/approvals/vouchers/")
     GUIDES_MEDIA = os.path.abspath("/shared_uploads/guides/media/")
 

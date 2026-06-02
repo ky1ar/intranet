@@ -20,6 +20,8 @@ class ApprovalRequest(BaseModel):
     approved_at       = db.Column(db.DateTime)
     rejection_reason  = db.Column(db.Text)
     access_url        = db.Column(db.Text)
+    invoice_number    = db.Column(db.String(50))
+    voucher_filename  = db.Column(db.String(255))
     created_at        = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
     updated_at        = db.Column(db.DateTime, onupdate=db.func.now())
 

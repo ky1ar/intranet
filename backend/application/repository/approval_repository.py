@@ -1,9 +1,12 @@
 import logging
+import os
+import secrets
 from application.handlers import handle_db_exceptions
-from application.utils import peru_time
+from application.utils import peru_time, normalize_phone, upload_path, file_extension
 from application.db_models.approval_model import ApprovalRequest, ApprovalType
 from application.models import Clients
-from flask import g
+from config import Paths
+from flask import g, request
 
 
 class ApprovalRepository:
@@ -14,7 +17,7 @@ class ApprovalRepository:
         document   = data.get("dni")
         wp_user_id = data.get("wp_user_id")
         email      = data.get("email")
-        phone      = data.get("phone")
+        phone      = normalize_phone(data.get("phone"))
         name       = data.get("wp_username", "")
 
         client = (
@@ -71,7 +74,7 @@ class ApprovalRepository:
         return req, 200
 
     @handle_db_exceptions
-    def create_request(self, client_id, type_slug):
+    def create_request(self, client_id, type_slug, invoice_number=None):
         type_obj = (
             g.db_session.query(ApprovalType)
             .filter(ApprovalType.slug == type_slug)
@@ -85,21 +88,62 @@ class ApprovalRepository:
             .filter(
                 ApprovalRequest.client_id == client_id,
                 ApprovalRequest.type_id == type_obj.id,
-                ApprovalRequest.status.in_(["pending", "approved"]),
+                ApprovalRequest.status.in_(["pending", "in_review", "approved"]),
             )
             .first()
         )
         if existing:
             return {"id": existing.id, "already_exists": True}, 200
 
+        voucher_filename = self._save_voucher()
         req = ApprovalRequest(
             client_id=client_id,
             type_id=type_obj.id,
             status="pending",
+            created_at=peru_time(),
+            invoice_number=invoice_number,
+            voucher_filename=voucher_filename,
         )
         g.db_session.add(req)
         g.db_session.commit()
         return {"id": req.id, "already_exists": False}, 200
+
+    def _save_voucher(self):
+        """Guarda el adjunto de boleta/factura (solo imagen o PDF). Devuelve el nombre o None."""
+        voucher = request.files.get("voucher")
+        if not voucher or not voucher.filename:
+            return None
+        ext = file_extension(voucher.filename)
+        if ext not in {"pdf", "png", "jpg", "jpeg", "webp"}:
+            return None
+        filename = f"{secrets.token_hex(16)}.{ext}"
+        path = os.path.join(upload_path(Paths.APPROVAL_VOUCHERS), filename)
+        voucher.save(path)
+        return filename
+
+    @handle_db_exceptions
+    def get_dashboard(self):
+        reqs = (
+            g.db_session.query(ApprovalRequest)
+            .order_by(ApprovalRequest.created_at.desc())
+            .all()
+        )
+        return reqs or [], 200
+
+    @handle_db_exceptions
+    def set_review(self, request_id):
+        req = (
+            g.db_session.query(ApprovalRequest)
+            .filter(ApprovalRequest.id == request_id)
+            .first()
+        )
+        if not req:
+            return "Solicitud no encontrada", 404
+        if req.status != "pending":
+            return "Solo se puede iniciar revisión de solicitudes pendientes", 400
+        req.status = "in_review"
+        g.db_session.commit()
+        return {"id": req.id}, 200
 
     @handle_db_exceptions
     def get_all_requests(self, status_filter=None):

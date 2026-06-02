@@ -22,13 +22,28 @@ def get_status():
 
 @approval_bp.route("/request", methods=["POST"])
 def create_request():
-    return controller.create_request(request.get_json())
+    return controller.create_request(request.form.to_dict())
+
+
+@approval_bp.route("/voucher/<filename>", methods=["GET"])
+def serve_voucher(filename):
+    return controller.serve_voucher(filename)
 
 
 @approval_bp.route("/list", methods=["GET"])
 def list_requests():
     data = {"status": request.args.get("status")}
     return controller.get_all_requests(data)
+
+
+@approval_bp.route("/dashboard", methods=["GET"])
+def dashboard():
+    return controller.get_dashboard({})
+
+
+@approval_bp.route("/review", methods=["POST"])
+def review():
+    return controller.start_review(request.get_json())
 
 
 @approval_bp.route("/approve", methods=["POST"])

@@ -1,82 +1,38 @@
 <div x-data="approvals_data">
 	<div id="approvals">
 
-		<div class="controls">
-			<div class="left frost">
-				<div class="item" :class="activeTab === 'servicios' && 'active'" @click="setTab('servicios')">
-					<span>Servicios</span>
-				</div>
-				<div class="item" :class="activeTab === 'guias' && 'active'" @click="setTab('guias')">
-					<span>Guías</span>
-				</div>
-			</div>
-			<div class="right frost">
-				<div class="item" @click="load()">
-					<img alt="" width="18" height="18" src="/static/icons/line/refresh.svg">
-				</div>
-			</div>
-	
-			<div class="left frost">
-				<div class="item" :class="filter === 'pending'  && 'active'" @click="setFilter('pending')">
-					<span>Pendientes</span>
-				</div>
-				<div class="item" :class="filter === 'approved' && 'active'" @click="setFilter('approved')">
-					<span>Aprobados</span>
-				</div>
-				<div class="item" :class="filter === 'rejected' && 'active'" @click="setFilter('rejected')">
-					<span>Rechazados</span>
-				</div>
-				<div class="item" :class="filter === ''          && 'active'" @click="setFilter('')">
-					<span>Todos</span>
-				</div>
-			</div>
-		</div>
+		<!-- Controls vacío por ahora -->
+		<div class="controls"></div>
 
+		<!-- Kanban -->
 		<div class="main glass">
+			<template x-for="group in ($store.cache.getData('approval_dashboard') || [])" :key="group.status_slug">
+				<div class="group">
+					<div class="group-head">
+						<img alt="" width="18" height="18" :src="statusIcon(group.status_slug)">
+						<span class="group-name" x-text="group.status_name"></span>
+						<span class="group-count" x-text="group.requests.length"></span>
+					</div>
 
-			<template x-if="loading">
-				<div class="empty-state">
-					<span>Cargando...</span>
-				</div>
-			</template>
-
-			<template x-if="!loading && requests.length === 0">
-				<div class="empty-state">
-					<span>No hay solicitudes</span>
-				</div>
-			</template>
-
-			<template x-if="!loading && requests.length > 0">
-				<div class="approval-list">
-					<template x-for="req in requests" :key="req.id">
+					<template x-for="req in group.requests" :key="req.id">
 						<div class="req-card white hover-opacity" @click="openDetail(req)">
 							<div class="req-top">
-								<span class="req-id" x-text="`#${req.id}`"></span>
-								<span class="req-badge" :class="statusClass(req.status)" x-text="statusLabel(req.status)"></span>
-							</div>
-							<!-- Guía: muestra imagen + nombre de máquina -->
-							<template x-if="activeTab === 'guias'">
-								<div class="req-machine">
-									<img :src="'/static/images/uploads/machines/' + req.machine_image" width="36" height="36" style="object-fit:contain;border-radius:6px;">
-									<span x-text="req.machine_name"></span>
-								</div>
-							</template>
-							<div class="req-name" x-text="req.client_name || '—'"></div>
-							<template x-if="activeTab === 'servicios'">
-								<div class="req-type" x-text="req.type"></div>
-							</template>
-							<div class="req-bottom">
-								<span class="req-email" x-text="req.client_email || '—'"></span>
+								<span class="req-id" x-text="`AP-${req.id}`"></span>
 								<span class="req-date" x-text="req.created_at"></span>
 							</div>
+							<div class="req-name" x-text="req.client_name || '—'"></div>
+							<div class="req-type" x-text="req.type"></div>
 						</div>
+					</template>
+
+					<template x-if="group.requests.length === 0">
+						<div class="group-empty">Sin solicitudes</div>
 					</template>
 				</div>
 			</template>
-
 		</div>
 
-		<!-- ── Modal detalle solicitud servicio ── -->
+		<!-- ── Modal detalle ── -->
 		<div
 			x-show="$store.cache.isVisibleModal('approval-detail')"
 			@mousedown.self="$store.cache.hideLastModal()"
@@ -94,14 +50,14 @@
 				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
 
 				<div class="detail-head">
-					<span class="detail-title" x-text="`Solicitud #${detail?.id}`"></span>
+					<span class="detail-title" x-text="`Solicitud AP-${detail?.id}`"></span>
 					<span class="req-badge" :class="statusClass(detail?.status)" x-text="statusLabel(detail?.status)"></span>
 				</div>
 
 				<div class="modal-content">
 					<div class="detail-row">
 						<span class="label">Servicio</span>
-						<span x-text="detail?.type"></span>
+						<span x-text="detail?.type || '—'"></span>
 					</div>
 					<div class="detail-row">
 						<span class="label">Cliente</span>
@@ -123,6 +79,21 @@
 						<span class="label">Fecha</span>
 						<span x-text="detail?.created_at"></span>
 					</div>
+					<template x-if="detail?.invoice_number">
+						<div class="detail-row">
+							<span class="label">N° boleta/factura</span>
+							<span x-text="detail.invoice_number"></span>
+						</div>
+					</template>
+					<div class="detail-row">
+						<span class="label">Comprobante</span>
+						<template x-if="detail?.voucher_filename">
+							<a :href="`${$store.cache.api}/approval/voucher/${detail.voucher_filename}`" target="_blank" style="color:#e05a00;font-weight:600;text-decoration:none;">Ver archivo</a>
+						</template>
+						<template x-if="!detail?.voucher_filename">
+							<span style="opacity:0.4">Sin archivo</span>
+						</template>
+					</div>
 
 					<template x-if="detail?.rejection_reason">
 						<div class="detail-row">
@@ -131,7 +102,17 @@
 						</div>
 					</template>
 
+					<!-- Pendiente → iniciar revisión -->
 					<template x-if="detail?.status === 'pending'">
+						<div class="approval-actions">
+							<div class="action-btns">
+								<button class="btn-review" @click="review()">Iniciar revisión</button>
+							</div>
+						</div>
+					</template>
+
+					<!-- En revisión → aprobar / rechazar -->
+					<template x-if="detail?.status === 'in_review'">
 						<div class="approval-actions">
 							<div class="fields">
 								<label class="white">
@@ -144,152 +125,9 @@
 								</label>
 							</div>
 							<div class="action-btns">
-								<button class="btn-approve" @click="approve()">Aprobar</button>
-								<button class="btn-reject"  @click="reject()">Rechazar</button>
+								<button class="btn-approve" @click="approve()" :disabled="processing">Aprobar</button>
+								<button class="btn-reject"  @click="reject()"  :disabled="processing">Rechazar</button>
 							</div>
-						</div>
-					</template>
-				</div>
-			</div>
-		</div>
-
-		<!-- ── Modal detalle solicitud GUÍA ── -->
-		<div
-			x-show="$store.cache.isVisibleModal('guide-detail')"
-			@mousedown.self="$store.cache.hideLastModal()"
-			class="modal-wrap common-modal"
-			id="modal-guide-detail"
-			x-transition:enter="modal-enter"
-			x-transition:enter-start="modal-enter-start"
-			x-transition:enter-end="modal-enter-end"
-			x-transition:leave="modal-leave"
-			x-transition:leave-start="modal-leave-start"
-			x-transition:leave-end="modal-leave-end"
-			x-cloak
-		>
-			<div class="modal glass2 guide-modal" @click.stop x-show="detail">
-				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
-
-				<div class="detail-head">
-					<span class="detail-title" x-text="`Guía #${detail?.id}`"></span>
-					<span class="req-badge" :class="statusClass(detail?.status)" x-text="statusLabel(detail?.status)"></span>
-				</div>
-
-				<div class="modal-content">
-					<!-- Máquina -->
-					<div class="guide-machine-row">
-						<img :src="'/static/images/uploads/machines/' + detail?.machine_image" width="56" height="56" style="object-fit:contain;border-radius:8px;background:#f5f5f5;padding:4px;">
-						<div>
-							<div style="font-weight:700" x-text="detail?.machine_name"></div>
-							<div style="font-size:0.8rem;opacity:0.5" x-text="detail?.brand_name"></div>
-						</div>
-					</div>
-
-					<!-- Voucher -->
-					<template x-if="detail?.voucher_filename">
-						<div class="detail-row">
-							<span class="label">Comprobante</span>
-							<a :href="`${$store.cache.api}/guide/voucher/${detail.voucher_filename}`"
-							   target="_blank" class="voucher-link">Ver archivo</a>
-						</div>
-					</template>
-					<template x-if="!detail?.voucher_filename">
-						<div class="detail-row">
-							<span class="label">Comprobante</span>
-							<span style="opacity:0.4">Sin archivo</span>
-						</div>
-					</template>
-
-					<!-- Cliente -->
-					<div class="detail-row">
-						<span class="label">Cliente</span>
-						<span x-text="detail?.client_name || '—'"></span>
-					</div>
-					<div class="detail-row">
-						<span class="label">DNI</span>
-						<span x-text="detail?.client_dni || '—'"></span>
-					</div>
-					<div class="detail-row">
-						<span class="label">Correo</span>
-						<span x-text="detail?.client_email || '—'"></span>
-					</div>
-					<div class="detail-row">
-						<span class="label">Teléfono</span>
-						<span x-text="detail?.client_phone || '—'"></span>
-					</div>
-					<div class="detail-row">
-						<span class="label">Fecha</span>
-						<span x-text="detail?.created_at"></span>
-					</div>
-
-					<template x-if="detail?.rejection_reason">
-						<div class="detail-row">
-							<span class="label">Motivo rechazo</span>
-							<span x-text="detail.rejection_reason"></span>
-						</div>
-					</template>
-
-					<!-- Acciones pendiente -->
-					<template x-if="detail?.status === 'pending'">
-						<div class="approval-actions">
-							<div class="fields">
-								<label class="white">
-									<input type="text" placeholder="Motivo de rechazo (si aplica)" x-model="actionForm.reason">
-								</label>
-							</div>
-							<div class="action-btns">
-								<button class="btn-approve" @click="approveGuide()">Aprobar</button>
-								<button class="btn-reject"  @click="rejectGuide()">Rechazar</button>
-							</div>
-						</div>
-					</template>
-
-					<!-- Gestionar contenido (solo aprobados) -->
-					<template x-if="detail?.status === 'approved'">
-						<div class="guide-content-section">
-							<div class="guide-content-header">
-								<span>Contenido de la Guía</span>
-								<button class="btn-save-guide" @click="saveGuideContent()" :disabled="savingGuide">
-									<span x-text="savingGuide ? 'Guardando...' : 'Guardar'"></span>
-								</button>
-							</div>
-
-							<textarea class="guide-desc-input" placeholder="Descripción general del equipo..." x-model="guideContent.description" rows="3"></textarea>
-
-							<!-- Items actuales -->
-							<div class="guide-items-list">
-								<template x-for="(item, idx) in guideContent.items" :key="idx">
-									<div class="guide-item-row">
-										<select x-model="item.type" class="item-type-sel">
-											<option value="image">Imagen</option>
-											<option value="video">Video</option>
-											<option value="pdf">PDF</option>
-										</select>
-										<input type="text" placeholder="Título" x-model="item.title" class="item-title-inp">
-										<template x-if="item.type === 'video'">
-											<input type="text" placeholder="URL del video (YouTube, etc.)" x-model="item.url" class="item-url-inp">
-										</template>
-										<template x-if="item.type !== 'video'">
-											<div class="item-file-wrap">
-												<template x-if="item.filename">
-													<a :href="`${$store.cache.api}/guide/media/${item.filename}?wp_user_id=0&machine_id=0`"
-													   target="_blank" class="item-file-preview" x-text="item.filename.substring(0,12)+'...'"></a>
-												</template>
-												<label class="item-upload-btn">
-													<input type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" style="display:none"
-														@change="uploadItemFile($event, idx)">
-													<span x-text="item.filename ? 'Cambiar' : 'Subir'"></span>
-												</label>
-											</div>
-										</template>
-										<button class="item-remove-btn" @click="guideContent.items.splice(idx,1)">✕</button>
-									</div>
-								</template>
-							</div>
-
-							<button class="btn-add-item" @click="guideContent.items.push({type:'video',title:'',url:'',filename:''})">
-								+ Agregar item
-							</button>
 						</div>
 					</template>
 				</div>
@@ -300,443 +138,221 @@
 
 	<script>
 	Alpine.data('approvals_data', () => ({
-		requests:     [],
-		loading:      false,
-		filter:       'pending',
-		activeTab:    'servicios',
-		detail:       null,
-		actionForm:   { request_id: null, access_url: '', reason: '' },
-		guideContent: { description: '', items: [] },
-		savingGuide:  false,
+		detail:     null,
+		processing: false,
+		actionForm: { request_id: null, access_url: '', reason: '' },
 
 		async init() {
-			await this.load();
-		},
-
-		async load() {
-			this.loading = true;
-			const api = Alpine.store('cache').api;
-
-			if (this.activeTab === 'servicios') {
-				const url = this.filter
-					? `${api}/approval/list?status=${this.filter}`
-					: `${api}/approval/list`;
-				const r = await fetch(url);
-				const j = await r.json();
-				this.requests = j.data || [];
-			} else {
-				const url = this.filter
-					? `${api}/guide/list?status=${this.filter}`
-					: `${api}/guide/list`;
-				const r = await fetch(url);
-				const j = await r.json();
-				this.requests = j.data || [];
+			const socket = Alpine.store('cache').socket;
+			if (socket) {
+				socket.on('approval_update', async () => {
+					await Alpine.store('cache').refresh('approval_dashboard');
+				});
 			}
-
-			this.loading = false;
-		},
-
-		async setFilter(f) {
-			this.filter = f;
-			await this.load();
-		},
-
-		async setTab(tab) {
-			this.activeTab = tab;
-			this.filter = 'pending';
-			await this.load();
+			await Alpine.store('cache').fetchData([
+				{ key: 'approval_dashboard', url: '/approval/dashboard', force: true },
+			]);
 		},
 
 		openDetail(req) {
 			this.detail = req;
 			this.actionForm = { request_id: req.id, access_url: '', reason: '' };
-
-			if (this.activeTab === 'guias') {
-				this.guideContent = { description: '', items: [] };
-				if (req.status === 'approved') this.loadGuideContent(req.machine_id);
-				Alpine.store('cache').showModal('guide-detail');
-			} else {
-				Alpine.store('cache').showModal('approval-detail');
-			}
+			Alpine.store('cache').showModal('approval-detail');
 		},
 
-		async loadGuideContent(machine_id) {
-			const api = Alpine.store('cache').api;
+		async review() {
+			if (this.processing) return;
+			this.processing = true;
+			const cache = Alpine.store('cache');
 			try {
-				const r = await fetch(`${api}/guide/admin/content/${machine_id}`, {
-					headers: { 'X-No-Toast': '1' }
+				const r = await fetch(`${cache.api}/approval/review`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ request_id: this.actionForm.request_id, user_id: cache.user.id }),
 				});
 				const j = await r.json();
-				if (j.data) {
-					this.guideContent = {
-						description: j.data.description || '',
-						items: j.data.items || [],
-					};
-				}
-			} catch(e) {}
+				if (j.success) { cache.hideLastModal(); await cache.refresh('approval_dashboard'); }
+				else { alert(j?.data || 'Error'); }
+			} finally { this.processing = false; }
 		},
 
-		async saveGuideContent() {
-			if (!this.detail?.machine_id) return;
-			this.savingGuide = true;
-			const api = Alpine.store('cache').api;
+		async approve() {
+			if (this.processing) return;
+			this.processing = true;
+			const cache = Alpine.store('cache');
 			try {
-				const r = await fetch(`${api}/guide/content/save`, {
+				const r = await fetch(`${cache.api}/approval/approve`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
-						machine_id:  this.detail.machine_id,
-						description: this.guideContent.description,
-						items:       this.guideContent.items,
+						request_id: this.actionForm.request_id,
+						user_id:    cache.user.id,
+						access_url: this.actionForm.access_url || null,
 					}),
 				});
 				const j = await r.json();
-			} finally {
-				this.savingGuide = false;
-			}
-		},
-
-		async uploadItemFile(event, idx) {
-			const file = event.target.files[0];
-			if (!file) return;
-			const api = Alpine.store('cache').api;
-			const fd = new FormData();
-			fd.append('files[]', file);
-			const r = await fetch(`${api}/guide/media/upload`, { method: 'POST', body: fd });
-			const j = await r.json();
-			if (j.data?.uploaded?.length) {
-				this.guideContent.items[idx].filename = j.data.uploaded[0];
-			}
-		},
-
-		// ── Servicios approve/reject ─────────────────────────────────────────
-
-		async approve() {
-			if (!this.actionForm.request_id) return;
-			const cache = Alpine.store('cache');
-			const r = await fetch(`${cache.api}/approval/approve`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					request_id: this.actionForm.request_id,
-					user_id: cache.user.id,
-					access_url: this.actionForm.access_url || null,
-				}),
-			});
-			const j = await r.json();
-			if (j.success) {
-				cache.hideLastModal();
-				await this.load();
-			}
+				if (j.success) { cache.hideLastModal(); await cache.refresh('approval_dashboard'); }
+				else { alert(j?.data || 'Error al aprobar'); }
+			} finally { this.processing = false; }
 		},
 
 		async reject() {
-			if (!this.actionForm.request_id) return;
+			if (this.processing) return;
+			this.processing = true;
 			const cache = Alpine.store('cache');
-			const r = await fetch(`${cache.api}/approval/reject`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					request_id: this.actionForm.request_id,
-					user_id: cache.user.id,
-					reason: this.actionForm.reason || null,
-				}),
-			});
-			const j = await r.json();
-			if (j.success) {
-				cache.hideLastModal();
-				await this.load();
-			}
+			try {
+				const r = await fetch(`${cache.api}/approval/reject`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						request_id: this.actionForm.request_id,
+						user_id:    cache.user.id,
+						reason:     this.actionForm.reason || null,
+					}),
+				});
+				const j = await r.json();
+				if (j.success) { cache.hideLastModal(); await cache.refresh('approval_dashboard'); }
+				else { alert(j?.data || 'Error'); }
+			} finally { this.processing = false; }
 		},
 
-		// ── Guías approve/reject ─────────────────────────────────────────────
-
-		async approveGuide() {
-			if (!this.actionForm.request_id) return;
-			const cache = Alpine.store('cache');
-			const r = await fetch(`${cache.api}/approval/approve`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					request_id: this.actionForm.request_id,
-					user_id: cache.user.id,
-					access_url: null,
-				}),
-			});
-			const j = await r.json();
-			if (j.success) {
-				cache.hideLastModal();
-				await this.load();
-			}
+		statusIcon(slug) {
+			const map = { pending: 'pending', in_review: 'find', approved: 'approve', rejected: 'dislike' };
+			return `/static/icons/line/${map[slug] || 'pending'}.svg`;
 		},
-
-		async rejectGuide() {
-			if (!this.actionForm.request_id) return;
-			const cache = Alpine.store('cache');
-			const r = await fetch(`${cache.api}/approval/reject`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					request_id: this.actionForm.request_id,
-					user_id: cache.user.id,
-					reason: this.actionForm.reason || null,
-				}),
-			});
-			const j = await r.json();
-			if (j.success) {
-				cache.hideLastModal();
-				await this.load();
-			}
-		},
-
 		statusLabel(s) {
-			return { pending: 'Pendiente', approved: 'Aprobado', rejected: 'Rechazado' }[s] || s;
+			return { pending: 'Pendiente', in_review: 'En revisión', approved: 'Aprobado', rejected: 'Rechazado' }[s] || s;
 		},
 		statusClass(s) {
-			return { pending: 'status-pending', approved: 'status-approved', rejected: 'status-rejected' }[s] || '';
+			return { pending: 'status-pending', in_review: 'status-review', approved: 'status-approved', rejected: 'status-rejected' }[s] || '';
 		},
 	}));
 	</script>
 
 	<style>
-	#approvals {
-		display: flex;
-		flex-direction: column;
-		height: 100%;
-	}
-	#approvals .controls {
-		margin-bottom: 0;
-	}
-	#approvals .sub-filters {
-		margin-top: 0.4rem;
-		margin-bottom: 0;
-	}
-	#approvals .main {
-		flex: 1;
-		overflow-y: auto;
-		padding: 1rem;
-		margin-top: 0.4rem;
-	}
-	.approval-list {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.8rem;
-	}
-	#approvals .req-card {
-		width: 240px;
-		border-radius: 10px;
-		padding: 1rem;
-		cursor: pointer;
-		display: flex;
-		flex-direction: column;
-		gap: 0.4rem;
-	}
-	#approvals .req-top {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-	}
-	#approvals .req-id {
-		font-size: 0.8rem;
-		opacity: 0.5;
-	}
-	#approvals .req-name {
-		font-weight: 600;
-		font-size: 0.95rem;
-	}
-	#approvals .req-type {
-		font-size: 0.85rem;
-		color: var(--pri, #e05a00);
-		font-weight: 600;
-	}
-	#approvals .req-machine {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		font-size: 0.85rem;
-		font-weight: 600;
-		color: var(--pri, #e05a00);
-	}
-	#approvals .req-bottom {
-		display: flex;
-		justify-content: space-between;
-		font-size: 0.75rem;
-		opacity: 0.6;
-		margin-top: 0.2rem;
-	}
-	.req-badge {
-		font-size: 0.72rem;
-		padding: 2px 8px;
-		border-radius: 20px;
-		font-weight: 600;
-	}
-	.status-pending  { background: #fff3cd; color: #856404; }
-	.status-approved { background: #d1e7dd; color: #0a3622; }
-	.status-rejected { background: #f8d7da; color: #842029; }
-	.empty-state {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		height: 200px;
-		opacity: 0.4;
-	}
-	.detail-head {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 1rem;
-	}
-	.detail-title {
-		font-weight: 700;
-		font-size: 1.1rem;
-	}
-	.detail-row {
-		display: flex;
-		justify-content: space-between;
-		padding: 0.4rem 0;
-		border-bottom: 1px solid rgba(0,0,0,0.05);
-		font-size: 0.9rem;
-	}
-	.detail-row .label {
-		font-weight: 600;
-		opacity: 0.6;
-		min-width: 100px;
-	}
-	.approval-actions {
-		margin-top: 1rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.6rem;
-	}
-	.action-btns {
-		display: flex;
-		gap: 0.6rem;
-	}
-	.btn-approve, .btn-reject {
-		flex: 1;
-		padding: 10px;
-		border: none;
-		border-radius: 8px;
-		font-weight: 700;
-		cursor: pointer;
-	}
-	.btn-approve { background: #198754; color: #fff; }
-	.btn-reject  { background: #dc3545; color: #fff; }
+		#approvals {
+			display: flex;
+			flex-direction: column;
+			min-height: calc(100vh - 6.5rem);
+			gap: 1rem;
+			overflow: auto;
+		}
+		#approvals .controls { min-height: 0; }
+		#approvals .main {
+			display: flex;
+			overflow-x: auto;
+			flex: 1;
+			padding: 0;
+		}
+		#approvals .group {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			border-right: 3px solid #ffffff80;
+			gap: 0.6rem;
+			padding: 0.75rem;
+			min-width: 13rem;
+		}
+		#approvals .group:last-child { border-right: none; }
+		#approvals .group-head {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.4rem;
+		}
+		#approvals .group-name { font-weight: 600; font-size: 0.85rem; }
+		#approvals .group-count {
+			font-size: 0.65rem;
+			opacity: 0.5;
+			font-weight: 600;
+			background: var(--graydark);
+			padding: 0.1rem 0.45rem;
+			border-radius: 1rem;
+		}
+		#approvals .group-empty {
+			text-align: center;
+			font-size: 0.72rem;
+			opacity: 0.3;
+			padding: 1rem 0;
+		}
+		#approvals .req-card {
+			padding: 0.75rem;
+			border-radius: 10px;
+			display: flex;
+			flex-direction: column;
+			gap: 0.35rem;
+			cursor: pointer;
+		}
+		#approvals .req-top {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#approvals .req-id { font-size: 0.8rem; opacity: 0.5; font-weight: 600; }
+		#approvals .req-date { font-size: 0.65rem; opacity: 0.4; }
+		#approvals .req-name { font-weight: 600; font-size: 0.9rem; }
+		#approvals .req-type {
+			font-size: 0.8rem;
+			color: var(--primary, #e05a00);
+			font-weight: 600;
+		}
+		#approvals .req-bottom {
+			display: flex;
+			justify-content: space-between;
+			font-size: 0.7rem;
+			opacity: 0.55;
+		}
 
-	/* Guide modal */
-	.modal.guide-modal { max-width: 560px; width: 95%; }
-	.guide-machine-row {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		padding: 0.6rem 0;
-		border-bottom: 1px solid rgba(0,0,0,0.06);
-		margin-bottom: 0.2rem;
-	}
-	.voucher-link {
-		color: var(--pri, #e05a00);
-		text-decoration: none;
-		font-weight: 600;
-		font-size: 0.85rem;
-	}
-	.guide-content-section {
-		margin-top: 1rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.6rem;
-		border-top: 2px solid rgba(0,0,0,0.07);
-		padding-top: 0.8rem;
-	}
-	.guide-content-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		font-weight: 700;
-		font-size: 0.95rem;
-	}
-	.btn-save-guide {
-		padding: 6px 14px;
-		background: #198754;
-		color: #fff;
-		border: none;
-		border-radius: 8px;
-		font-weight: 600;
-		cursor: pointer;
-		font-size: 0.85rem;
-	}
-	.btn-save-guide:disabled { opacity: 0.5; cursor: not-allowed; }
-	.guide-desc-input {
-		width: 100%;
-		padding: 8px 10px;
-		border: 1px solid #ddd;
-		border-radius: 8px;
-		font-size: 0.88rem;
-		resize: vertical;
-		box-sizing: border-box;
-	}
-	.guide-items-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-	.guide-item-row {
-		display: flex;
-		gap: 0.4rem;
-		align-items: center;
-		flex-wrap: wrap;
-	}
-	.item-type-sel {
-		padding: 6px 8px;
-		border: 1px solid #ddd;
-		border-radius: 6px;
-		font-size: 0.82rem;
-		background: #fff;
-		min-width: 80px;
-	}
-	.item-title-inp, .item-url-inp {
-		flex: 1;
-		padding: 6px 8px;
-		border: 1px solid #ddd;
-		border-radius: 6px;
-		font-size: 0.82rem;
-		min-width: 100px;
-	}
-	.item-file-wrap { display: flex; align-items: center; gap: 0.3rem; }
-	.item-file-preview {
-		font-size: 0.75rem;
-		color: #555;
-		text-decoration: none;
-		border: 1px solid #ccc;
-		padding: 4px 6px;
-		border-radius: 5px;
-	}
-	.item-upload-btn {
-		padding: 5px 10px;
-		background: #f0f0f0;
-		border-radius: 6px;
-		cursor: pointer;
-		font-size: 0.8rem;
-		font-weight: 600;
-	}
-	.item-remove-btn {
-		padding: 4px 8px;
-		background: #fee2e2;
-		color: #c0392b;
-		border: none;
-		border-radius: 6px;
-		cursor: pointer;
-		font-size: 0.8rem;
-	}
-	.btn-add-item {
-		padding: 8px 14px;
-		background: #f5f5f5;
-		border: 1px dashed #ccc;
-		border-radius: 8px;
-		cursor: pointer;
-		font-size: 0.85rem;
-		font-weight: 600;
-		color: #555;
-	}
-	.btn-add-item:hover { background: #eee; }
+		.req-badge {
+			font-size: 0.72rem;
+			padding: 2px 8px;
+			border-radius: 20px;
+			font-weight: 600;
+		}
+		.status-pending  { background: #fff3cd; color: #856404; }
+		.status-review   { background: #dff5ff; color: #0c5a73; }
+		.status-approved { background: #d1e7dd; color: #0a3622; }
+		.status-rejected { background: #f8d7da; color: #842029; }
+
+		.detail-head {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 1rem;
+		}
+		.detail-title { font-weight: 700; font-size: 1.1rem; }
+		.detail-row {
+			display: flex;
+			justify-content: space-between;
+			padding: 0.4rem 0;
+			border-bottom: 1px solid rgba(0,0,0,0.05);
+			font-size: 0.9rem;
+			gap: 1rem;
+		}
+		.detail-row .label { font-weight: 600; opacity: 0.6; min-width: 100px; }
+		.approval-actions {
+			margin-top: 1rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.6rem;
+		}
+		.action-btns { display: flex; gap: 0.6rem; }
+		.btn-review, .btn-approve, .btn-reject {
+			flex: 1;
+			padding: 10px;
+			border: none;
+			border-radius: 8px;
+			font-weight: 700;
+			cursor: pointer;
+		}
+		.btn-review  { background: #0c5a73; color: #fff; }
+		.btn-approve { background: #198754; color: #fff; }
+		.btn-reject  { background: #dc3545; color: #fff; }
+		.btn-approve:disabled, .btn-reject:disabled, .btn-review:disabled { opacity: 0.5; cursor: not-allowed; }
+
+		@media (max-width: 48rem) {
+			#approvals .main { flex-direction: column; }
+			#approvals .group { flex: unset; min-width: 100%; }
+		}
 	</style>
 </div>
