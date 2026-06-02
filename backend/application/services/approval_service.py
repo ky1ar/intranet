@@ -119,7 +119,6 @@ class ApprovalService:
     def approve_request(self, data):
         request_id = data.get("request_id")
         user_id    = data.get("user_id")
-        access_url = data.get("access_url")
 
         info, sc = self.repository.get_request_info(request_id)
         if sc != 200:
@@ -137,7 +136,7 @@ class ApprovalService:
             prov, psc = CoursesProvisioningService().provision(client_email, client_name, type_slug)
             if psc != 200:
                 return prov, psc
-            result, sc = self.repository.approve_request(request_id, user_id, access_url)
+            result, sc = self.repository.approve_request(request_id, user_id, Courses.PLATFORM_URL)
             if sc != 200:
                 return result, sc
             self._send_course_email(client_email, client_name, prov)
@@ -145,7 +144,7 @@ class ApprovalService:
             return {"message": "Solicitud aprobada y acceso al curso creado"}, 200
 
         # Otros tipos (p.ej. guías): solo se aprueba, sin correo de cursos.
-        result, sc = self.repository.approve_request(request_id, user_id, access_url)
+        result, sc = self.repository.approve_request(request_id, user_id, None)
         if sc != 200:
             return result, sc
         socketio.emit("approval_update", {})

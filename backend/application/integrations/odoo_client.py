@@ -155,3 +155,90 @@ class OdooClient:
             return None
 
         return phone9
+
+
+    def get_invoice_by_name(self, invoice_number):
+        """Busca un comprobante (boleta/factura) por su número y devuelve el detalle del pedido."""
+        invoice_number = (invoice_number or "").strip()
+        if not invoice_number:
+            return None
+
+        uid, models = self._auth()
+        move_types = ["out_invoice", "out_refund"]
+
+        move_ids = models.execute_kw(
+            Odoo.DB, uid, Odoo.API_KEY,
+            "account.move", "search",
+            [[("name", "=", invoice_number), ("move_type", "in", move_types)]],
+            {"order": "id desc", "limit": 1},
+        )
+
+        if not move_ids:
+            move_ids = models.execute_kw(
+                Odoo.DB, uid, Odoo.API_KEY,
+                "account.move", "search",
+                [[("name", "ilike", invoice_number), ("move_type", "in", move_types)]],
+                {"order": "id desc", "limit": 1},
+            )
+
+        if not move_ids:
+            return None
+
+        move_id = move_ids[0]
+        moves = models.execute_kw(
+            Odoo.DB, uid, Odoo.API_KEY,
+            "account.move", "read",
+            [[move_id]],
+            {"fields": [
+                "name", "partner_id", "invoice_date", "invoice_origin",
+                "state", "payment_state",
+                "amount_untaxed", "amount_tax", "amount_total", "currency_id",
+            ]},
+        )
+        if not moves:
+            return None
+        move = moves[0]
+
+        def _name(rel):
+            return rel[1] if isinstance(rel, list) and len(rel) >= 2 else None
+
+        line_ids = models.execute_kw(
+            Odoo.DB, uid, Odoo.API_KEY,
+            "account.move.line", "search",
+            [[("move_id", "=", move_id), ("product_id", "!=", False)]],
+            {"order": "id asc"},
+        )
+
+        lines = []
+        if line_ids:
+            line_recs = models.execute_kw(
+                Odoo.DB, uid, Odoo.API_KEY,
+                "account.move.line", "read",
+                [line_ids],
+                {"fields": ["product_id", "name", "quantity", "price_unit", "price_subtotal", "price_total"]},
+            )
+            for ln in line_recs:
+                lines.append({
+                    "product": _name(ln.get("product_id")) or (ln.get("name") or "").split("\n")[0],
+                    "description": ln.get("name") or None,
+                    "quantity": ln.get("quantity") or 0,
+                    "price_unit": ln.get("price_unit") or 0,
+                    "price_subtotal": ln.get("price_subtotal") or 0,
+                    "price_total": ln.get("price_total") or 0,
+                })
+
+        return {
+            "found": True,
+            "id": move_id,
+            "name": move.get("name"),
+            "partner_name": _name(move.get("partner_id")),
+            "invoice_date": move.get("invoice_date") or None,
+            "invoice_origin": move.get("invoice_origin") or None,
+            "state": move.get("state") or None,
+            "payment_state": move.get("payment_state") or None,
+            "amount_untaxed": move.get("amount_untaxed") or 0,
+            "amount_tax": move.get("amount_tax") or 0,
+            "amount_total": move.get("amount_total") or 0,
+            "currency": _name(move.get("currency_id")),
+            "lines": lines,
+        }

@@ -11,3 +11,11 @@ class OdooController:
     @handle_logs_and_exceptions
     def poll_paid_invoices(self):
         return self.odoo_service.poll_paid_invoices()
+
+
+    @handle_logs_and_exceptions
+    def get_invoice_detail(self, data):
+        invoice_number = (data or {}).get("invoice_number")
+        if not invoice_number:
+            return "invoice_number requerido", 400
+        return self.odoo_service.get_invoice_detail(invoice_number)

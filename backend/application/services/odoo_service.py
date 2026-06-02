@@ -253,3 +253,17 @@ class OdooService:
 
             except Exception:
                 logging.exception("Failed deleting PDF invoice_id=%s", row.invoice_id)
+
+
+    def get_invoice_detail(self, invoice_number):
+        invoice_number = (invoice_number or "").strip()
+        if not invoice_number:
+            return {"found": False}, 200
+        try:
+            data = self.odoo_client.get_invoice_by_name(invoice_number)
+        except Exception:
+            logging.exception("Odoo invoice lookup failed for %s", invoice_number)
+            return "No se pudo consultar Odoo", 502
+        if not data:
+            return {"found": False}, 200
+        return data, 200
