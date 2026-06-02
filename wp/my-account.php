@@ -235,28 +235,130 @@ header.custom {
 	width: 100% !important;
 }
 
-/* ── Content area ── */
-#kd-dashboard .k3d-edit-profile {
+/* ═══ Editar perfil ═══ */
+#kd-wc-content .k3d-cards-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1.5rem;
+	align-items: start;
+}
+#kd-wc-content .k3d-cards-grid .k3d-card { margin-bottom: 0; }
+#kd-wc-content .k3d-edit-profile {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1.1rem 1rem;
+	align-items: start;
+}
+/* Nombre | Apellidos · Nombre visible | Imagen · Correo (ancho completo) */
+#kd-wc-content .k3d-edit-profile .k3d-row-email { grid-column: 1 / -1; }
+#kd-wc-content .k3d-edit-profile .edit-photo {
 	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	align-content: start;
+	gap: 0.4rem 1rem;
+	min-width: 0;
 }
-.k3d-edit-profile .edit-fields {
+
+/* Filas y labels */
+#kd-wc-content .woocommerce-EditAccountForm .form-row {
+	padding: 0;
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
 }
-.k3d-edit-profile .form-row {
-    padding: 0;
-    margin: 0;
+#kd-wc-content .woocommerce-EditAccountForm label {
+	opacity: 0.55;
+	font-weight: 500;
+	font-size: 0.8rem;
+	margin: 0;
 }
-.k3d-edit-profile .form-row label {
-    opacity: 0.5;
-	font-weight: 500 !important;
-    font-size: 0.8rem;
+#kd-wc-content .woocommerce-EditAccountForm .form-row span em {
+	opacity: 0.6;
+	font-size: 0.72rem;
+	font-style: italic;
+	font-weight: 400;
+	line-height: 1.3;
 }
-.k3d-edit-profile .form-row .input-text {
-    font-weight: 500;
-    font-family: inherit;
-    font-size: 0.85rem;
-    border: 1px solid #00000024;
-    border-radius: 0.75rem;
-    padding: 1rem;
+
+/* Inputs (texto, email, contraseña, select) */
+#kd-wc-content .woocommerce-EditAccountForm .input-text,
+#kd-wc-content .woocommerce-EditAccountForm input[type="text"],
+#kd-wc-content .woocommerce-EditAccountForm input[type="email"],
+#kd-wc-content .woocommerce-EditAccountForm input[type="tel"],
+#kd-wc-content .woocommerce-EditAccountForm input[type="password"],
+#kd-wc-content .woocommerce-EditAccountForm select {
+	width: 100%;
+	box-sizing: border-box;
+	font-family: inherit;
+	font-weight: 500;
+	font-size: 0.9rem;
+	color: #2b2b2b;
+	border: 1px solid #e2e2e2;
+	border-radius: 0.75rem;
+	padding: 0.85rem 1rem;
+	background: #fff;
+	outline: none;
+	transition: border-color .15s, box-shadow .15s;
+}
+#kd-wc-content .woocommerce-EditAccountForm .input-text:focus,
+#kd-wc-content .woocommerce-EditAccountForm input:focus,
+#kd-wc-content .woocommerce-EditAccountForm select:focus {
+	border-color: var(--primary, #e05a00);
+	box-shadow: 0 0 0 3px var(--primaryopacity, #fdeee4);
+}
+
+/* Tarjeta de contraseña: filas full-width y espaciadas */
+#kd-wc-content .woocommerce-EditAccountForm fieldset .form-row { margin-bottom: 1.1rem; }
+#kd-wc-content .woocommerce-EditAccountForm fieldset .form-row:last-child { margin-bottom: 0; }
+
+/* Imagen de perfil */
+#kd-wc-content .edit-photo label { width: 100%; opacity: 0.55; font-weight: 500; font-size: 0.8rem; }
+#kd-wc-content .edit-photo img {
+	width: 4.5rem;
+	height: 4.5rem;
+	min-width: 4.5rem;
+	aspect-ratio: 1 / 1;
+	object-fit: cover;
+	border-radius: 0.85rem;
+	border: 1px solid #eee;
+	display: block;
+}
+#kd-wc-content .edit-photo input[type="file"] {
+	font-family: inherit;
+	font-size: 0.78rem;
+	color: #888;
+	border: 1px dashed #d8d8d8;
+	border-radius: 0.75rem;
+	padding: 0.55rem;
+	flex: 1 1 10rem;
+	min-width: 0;
+	box-sizing: border-box;
+	background: #fafafa;
+	cursor: pointer;
+}
+#kd-wc-content .edit-photo input[type="file"]::file-selector-button,
+#kd-wc-content .edit-photo input[type="file"]::-webkit-file-upload-button {
+	font-family: inherit;
+	font-weight: 600;
+	font-size: 0.78rem;
+	color: #fff;
+	background: var(--primary, #e05a00);
+	border: none;
+	border-radius: 0.5rem;
+	padding: 0.5rem 0.85rem;
+	margin-right: 0.6rem;
+	cursor: pointer;
+	transition: opacity .2s;
+}
+#kd-wc-content .edit-photo input[type="file"]::file-selector-button:hover { opacity: 0.85; }
+
+@media (max-width: 1024px) {
+	#kd-wc-content .k3d-cards-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+	#kd-wc-content .k3d-edit-profile { grid-template-columns: 1fr; }
 }
 
 /* ── Loader AJAX ── */
@@ -277,8 +379,8 @@ header.custom {
 .woocommerce-EditAccountForm .k3d-card {
 	border: 1px solid #00000012;
 	border-radius: 1rem;
-	padding: 1.25rem 1.5rem;
-	margin-bottom: 1.25rem;
+	padding: 1.75rem;
+	margin-bottom: 1.5rem;
 }
 .woocommerce-EditAccountForm .k3d-card:last-of-type { margin-bottom: 0; }
 .woocommerce-EditAccountForm .k3d-card-head { margin-bottom: 1rem; }
