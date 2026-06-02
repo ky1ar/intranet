@@ -291,6 +291,31 @@ header.custom {
 .woocommerce-EditAccountForm .k3d-actions { margin: 1.25rem 0 0; }
 .woocommerce-EditAccountForm .k3d-actions .button { cursor: pointer; width: auto; }
 
+/* ── Lista de pedidos ── */
+#section-pedidos { flex-direction: column; gap: 1rem; align-items: stretch; }
+#section-pedidos .kd-orders-head h2 { margin: 0; font-size: 1.1rem; font-weight: 700; }
+.kd-orders-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.kd-order-card {
+	display: flex; align-items: center; gap: 1rem;
+	padding: 1rem 1.25rem; border: 1px solid #00000012; border-radius: 1rem;
+	text-decoration: none; color: inherit;
+	transition: box-shadow .15s, border-color .15s, transform .1s;
+}
+.kd-order-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,.08); }
+.kd-order-card:active { transform: scale(.997); }
+.kd-order-main { display: flex; flex-direction: column; gap: 0.2rem; }
+.kd-order-num { font-weight: 700; font-size: 0.95rem; }
+.kd-order-date { font-size: 0.75rem; opacity: 0.5; }
+.kd-order-meta { margin-left: auto; display: flex; align-items: center; gap: 1.25rem; }
+.kd-order-status { font-size: 0.72rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 1rem; background: #f3f3f3; color: #555; white-space: nowrap; }
+.kd-order-total { font-weight: 700; font-size: 0.9rem; white-space: nowrap; }
+.kd-order-card .kd-arrow { opacity: 0.3; flex-shrink: 0; }
+.kd-orders-empty { opacity: 0.5; }
+@media (max-width: 600px) {
+	.kd-order-card { flex-wrap: wrap; }
+	.kd-order-meta { margin-left: 0; width: 100%; justify-content: space-between; }
+}
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
 	#kd-dashboard { padding: 1rem; }
@@ -1903,6 +1928,37 @@ document.addEventListener("DOMContentLoaded", () => {
 				<a href="/trueke/">¡Únete a Trueke!</a>
 			  </div>
 		  </div>
+			<div id="section-pedidos" class="section-content" style="display:none;">
+				<div class="kd-orders-head"><h2>Mis pedidos</h2></div>
+				<?php
+					$kd_orders = wc_get_orders( array(
+						'customer_id' => get_current_user_id(),
+						'limit'       => -1,
+						'orderby'     => 'date',
+						'order'       => 'DESC',
+					) );
+					if ( $kd_orders ) :
+				?>
+					<div class="kd-orders-list">
+						<?php foreach ( $kd_orders as $kd_o ) : ?>
+							<a class="kd-order-card" href="<?php echo esc_url( $kd_o->get_view_order_url() ); ?>">
+								<div class="kd-order-main">
+									<span class="kd-order-num">Pedido #<?php echo esc_html( $kd_o->get_order_number() ); ?></span>
+									<span class="kd-order-date"><?php echo esc_html( wc_format_datetime( $kd_o->get_date_created() ) ); ?></span>
+								</div>
+								<div class="kd-order-meta">
+									<span class="kd-order-status"><?php echo esc_html( wc_get_order_status_name( $kd_o->get_status() ) ); ?></span>
+									<span class="kd-order-total"><?php echo wp_kses_post( $kd_o->get_formatted_order_total() ); ?></span>
+								</div>
+								<svg class="kd-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+							</a>
+						<?php endforeach; ?>
+					</div>
+				<?php else : ?>
+					<p class="kd-orders-empty">Aún no tienes pedidos.</p>
+				<?php endif; ?>
+			</div>
+
 			<div id="kd-wc-content" style="display:<?php echo $kd_is_wc ? 'block' : 'none'; ?>;">
 			<?php do_action( 'woocommerce_account_content' ); ?>
 			</div>

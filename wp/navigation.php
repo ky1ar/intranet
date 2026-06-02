@@ -64,7 +64,7 @@ do_action( 'woocommerce_before_account_navigation' );
 		</a>
 
 		<!-- Pedidos -->
-		<a href="/mi-cuenta/orders/" class="kd-nav-item kd-item-pedidos <?php echo $is_orders ? 'kd-active' : ''; ?>" data-nav data-kind="wc" data-endpoint="orders">
+		<a href="/mi-cuenta/?section=pedidos" class="kd-nav-item kd-item-pedidos <?php echo $is_orders ? 'kd-active' : ''; ?>" data-nav data-kind="section" data-section="pedidos" data-url="/mi-cuenta/?section=pedidos">
 			<svg class="kd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 				<path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
 			</svg>
@@ -109,6 +109,7 @@ document.addEventListener("DOMContentLoaded", function () {
 		servicios:  document.getElementById("section-servicios"),
 		guias:      document.getElementById("section-guias"),
 		trueke:     document.getElementById("section-trueke"),
+		pedidos:    document.getElementById("section-pedidos"),
 	};
 
 	// endpoint WC -> selector del item de menu a marcar activo
@@ -205,10 +206,11 @@ document.addEventListener("DOMContentLoaded", function () {
 	function addOrdersBackLink() {
 		if (wcPane.querySelector(".kd-back-orders")) return;
 		const back = document.createElement("a");
-		back.href = "/mi-cuenta/orders/";
+		back.href = "/mi-cuenta/?section=pedidos";
 		back.className = "kd-back-orders";
 		back.textContent = "← Mis pedidos";
 		back.style.cssText = "display:inline-flex;align-items:center;gap:.35rem;margin:0 0 1rem;color:var(--primary,#e05a00);font-weight:600;text-decoration:none;cursor:pointer;";
+		back.addEventListener("click", (e) => { e.preventDefault(); navigate("/mi-cuenta/?section=pedidos"); });
 		wcPane.insertBefore(back, wcPane.firstChild);
 	}
 
@@ -238,6 +240,7 @@ document.addEventListener("DOMContentLoaded", function () {
 		const ep = detectEndpoint(location.pathname);
 		if (ep && WC_KEYS[ep]) {
 			showWcPane(WC_KEYS[ep]);
+			if (ep === "view-order") addOrdersBackLink();
 			if (fetchWc) loadWc(location.href, { push: false });
 		} else {
 			const section = new URLSearchParams(location.search).get("section") || DEFAULT_SECTION;
@@ -275,10 +278,10 @@ document.addEventListener("DOMContentLoaded", function () {
 		});
 	});
 
-	// Links internos dentro del contenido WC (ver pedido, editar direccion, paginacion)
-	wcPane.addEventListener("click", (e) => {
+	// Links internos del contenido y de la lista de pedidos (ver pedido, editar direccion, paginacion)
+	content.addEventListener("click", (e) => {
 		const a = e.target.closest("a");
-		if (!a || !wcPane.contains(a)) return;
+		if (!a || !content.contains(a)) return;
 		const href = a.getAttribute("href") || "";
 		if (!href || href.charAt(0) === "#") return;
 		let u; try { u = new URL(href, location.origin); } catch (e2) { return; }
