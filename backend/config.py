@@ -19,6 +19,8 @@ class Config:
         "pool_size": 15,
         "max_overflow": 10,
         "pool_timeout": 30,
+        "pool_pre_ping": True,    # valida la conexión al sacarla del pool (reemplaza el SELECT 1 manual)
+        "pool_recycle": 280,      # recicla conexiones antes del wait_timeout de MySQL para evitar "server has gone away"
     }
     MAIL_SERVER = os.getenv("MAIL_SERVER")
     MAIL_PORT = int(os.getenv("MAIL_PORT"))
@@ -118,4 +120,3 @@ class Paths:
     GUIDES_VOUCHERS = os.path.abspath("/shared_uploads/guides/vouchers/")
     APPROVAL_VOUCHERS = os.path.abspath("/shared_uploads/approvals/vouchers/")
     GUIDES_MEDIA = os.path.abspath("/shared_uploads/guides/media/")
-

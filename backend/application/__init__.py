@@ -12,8 +12,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager
-from sqlalchemy.exc import OperationalError
-from sqlalchemy import text
 from flask_cors import CORS
 
 from config import Config, Redis
@@ -100,28 +98,19 @@ def api_key_required():
         log = logging.getLogger('werkzeug')
         log.setLevel(logging.ERROR)
         return None
-    
-
-def reconnect_db():
-    if not hasattr(g, "db_session"):
-        g.db_session = db.session
-
-    try:
-        g.db_session.execute(text("SELECT 1")) 
-    except OperationalError:
-        db.engine.dispose() 
-        g.db_session.remove()
-        g.db_session = db.session
 
 
 @app.before_request
 def before_request():
     if request.path == "/":
         log = logging.getLogger("werkzeug")
-        
+
         log.setLevel(logging.ERROR)
 
-    reconnect_db()
+    # pool_pre_ping (config.py) valida la conexión al sacarla del pool,
+    # así que aquí solo dejamos lista la sesión que usan los repos.
+    if not hasattr(g, "db_session"):
+        g.db_session = db.session
 
 
 @app.teardown_request
