@@ -1,57 +1,97 @@
 import xmlrpc.client, re, logging, base64
 from config import Odoo
 
+# Compilado una sola vez (antes se recompilaba en cada llamada a extract_pe_mobile)
+_PE_MOBILE_RE = re.compile(
+    r"(?<!\d)"                       # not preceded by a digit
+    r"(?:\+?51[\s\-()./]*?)?"        # optional country code
+    r"(9(?:[\s\-()./]*\d){8})"       # 9 + 8 digits, with optional separators
+    r"(?!\d)"                        # not followed by a digit
+)
+
+
 class OdooClient:
+    def __init__(self):
+        # Cache de sesión: evita reautenticar y reabrir proxies en cada método.
+        self._uid = None
+        self._models = None
+
     def _auth(self):
+        if self._uid and self._models is not None:
+            return self._uid, self._models
+
         common = xmlrpc.client.ServerProxy(f"{Odoo.URL}/xmlrpc/2/common")
         uid = common.authenticate(Odoo.DB, Odoo.USER, Odoo.API_KEY, {})
         if not uid:
             raise RuntimeError("No autenticó con Odoo.")
-        models = xmlrpc.client.ServerProxy(f"{Odoo.URL}/xmlrpc/2/object")
-        return uid, models
 
+        self._uid = uid
+        self._models = xmlrpc.client.ServerProxy(f"{Odoo.URL}/xmlrpc/2/object")
+        return self._uid, self._models
+
+    def _exec(self, model, method, args, kw=None):
+        """Wrapper de execute_kw. Reautentica y reintenta UNA vez ante caída de
+        conexión. Seguro porque todos los métodos de esta clase son de lectura;
+        si agregas create/write, no reintentes operaciones no idempotentes."""
+        kw = kw or {}
+        try:
+            uid, models = self._auth()
+            return models.execute_kw(Odoo.DB, uid, Odoo.API_KEY, model, method, args, kw)
+        except (xmlrpc.client.ProtocolError, OSError) as e:
+            logging.warning("Odoo conexión falló (%s); reautenticando y reintentando.", e)
+            self._uid = None
+            self._models = None
+            uid, models = self._auth()
+            return models.execute_kw(Odoo.DB, uid, Odoo.API_KEY, model, method, args, kw)
+
+    def _exec_write(self, model, method, args, kw=None):
+        """Igual que _exec PERO SIN reintento automático.
+        Úsalo para create/write/unlink y cualquier método NO idempotente.
+        NO reintenta: si la conexión cae después de que Odoo ya hizo commit,
+        un reintento ciego duplicaría el registro o reaplicaría el cambio.
+        Si la 1ra llamada falla por conexión, deja que el error suba y maneja
+        el reintento a nivel de negocio (verificando antes si ya se creó)."""
+        kw = kw or {}
+        uid, models = self._auth()
+        return models.execute_kw(Odoo.DB, uid, Odoo.API_KEY, model, method, args, kw)
 
     def get_invoice_pdf_bytes(self, invoice_id: int) -> bytes | None:
-        uid, models = self._auth()
-
-        inv = models.execute_kw(
-            Odoo.DB, uid, Odoo.API_KEY,
+        inv = self._exec(
             "account.move", "read",
             [[invoice_id]],
-            {"fields": ["message_main_attachment_id", "name"]}
+            {"fields": ["message_main_attachment_id", "name"]},
         )
         inv = inv[0] if inv else {}
-        att_id = None
 
+        att_id = None
         mma = inv.get("message_main_attachment_id")
         if isinstance(mma, list) and mma:
             att_id = mma[0]
 
-        if not att_id:
-            # Buscar attachments PDF ligados al invoice
-            att_ids = models.execute_kw(
-                Odoo.DB, uid, Odoo.API_KEY,
-                "ir.attachment", "search",
+        if att_id:
+            # Adjunto principal conocido: lo leemos directo.
+            recs = self._exec(
+                "ir.attachment", "read",
+                [[att_id]],
+                {"fields": ["id", "name", "mimetype", "datas"]},
+            )
+        else:
+            # search + read fusionados en un solo round-trip con search_read.
+            # OJO: no pidas datas_fname (da KeyError). Usa "name" y "datas".
+            recs = self._exec(
+                "ir.attachment", "search_read",
                 [[
                     ("res_model", "=", "account.move"),
                     ("res_id", "=", invoice_id),
                     ("mimetype", "=", "application/pdf"),
                 ]],
-                {"order": "id desc", "limit": 1},
+                {"fields": ["id", "name", "mimetype", "datas"],
+                 "order": "id desc", "limit": 1},
             )
-            att_id = att_ids[0] if att_ids else None
+            if not recs:
+                logging.info("Attachments for invoice_id=%s => []", invoice_id)
+                return None
 
-        if not att_id:
-            logging.info("Attachments for invoice_id=%s => []", invoice_id)
-            return None
-
-        # 👇 OJO: no pidas datas_fname (te dio KeyError). Usa "name" y "datas".
-        recs = models.execute_kw(
-            Odoo.DB, uid, Odoo.API_KEY,
-            "ir.attachment", "read",
-            [[att_id]],
-            {"fields": ["id", "name", "mimetype", "datas"]},
-        )
         if not recs:
             return None
 
@@ -60,7 +100,6 @@ class OdooClient:
             return None
 
         return base64.b64decode(b64)
-    
 
     def extract_pe_mobile(self, raw=None):
         if not raw:
@@ -72,14 +111,7 @@ class OdooClient:
 
         logging.info(f"raw: {text}")
 
-        pattern = re.compile(
-            r"(?<!\d)"                       # not preceded by a digit
-            r"(?:\+?51[\s\-()./]*?)?"        # optional country code
-            r"(9(?:[\s\-()./]*\d){8})"       # 9 + 8 digits, with optional separators
-            r"(?!\d)"                        # not followed by a digit
-        )
-
-        matches = list(pattern.finditer(text))
+        matches = list(_PE_MOBILE_RE.finditer(text))
         if not matches:
             logging.info("No PE mobile match found.")
             return None
@@ -94,25 +126,20 @@ class OdooClient:
 
         return None
 
-        
     def list_validated_last(self, limit=50):
-        uid, models = self._auth()
         domain = [
             ("move_type", "=", "out_invoice"),
             ("state", "=", "posted"),
             ("name", "!=", "/"),
         ]
         fields = ["id", "name", "partner_id", "invoice_date", "create_date", "write_date"]
-        return models.execute_kw(
-            Odoo.DB, uid, Odoo.API_KEY,
+        return self._exec(
             "account.move", "search_read",
             [domain],
             {"fields": fields, "order": "write_date desc, id desc", "limit": limit},
         )
 
-
     def list_validated_since(self, last_write_date, last_id, limit=200):
-        uid, models = self._auth()
         base = [
             ("move_type", "=", "out_invoice"),
             ("state", "=", "posted"),
@@ -126,27 +153,22 @@ class OdooClient:
                     ("id", ">", last_id),
         ]
         fields = ["id", "name", "partner_id", "invoice_date", "create_date", "write_date"]
-        return models.execute_kw(
-            Odoo.DB, uid, Odoo.API_KEY,
+        return self._exec(
             "account.move", "search_read",
             [domain],
             {"fields": fields, "order": "write_date asc, id asc", "limit": limit},
         )
 
-
     def get_partner_phone(self, partner_id):
-        uid, models = self._auth()
-        recs = models.execute_kw(
-            Odoo.DB, uid, Odoo.API_KEY,
+        recs = self._exec(
             "res.partner", "read",
             [[partner_id]],
-            {"fields": ["phone", "mobile"]}
+            {"fields": ["phone", "mobile"]},
         )
         if not recs:
             return None
 
         p = recs[0]
-
         raw = p.get("mobile") or p.get("phone")
         phone9 = self.extract_pe_mobile(raw)
 
@@ -156,76 +178,58 @@ class OdooClient:
 
         return phone9
 
-
     def get_invoice_by_name(self, invoice_number):
         """Busca un comprobante (boleta/factura) por su número y devuelve el detalle del pedido."""
         invoice_number = (invoice_number or "").strip()
         if not invoice_number:
             return None
 
-        uid, models = self._auth()
         move_types = ["out_invoice", "out_refund"]
+        fields_move = [
+            "name", "partner_id", "invoice_date", "invoice_origin",
+            "state", "payment_state",
+            "amount_untaxed", "amount_tax", "amount_total", "currency_id",
+        ]
 
-        move_ids = models.execute_kw(
-            Odoo.DB, uid, Odoo.API_KEY,
-            "account.move", "search",
+        # search + read fusionados: match exacto primero, ilike como fallback.
+        moves = self._exec(
+            "account.move", "search_read",
             [[("name", "=", invoice_number), ("move_type", "in", move_types)]],
-            {"order": "id desc", "limit": 1},
-        )
-
-        if not move_ids:
-            move_ids = models.execute_kw(
-                Odoo.DB, uid, Odoo.API_KEY,
-                "account.move", "search",
-                [[("name", "ilike", invoice_number), ("move_type", "in", move_types)]],
-                {"order": "id desc", "limit": 1},
-            )
-
-        if not move_ids:
-            return None
-
-        move_id = move_ids[0]
-        moves = models.execute_kw(
-            Odoo.DB, uid, Odoo.API_KEY,
-            "account.move", "read",
-            [[move_id]],
-            {"fields": [
-                "name", "partner_id", "invoice_date", "invoice_origin",
-                "state", "payment_state",
-                "amount_untaxed", "amount_tax", "amount_total", "currency_id",
-            ]},
+            {"fields": fields_move, "order": "id desc", "limit": 1},
         )
         if not moves:
+            moves = self._exec(
+                "account.move", "search_read",
+                [[("name", "ilike", invoice_number), ("move_type", "in", move_types)]],
+                {"fields": fields_move, "order": "id desc", "limit": 1},
+            )
+        if not moves:
             return None
+
         move = moves[0]
+        move_id = move["id"]  # search_read siempre incluye 'id'
 
         def _name(rel):
             return rel[1] if isinstance(rel, list) and len(rel) >= 2 else None
 
-        line_ids = models.execute_kw(
-            Odoo.DB, uid, Odoo.API_KEY,
-            "account.move.line", "search",
+        # Líneas: un solo search_read en vez de search + read.
+        line_recs = self._exec(
+            "account.move.line", "search_read",
             [[("move_id", "=", move_id), ("product_id", "!=", False)]],
-            {"order": "id asc"},
+            {"fields": ["product_id", "name", "quantity", "price_unit", "price_subtotal", "price_total"],
+             "order": "id asc"},
         )
 
         lines = []
-        if line_ids:
-            line_recs = models.execute_kw(
-                Odoo.DB, uid, Odoo.API_KEY,
-                "account.move.line", "read",
-                [line_ids],
-                {"fields": ["product_id", "name", "quantity", "price_unit", "price_subtotal", "price_total"]},
-            )
-            for ln in line_recs:
-                lines.append({
-                    "product": _name(ln.get("product_id")) or (ln.get("name") or "").split("\n")[0],
-                    "description": ln.get("name") or None,
-                    "quantity": ln.get("quantity") or 0,
-                    "price_unit": ln.get("price_unit") or 0,
-                    "price_subtotal": ln.get("price_subtotal") or 0,
-                    "price_total": ln.get("price_total") or 0,
-                })
+        for ln in line_recs:
+            lines.append({
+                "product": _name(ln.get("product_id")) or (ln.get("name") or "").split("\n")[0],
+                "description": ln.get("name") or None,
+                "quantity": ln.get("quantity") or 0,
+                "price_unit": ln.get("price_unit") or 0,
+                "price_subtotal": ln.get("price_subtotal") or 0,
+                "price_total": ln.get("price_total") or 0,
+            })
 
         return {
             "found": True,
