@@ -177,8 +177,15 @@ header.custom {
 	flex-shrink: 0;
 	stroke: currentColor;
 }
-.kd-item-salir { color: #999; margin-top: 0.25rem; border-top: 1px solid #f5f5f5; }
-.kd-item-salir:hover { color: #c0392b; background: #fff5f5; border-left-color: #c0392b; }
+.kd-item-salir {
+	color: #999;
+    padding-top: 1rem;
+    border-top: 1px solid #f5f5f5;
+}
+.kd-item-salir:hover {
+	color: #c0392b;
+    opacity: 1;
+}
 
 /* ── Sub-items ── */
 .kd-nav-sub {
@@ -253,10 +260,10 @@ header.custom {
 #kd-wc-content .k3d-edit-profile .k3d-row-email { grid-column: 1 / -1; }
 #kd-wc-content .k3d-edit-profile .edit-photo {
 	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	align-content: start;
-	gap: 0.4rem 1rem;
+	flex-direction: column;
+	align-items: flex-start;
+	align-self: start;
+	gap: 0.6rem;
 	min-width: 0;
 }
 
@@ -266,7 +273,10 @@ header.custom {
 	margin: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 0.4rem;
+	width: 100%;
+}
+#kd-wc-content .woocommerce-EditAccountForm .form-row br {
+	display: none;
 }
 #kd-wc-content .woocommerce-EditAccountForm label {
 	opacity: 0.55;
@@ -275,11 +285,13 @@ header.custom {
 	margin: 0;
 }
 #kd-wc-content .woocommerce-EditAccountForm .form-row span em {
-	opacity: 0.6;
-	font-size: 0.72rem;
-	font-style: italic;
-	font-weight: 400;
-	line-height: 1.3;
+	opacity: 0.5;
+    font-size: 0.6rem;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 0.7rem;
+    display: none;
+    margin-top: 0.25rem;
 }
 
 /* Inputs (texto, email, contraseña, select) */
@@ -316,24 +328,27 @@ header.custom {
 /* Imagen de perfil */
 #kd-wc-content .edit-photo label { width: 100%; opacity: 0.55; font-weight: 500; font-size: 0.8rem; }
 #kd-wc-content .edit-photo img {
-	width: 4.5rem;
-	height: 4.5rem;
-	min-width: 4.5rem;
+	width: 5rem;
+	height: 5rem;
+	min-width: 5rem;
 	aspect-ratio: 1 / 1;
 	object-fit: cover;
 	border-radius: 0.85rem;
 	border: 1px solid #eee;
-	display: block;
+	display: none !important;
 }
 #kd-wc-content .edit-photo input[type="file"] {
+	display: block;
+	width: 100%;
+	max-width: 100%;
+	height: auto;
+	flex: none;
 	font-family: inherit;
 	font-size: 0.78rem;
 	color: #888;
 	border: 1px dashed #d8d8d8;
 	border-radius: 0.75rem;
-	padding: 0.55rem;
-	flex: 1 1 10rem;
-	min-width: 0;
+	padding: 0.4rem;
 	box-sizing: border-box;
 	background: #fafafa;
 	cursor: pointer;
@@ -385,9 +400,17 @@ header.custom {
 .woocommerce-EditAccountForm .k3d-card:last-of-type { margin-bottom: 0; }
 .woocommerce-EditAccountForm .k3d-card-head { margin-bottom: 1rem; }
 .woocommerce-EditAccountForm .k3d-card-head h3 {
-	margin: 0; font-size: 1rem; font-weight: 700; color: var(--secondary, #1f2937);
+	margin: 0;
+	font-size: 1.1rem;
+	font-weight: 700;
+	color: var(--secondary, #1f2937);
+	text-transform: none;
 }
-.woocommerce-EditAccountForm .k3d-card-head p { margin: 0.15rem 0 0; font-size: 0.8rem; opacity: 0.5; }
+.woocommerce-EditAccountForm .k3d-card-head p {
+	margin: -0.1rem 0 0;
+	font-size: 0.8rem;
+	opacity: 0.5;
+}
 .woocommerce-EditAccountForm fieldset { display: block; border: none; padding: 0; margin: 0; }
 .woocommerce-EditAccountForm fieldset legend { display: none; }
 .woocommerce-EditAccountForm .k3d-actions { margin: 1.25rem 0 0; }
@@ -435,7 +458,7 @@ header.custom {
 .kd-orders-list { display: flex; flex-direction: column; gap: 0.85rem; }
 .kd-order-card {
 	display: flex; align-items: center; gap: 1.25rem;
-	padding: 1rem 1.25rem; border: 1px solid #00000010; border-radius: 1rem;
+	padding: 1rem 1.5rem; border: 1px solid #00000010; border-radius: 1rem;
 	background: #fff; text-decoration: none; color: inherit;
 	transition: box-shadow .15s, transform .1s;
 }
@@ -451,15 +474,36 @@ header.custom {
 .kd-order-num { font-weight: 700; font-size: 0.95rem; color: #222; }
 .kd-order-date { font-size: 0.78rem; color: #9aa0a6; }
 .kd-order-status {
-	display: inline-flex; align-items: center; gap: 0.45rem;
-	font-size: 0.78rem; font-weight: 700; padding: 0.4rem 0.85rem; border-radius: 2rem; white-space: nowrap;
+	display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.4rem 0.85rem;
+    border-radius: 2rem;
+    white-space: nowrap;
+    min-width: 9rem;
+    justify-content: center;
 }
 .kd-order-status svg { width: 1rem; height: 1rem; flex-shrink: 0; }
 .kd-order-totals { display: flex; flex-direction: column; align-items: flex-end; gap: 0.1rem; min-width: 5rem; }
 .kd-order-total-lbl { font-size: 0.72rem; color: #9aa0a6; }
-.kd-order-total { font-weight: 700; font-size: 0.95rem; color: var(--primary, #e05a00); white-space: nowrap; }
-.kd-order-total del { opacity: 0.5; font-weight: 500; color: #999; margin-right: 0.25rem; }
-.kd-order-total ins { text-decoration: none; }
+.kd-order-total {
+	font-weight: 700;
+	font-size: 0.95rem;
+	color: var(--primary, #e05a00);
+	white-space: nowrap;
+	display: flex;
+    flex-direction: column;
+}
+.kd-order-total del {
+    opacity: 0.5;
+    font-weight: 500;
+    color: #999;
+    font-size: 0.8rem;
+    text-align: right;
+}
+.kd-order-total ins { text-decoration: none; text-align: right; }
 .kd-order-chev { color: #c9c9c9; flex-shrink: 0; display: flex; }
 .kd-order-chev svg { width: 1.1rem; height: 1.1rem; }
 .kd-orders-empty { opacity: 0.5; }
@@ -559,7 +603,6 @@ header.custom {
 	border: 1px solid #eee;
 	border-radius: 16px;
 	box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-	overflow: hidden;
 	display: flex;
 	flex-direction: column;
 }
@@ -570,6 +613,7 @@ header.custom {
 	gap: 1rem;
 	padding: 1.5rem;
 	border-bottom: 1px solid #f0f0f0;
+	background: transparent;
 }
 #kd-wc-content .kd-addr-head-title { display: flex; align-items: center; gap: 0.9rem; }
 #kd-wc-content .kd-addr-head-ico {
@@ -615,10 +659,10 @@ header.custom {
 	display: flex; align-items: center; justify-content: center; gap: 0.5rem;
 	margin: 0.5rem 1.5rem 1.5rem; padding: 0.85rem 1rem;
 	border-radius: 0.85rem; font-size: 0.85rem; font-weight: 600;
+	background: #ffeee4;
+    color: var(--primary);
 }
 #kd-wc-content .kd-addr-badge svg { width: 1.1rem; height: 1.1rem; flex-shrink: 0; }
-#kd-wc-content .kd-addr-badge--billing { background: #e6f4ea; color: #1e7e44; }
-#kd-wc-content .kd-addr-badge--shipping { background: #e8f0fe; color: #1a56c4; }
 #kd-wc-content .kd-addr-empty { padding: 1.5rem; text-align: center; }
 #kd-wc-content .kd-addr-empty p { color: #888; font-size: 0.88rem; margin: 0 0 1rem; }
 #kd-wc-content .kd-addr-empty-btn {
@@ -1253,7 +1297,7 @@ document.addEventListener("DOMContentLoaded", () => {
 				font-size: 0.7rem;
 				font-weight: 700;
 				padding: 0.25rem 0.75rem;
-				border-radius: 1rem;
+				border-radius: 0.35rem;
 			}
 			.servicio-card .top .data .title {
 				font-size: 1.2rem;
@@ -1306,7 +1350,7 @@ document.addEventListener("DOMContentLoaded", () => {
 				color: var(--primary);
 				margin: 0 -1rem -1rem -1rem;
 				display: flex;
-				padding: 0.75rem 1rem;
+				padding: 0.75rem;
 				justify-content: space-between;
 				gap: 1rem;
 				align-items: center;
@@ -1338,8 +1382,8 @@ document.addEventListener("DOMContentLoaded", () => {
 				align-items: center;
 				justify-content: center;
 				display: flex;
-				padding: 0.5rem 1rem;
-				border-radius: 0.5rem;
+				padding: 0.5rem 1.25rem;
+				border-radius: 1.5rem;
 				white-space: nowrap;
 				font-weight: 500;
 				margin-right: 0.25rem;

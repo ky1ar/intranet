@@ -67,7 +67,7 @@
 						<div class="box-cont">
 							<div class="desc">Servicio</div>
 							<div class="white service-box">
-								<img alt="" width="20" height="20" src="/static/icons/line/tag.svg">
+								<img alt="" width="16" height="16" src="/static/icons/filled/pin.svg">
 								<span class="service-name" x-text="detail?.type || '—'"></span>
 							</div>
 						</div>
@@ -186,7 +186,7 @@
 										<span class="name">Ver comprobante</span>
 										<span class="meta" x-text="`Archivo ${voucherExt().toUpperCase() || 'adjunto'}`"></span>
 									</div>
-									<img class="arrow" alt="" width="16" height="16" src="/static/icons/filled/arrownext.svg">
+									<img class="arrow" alt="" width="20" height="20" src="/static/icons/line/right.svg">
 								</div>
 							</template>
 
@@ -196,7 +196,7 @@
 						</div>
 
 						<!-- Acceso otorgado -->
-						<template x-if="detail?.access_url">
+						<!-- <template x-if="detail?.access_url">
 							<div class="box-cont">
 								<div class="desc">Acceso</div>
 								<div class="white info-box">
@@ -207,7 +207,7 @@
 									</div>
 								</div>
 							</div>
-						</template>
+						</template> -->
 
 						<!-- Motivo de rechazo -->
 						<template x-if="detail?.rejection_reason">
@@ -221,7 +221,7 @@
 					<!-- Pendiente → iniciar revisión -->
 					<template x-if="detail?.status === 'pending'">
 						<div class="buttons">
-							<button class="button icon hardblue hover-opacity" @click="review()" :disabled="processing">
+							<button class="button icon hover-opacity" @click="review()" :disabled="processing">
 								<img alt="" width="16" height="16" src="/static/icons/line/find.svg">
 								<span>Iniciar revisión</span>
 							</button>
@@ -232,11 +232,11 @@
 					<template x-if="detail?.status === 'in_review'">
 						<div class="approval-actions">
 							<div class="buttons">
-								<button class="button icon red hover-opacity" @click="reject()" :disabled="processing">
+								<button class="button icon black hover-opacity" @click="reject()" :disabled="processing">
 									<img alt="" width="16" height="16" src="/static/icons/line/dislike.svg">
 									<span>Rechazar</span>
 								</button>
-								<button class="button icon green hover-opacity" @click="approve()" :disabled="processing">
+								<button class="button icon hover-opacity" @click="approve()" :disabled="processing">
 									<img alt="" width="16" height="16" src="/static/icons/line/approve.svg">
 									<span>Aprobar</span>
 								</button>
@@ -532,14 +532,26 @@
 
 		.req-badge {
 			font-size: 0.72rem;
-			padding: 2px 8px;
+			padding: 4px 12px;
 			border-radius: 20px;
 			font-weight: 600;
 		}
-		.status-pending  { background: #fff3cd; color: #856404; }
-		.status-review   { background: #dff5ff; color: #0c5a73; }
-		.status-approved { background: #d1e7dd; color: #0a3622; }
-		.status-rejected { background: #f8d7da; color: #842029; }
+		.status-pending  {
+			background: #538ec929;
+    		color: #538ec9;
+		}
+		.status-review   {
+			background: #a890cf30;
+    		color: #a890cf;
+		}
+		.status-approved {
+			background: #c789ac2b;
+    		color: #c789ac;
+		}
+		.status-rejected {
+			background: #e3646421;
+    		color: #e36464;
+		}
 
 		#modal-approval-detail .modal { gap: 1rem; }
 		#modal-approval-detail .title-row {
@@ -567,11 +579,10 @@
 		#modal-approval-detail .service-box {
 			display: flex;
 			align-items: center;
-			gap: 0.6rem;
+			gap: 0.5rem;
 			padding: 0.85rem 1rem;
 			border-radius: 0.75rem;
 		}
-		#modal-approval-detail .service-box img { opacity: 0.55; }
 		#modal-approval-detail .service-name {
 			font-weight: 600;
 			color: var(--primary, #e05a00);
