@@ -598,6 +598,10 @@ document.addEventListener('alpine:init', () => {
             localStorage.removeItem('push_token');
             localStorage.removeItem('push_device_id');
             localStorage.removeItem('device_id');
+            localStorage.removeItem('menu_expanded');
+            localStorage.removeItem('sidebar_expanded');
+            this.menu_expanded = false;
+            this.sidebar_expanded = false;
             window.PineconeRouter.context.navigate('/');
         },
 
