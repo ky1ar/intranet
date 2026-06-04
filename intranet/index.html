@@ -63,7 +63,7 @@
     
     <template x-if="$store.cache.user.id">
         <div>
-            <div id="sidebar" :class="{'menu-expanded': $store.cache.menu_expanded, 'white': $store.cache.menu_expanded}">
+            <div id="sidebar" :class="{'menu-expanded': $store.cache.menu_expanded && !$store.cache.is_narrow, 'white': $store.cache.menu_expanded && !$store.cache.is_narrow}">
                 <div class="home-logo white-frost" @click="$store.cache.sidebar_expanded = !$store.cache.sidebar_expanded"
                      :class="{'expanded': $store.cache.sidebar_expanded}">
                     <img class="home" src="/static/images/single-logo.svg" alt="Logo" width="32" height="32">
@@ -106,9 +106,13 @@
                         <img width="22" height="22" src="/static/icons/line/guard.svg" alt="">
                         <span>Reglamento</span>
                     </div>
-                    <div>
-                        <img alt="user" @click="$store.cache.toogleSidebarMenu()" class="user hover-opacity" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="40" height="40">
-                        <!-- <span x-text="$store.cache.user.name"></span> -->
+
+                    <div class="user-cont hover-opacity" @click="$store.cache.toogleSidebarMenu()">
+                        <img alt="user" class="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="40" height="40">
+                        <div class="user-text">
+                            <b x-text="$store.cache.user.name.split(' ')[0]"></b>
+                            <span x-text="$store.cache.user.department_name"></span>
+                        </div>
                     </div>
                 </div>
 

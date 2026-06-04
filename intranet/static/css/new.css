@@ -161,7 +161,7 @@ body.modal-open {
     z-index: 10;
 }
 #content.menu-expanded .controls {
-    left: 14rem;
+    left: 13rem;
 }
 .controls .menu-collapse {
     position: absolute;
@@ -852,9 +852,12 @@ body.modal-open {
     bottom: 0;
     border-radius: 0;
     align-items: start;
-    padding: 1.5rem;
+    padding: 1rem;
 }
 #sidebar .expanded-logo {
+    display: none;
+}
+#sidebar .user-cont .user-text {
     display: none;
 }
 #sidebar.menu-expanded .home-logo {
@@ -882,7 +885,7 @@ body.modal-open {
     gap: 0.75rem;
     flex: 1;
     justify-content: start;
-    border-radius: 0.75rem;
+    border-radius: 0.5rem;
 }
 #sidebar.menu-expanded ul li a span {
     display: flex;
@@ -914,14 +917,16 @@ body.modal-open {
     box-shadow: none;
     background-color: transparent;
     padding: 0;
+    width: 100%;
 }
 #sidebar.menu-expanded .reglamento {
-    padding: 0 0.75rem;
+    padding: 0 0.55rem;
     height: 2.5rem;
     align-items: center;
-    justify-content: center;
     display: flex;
     gap: 0.75rem;
+    width: 100%;
+    border-bottom: 1px solid #00000014;
 }
 #sidebar.menu-expanded .reglamento span {
     color: var(--secondary);
@@ -933,6 +938,34 @@ body.modal-open {
 }
 #sidebar.menu-expanded .reglamento span:before {
     content: none;
+}
+#sidebar.menu-expanded .user-cont {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.25rem;
+    width: 100%;
+}
+#sidebar.menu-expanded .user-cont img {
+    min-width: 2rem;
+    width: 2rem;
+    height: 2rem;
+}
+#sidebar.menu-expanded .user-cont .user-text {
+    display: flex;
+    flex-direction: column;
+}
+#sidebar.menu-expanded .user-cont b {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+#sidebar.menu-expanded .user-cont span {
+    font-size: 0.75rem;
+    opacity: 0.5;
+}
+#sidebar.menu-expanded .menu {
+    left: 13rem;
+    bottom: 1rem;
 }
 /* #sidebar.menu-expanded ul li span,
 #sidebar.menu-expanded .reglamento span {
@@ -989,7 +1022,7 @@ body.modal-open {
 #sidebar .menu {
     position: absolute;
     bottom: 0;
-    left: 4rem;
+    left: 4.5rem;
     transition: var(--transition);
     padding: 2rem;
     display: flex;
@@ -1071,7 +1104,7 @@ body.modal-open {
     padding: 1rem;
 }
 #content.menu-expanded {
-    margin-left: 13rem;
+    margin-left: 12rem;
     padding: 1rem;
 }
 #content .wrapper {

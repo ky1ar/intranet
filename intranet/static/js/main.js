@@ -70,6 +70,7 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('data',() => ({
         async init() {
             Alpine.store('cache').detectPlatform();
+            Alpine.store('cache').watchViewport();
             console.log('Inicializando Alpine...');
 
             // Alpine.store('cache').initSocket();
@@ -144,6 +145,7 @@ document.addEventListener('alpine:init', () => {
         pdf_title: 'Reglamento',
         sidebar_expanded: false,
         menu_expanded: localStorage.getItem('menu_expanded') === '1',
+        is_narrow: window.innerWidth < 768,
         _settings_modules: [],
         _settings_saving: false,
         _drag_idx: null,
@@ -288,6 +290,12 @@ document.addEventListener('alpine:init', () => {
             }
 
             this.platform = 'desktop';
+        },
+
+        watchViewport() {
+            const update = () => this.is_narrow = window.innerWidth < 768;
+            update();
+            window.addEventListener('resize', update);
         },
 
         pushHelpMessage() {
