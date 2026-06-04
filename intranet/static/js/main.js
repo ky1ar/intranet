@@ -143,6 +143,7 @@ document.addEventListener('alpine:init', () => {
         pdf_url: null,
         pdf_title: 'Reglamento',
         sidebar_expanded: false,
+        menu_expanded: localStorage.getItem('menu_expanded') === '1',
         _settings_modules: [],
         _settings_saving: false,
         _drag_idx: null,
@@ -164,6 +165,11 @@ document.addEventListener('alpine:init', () => {
                 }));
 
             this.showModal('module-settings');
+        },
+
+        setMenuExpanded(val) {
+            this.menu_expanded = val;
+            localStorage.setItem('menu_expanded', val ? '1' : '0');
         },
 
         _setSettingsDefault(slug) {

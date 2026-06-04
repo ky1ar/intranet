@@ -63,17 +63,22 @@
     
     <template x-if="$store.cache.user.id">
         <div>
-            <div id="sidebar">
+            <div id="sidebar" :class="{'menu-expanded': $store.cache.menu_expanded, 'white': $store.cache.menu_expanded}">
                 <div class="home-logo white-frost" @click="$store.cache.sidebar_expanded = !$store.cache.sidebar_expanded"
                      :class="{'expanded': $store.cache.sidebar_expanded}">
                     <img class="home" src="/static/images/single-logo.svg" alt="Logo" width="32" height="32">
                 </div>
                 
+                <div class="expanded-logo" @click="$store.cache.sidebar_expanded = !$store.cache.sidebar_expanded">
+                    <img class="home" src="https://www.tiendakrear3d.com/wp-content/uploads/2024/10/logo-new1-1.svg" alt="Logo" width="140" height="29">
+                </div>
+
                 <ul class="white-frost">
                     <template x-for="page in $store.cache.getPages()" :key="page.name">
                         <li :class="{'active': $store.cache.active_page == '/' + page.name}">
-                            <a :href="'/' + page.name">
+                            <a :href="`/${page.name}`">
                                 <img width="20" height="20" :src="`/static/icons/line/${page.image}`" alt="">
+                                <span x-text="page.label"></span>
                             </a>
                             <span x-text="page.label"></span>
                         </li>
@@ -87,6 +92,7 @@
                         <li :class="{'active': $store.cache.active_page == '/' + page.name}">
                             <a :href="'/' + page.name">
                                 <img width="20" height="20" :src="`/static/icons/line/${page.image}`" alt="">
+                                <span x-text="page.label"></span>
                             </a>
                             <span x-text="page.label"></span>
                         </li>
@@ -100,7 +106,10 @@
                         <img width="22" height="22" src="/static/icons/line/guard.svg" alt="">
                         <span>Reglamento</span>
                     </div>
-                    <img alt="user" @click="$store.cache.toogleSidebarMenu()" class="user hover-opacity" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="40" height="40">
+                    <div>
+                        <img alt="user" @click="$store.cache.toogleSidebarMenu()" class="user hover-opacity" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="40" height="40">
+                        <!-- <span x-text="$store.cache.user.name"></span> -->
+                    </div>
                 </div>
 
                 <div x-show="$store.cache.sidebar_menu" x-transition.duration.300ms x-cloak @click.outside="$store.cache.hideSidebarMenu()" class="frost menu">
@@ -248,6 +257,16 @@
                     </div>
 
                     <div class="mod-settings modal-content">
+                        <div class="mod-toggle">
+                            <span class="mod-toggle-label">Menú expandido</span>
+                            <label class="box">
+                                <input type="checkbox"
+                                       :checked="$store.cache.menu_expanded"
+                                       @change="$store.cache.setMenuExpanded($event.target.checked)">
+                                <div class="slider"></div>
+                            </label>
+                        </div>
+
                         <div class="mod-list">
                             <template x-for="(mod, idx) in $store.cache._settings_modules" :key="mod.slug">
                                 <div class="mod-item hover-opacity white"
@@ -291,6 +310,8 @@
                                 </div>
                             </template>
                         </div>
+
+                        
                     </div>
 
                     <div class="buttons">
@@ -306,7 +327,7 @@
         
     </template>
     
-    <div id="content" :class="{'sidebar': $store.cache.sidebar}"></div>
+    <div id="content" :class="{'sidebar': $store.cache.sidebar, 'menu-expanded': $store.cache.menu_expanded}"></div>
 
 
 </body>
