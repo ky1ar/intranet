@@ -84,16 +84,20 @@ class Shalom:
         padded = decryptor.update(ciphertext) + decryptor.finalize()
         unpadder = PKCS7(128).unpadder()
         plaintext = unpadder.update(padded) + unpadder.finalize()
+        logging.info(f"[DECRYPT] {plaintext.decode()}")
         return json.loads(plaintext)
 
 
     @classmethod
-    def _data(cls, shalom_response):
-        """Devuelve el dict 'data', descifrándolo si viene cifrado."""
-        data = shalom_response.get("data")
+    def _envelope(cls, shalom_response):
+        """Devuelve la respuesta completa ({success, message, data}), descifrándola si viene cifrada.
+
+        Cuando viene cifrada, el texto plano ya es el envelope completo; el 'data'
+        real está anidado dentro (envelope['data']), no en el response externo.
+        """
         if shalom_response.get("encrypted"):
-            return cls._decrypt(data)
-        return data
+            return cls._decrypt(shalom_response.get("data"))
+        return shalom_response
 
 
     def tracking(self, code1, code2):
@@ -108,10 +112,11 @@ class Shalom:
         shalom_response = response.json()
         logging.info(shalom_response)
 
-        if shalom_response.get('success') == False:
+        envelope = self._envelope(shalom_response)
+        if envelope.get('success') == False:
             return "Códigos de tracking incorrectos", 404
 
-        shalom_data = self._data(shalom_response)
+        shalom_data = envelope.get('data') or {}
         shalom_origin = shalom_data.get('origen')
         shalom_destination = shalom_data.get('destino')
         external_id = shalom_data.get('ose_id')
@@ -139,10 +144,11 @@ class Shalom:
         shalom_response = response.json()
         logging.info(shalom_response)
 
-        if shalom_response.get('success') == False:
+        envelope = self._envelope(shalom_response)
+        if envelope.get('success') == False:
             return "Códigos de tracking incorrectos", 404
 
-        data = self._data(shalom_response)
+        data = envelope.get('data') or {}
         result = {
             "client_document": data.get("destinatario", {}).get("documento"),
             "numero_orden": data.get("numero_orden"),
@@ -164,8 +170,9 @@ class Shalom:
         logging.info(shalom_response)
 
         # El estado actual viene en "message"; "data" solo trae la fecha del evento.
-        message = shalom_response.get('message')
-        data = self._data(shalom_response) or {}
+        envelope = self._envelope(shalom_response)
+        message = envelope.get('message')
+        data = envelope.get('data') or {}
 
         last_status_id = SHALOM_STATUS_MAP.get(_normalize(message))
         if last_status_id is None:
