@@ -490,28 +490,32 @@ class TrackingService:
 
     @handle_exceptions
     def force(self, order_id):
-        tracking_order, tracking_order_status = self.tracking_repository.get_tracking_order_by_id(order_id)
-        if tracking_order_status != 200:
-            return tracking_order, tracking_order_status
+        tracking_order, toc = self.tracking_repository.get_tracking_order_by_id(order_id)
+        if toc != 200:
+            return tracking_order, toc
         
         agency_clients = {
             1: self.shalom,
             2: self.olva,
             3: self.marvisur
         }
+        agency_id = tracking_order.agency_id
             
-        tracking_client = agency_clients.get(tracking_order.agency_id)
+        tracking_client = agency_clients.get(agency_id)
         if tracking_order.status_id < 4:
-            tracking_data, tracking_status = tracking_client.tracking(tracking_order.code1, tracking_order.code2)
-            if tracking_status == 200:
-                self.tracking_repository.update_tracking_order(tracking_order.id, tracking_data)
-                self.tracking_repository.add_tracking_history(tracking_order.id, tracking_data.get("status_data"), tracking_order.status_id)
+            if agency_id == 1:
+                tracking_status, tsc = tracking_client.tracking_status(tracking_order.external_id)
+            else:
+                tracking_status, tsc = tracking_client.tracking(tracking_order.code1, tracking_order.code2)
+
+            if tsc == 200:
+                self.tracking_repository.update_tracking_order(tracking_order.id, tracking_status)
+                self.tracking_repository.add_tracking_history(tracking_order.id, tracking_status.get("status_data"), tracking_order.status_id)
                 
-                #socketio.emit("update_tracking_orders", {})
                 return "Orden actualizada", 200
 
         return "Nada que actualizar", 200
-        
+
 
     @handle_exceptions
     def force_all(self):
@@ -532,12 +536,13 @@ class TrackingService:
         skipped = []
 
         for tracking_order in tracking_orders:
-            tracking_client = agency_clients.get(tracking_order.agency_id)
+            agency_id = tracking_order.agency_id
+            tracking_client = agency_clients.get(agency_id)
 
             if not tracking_client:
                 skipped.append({
                     "order_id": tracking_order.id,
-                    "reason": f"Agencia {tracking_order.agency_id} sin cliente configurado"
+                    "reason": f"Agencia {agency_id} sin cliente configurado"
                 })
                 continue
 
@@ -547,25 +552,25 @@ class TrackingService:
                     "reason": "Orden ya entregada"
                 })
                 continue
+            
+            if agency_id == 1:
+                tracking_status, tsc = tracking_client.tracking_status(tracking_order.external_id)
+            else:
+                tracking_status, tsc = tracking_client.tracking(tracking_order.code1, tracking_order.code2)
 
-            tracking_data, tracking_status = tracking_client.tracking(
-                tracking_order.code1,
-                tracking_order.code2
-            )
-
-            if tracking_status == 200:
-                self.tracking_repository.update_tracking_order(tracking_order.id, tracking_data)
+            if tsc == 200:
+                self.tracking_repository.update_tracking_order(tracking_order.id, tracking_status)
                 self.tracking_repository.add_tracking_history(
                     tracking_order.id,
-                    tracking_data.get("status_data"),
+                    tracking_status.get("status_data"),
                     tracking_order.status_id
                 )
                 updated.append(tracking_order.id)
-                time.sleep(5)
+                time.sleep(15)
             else:
                 skipped.append({
                     "order_id": tracking_order.id,
-                    "reason": f"Error al consultar agencia (status {tracking_status})"
+                    "reason": f"Error al consultar agencia (status {tsc})"
                 })
 
         if updated:
@@ -577,7 +582,22 @@ class TrackingService:
             "message": "Proceso de actualización masiva finalizado"
         }, 200
         
+    
+    @handle_exceptions
+    def force_shalom(self, data):
+        ose_id = data.get("ose_id")
+        order_number = data.get("order_number")
+        order_code = data.get("order_code")
+        consult_type = data.get("consult_type")
+
+        if consult_type == "status":
+            return self.shalom.tracking_status(ose_id)
+        elif consult_type == "codes":
+            return self.shalom.tracking(order_number, order_code)
         
+        return self.shalom.tracking_ose_id(ose_id)
+        
+
     @handle_exceptions
     def history(self, data):
         page = data.get("page")

@@ -30,6 +30,11 @@ def force():
     return controller.tracking_force(request.get_json())
 
 
+@tracking_bp.route("/shalom", methods=["POST"])
+def shalom():
+    return controller.tracking_shalom(request.get_json())
+
+    
 @tracking_bp.route("/force/all", methods=["POST"])
 def force_all():
     return controller.tracking_force_all()

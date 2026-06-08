@@ -5,8 +5,6 @@ from cryptography.hazmat.primitives.padding import PKCS7
 from config import Shalom as API
 
 
-# Shalom filtra en el edge (HAProxy). Sin estos headers el LB devuelve 503
-# "No server is available to handle this request" antes de llegar al backend.
 WEB_HEADERS = {
     "Origin": "https://shalom.com.pe",
     "Referer": "https://shalom.com.pe/",
@@ -18,42 +16,7 @@ WEB_HEADERS = {
     "Accept": "*/*",
 }
 
-# Key AES-256 (base64) extraída del bundle del front (clase rf / EncryptionService).
-# Cuando la respuesta trae "encrypted": true, "data" viene como:
-#   base64( IV[16 bytes] + ciphertext ), AES-256-CBC, padding PKCS7.
 SHALOM_AES_KEY = base64.b64decode("uQn/bQ94PXBEfId70zjN+VE1hSU7kh9VBXTOUd68Ssc=")
-
-# El endpoint /estados ya no devuelve el timeline (origen/transito/destino/...).
-# Ahora el estado actual viene en el campo "message" del response. Mapeo a tu
-# esquema interno de status_id (1-4). Claves normalizadas (sin acentos, minúsculas).
-#   Registrado        -> 1  (aún no en agencia; se mapea al piso = 1)
-#   En origen         -> 1
-#   En tránsito       -> 2
-#   Demora de envíos  -> 2  (demora en tránsito)
-#   En destino        -> 3
-#   En reparto        -> 3  (reparto a domicilio; tu esquema no tiene paso aparte)
-#   Entregado         -> 4
-SHALOM_STATUS_MAP = {
-    "registrado": 1,
-    "en origen": 1,
-    "en transito": 2,
-    "demora de envios": 2,
-    "en destino": 3,
-    "en reparto": 3,
-    "entregado": 4,
-}
-
-# status_id -> campo de fecha en status_data
-_STATUS_FIELD = {1: "agency_at", 2: "onway_at", 3: "arrived_at", 4: "delivered_at"}
-
-
-def _normalize(text):
-    text = (text or "").strip().lower()
-    return "".join(
-        c for c in unicodedata.normalize("NFD", text)
-        if unicodedata.category(c) != "Mn"
-    )
-
 
 class Shalom:
     def __init__(self):
@@ -110,8 +73,6 @@ class Shalom:
             return "Error al consultar Shalom API", 502
 
         shalom_response = response.json()
-        logging.info(shalom_response)
-
         envelope = self._envelope(shalom_response)
         if envelope.get('success') == False:
             return "Códigos de tracking incorrectos", 404
@@ -129,6 +90,7 @@ class Shalom:
         tracking_status, tracking_code = self.tracking_status(external_id)
         if tracking_code != 200:
             return "Error al consultar Shalom API", 502
+        
         result.update(tracking_status)
         return result, 200
 
@@ -167,32 +129,43 @@ class Shalom:
             return "Error al consultar Shalom API", 502
 
         shalom_response = response.json()
-        logging.info(shalom_response)
-
-        # El estado actual viene en "message"; "data" solo trae la fecha del evento.
         envelope = self._envelope(shalom_response)
-        message = envelope.get('message')
         data = envelope.get('data') or {}
 
-        last_status_id = SHALOM_STATUS_MAP.get(_normalize(message))
-        if last_status_id is None:
-            logging.warning("Estado de Shalom no reconocido: %r", message)
-            return f"Estado de Shalom no reconocido: {message}", 502
+        origen = data.get('origen')
+        transito = data.get('transito')
+        destino = data.get('destino')
+        entregado = data.get('entregado')
+        
+        agency_at = None
+        onway_at = None
+        arrived_at = None
+        delivered_at = None
+        last_status_id = None
 
-        fecha = data.get('fecha')
-        event_at = datetime.strptime(fecha, "%Y-%m-%d %H:%M:%S") if fecha else None
+        if origen:
+            agency_at = origen.get('fecha')
+            last_status_id = 1
+        
+        if transito:
+            onway_at = transito.get('fecha')
+            last_status_id = 2
 
-        # Solo hay una fecha (el evento actual). El timeline completo ya no lo
-        # entrega Shalom, así que se llena únicamente el campo del estado vigente.
-        status_data = {
-            "agency_at": None,
-            "onway_at": None,
-            "arrived_at": None,
-            "delivered_at": None,
-        }
-        status_data[_STATUS_FIELD[last_status_id]] = event_at
+        if destino:
+            arrived_at = destino.get('fecha')
+            last_status_id = 3
+
+        if entregado:
+            delivered_at = entregado.get('fecha')
+            last_status_id = 4
 
         return {
-            "status_data": status_data,
+            "status_data": {
+                "agency_at": datetime.strptime(agency_at, "%Y-%m-%d %H:%M:%S") if agency_at else None,
+                "onway_at": datetime.strptime(onway_at, "%Y-%m-%d %H:%M:%S") if onway_at else None,
+                "arrived_at": datetime.strptime(arrived_at, "%Y-%m-%d %H:%M:%S") if arrived_at else None,
+                "delivered_at": datetime.strptime(delivered_at, "%Y-%m-%d %H:%M:%S") if delivered_at else None,
+            },
             "last_status_id": last_status_id
         }, 200
+    

@@ -45,6 +45,11 @@ class TrackingController:
 
 
     @handle_logs_and_exceptions
+    def tracking_shalom(self, data):
+        return self.tracking_service.force_shalom(data)
+    
+
+    @handle_logs_and_exceptions
     def tracking_force_all(self):
         return self.tracking_service.force_all()
 
