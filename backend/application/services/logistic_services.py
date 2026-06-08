@@ -635,41 +635,62 @@ class LogisticService:
 
 
     def _parse_products_table(self, lines):
-        # 1) encuentra cabecera
-        start_idx = None
-        for i, l in enumerate(lines):
-            u = l.upper()
-            if u.startswith("PRODUCTO") and ("CANTIDAD" in u or "CANT." in u):
-                start_idx = i + 1
-                break
-        if start_idx is None:
-            return []
-
         items = []
-        buffer = ""
+        i = 0
 
-        for row in lines[start_idx:]:
-            if self.STOP_RE.search(row):
+        while i < len(lines):
+            # Busca la próxima cabecera PRODUCTO CANTIDAD (soporta multi-página)
+            while i < len(lines):
+                u = lines[i].upper()
+                if u.startswith("PRODUCTO") and ("CANTIDAD" in u or "CANT." in u):
+                    i += 1
+                    break
+                i += 1
+            else:
                 break
-
-            buffer = f"{buffer} {row}".strip() if buffer else row
-
-            matches = list(self.QTY_RE.finditer(buffer))
-            if not matches:
-                continue
-
-            last = matches[-1]
-            product = buffer[:last.start()].strip()
-            qty = last.group(0)
-            # after = buffer[last.end():].strip()  # <- aquí estaría el DESDE, lo ignoramos
-
-            if product:
-                items.append({
-                    "product": " ".join(product.split()),
-                    "qty": qty,
-                })
 
             buffer = ""
+            just_finished = False
+
+            while i < len(lines):
+                row = lines[i]
+
+                if self.STOP_RE.search(row):
+                    # Fin de sección: rompe el loop interno para buscar
+                    # la siguiente cabecera (página 2, etc.)
+                    i += 1
+                    break
+
+                # Línea entre paréntesis sin cantidad = sufijo del item anterior
+                # p. ej. "(Arcoíris Pastel)" que aparece sola tras el "1,00" del item previo
+                if just_finished and not buffer and row.startswith("(") and not self.QTY_RE.search(row):
+                    if items:
+                        items[-1]["product"] = items[-1]["product"] + " " + row.strip()
+                    just_finished = False
+                    i += 1
+                    continue
+
+                just_finished = False
+                buffer = f"{buffer} {row}".strip() if buffer else row
+
+                matches = list(self.QTY_RE.finditer(buffer))
+                if not matches:
+                    i += 1
+                    continue
+
+                last = matches[-1]
+                product = buffer[:last.start()].strip()
+                qty = last.group(0)
+
+                if product:
+                    items.append({
+                        "product": " ".join(product.split()),
+                        "qty": qty,
+                    })
+                    just_finished = True
+
+                buffer = ""
+                i += 1
 
         return items
 
