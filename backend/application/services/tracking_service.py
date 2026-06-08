@@ -1,4 +1,5 @@
 import logging
+import json
 import threading
 import time
 from application.handlers import handle_exceptions
@@ -13,7 +14,7 @@ from application.proxy.shalom import Shalom
 from application.proxy.olva import Olva
 from application.proxy.marvisur import Marvisur
 from application.proxy.whatsapp import Whatsapp
-from application import socketio
+from application import socketio, redis_client
 
 
 class TrackingService:
@@ -438,12 +439,21 @@ class TrackingService:
 
     @handle_exceptions
     def get_qr_data(self, ose_id):
-        tracking_data, tracking_status = self.shalom.tracking_ose_id(ose_id)
-        if tracking_status != 200:
-            return tracking_data, tracking_status
-        
-        client_data, tracking_status = self.clients_service.get_data(tracking_data.get("client_document"))
-        if tracking_status == 200:
+        # La guía de Shalom es inmutable por ose_id; se cachea para evitar 429
+        # cuando un escaneo dispara varias consultas idénticas seguidas.
+        key = f"qr_data:{ose_id}"
+        cache = redis_client.get(key)
+        if cache:
+            logging.info("QR data loaded from cache")
+            tracking_data = json.loads(cache)
+        else:
+            tracking_data, tracking_status = self.shalom.tracking_ose_id(ose_id)
+            if tracking_status != 200:
+                return tracking_data, tracking_status
+            redis_client.setex(key, 300, json.dumps(tracking_data))
+
+        client_data, client_status = self.clients_service.get_data(tracking_data.get("client_document"))
+        if client_status == 200:
             tracking_data.update({
                 "client_name": client_data.get("name"),
                 "client_email": client_data.get("email"),
