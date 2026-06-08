@@ -439,18 +439,42 @@ class TrackingService:
 
     @handle_exceptions
     def get_qr_data(self, ose_id):
-        # La guía de Shalom es inmutable por ose_id; se cachea para evitar 429
-        # cuando un escaneo dispara varias consultas idénticas seguidas.
+        # La guía de Shalom es inmutable por ose_id; se cachea para evitar 429.
+        # Un escaneo dispara varias consultas idénticas casi simultáneas, así que
+        # además del cache se usa un lock (single-flight): solo el primer request
+        # consulta Shalom y el resto espera a que llene el cache.
         key = f"qr_data:{ose_id}"
+        lock_key = f"qr_data_lock:{ose_id}"
+
+        tracking_data = None
         cache = redis_client.get(key)
-        if cache:
-            logging.info("QR data loaded from cache")
-            tracking_data = json.loads(cache)
-        else:
-            tracking_data, tracking_status = self.shalom.tracking_ose_id(ose_id)
-            if tracking_status != 200:
-                return tracking_data, tracking_status
-            redis_client.setex(key, 300, json.dumps(tracking_data))
+        if not cache and redis_client.set(lock_key, "1", nx=True, ex=10):
+            # Este request gana el lock: consulta Shalom y llena el cache.
+            try:
+                tracking_data, tracking_status = self.shalom.tracking_ose_id(ose_id)
+                if tracking_status != 200:
+                    return tracking_data, tracking_status
+                redis_client.setex(key, 300, json.dumps(tracking_data))
+            finally:
+                redis_client.delete(lock_key)
+        elif not cache:
+            # Otro request ya está consultando Shalom; esperar a que cachee (~5s máx).
+            for _ in range(50):
+                time.sleep(0.1)
+                cache = redis_client.get(key)
+                if cache:
+                    break
+
+        if tracking_data is None:
+            if cache:
+                logging.info("QR data loaded from cache")
+                tracking_data = json.loads(cache)
+            else:
+                # El lock expiró o la consulta previa falló; consultar directamente.
+                tracking_data, tracking_status = self.shalom.tracking_ose_id(ose_id)
+                if tracking_status != 200:
+                    return tracking_data, tracking_status
+                redis_client.setex(key, 300, json.dumps(tracking_data))
 
         client_data, client_status = self.clients_service.get_data(tracking_data.get("client_document"))
         if client_status == 200:
