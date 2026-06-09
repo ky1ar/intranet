@@ -195,7 +195,7 @@
 <body>
   {% set n = (data.products or [])|length %}
   {# reglas simples: ajústalas a tu gusto #}
-  {% set cols = 'cols3' if n >= 18 else ('cols2' if n >= 10 else '') %}
+  {% set cols = '' %}
   {% set density = 'tiny' if n >= 22 else ('compact' if n >= 14 else '') %}
 
   <div class="label">
