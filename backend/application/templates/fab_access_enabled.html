@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Acceso habilitado - Modelos STL Krear 3D</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f4f4; font-family: Arial, Helvetica, sans-serif;">
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f4; padding:20px 0;">
+        <tr>
+            <td align="center">
+
+                <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden;">
+
+                    <!-- Header -->
+                    <tr>
+                        <td style="background:#111111; padding:20px; text-align:center;">
+                            <h1 style="color:#ffffff; margin:0; font-size:22px;">Krear 3D</h1>
+                            <p style="color:#cccccc; margin:5px 0 0; font-size:14px;">K3D FAB · Modelos STL</p>
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding:30px; color:#333333; font-size:15px; line-height:1.6;">
+
+                            <p>Hola, <strong>{{ client_name }}</strong>.</p>
+
+                            <p>
+                                ¡Buenas noticias! Hemos habilitado tu acceso a
+                                <strong>K3D FAB</strong>, nuestra biblioteca de modelos STL
+                                exclusivos para impresión 3D. Ya puedes ingresar con tus
+                                credenciales de siempre y empezar a descargar.
+                            </p>
+
+                            <!-- Acceso -->
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+                                <tr>
+                                    <td style="background:#f8f8f8; border-left:4px solid #e05a00; border-radius:4px; padding:18px 20px;">
+                                        <p style="margin:0 0 10px; font-weight:700; font-size:15px; color:#111;">Cómo acceder</p>
+                                        <p style="margin:0 0 6px;">
+                                            Ingresa a:&nbsp;
+                                            <a href="{{ platform_url }}" style="color:#e05a00; text-decoration:none; font-weight:700;">
+                                                {{ platform_url }}
+                                            </a>
+                                        </p>
+                                        <p style="margin:0;">
+                                            <strong>Usuario:</strong> {{ client_email }}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin-top:8px;">
+                                Si olvidaste tu contraseña, puedes restablecerla desde la plataforma.
+                            </p>
+
+                            <p style="margin-top:24px;">
+                                ¡Disfruta tu acceso a K3D FAB!<br>
+                                <strong>Equipo Krear 3D</strong>
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background:#f0f0f0; padding:15px; text-align:center; font-size:12px; color:#666666;">
+                            © {{ current_year }} Krear 3D. Todos los derechos reservados.
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>

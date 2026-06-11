@@ -1215,18 +1215,32 @@ document.addEventListener("DOMContentLoaded", () => {
 					</div>
 				</div>
 
-				<!-- <div class="servicio-card" data-type="stl">
-					<div class="servicio-icon">
-						<img src="/wp-content/uploads/2025/07/cuenta.png" alt="STL" class="servicio-img-icon">
+				<div class="servicio-card" data-type="stl" data-access-label="Acceder a K3D FAB" data-platform-url="https://stlkrear3d.com/">
+					<div class="top">
+						<div class="data">
+							<span>Biblioteca</span>
+							<div class="title">Modelos STL</div>
+							<div class="type">K3D FAB</div>
+							<p>Accede a nuestra biblioteca de archivos STL exclusivos para impresión 3D.</p>
+							<ul>
+								<li><b></b>Modelos listos para imprimir</li>
+								<li><b></b>Descargas exclusivas</li>
+								<li><b></b>Nuevos archivos cada mes</li></ul>
+						</div>
+
+						<div class="image">
+							<img src="https://www.tiendakrear3d.com/wp-content/uploads/2026/06/stl.webp">
+						</div>
 					</div>
-					<h3>K3D FAB</h3>
-					<p class="servicio-desc">Accede a nuestra biblioteca de archivos STL exclusivos para impresión 3D.</p>
-					<div class="servicio-action">
-						<span class="servicio-status-badge" style="display:none;"></span>
-						<button class="btn-solicitar" data-type="stl">Solicitar acceso</button>
-						<a class="btn-acceder" data-type="stl" href="#" target="_blank" style="display:none;">Acceder</a>
+
+					<div class="bottom">
+						<div class="icon">
+							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"><path fill="#ea7134" d="M256 0 32 112v288l224 112 224-112V112L256 0zm0 53.3 158.7 79.4L256 212 97.3 132.7 256 53.3zM74.7 169.4 234.7 249v201.3L74.7 370.6V169.4zm202.6 280.9V249l160-79.6v201.2l-160 79.7z"/></svg>
+						</div>
+						<p>Ideal para makers que quieren empezar a imprimir al instante.</p>
+						<div class="action">Acceder a K3D FAB</div>
 					</div>
-				</div> -->
+				</div>
 
 			</div>
 
@@ -1267,7 +1281,11 @@ document.addEventListener("DOMContentLoaded", () => {
 			}
 			.servicios-header h2 { margin: 0 0 0.3rem; font-size: 1.4rem; }
 			.servicios-header p { color: #666; margin: 0; }
-			.servicios-cards { display: flex; flex-wrap: wrap; gap: 1.5rem; }
+			.servicios-cards {
+				display: grid;
+				gap: 1.5rem;
+				grid-template-columns: 1fr 1fr;
+			}
 			
 			.servicio-card {
 				background: #fff;
@@ -1275,9 +1293,7 @@ document.addEventListener("DOMContentLoaded", () => {
 				border-radius: 12px;
 				padding: 1.5rem;
 				flex: 1 1 220px;
-				display: flex;
 				flex-direction: column;
-				width: 50%;
 				gap: 0.8rem;
 				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 				overflow: hidden;
@@ -1427,7 +1443,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			.servicio-card .bottom .action:hover { opacity: 0.9; }
 			.servicio-card .bottom .action.is-pending { background-color: #9ca3af; cursor: default; }
 			.servicio-card .bottom .action.is-pending:hover { opacity: 1; }
-			.servicio-card .bottom .action.is-rejected { background-color: #dc3545; cursor: default; }
+			.servicio-card .bottom .action.is-rejected { background-color: var(--secondary); cursor: default; }
 			.servicio-card .bottom .action.is-rejected:hover { opacity: 1; }
 			</style>
 
@@ -1441,7 +1457,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const WP_PHONE   = <?php echo json_encode( $wp_user_phone ?: '' ); ?>;
                 const WP_DNI     = <?php echo json_encode( $wp_user_dni ?: '' ); ?>;
 
-                const TYPES = ['curso-fdm', 'curso-lcd'];
+                const TYPES = ['curso-fdm', 'curso-lcd', 'stl'];
                 let cachedProfile = null;
 
                 async function fetchProfile() {
@@ -1472,11 +1488,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     const status = data.status || 'none';
                     card.dataset.state     = status;
-                    card.dataset.accessUrl = data.access_url || PLATFORM;
+                    // Si la tarjeta declara su propia URL (p.ej. STL), esa manda sobre
+                    // lo que devuelva el API (que puede traer un access_url antiguo guardado).
+                    card.dataset.accessUrl = card.dataset.platformUrl || data.access_url || PLATFORM;
 
                     action.classList.remove('is-pending', 'is-rejected');
                     if (status === 'approved') {
-                        action.textContent = 'Acceder al curso';
+                        action.textContent = card.dataset.accessLabel || 'Acceder al curso';
                     } else if (status === 'pending' || status === 'in_review') {
                         action.textContent = 'En revisión';
                         action.classList.add('is-pending');
@@ -1492,7 +1510,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     const state = card.dataset.state || 'none';
                     const type  = card.dataset.type;
                     if (state === 'approved') {
-                        window.open(card.dataset.accessUrl || PLATFORM, '_blank');
+                        window.open(card.dataset.accessUrl || card.dataset.platformUrl || PLATFORM, '_blank');
                     } else if (state === 'pending' || state === 'in_review' || state === 'rejected') {
                         /* en revisión / rechazado: sin acción */
                     } else {
@@ -1552,7 +1570,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.addEventListener('DOMContentLoaded', function() {
                     checkStatuses();
 
-                    document.querySelectorAll('.servicio-card[data-type^="curso-"]').forEach(card => {
+                    document.querySelectorAll('.servicio-card[data-type]').forEach(card => {
                         const action = card.querySelector('.action');
                         if (action) action.addEventListener('click', () => onActionClick(card));
                     });

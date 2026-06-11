@@ -88,3 +88,58 @@ class CoursesAccessRepository:
             "course_uuid": course.uuid,
             "course_name": course.name,
         }, 200
+
+    @handle_db_exceptions
+    def grant_fab_access(self, email, first_name, last_name, password_hash,
+                         default_country_iso="PE"):
+        """
+        Asegura la cuenta del cliente en la plataforma y habilita el acceso FAB
+        (modelos STL). NO otorga ningún curso: solo marca fab_enabled = 1.
+
+        - Si no existe cuenta con ese email -> la crea (UUID, status ACTIVE,
+          contraseña ya hasheada) con fab_enabled = 1. created_account = True.
+        - Si ya existe -> no se toca la contraseña; solo se pone fab_enabled = 1.
+
+        Devuelve ({...}, 200) o (mensaje, code) ante error de negocio.
+        """
+        account = (
+            g.db_session.query(CourseAccount)
+            .filter(CourseAccount.email == email)
+            .first()
+        )
+
+        created_account = False
+        if not account:
+            country = (
+                g.db_session.query(CourseCountry)
+                .filter(CourseCountry.iso == default_country_iso)
+                .first()
+            )
+            account = CourseAccount(
+                id=str(uuid4()),
+                first_name=first_name or email,
+                last_name=last_name or "",
+                email=email,
+                password=password_hash,
+                status="ACTIVE",
+                language="es",
+                country_id=country.id if country else None,
+                created_at=peru_time(),
+                change_pass=1,
+                fab_enabled=1,
+            )
+            g.db_session.add(account)
+            g.db_session.flush()
+            created_account = True
+            already_enabled = False
+        else:
+            already_enabled = bool(account.fab_enabled)
+            account.fab_enabled = 1
+
+        g.db_session.commit()
+
+        return {
+            "created_account": created_account,
+            "already_enabled": already_enabled,
+            "client_id": account.id,
+        }, 200

@@ -63,6 +63,9 @@ class Courses:
     # Plataforma de cursos (cursos.krear3d.com). La conexión se inyecta vía
     # COURSES_DATABASE_URI en SQLALCHEMY_BINDS['courses'] (ver clase Config).
     PLATFORM_URL = os.getenv("COURSES_PLATFORM_URL", "https://cursos.krear3d.com/")
+    # URL de la biblioteca de modelos STL (K3D FAB). Es distinta a la de cursos;
+    # si no se define, cae a PLATFORM_URL para no romper los correos.
+    FAB_URL = os.getenv("COURSES_FAB_URL", PLATFORM_URL)
     DEFAULT_COUNTRY_ISO = os.getenv("COURSES_DEFAULT_COUNTRY_ISO", "PE")
     # UUIDs de los cursos en la plataforma (distintos en dev y prod).
     FDM_COURSE_UUID = os.getenv("COURSES_FDM_UUID")

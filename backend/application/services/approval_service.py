@@ -8,7 +8,7 @@ from application.handlers import handle_exceptions
 from application.utils import format_datetime, file_extension
 from application.repository.approval_repository import ApprovalRepository
 from application.services.courses_provisioning_service import (
-    CoursesProvisioningService, is_course_slug,
+    CoursesProvisioningService, FabProvisioningService, is_course_slug, is_fab_slug,
 )
 from config import Courses, Paths
 
@@ -143,6 +143,21 @@ class ApprovalService:
             socketio.emit("approval_update", {})
             return {"message": "Solicitud aprobada y acceso al curso creado"}, 200
 
+        # FAB (modelos STL): aseguramos la cuenta y habilitamos fab_enabled, sin
+        # otorgar ningún curso. Igual que cursos, si falla NO aprobamos. Idempotente.
+        if is_fab_slug(type_slug):
+            if not client_email:
+                return "El cliente no tiene un correo registrado", 400
+            prov, psc = FabProvisioningService().provision(client_email, client_name)
+            if psc != 200:
+                return prov, psc
+            result, sc = self.repository.approve_request(request_id, user_id, Courses.FAB_URL)
+            if sc != 200:
+                return result, sc
+            self._send_fab_email(client_email, client_name, prov)
+            socketio.emit("approval_update", {})
+            return {"message": "Solicitud aprobada y acceso a STL habilitado"}, 200
+
         # Otros tipos (p.ej. guías): solo se aprueba, sin correo de cursos.
         result, sc = self.repository.approve_request(request_id, user_id, None)
         if sc != 200:
@@ -181,6 +196,36 @@ class ApprovalService:
             mail.send(msg)
         except Exception:
             logging.exception("Error enviando correo de curso a %s", email)
+
+    def _send_fab_email(self, email, name, prov):
+        """Correo de acceso FAB (STL): con credenciales si la cuenta es nueva; sin ellas si ya existía."""
+        if not email:
+            return
+        try:
+            created = bool(prov.get("created_account"))
+            if created:
+                template = "fab_account_created.html"
+                subject  = "Tu acceso a los modelos STL ha sido aprobado"
+            else:
+                template = "fab_access_enabled.html"
+                subject  = "Acceso a modelos STL habilitado"
+            html_content = render_template(
+                template,
+                client_name=name or "Cliente",
+                client_email=email,
+                temp_password=prov.get("temp_password"),
+                platform_url=Courses.FAB_URL,
+                current_year=datetime.now().year,
+            )
+            msg = Message(
+                subject=subject,
+                sender=("Krear 3D", "web@tiendakrear3d.com"),
+                recipients=[email],
+                html=html_content,
+            )
+            mail.send(msg)
+        except Exception:
+            logging.exception("Error enviando correo de acceso FAB a %s", email)
 
     @handle_exceptions
     def reject_request(self, data):
