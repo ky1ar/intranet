@@ -178,6 +178,13 @@ class OdooClient:
 
         return phone9
 
+    def _split_serie_correlative(self, raw):
+        """Devuelve (serie, correlativo_int) si el texto tiene forma SERIE-NUMERO, si no None."""
+        m = re.match(r"^\s*([A-Za-z0-9]+)\s*-\s*(\d+)\s*$", raw or "")
+        if not m:
+            return None
+        return m.group(1).upper(), int(m.group(2))
+
     def get_invoice_by_name(self, invoice_number):
         """Busca un comprobante (boleta/factura) por su número y devuelve el detalle del pedido."""
         invoice_number = (invoice_number or "").strip()
@@ -191,18 +198,19 @@ class OdooClient:
             "amount_untaxed", "amount_tax", "amount_total", "currency_id",
         ]
 
-        # search + read fusionados: match exacto primero, ilike como fallback.
+        parsed = self._split_serie_correlative(invoice_number)
+        if parsed:
+            serie, correlative = parsed
+            padded = f"{serie}-{str(correlative).zfill(8)}"
+            domain = [("name", "=ilike", f"%{padded}"), ("move_type", "in", move_types)]
+        else:
+            domain = [("name", "ilike", invoice_number), ("move_type", "in", move_types)]
+
         moves = self._exec(
             "account.move", "search_read",
-            [[("name", "=", invoice_number), ("move_type", "in", move_types)]],
+            [domain],
             {"fields": fields_move, "order": "id desc", "limit": 1},
         )
-        if not moves:
-            moves = self._exec(
-                "account.move", "search_read",
-                [[("name", "ilike", invoice_number), ("move_type", "in", move_types)]],
-                {"fields": fields_move, "order": "id desc", "limit": 1},
-            )
         if not moves:
             return None
 

@@ -28,3 +28,20 @@ class ApprovalRequest(BaseModel):
     type_rel  = db.relationship("ApprovalType", lazy="joined")
     client    = db.relationship("Clients", foreign_keys=[client_id], lazy="joined")
     approver  = db.relationship("Users", foreign_keys=[approved_by], lazy="joined")
+
+
+class ApprovalChats(BaseModel):
+    __tablename__ = "approval_chats"
+
+    id           = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    approval_id  = db.Column(db.Integer, db.ForeignKey("approval_request.id"), nullable=False)
+    comment      = db.Column(db.Text, nullable=False)
+    commenter_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    created_at   = db.Column(db.DateTime, nullable=False)
+
+    commenter        = db.relationship("Users", foreign_keys=[commenter_id], lazy="joined")
+    approval_request = db.relationship(
+        "ApprovalRequest",
+        foreign_keys=[approval_id],
+        backref=db.backref("chats", lazy="selectin"),
+    )

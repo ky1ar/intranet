@@ -41,6 +41,18 @@ def dashboard():
     return controller.get_dashboard({})
 
 
+@approval_bp.route("/<int:request_id>", methods=["GET"])
+def get_detail(request_id):
+    return controller.get_request_detail({"request_id": request_id})
+
+
+@approval_bp.route("/<int:request_id>/chat", methods=["POST"])
+def send_chat(request_id):
+    data = request.get_json() or {}
+    data["request_id"] = request_id
+    return controller.send_chat(data)
+
+
 @approval_bp.route("/review", methods=["POST"])
 def review():
     return controller.start_review(request.get_json())

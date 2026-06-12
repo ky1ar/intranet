@@ -3,7 +3,7 @@ import os
 import secrets
 from application.handlers import handle_db_exceptions
 from application.utils import peru_time, normalize_phone, upload_path, file_extension
-from application.db_models.approval_model import ApprovalRequest, ApprovalType
+from application.db_models.approval_model import ApprovalRequest, ApprovalType, ApprovalChats
 from application.models import Clients
 from config import Paths
 from flask import g, request
@@ -202,6 +202,29 @@ class ApprovalRepository:
         req.access_url  = access_url
         g.db_session.commit()
         return {"id": req.id, "client_name": client_name, "client_email": client_email, "type_slug": type_slug}, 200
+
+    @handle_db_exceptions
+    def add_chat(self, approval_id, user_id, comment):
+        chat = ApprovalChats(
+            approval_id=approval_id,
+            commenter_id=user_id,
+            comment=comment,
+            created_at=peru_time(),
+        )
+        g.db_session.add(chat)
+        g.db_session.commit()
+        g.db_session.refresh(chat)
+        return chat, 200
+
+    @handle_db_exceptions
+    def get_chat_commenters(self, approval_id, exclude_user_id=None):
+        q = (
+            g.db_session.query(ApprovalChats.commenter_id)
+            .filter(ApprovalChats.approval_id == approval_id)
+        )
+        if exclude_user_id is not None:
+            q = q.filter(ApprovalChats.commenter_id != exclude_user_id)
+        return [row[0] for row in q.distinct().all()], 200
 
     @handle_db_exceptions
     def reject_request(self, request_id, approved_by, reason=None):

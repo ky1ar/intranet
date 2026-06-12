@@ -5,8 +5,9 @@ from flask import render_template, request
 from flask_mail import Message
 from application import mail, socketio
 from application.handlers import handle_exceptions
-from application.utils import format_datetime, file_extension
+from application.utils import format_datetime, format_name, file_extension
 from application.repository.approval_repository import ApprovalRepository
+from application.services.push_service import PushSender
 from application.services.courses_provisioning_service import (
     CoursesProvisioningService, FabProvisioningService, is_course_slug, is_fab_slug,
 )
@@ -25,6 +26,7 @@ STATUS_GROUPS = [
 class ApprovalService:
     def __init__(self):
         self.repository = ApprovalRepository()
+        self.push_service = PushSender()
 
     @handle_exceptions
     def get_wp_profile(self, wp_user_id):
@@ -237,9 +239,57 @@ class ApprovalService:
         socketio.emit("approval_update", {})
         return {"message": "Solicitud rechazada"}, 200
 
-    def _format_request(self, req):
-        client = req.client
+    @handle_exceptions
+    def get_request_detail(self, request_id):
+        req, sc = self.repository.get_request_by_id(request_id)
+        if sc != 200:
+            return req, sc
+        return self._format_request(req, with_chats=True), 200
+
+    @handle_exceptions
+    def send_chat(self, data):
+        request_id = data.get("request_id")
+        user_id    = data.get("user_id")
+        comment    = (data.get("comment") or "").strip()
+
+        if not request_id:
+            return "request_id requerido", 400
+        if not user_id:
+            return "user_id requerido", 400
+        if not comment:
+            return "Comentario vacío", 400
+
+        req, sc = self.repository.get_request_by_id(request_id)
+        if sc != 200:
+            return req, sc
+
+        chat, cc = self.repository.add_chat(request_id, user_id, comment)
+        if cc != 200:
+            return chat, cc
+
+        participants, _ = self.repository.get_chat_commenters(
+            request_id, exclude_user_id=user_id
+        )
+        if participants:
+            self.push_service.send_to_users(
+                user_ids=participants,
+                title=f"Nuevo mensaje, solicitud AP-{request_id}",
+                body=f"{format_name(chat.commenter.name, True)}: {comment}",
+            )
+        socketio.emit("approval_update", {})
+
         return {
+            "id": chat.id,
+            "comment": chat.comment,
+            "commenter_id": chat.commenter_id,
+            "commenter_name": format_name(chat.commenter.name),
+            "commenter_image": chat.commenter.image,
+            "created_at": format_datetime(chat.created_at),
+        }, 200
+
+    def _format_request(self, req, with_chats=False):
+        client = req.client
+        data = {
             "id": req.id,
             "client_id": req.client_id,
             "client_name": client.name if client else None,
@@ -258,3 +308,16 @@ class ApprovalService:
             "approved_at": format_datetime(req.approved_at) if req.approved_at else None,
             "created_at": format_datetime(req.created_at),
         }
+        if with_chats:
+            data["chats"] = [
+                {
+                    "id": c.id,
+                    "comment": c.comment,
+                    "commenter_id": c.commenter_id,
+                    "commenter_name": format_name(c.commenter.name),
+                    "commenter_image": c.commenter.image,
+                    "created_at": format_datetime(c.created_at),
+                }
+                for c in sorted(req.chats, key=lambda x: x.id)
+            ]
+        return data

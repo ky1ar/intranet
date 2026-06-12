@@ -46,7 +46,7 @@
 			x-transition:leave-end="modal-leave-end"
 			x-cloak
 		>
-			<div class="modal glass2 small" @click.stop x-show="detail">
+			<div class="modal glass2 big" @click.stop x-show="detail">
 				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
 
 				<div class="title">
@@ -60,189 +60,224 @@
 					</p>
 				</div>
 
-				<div class="modal-content">
-					<div class="boxes">
+				<div class="modal-content dual">
+					<div class="dataview overflow percent50">
+						<div class="boxes">
 
-						<!-- Servicio -->
-						<div class="box-cont">
-							<div class="desc">Servicio</div>
-							<div class="white service-box">
-								<img alt="" width="16" height="16" src="/static/icons/filled/pin.svg">
-								<span class="service-name" x-text="detail?.type || '—'"></span>
-							</div>
-						</div>
-
-						<!-- Cliente -->
-						<div class="box-cont">
-							<div class="desc">Cliente</div>
-							<div class="white info-box">
-								<div class="info-row">
-									<img alt="" width="16" height="16" src="/static/icons/line/user.svg">
-									<span class="lbl">Nombre</span>
-									<span class="val" x-text="detail?.client_name || '—'"></span>
-								</div>
-								<div class="info-row">
-									<img alt="" width="16" height="16" src="/static/icons/line/id.svg">
-									<span class="lbl">DNI</span>
-									<span class="val" x-text="detail?.client_dni || '—'"></span>
-								</div>
-								<div class="info-row">
-									<img alt="" width="16" height="16" src="/static/icons/line/email.svg">
-									<span class="lbl">Correo</span>
-									<span class="val" x-text="detail?.client_email || '—'"></span>
-								</div>
-								<div class="info-row">
-									<img alt="" width="16" height="16" src="/static/icons/line/phone.svg">
-									<span class="lbl">Teléfono</span>
-									<span class="val" x-text="detail?.client_phone || '—'"></span>
+							<!-- Servicio -->
+							<div class="box-cont">
+								<div class="desc">Servicio</div>
+								<div class="white service-box">
+									<img alt="" width="16" height="16" src="/static/icons/filled/pin.svg">
+									<span class="service-name" x-text="detail?.type || '—'"></span>
 								</div>
 							</div>
-						</div>
 
-						<!-- Comprobante -->
-						<div class="box-cont">
-							<div class="desc">Comprobante</div>
-
-							<template x-if="detail?.invoice_number">
+							<!-- Cliente -->
+							<div class="box-cont">
+								<div class="desc">Cliente</div>
 								<div class="white info-box">
 									<div class="info-row">
-										<img alt="" width="16" height="16" src="/static/icons/line/document.svg">
-										<span class="lbl">N° boleta/factura</span>
-										<span class="val" x-text="detail.invoice_number"></span>
+										<img alt="" width="16" height="16" src="/static/icons/line/user.svg">
+										<span class="lbl">Nombre</span>
+										<span class="val" x-text="detail?.client_name || '—'"></span>
+									</div>
+									<div class="info-row">
+										<img alt="" width="16" height="16" src="/static/icons/line/id.svg">
+										<span class="lbl">DNI</span>
+										<span class="val" x-text="detail?.client_dni || '—'"></span>
+									</div>
+									<div class="info-row">
+										<img alt="" width="16" height="16" src="/static/icons/line/email.svg">
+										<span class="lbl">Correo</span>
+										<span class="val" x-text="detail?.client_email || '—'"></span>
+									</div>
+									<div class="info-row">
+										<img alt="" width="16" height="16" src="/static/icons/line/phone.svg">
+										<span class="lbl">Teléfono</span>
+										<span class="val" x-text="detail?.client_phone || '—'"></span>
 									</div>
 								</div>
-							</template>
+							</div>
 
-							<!-- Detalle del pedido (Odoo) -->
-							<template x-if="detail?.invoice_number">
-								<div class="odoo-detail">
-									<template x-if="odoo_loading">
-										<div class="white odoo-state">Consultando Odoo…</div>
-									</template>
+							<!-- Comprobante -->
+							<div class="box-cont">
+								<div class="desc">Comprobante</div>
 
-									<template x-if="!odoo_loading && odoo_error">
-										<div class="white odoo-state error" x-text="odoo_error"></div>
-									</template>
-
-									<template x-if="!odoo_loading && odoo_invoice && !odoo_invoice.found">
-										<div class="white odoo-state empty">No se encontró el pedido en Odoo.</div>
-									</template>
-
-									<template x-if="!odoo_loading && odoo_invoice && odoo_invoice.found">
-										<div class="white odoo-box">
-											<div class="odoo-head">
-												<span class="odoo-name" x-text="odoo_invoice.name"></span>
-												<span class="odoo-pill" :class="odooPayClass(odoo_invoice.payment_state)" x-text="odooPayLabel(odoo_invoice.payment_state)"></span>
-											</div>
-
-											<div class="odoo-sub">
-												<span x-show="odoo_invoice.partner_name" x-text="odoo_invoice.partner_name"></span>
-												<span x-show="odoo_invoice.invoice_date" x-text="odoo_invoice.invoice_date"></span>
-											</div>
-
-											<div class="odoo-lines">
-												<template x-for="(ln, i) in (odoo_invoice.lines || [])" :key="i">
-													<div class="odoo-line">
-														<span class="prod" :title="ln.product" x-text="ln.product"></span>
-														<span class="qty" x-text="`x${ln.quantity}`"></span>
-														<span class="amt" x-text="formatMoney(ln.price_subtotal, odoo_invoice.currency)"></span>
-													</div>
-												</template>
-												<template x-if="!odoo_invoice.lines || odoo_invoice.lines.length === 0">
-													<div class="odoo-line empty">Sin líneas de detalle</div>
-												</template>
-											</div>
-
-											<div class="odoo-totals">
-												<div class="row">
-													<span>Subtotal</span>
-													<span x-text="formatMoney(odoo_invoice.amount_untaxed, odoo_invoice.currency)"></span>
-												</div>
-												<div class="row">
-													<span>IGV</span>
-													<span x-text="formatMoney(odoo_invoice.amount_tax, odoo_invoice.currency)"></span>
-												</div>
-												<div class="row total">
-													<span>Total</span>
-													<span x-text="formatMoney(odoo_invoice.amount_total, odoo_invoice.currency)"></span>
-												</div>
-											</div>
+								<template x-if="detail?.invoice_number">
+									<div class="white info-box">
+										<div class="info-row">
+											<img alt="" width="16" height="16" src="/static/icons/line/document.svg">
+											<span class="lbl">N° boleta/factura</span>
+											<span class="val" x-text="detail.invoice_number"></span>
 										</div>
-									</template>
-								</div>
-							</template>
+									</div>
+								</template>
 
-							<template x-if="detail?.voucher_filename">
-								<div class="voucher-card white hover-opacity" @click="openVoucher()">
-									<div class="voucher-thumb">
-										<template x-if="isVoucherImage()">
-											<img :src="voucherUrl()" alt="Comprobante">
+								<!-- Detalle del pedido (Odoo) -->
+								<template x-if="detail?.invoice_number">
+									<div class="odoo-detail">
+										<template x-if="odoo_loading">
+											<div class="white odoo-state">Consultando Odoo…</div>
 										</template>
-										<template x-if="!isVoucherImage()">
-											<span class="ext" x-text="voucherExt().toUpperCase() || 'FILE'"></span>
+
+										<template x-if="!odoo_loading && odoo_error">
+											<div class="white odoo-state error" x-text="odoo_error"></div>
+										</template>
+
+										<template x-if="!odoo_loading && odoo_invoice && !odoo_invoice.found">
+											<div class="white odoo-state empty">No se encontró el pedido en Odoo.</div>
+										</template>
+
+										<template x-if="!odoo_loading && odoo_invoice && odoo_invoice.found">
+											<div class="white odoo-box">
+												<div class="odoo-head">
+													<span class="odoo-name" x-text="odoo_invoice.name"></span>
+													<span class="odoo-pill" :class="odooPayClass(odoo_invoice.payment_state)" x-text="odooPayLabel(odoo_invoice.payment_state)"></span>
+												</div>
+
+												<div class="odoo-sub">
+													<span x-show="odoo_invoice.partner_name" x-text="odoo_invoice.partner_name"></span>
+													<span x-show="odoo_invoice.invoice_date"
+														:class="{ 'date-old': isInvoiceOld(odoo_invoice.invoice_date) }"
+														x-text="odoo_invoice.invoice_date"></span>
+												</div>
+
+												<div class="odoo-lines">
+													<template x-for="(ln, i) in (odoo_invoice.lines || [])" :key="i">
+														<div class="odoo-line">
+															<span class="prod" :title="ln.product" x-text="ln.product"></span>
+															<span class="qty" x-text="`x${ln.quantity}`"></span>
+															<span class="amt" x-text="formatMoney(ln.price_subtotal, odoo_invoice.currency)"></span>
+														</div>
+													</template>
+													<template x-if="!odoo_invoice.lines || odoo_invoice.lines.length === 0">
+														<div class="odoo-line empty">Sin líneas de detalle</div>
+													</template>
+												</div>
+
+												<div class="odoo-totals">
+													<div class="row">
+														<span>Subtotal</span>
+														<span x-text="formatMoney(odoo_invoice.amount_untaxed, odoo_invoice.currency)"></span>
+													</div>
+													<div class="row">
+														<span>IGV</span>
+														<span x-text="formatMoney(odoo_invoice.amount_tax, odoo_invoice.currency)"></span>
+													</div>
+													<div class="row total">
+														<span>Total</span>
+														<span x-text="formatMoney(odoo_invoice.amount_total, odoo_invoice.currency)"></span>
+													</div>
+												</div>
+											</div>
 										</template>
 									</div>
-									<div class="voucher-data">
-										<span class="name">Ver comprobante</span>
-										<span class="meta" x-text="`Archivo ${voucherExt().toUpperCase() || 'adjunto'}`"></span>
-									</div>
-									<img class="arrow" alt="" width="20" height="20" src="/static/icons/line/right.svg">
-								</div>
-							</template>
+								</template>
 
-							<template x-if="!detail?.voucher_filename">
-								<div class="white empty-box">Sin archivo adjunto</div>
+								<template x-if="detail?.voucher_filename">
+									<div class="voucher-card white hover-opacity" @click="openVoucher()">
+										<div class="voucher-thumb">
+											<template x-if="isVoucherImage()">
+												<img :src="voucherUrl()" alt="Comprobante">
+											</template>
+											<template x-if="!isVoucherImage()">
+												<span class="ext" x-text="voucherExt().toUpperCase() || 'FILE'"></span>
+											</template>
+										</div>
+										<div class="voucher-data">
+											<span class="name">Ver comprobante</span>
+											<span class="meta" x-text="`Archivo ${voucherExt().toUpperCase() || 'adjunto'}`"></span>
+										</div>
+										<img class="arrow" alt="" width="20" height="20" src="/static/icons/line/right.svg">
+									</div>
+								</template>
+
+								<template x-if="!detail?.voucher_filename">
+									<div class="white empty-box">Sin archivo adjunto</div>
+								</template>
+							</div>
+
+							<!-- Acceso otorgado -->
+							<!-- <template x-if="detail?.access_url">
+								<div class="box-cont">
+									<div class="desc">Acceso</div>
+									<div class="white info-box">
+										<div class="info-row">
+											<img alt="" width="16" height="16" src="/static/icons/line/link.svg">
+											<span class="lbl">URL</span>
+											<a class="val link" :href="detail.access_url" target="_blank" rel="noopener" x-text="detail.access_url"></a>
+										</div>
+									</div>
+								</div>
+							</template> -->
+
+							<!-- Motivo de rechazo -->
+							<template x-if="detail?.rejection_reason">
+								<div class="box-cont">
+									<div class="desc">Motivo de rechazo</div>
+									<div class="white reason-box" x-text="detail.rejection_reason"></div>
+								</div>
 							</template>
 						</div>
 
-						<!-- Acceso otorgado -->
-						<!-- <template x-if="detail?.access_url">
-							<div class="box-cont">
-								<div class="desc">Acceso</div>
-								<div class="white info-box">
-									<div class="info-row">
-										<img alt="" width="16" height="16" src="/static/icons/line/link.svg">
-										<span class="lbl">URL</span>
-										<a class="val link" :href="detail.access_url" target="_blank" rel="noopener" x-text="detail.access_url"></a>
-									</div>
-								</div>
+						<!-- Pendiente → iniciar revisión -->
+						<template x-if="detail?.status === 'pending'">
+							<div class="buttons">
+								<button class="button icon hover-opacity" @click="review()" :disabled="processing">
+									<img alt="" width="16" height="16" src="/static/icons/line/find.svg">
+									<span>Iniciar revisión</span>
+								</button>
 							</div>
-						</template> -->
+						</template>
 
-						<!-- Motivo de rechazo -->
-						<template x-if="detail?.rejection_reason">
-							<div class="box-cont">
-								<div class="desc">Motivo de rechazo</div>
-								<div class="white reason-box" x-text="detail.rejection_reason"></div>
+						<!-- En revisión → aprobar / rechazar -->
+						<template x-if="detail?.status === 'in_review'">
+							<div class="approval-actions">
+								<div class="buttons">
+									<button class="button icon black hover-opacity" @click="reject()" :disabled="processing">
+										<img alt="" width="16" height="16" src="/static/icons/line/dislike.svg">
+										<span>Rechazar</span>
+									</button>
+									<button class="button icon hover-opacity" @click="approve()" :disabled="processing">
+										<img alt="" width="16" height="16" src="/static/icons/line/approve.svg">
+										<span>Aprobar</span>
+									</button>
+								</div>
 							</div>
 						</template>
 					</div>
+					
+					<!-- ── Chat ── -->
+					<div class="comments-container white percent50" x-show="detail">
+						<div class="comments-box overflow" x-ref="commentsBox">
+							<template x-if="!detail?.chats || detail.chats.length === 0">
+								<div class="no-comments">Nada por aquí</div>
+							</template>
 
-					<!-- Pendiente → iniciar revisión -->
-					<template x-if="detail?.status === 'pending'">
-						<div class="buttons">
-							<button class="button icon hover-opacity" @click="review()" :disabled="processing">
-								<img alt="" width="16" height="16" src="/static/icons/line/find.svg">
-								<span>Iniciar revisión</span>
-							</button>
+							<template x-for="chat in (detail?.chats || [])" :key="chat.id">
+								<div class="user-comment" :class="{'self': chat.commenter_id == user_id}">
+									<img alt="user" :src="'/static/images/uploads/users/' + chat.commenter_image" width="24" height="24">
+									<div class="white bubble">
+										<div class="top">
+											<span x-text="chat.commenter_id == user_id ? 'Tú' : chat.commenter_name"></span>
+											<p x-text="chat.created_at"></p>
+										</div>
+										<p x-text="chat.comment"></p>
+									</div>
+								</div>
+							</template>
 						</div>
-					</template>
 
-					<!-- En revisión → aprobar / rechazar -->
-					<template x-if="detail?.status === 'in_review'">
-						<div class="approval-actions">
-							<div class="buttons">
-								<button class="button icon black hover-opacity" @click="reject()" :disabled="processing">
-									<img alt="" width="16" height="16" src="/static/icons/line/dislike.svg">
-									<span>Rechazar</span>
-								</button>
-								<button class="button icon hover-opacity" @click="approve()" :disabled="processing">
-									<img alt="" width="16" height="16" src="/static/icons/line/approve.svg">
-									<span>Aprobar</span>
-								</button>
+						<div class="comments-input white">
+							<label>
+								<textarea type="text" x-model="chat_message" placeholder="Ingresa un mensaje..." @keydown.enter="handleEnterSend($event)"></textarea>
+							</label>
+							<div class="send hover-opacity" @click="sendChat()" :class="{'disabled': !chat_message || !chat_message.trim()}">
+								<img alt="enviar" width="16" height="16" src="/static/icons/filled/send.svg">
 							</div>
 						</div>
-					</template>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -296,6 +331,8 @@
 		odoo_invoice: null,
 		odoo_loading: false,
 		odoo_error:   null,
+		user_id:      Alpine.store('cache').user.id,
+		chat_message: '',
 
 		async init() {
 			const socket = Alpine.store('cache').socket;
@@ -309,13 +346,77 @@
 			]);
 		},
 
-		openDetail(req) {
+		async openDetail(req) {
 			this.detail = req;
 			this.actionForm = { request_id: req.id };
 			this.odoo_invoice = null;
 			this.odoo_error = null;
+			this.chat_message = '';
 			Alpine.store('cache').showModal('approval-detail');
 			if (req?.invoice_number) this.loadOdooInvoice(req.invoice_number);
+
+			// Trae el detalle fresco (incluye los mensajes del chat)
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/approval/${req.id}`, {
+					headers: { 'X-No-Toast': '1' },
+				});
+				const j = await r.json();
+				if (r.ok && j.success && j.data) {
+					this.detail = j.data;
+					this.actionForm = { request_id: j.data.id };
+				}
+			} catch (e) {
+				console.error(e);
+			}
+			this.$nextTick(() => this.scrollCommentsToBottom('auto'));
+		},
+
+		scrollCommentsToBottom(behavior = 'smooth') {
+			const box = this.$refs.commentsBox;
+			if (!box) return;
+			box.scrollTo({ top: box.scrollHeight, behavior });
+		},
+
+		handleEnterSend(e) {
+			if (e.shiftKey) return;
+			e.preventDefault();
+			this.sendChat();
+		},
+
+		async sendChat() {
+			const message = (this.chat_message || '').trim();
+			if (!message || this.processing || !this.detail) return;
+
+			this.processing = true;
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/approval/${this.detail.id}/chat`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ comment: message, user_id: cache.user.id }),
+				});
+				const j = await r.json();
+				if (!r.ok || !j.success) {
+					throw new Error(j?.data?.message || j?.data || 'Error enviando comentario');
+				}
+				const data = j.data;
+				if (!this.detail.chats) this.detail.chats = [];
+				this.detail.chats.push({
+					id: data.id,
+					comment: data.comment,
+					commenter_id: data.commenter_id,
+					commenter_name: data.commenter_name,
+					commenter_image: data.commenter_image,
+					created_at: data.created_at,
+				});
+				this.chat_message = '';
+				this.$nextTick(() => this.scrollCommentsToBottom());
+			} catch (e) {
+				console.error(e);
+			} finally {
+				this.processing = false;
+			}
 		},
 
 		voucherExt() {
@@ -359,6 +460,16 @@
 			} finally {
 				this.odoo_loading = false;
 			}
+		},
+
+		isInvoiceOld(dateStr) {
+			if (!dateStr) return false;
+			const d = new Date(`${String(dateStr).slice(0, 10)}T00:00:00`);
+			if (isNaN(d)) return false;
+			const cutoff = new Date();
+			cutoff.setHours(0, 0, 0, 0);
+			cutoff.setMonth(cutoff.getMonth() - 3);
+			return d < cutoff;
 		},
 
 		formatMoney(n, currency) {
@@ -553,7 +664,14 @@
     		color: #e36464;
 		}
 
-		#modal-approval-detail .modal { gap: 1rem; }
+		#modal-approval-detail .modal {
+			gap: 1rem;
+		}
+		#modal-approval-detail .dataview {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+		}
 		#modal-approval-detail .title-row {
 			display: flex;
 			justify-content: space-between;
@@ -727,7 +845,12 @@
 			justify-content: space-between;
 			gap: 0.75rem;
 			font-size: 0.72rem;
-			opacity: 0.5;
+		}
+		#modal-approval-detail .odoo-sub span { opacity: 0.5; }
+		#modal-approval-detail .odoo-sub .date-old {
+			color: #e36464;
+			font-weight: 700;
+			opacity: 1;
 		}
 		#modal-approval-detail .odoo-lines {
 			display: flex;
@@ -778,6 +901,20 @@
 			font-weight: 700;
 			opacity: 1;
 			padding-top: 0.25rem;
+		}
+
+		@media only screen and (max-width: 75rem) {
+			#modal-approval-detail .dataview {
+				overflow: visible;
+			}
+			.comments-container {
+				width: 100%;
+				min-width: initial;
+				max-height: initial !important;
+			}
+			.comments-container .comments-box {
+				overflow: visible;
+			}
 		}
 
 		@media (max-width: 48rem) {

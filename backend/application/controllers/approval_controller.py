@@ -34,6 +34,14 @@ class ApprovalController:
         return self.service.dashboard()
 
     @handle_logs_and_exceptions
+    def get_request_detail(self, data):
+        return self.service.get_request_detail(data.get("request_id"))
+
+    @handle_logs_and_exceptions
+    def send_chat(self, data):
+        return self.service.send_chat(data)
+
+    @handle_logs_and_exceptions
     def start_review(self, data):
         if validation := validate_request(data, {"request_id", "user_id"}):
             return validation, 400
