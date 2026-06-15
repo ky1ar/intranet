@@ -8,6 +8,7 @@ from application.handlers import handle_exceptions
 from application.utils import format_datetime, format_name, file_extension
 from application.repository.approval_repository import ApprovalRepository
 from application.services.push_service import PushSender
+from application.proxy.apiperu import ApiPeru
 from application.services.courses_provisioning_service import (
     CoursesProvisioningService, FabProvisioningService, is_course_slug, is_fab_slug,
 )
@@ -65,6 +66,17 @@ class ApprovalService:
             return "Debes adjuntar la boleta o factura (imagen o PDF)", 400
         if file_extension(voucher.filename) not in {"pdf", "png", "jpg", "jpeg", "webp"}:
             return "El archivo adjunto debe ser una imagen o PDF", 400
+
+        # El nombre del cliente debe provenir de RENIEC (API Perú) por DNI,
+        # nunca del display name de WordPress.
+        dni = data.get("dni")
+        if dni:
+            try:
+                info, isc = ApiPeru().get_name("dni", dni)
+                if isc == 200 and info and info.get("name"):
+                    data["name"] = info["name"]
+            except Exception:
+                logging.exception("No se pudo resolver el nombre por DNI %s", dni)
 
         client_id, sc = self.repository.get_or_create_client(data)
         if sc != 200:

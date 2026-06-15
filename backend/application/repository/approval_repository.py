@@ -18,7 +18,10 @@ class ApprovalRepository:
         wp_user_id = data.get("wp_user_id")
         email      = data.get("email")
         phone      = normalize_phone(data.get("phone"))
-        name       = data.get("wp_username", "")
+        # Nombre autoritativo desde RENIEC/API Perú (lo resuelve el service).
+        # El display name de WordPress queda solo como último recurso.
+        reniec_name = data.get("name")
+        name        = reniec_name or data.get("wp_username", "")
 
         client = (
             g.db_session.query(Clients)
@@ -33,6 +36,8 @@ class ApprovalRepository:
                 client.email = email
             if phone:
                 client.phone = phone
+            if reniec_name:
+                client.name = reniec_name
             g.db_session.commit()
         else:
             client = Clients(
