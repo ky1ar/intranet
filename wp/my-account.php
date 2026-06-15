@@ -1928,6 +1928,40 @@ document.addEventListener("DOMContentLoaded", () => {
 				font-size: 0.88rem; box-sizing: border-box; outline: none;
 			}
 			.guia-field input:focus { border-color: #e05a00; }
+
+			/* Pasos con video incrustado */
+			.guia-step-card {
+				border: 1px solid #eee; border-radius: 12px; padding: 1rem;
+				display: flex; flex-direction: column; gap: 0.75rem;
+				box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+			}
+			.guia-step-head { display: flex; align-items: center; gap: 0.6rem; }
+			.guia-step-num {
+				flex-shrink: 0; width: 1.8rem; height: 1.8rem; border-radius: 50%;
+				background: #e05a00; color: #fff; font-weight: 700; font-size: 0.85rem;
+				display: flex; align-items: center; justify-content: center;
+			}
+			.guia-step-title { font-weight: 700; font-size: 0.95rem; color: #222; }
+			.guia-video {
+				position: relative; width: 100%; padding-top: 56.25%;
+				border-radius: 10px; overflow: hidden; background: #000;
+			}
+			.guia-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+			.guia-step-card img { max-width: 100%; border-radius: 8px; }
+
+			/* Bonus Track - Drive */
+			.guia-drive-wrap {
+				text-align: center; padding: 1.5rem 1rem; border-radius: 12px;
+				background: #fdf3ee; display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
+			}
+			.guia-drive-title { font-weight: 800; font-size: 1.05rem; color: #222; }
+			.guia-drive-sub { font-size: 0.85rem; color: #e05a00; margin: 0 0 0.4rem; }
+			.guia-drive-btn {
+				display: inline-flex; align-items: center; gap: 0.5rem;
+				background: #e05a00; color: #fff !important; text-decoration: none;
+				font-weight: 700; padding: 0.8rem 2rem; border-radius: 2rem; transition: opacity .2s;
+			}
+			.guia-drive-btn:hover { opacity: 0.88; }
 			</style>
 
 			<script>
@@ -2000,6 +2034,19 @@ document.addEventListener("DOMContentLoaded", () => {
 					}
 				}
 
+				function youtubeId(url) {
+					if (!url) return null;
+					const res = [
+						/youtu\.be\/([\w-]{11})/,
+						/youtube\.com\/watch\?v=([\w-]{11})/,
+						/youtube\.com\/embed\/([\w-]{11})/,
+						/youtube\.com\/shorts\/([\w-]{11})/,
+						/[?&]v=([\w-]{11})/,
+					];
+					for (const re of res) { const m = url.match(re); if (m) return m[1]; }
+					return null;
+				}
+
 				function renderGuideContent(content, machine_id) {
 					document.getElementById('guia-detail-desc').textContent = content.description || '';
 					const container = document.getElementById('guia-detail-items');
@@ -2011,25 +2058,50 @@ document.addEventListener("DOMContentLoaded", () => {
 						return;
 					}
 
+					let stepNum = 0;
 					items.forEach(item => {
-						const card = document.createElement('div');
-						card.className = 'guia-item-card';
-						let inner = `<div class="guia-item-title">${item.title || ''}</div>`;
-
-						if (item.type === 'image' && item.filename) {
-							inner += `<img src="${API}/guide/media/${item.filename}?wp_user_id=${WP_USER_ID}&machine_id=${machine_id}" alt="${item.title}">`;
-						} else if (item.type === 'video' && item.url) {
-							inner += `<a href="${item.url}" target="_blank" rel="noopener" class="guia-item-link">
-								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
-								Ver video
-							</a>`;
-						} else if (item.type === 'pdf' && item.filename) {
-							inner += `<a href="${API}/guide/media/${item.filename}?wp_user_id=${WP_USER_ID}&machine_id=${machine_id}" target="_blank" rel="noopener" class="guia-item-link">
-								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-								Ver PDF
-							</a>`;
+						// Bonus Track: botón al Drive
+						if (item.type === 'drive' && item.url) {
+							const wrap = document.createElement('div');
+							wrap.className = 'guia-drive-wrap';
+							wrap.innerHTML = `
+								<div class="guia-drive-title">Bonus Track</div>
+								<p class="guia-drive-sub">¡Revisa esta información para que seas un experto en impresiones 3D!</p>
+								<a href="${item.url}" target="_blank" rel="noopener" class="guia-drive-btn">
+									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+									Link de Google Drive
+								</a>`;
+							container.appendChild(wrap);
+							return;
 						}
-						card.innerHTML = inner;
+
+						const card = document.createElement('div');
+						card.className = 'guia-step-card';
+
+						if (item.type === 'video' && item.url) {
+							stepNum++;
+							const id = youtubeId(item.url);
+							const media = id
+								? `<div class="guia-video"><iframe src="https://www.youtube.com/embed/${id}" title="${item.title || ''}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`
+								: `<a href="${item.url}" target="_blank" rel="noopener" class="guia-item-link">Ver video</a>`;
+							card.innerHTML = `
+								<div class="guia-step-head">
+									<span class="guia-step-num">${stepNum}</span>
+									<span class="guia-step-title">${item.title || ''}</span>
+								</div>
+								${media}`;
+						} else if (item.type === 'image' && item.filename) {
+							card.innerHTML = `<div class="guia-step-title">${item.title || ''}</div>
+								<img src="${API}/guide/media/${item.filename}?wp_user_id=${WP_USER_ID}&machine_id=${machine_id}" alt="${item.title || ''}">`;
+						} else if (item.type === 'pdf' && item.filename) {
+							card.innerHTML = `<div class="guia-step-title">${item.title || ''}</div>
+								<a href="${API}/guide/media/${item.filename}?wp_user_id=${WP_USER_ID}&machine_id=${machine_id}" target="_blank" rel="noopener" class="guia-item-link">
+									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+									Ver PDF
+								</a>`;
+						} else {
+							return;
+						}
 						container.appendChild(card);
 					});
 				}

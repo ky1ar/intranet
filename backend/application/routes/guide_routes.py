@@ -44,6 +44,16 @@ def get_content_admin(machine_id):
     return controller.get_content_admin({"machine_id": machine_id})
 
 
+@guide_bp.route("/admin/list", methods=["GET"])
+def admin_list():
+    return controller.list_guides({})
+
+
+@guide_bp.route("/content/<int:machine_id>", methods=["DELETE"])
+def delete_content(machine_id):
+    return controller.delete_content({"machine_id": machine_id})
+
+
 @guide_bp.route("/list", methods=["GET"])
 def list_requests():
     data = {"status": request.args.get("status")}

@@ -147,6 +147,55 @@ class GuideRepository:
     # ── Guide content ────────────────────────────────────────────────────────
 
     @handle_db_exceptions
+    def list_machine_guides(self):
+        full_name = func.concat(Brands.name, ' ', Machines.model).label("full_name")
+        rows = (
+            g.db_session.query(
+                MachineGuide,
+                Machines.id.label("machine_id"),
+                Machines.image.label("machine_image"),
+                Brands.name.label("brand_name"),
+                full_name,
+            )
+            .join(Machines, MachineGuide.machine_id == Machines.id)
+            .join(Brands, Machines.brand_id == Brands.id)
+            .order_by(MachineGuide.id.desc())
+            .all()
+        )
+        return rows or [], 200
+
+    @handle_db_exceptions
+    def delete_machine_guide(self, machine_id):
+        guide = (
+            g.db_session.query(MachineGuide)
+            .filter(MachineGuide.machine_id == machine_id)
+            .first()
+        )
+        if not guide:
+            return "Guía no encontrada", 404
+        g.db_session.delete(guide)
+        g.db_session.commit()
+        return {"deleted": True}, 200
+
+    @handle_db_exceptions
+    def has_content(self, machine_id):
+        guide = (
+            g.db_session.query(MachineGuide)
+            .filter(MachineGuide.machine_id == machine_id)
+            .first()
+        )
+        return bool(guide and guide.items), 200
+
+    @handle_db_exceptions
+    def get_machine_id_by_approval(self, approval_request_id):
+        gr = (
+            g.db_session.query(GuideRequest)
+            .filter(GuideRequest.approval_request_id == approval_request_id)
+            .first()
+        )
+        return (gr.machine_id if gr else None), 200
+
+    @handle_db_exceptions
     def get_machine_guide(self, machine_id):
         guide = (
             g.db_session.query(MachineGuide)

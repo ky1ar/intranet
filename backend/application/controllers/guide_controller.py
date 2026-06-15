@@ -32,6 +32,16 @@ class GuideController:
         return send_file(filepath)
 
     @handle_logs_and_exceptions
+    def list_guides(self, data):
+        return self.service.list_guides()
+
+    @handle_logs_and_exceptions
+    def delete_content(self, data):
+        if validation := validate_request(data, {"machine_id"}):
+            return validation, 400
+        return self.service.delete_content(data["machine_id"])
+
+    @handle_logs_and_exceptions
     def get_content_admin(self, data):
         if validation := validate_request(data, {"machine_id"}):
             return validation, 400

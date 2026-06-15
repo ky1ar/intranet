@@ -130,6 +130,15 @@ class ApprovalService:
         client_email = info.get("client_email")
         client_name  = info.get("client_name")
 
+        # Guías: el contenido de la guía del equipo debe existir antes de aprobar.
+        if type_slug == "guia":
+            from application.services.guide_service import GuideService
+            exists, esc = GuideService().content_exists_for_request(request_id)
+            if esc != 200:
+                return exists, esc
+            if not exists:
+                return "Debes crear la guía del equipo (contenido) antes de aprobar esta solicitud", 400
+
         # Cursos: primero aprovisionamos en la plataforma; si falla, NO aprobamos
         # (así la solicitud no queda "aprobada" sin acceso real). Es idempotente.
         if is_course_slug(type_slug):

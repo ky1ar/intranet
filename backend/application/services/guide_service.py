@@ -138,6 +138,37 @@ class GuideService:
         return {"uploaded": filenames}, 200
 
     @handle_exceptions
+    def list_guides(self):
+        rows, sc = self.repo.list_machine_guides()
+        if sc != 200:
+            return rows, sc
+        result = []
+        for row in rows:
+            guide = row[0]
+            items = guide.items or []
+            result.append({
+                "machine_id":    row.machine_id,
+                "machine_name":  row.full_name,
+                "brand_name":    row.brand_name,
+                "machine_image": row.machine_image,
+                "item_count":    len(items),
+            })
+        return result, 200
+
+    @handle_exceptions
+    def delete_content(self, machine_id):
+        return self.repo.delete_machine_guide(int(machine_id))
+
+    @handle_exceptions
+    def content_exists_for_request(self, approval_request_id):
+        machine_id, sc = self.repo.get_machine_id_by_approval(approval_request_id)
+        if sc != 200:
+            return machine_id, sc
+        if not machine_id:
+            return False, 200
+        return self.repo.has_content(machine_id)
+
+    @handle_exceptions
     def get_content_admin(self, machine_id):
         guide, sc = self.repo.get_machine_guide(machine_id)
         if sc != 200:
