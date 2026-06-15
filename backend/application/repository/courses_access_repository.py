@@ -13,14 +13,14 @@ class CoursesAccessRepository:
 
     @handle_db_exceptions
     def grant_course_access(self, email, first_name, last_name, course_uuid,
-                            password_hash, is_lite=1, default_country_iso="PE"):
+                            pin_hash, is_lite=1, default_country_iso="PE"):
         """
         Asegura la cuenta del cliente y le otorga acceso al curso.
         Todo en una sola transacción (un commit) sobre el bind 'courses'.
 
         - Si no existe cuenta con ese email -> la crea (UUID, status ACTIVE,
-          contraseña ya hasheada). created_account = True.
-        - Si ya existe -> no se toca la contraseña. created_account = False.
+          PIN ya hasheado). created_account = True.
+        - Si ya existe -> no se toca el PIN. created_account = False.
         - Si la cuenta aún no posee el curso -> inserta la compra (is_lite).
 
         Devuelve ({...}, 200) o (mensaje, code) ante error de negocio.
@@ -51,7 +51,7 @@ class CoursesAccessRepository:
                 first_name=first_name or email,
                 last_name=last_name or "",
                 email=email,
-                password=password_hash,
+                password=pin_hash,
                 status="ACTIVE",
                 language="es",
                 country_id=country.id if country else None,
@@ -90,15 +90,15 @@ class CoursesAccessRepository:
         }, 200
 
     @handle_db_exceptions
-    def grant_fab_access(self, email, first_name, last_name, password_hash,
+    def grant_fab_access(self, email, first_name, last_name, pin_hash,
                          default_country_iso="PE"):
         """
         Asegura la cuenta del cliente en la plataforma y habilita el acceso FAB
         (modelos STL). NO otorga ningún curso: solo marca fab_enabled = 1.
 
         - Si no existe cuenta con ese email -> la crea (UUID, status ACTIVE,
-          contraseña ya hasheada) con fab_enabled = 1. created_account = True.
-        - Si ya existe -> no se toca la contraseña; solo se pone fab_enabled = 1.
+          PIN ya hasheado) con fab_enabled = 1. created_account = True.
+        - Si ya existe -> no se toca el PIN; solo se pone fab_enabled = 1.
 
         Devuelve ({...}, 200) o (mensaje, code) ante error de negocio.
         """
@@ -120,7 +120,7 @@ class CoursesAccessRepository:
                 first_name=first_name or email,
                 last_name=last_name or "",
                 email=email,
-                password=password_hash,
+                password=pin_hash,
                 status="ACTIVE",
                 language="es",
                 country_id=country.id if country else None,

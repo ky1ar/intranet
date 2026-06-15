@@ -29,9 +29,9 @@ def is_fab_slug(type_slug):
     return type_slug == FAB_SLUG
 
 
-def _generate_password(length=10):
-    alphabet = string.ascii_letters + string.digits
-    return "".join(secrets.choice(alphabet) for _ in range(length))
+def _generate_pin(length=6):
+    """Genera un PIN numérico de `length` dígitos (por defecto 6)."""
+    return "".join(secrets.choice(string.digits) for _ in range(length))
 
 
 def _split_name(name):
@@ -51,7 +51,7 @@ class CoursesProvisioningService:
     def provision(self, email, name, type_slug):
         """
         Crea/asegura la cuenta en la plataforma de cursos y otorga el curso Lite.
-        Solo genera y devuelve `temp_password` cuando la cuenta es nueva.
+        Solo genera y devuelve `temp_pin` cuando la cuenta es nueva.
         """
         course_uuid = COURSE_UUID_BY_TYPE.get(type_slug)
         if not course_uuid:
@@ -62,21 +62,21 @@ class CoursesProvisioningService:
             )
 
         first_name, last_name = _split_name(name)
-        temp_password = _generate_password()
-        password_hash = bcrypt.generate_password_hash(temp_password).decode("utf-8")
+        temp_pin = _generate_pin()
+        pin_hash = bcrypt.generate_password_hash(temp_pin).decode("utf-8")
 
         result, sc = self.repository.grant_course_access(
             email=email,
             first_name=first_name,
             last_name=last_name,
             course_uuid=course_uuid,
-            password_hash=password_hash,
+            pin_hash=pin_hash,
             default_country_iso=Courses.DEFAULT_COUNTRY_ISO,
         )
         if sc != 200:
             return result, sc
 
-        result["temp_password"] = temp_password if result.get("created_account") else None
+        result["temp_pin"] = temp_pin if result.get("created_account") else None
         return result, 200
 
 
@@ -92,21 +92,21 @@ class FabProvisioningService:
         """
         Asegura la cuenta en la plataforma y habilita el acceso FAB (fab_enabled = 1).
         No otorga ningún curso. Es idempotente.
-        Solo genera y devuelve `temp_password` cuando la cuenta es nueva.
+        Solo genera y devuelve `temp_pin` cuando la cuenta es nueva.
         """
         first_name, last_name = _split_name(name)
-        temp_password = _generate_password()
-        password_hash = bcrypt.generate_password_hash(temp_password).decode("utf-8")
+        temp_pin = _generate_pin()
+        pin_hash = bcrypt.generate_password_hash(temp_pin).decode("utf-8")
 
         result, sc = self.repository.grant_fab_access(
             email=email,
             first_name=first_name,
             last_name=last_name,
-            password_hash=password_hash,
+            pin_hash=pin_hash,
             default_country_iso=Courses.DEFAULT_COUNTRY_ISO,
         )
         if sc != 200:
             return result, sc
 
-        result["temp_password"] = temp_password if result.get("created_account") else None
+        result["temp_pin"] = temp_pin if result.get("created_account") else None
         return result, 200

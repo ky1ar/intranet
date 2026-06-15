@@ -184,7 +184,7 @@ class ApprovalService:
                 template,
                 client_name=name or "Cliente",
                 client_email=email,
-                temp_password=prov.get("temp_password"),
+                temp_pin=prov.get("temp_pin"),
                 course_name=course_name,
                 platform_url=Courses.PLATFORM_URL,
                 current_year=datetime.now().year,
@@ -215,7 +215,7 @@ class ApprovalService:
                 template,
                 client_name=name or "Cliente",
                 client_email=email,
-                temp_password=prov.get("temp_password"),
+                temp_pin=prov.get("temp_pin"),
                 platform_url=Courses.FAB_URL,
                 current_year=datetime.now().year,
             )
