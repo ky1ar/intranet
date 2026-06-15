@@ -9,7 +9,7 @@ class GuideController:
 
     @handle_logs_and_exceptions
     def create_request(self, data):
-        if validation := validate_request(data, {"wp_user_id", "machine_id", "email", "phone", "dni"}):
+        if validation := validate_request(data, {"wp_user_id", "machine_id", "email", "phone", "dni", "invoice_number"}):
             return validation, 400
         return self.service.create_request(data)
 

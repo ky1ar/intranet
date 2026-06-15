@@ -7,6 +7,7 @@ from application.db_models.approval_model import ApprovalRequest, ApprovalType, 
 from application.models import Clients
 from config import Paths
 from flask import g, request
+from application.proxy.apiperu import ApiPeru
 
 
 class ApprovalRepository:
@@ -18,10 +19,7 @@ class ApprovalRepository:
         wp_user_id = data.get("wp_user_id")
         email      = data.get("email")
         phone      = normalize_phone(data.get("phone"))
-        # Nombre autoritativo desde RENIEC/API Perú (lo resuelve el service).
-        # El display name de WordPress queda solo como último recurso.
-        reniec_name = data.get("name")
-        name        = reniec_name or data.get("wp_username", "")
+        wp_name    = data.get("wp_username", "")
 
         client = (
             g.db_session.query(Clients)
@@ -36,10 +34,13 @@ class ApprovalRepository:
                 client.email = email
             if phone:
                 client.phone = phone
-            if reniec_name:
-                client.name = reniec_name
+            # Consultamos RENIEC SOLO si el cliente aún no tiene nombre, para no
+            # repetir la consulta en cada solicitud (el nombre nunca viene de WP).
+            if not client.name:
+                client.name = self._resolve_name(document) or wp_name
             g.db_session.commit()
         else:
+            name = self._resolve_name(document) or wp_name
             client = Clients(
                 document=document,
                 name=name,
@@ -53,6 +54,20 @@ class ApprovalRepository:
             g.db_session.commit()
 
         return client.id, 200
+
+    def _resolve_name(self, document):
+        """Nombre del titular desde RENIEC/API Perú por DNI. Cacheado en Redis por
+        el proxy, y aquí solo se invoca cuando el cliente no tiene nombre todavía.
+        Devuelve None si la consulta falla (no bloquea la solicitud)."""
+        if not document:
+            return None
+        try:
+            info, sc = ApiPeru().get_name("dni", document)
+            if sc == 200 and info and info.get("name"):
+                return info["name"]
+        except Exception:
+            logging.exception("No se pudo resolver el nombre por DNI %s", document)
+        return None
 
     @handle_db_exceptions
     def get_client_by_wp_user_id(self, wp_user_id):

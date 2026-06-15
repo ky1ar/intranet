@@ -1687,6 +1687,12 @@ document.addEventListener("DOMContentLoaded", () => {
 						</div>
 					</div>
 
+					<!-- N° de boleta / factura -->
+					<div class="guia-field" style="margin-bottom:1rem;">
+						<label>N° de boleta / factura</label>
+						<input type="text" id="guia-invoice-input" placeholder="Ej: B001-12345">
+					</div>
+
 					<!-- Adjuntar comprobante -->
 					<div class="guia-upload-wrap">
 						<label class="guia-upload-label" id="guia-upload-label">
@@ -1923,6 +1929,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 				const INTRANET     = 'https://devintranet.krear3d.com';
 				const MACHINES_URL = `${INTRANET}/static/images/uploads/machines/`;
+				const BRANDS_URL = `${INTRANET}/static/images/uploads/brands/`;
 
 				let selectedMachine = null;
 				let searchTimeout   = null;
@@ -2036,6 +2043,7 @@ document.addEventListener("DOMContentLoaded", () => {
 					document.getElementById('guia-machine-list').style.display = 'none';
 					document.getElementById('guia-machine-selected').style.display = 'none';
 					document.getElementById('guia-voucher-input').value = '';
+					document.getElementById('guia-invoice-input').value = '';
 					document.getElementById('guia-upload-text').textContent = 'Adjuntar boleta / factura (PDF o imagen)';
 					document.getElementById('guia-upload-label').classList.remove('has-file');
 					document.getElementById('guia-request-error').style.display = 'none';
@@ -2119,6 +2127,13 @@ document.addEventListener("DOMContentLoaded", () => {
 						return;
 					}
 
+					const invoice = document.getElementById('guia-invoice-input').value.trim();
+					if (!invoice) {
+						errEl.textContent = 'Ingresa el número de boleta o factura.';
+						errEl.style.display = 'block';
+						return;
+					}
+
 					// Obtener phone/dni: del perfil cacheado o de los campos del modal
 					const profile = cachedProfile || {};
 					let phone = profile.phone || WP_PHONE;
@@ -2151,6 +2166,7 @@ document.addEventListener("DOMContentLoaded", () => {
 					fd.append('phone',       phone);
 					fd.append('dni',         dni);
 					fd.append('wp_username', '');
+					fd.append('invoice_number', invoice);
 					fd.append('voucher',     voucher);
 
 					try {

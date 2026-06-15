@@ -269,8 +269,11 @@ class Brands(BaseModel):
     __tablename__ = 'brands'
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
-    name = db.Column(db.String(255), nullable=False)
+    name = db.Column(db.String(255))
     slug = db.Column(db.String(255), nullable=False)
+    file = db.Column(db.String(100))
+    scale = db.Column(db.Integer)
+
 
 
 class Machines(BaseModel):

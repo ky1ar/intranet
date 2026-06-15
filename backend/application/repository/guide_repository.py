@@ -17,7 +17,7 @@ class GuideRepository:
     # ── Request creation ────────────────────────────────────────────────────
 
     @handle_db_exceptions
-    def create_guide_request(self, client_id, machine_id, type_id):
+    def create_guide_request(self, client_id, machine_id, type_id, invoice_number=None):
         existing = (
             g.db_session.query(GuideRequest)
             .join(ApprovalRequest, GuideRequest.approval_request_id == ApprovalRequest.id)
@@ -36,6 +36,7 @@ class GuideRepository:
             client_id=client_id,
             type_id=type_id,
             status="pending",
+            invoice_number=invoice_number,
         )
         g.db_session.add(approval)
         g.db_session.flush()
@@ -68,6 +69,7 @@ class GuideRepository:
     @handle_db_exceptions
     def get_my_guides(self, wp_user_id):
         full_name = func.concat(Brands.name, ' ', Machines.model).label("full_name")
+        brand_image = func.concat(Brands.slug, '.', Brands.file).label("brand_image")
 
         rows = (
             g.db_session.query(
@@ -77,7 +79,9 @@ class GuideRepository:
                 Machines.id.label("machine_id"),
                 Machines.image.label("machine_image"),
                 Brands.name.label("brand_name"),
+                Brands.scale.label("brand_scale"),
                 full_name,
+                brand_image,
             )
             .join(ApprovalRequest, GuideRequest.approval_request_id == ApprovalRequest.id)
             .join(Clients, ApprovalRequest.client_id == Clients.id)

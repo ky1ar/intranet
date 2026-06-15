@@ -27,7 +27,9 @@ class GuideService:
         if not type_obj:
             return "Tipo 'guia' no configurado en la base de datos", 500
 
-        result, sc = self.repo.create_guide_request(client_id, int(data["machine_id"]), type_obj.id)
+        result, sc = self.repo.create_guide_request(
+            client_id, int(data["machine_id"]), type_obj.id, data.get("invoice_number")
+        )
         if sc != 200:
             return result, sc
 
@@ -49,6 +51,8 @@ class GuideService:
                 "machine_image":  row.machine_image,
                 "brand_name":     row.brand_name,
                 "machine_name":   row.full_name,
+                "brand_image":   row.brand_image,
+                "brand_scale":   row.brand_scale,
                 "status":         row.status,
             })
         return result, 200
