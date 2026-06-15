@@ -686,7 +686,9 @@ header.custom {
 	width: 100%;
 	box-sizing: border-box;
 }
-
+.woocommerce-account footer .activ {
+	background-color: var(--gray) !important;
+}
 /* ── Responsive ── */
 @media (max-width: 768px) {
 	#kd-dashboard { padding: 1rem; }
@@ -1655,11 +1657,13 @@ document.addEventListener("DOMContentLoaded", () => {
 			<div class="guia-detail-wrap" id="guia-detail-wrap" style="display:none;">
 				<button class="guia-back-btn" id="guia-back-btn">← Volver</button>
 				<div class="guia-detail-header">
-					<img id="guia-detail-img" src="" alt="" width="72" height="72">
-					<div>
+					<img id="guia-detail-img" class="guia-detail-machine" src="" alt="">
+					<div class="guia-detail-meta">
+						<span class="guia-detail-eyebrow">Manual de equipo</span>
 						<div class="guia-detail-name" id="guia-detail-name"></div>
 						<div class="guia-detail-brand" id="guia-detail-brand"></div>
 					</div>
+					<img id="guia-detail-brand-img" class="guia-detail-brandlogo" src="" alt="">
 				</div>
 				<div class="guia-detail-desc" id="guia-detail-desc"></div>
 				<div class="guia-detail-items" id="guia-detail-items"></div>
@@ -1669,7 +1673,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			<div id="modal-guia-request" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
 				<div class="guia-modal-inner">
 					<button id="modal-guia-close" class="guia-modal-close">&times;</button>
-					<h3>Solicitar guía de equipo</h3>
+					<h3>Solicitar manual de equipo</h3>
 					<p class="guia-modal-sub">Busca tu equipo y adjunta tu boleta o factura de compra.</p>
 
 					<!-- Búsqueda de equipo -->
@@ -1832,12 +1836,29 @@ document.addEventListener("DOMContentLoaded", () => {
 				padding: 0; align-self: flex-start;
 			}
 			.guia-detail-header {
-				display: flex; align-items: center; gap: 1rem;
-				padding: 1rem; background: #f9f9f9; border-radius: 12px;
+				position: relative; overflow: hidden;
+				display: flex; align-items: center; gap: 1.25rem;
+				padding: 1.5rem 1.75rem; border-radius: 16px;
+				background: linear-gradient(120deg, #fdf3ee 0%, #f7f7f7 65%);
+				border: 1px solid #00000010;
 			}
-			.guia-detail-header img { object-fit: contain; border-radius: 8px; background: #fff; }
-			.guia-detail-name  { font-size: 1.15rem; font-weight: 700; }
-			.guia-detail-brand { font-size: 0.78rem; opacity: 0.5; margin-top: 2px; }
+			.guia-detail-machine {
+				width: 7rem; height: 7rem; flex-shrink: 0; z-index: 1;
+				object-fit: contain; border-radius: 12px; background: #fff;
+				box-shadow: 0 4px 14px rgba(0,0,0,0.06); padding: 0.4rem; box-sizing: border-box;
+			}
+			.guia-detail-meta { display: flex; flex-direction: column; gap: 0.15rem; z-index: 1; }
+			.guia-detail-eyebrow {
+				font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em;
+				text-transform: uppercase; color: #e05a00; margin-bottom: 0.15rem;
+			}
+			.guia-detail-name  { font-size: 1.4rem; font-weight: 800; line-height: 1.1; color: #1f2937; }
+			.guia-detail-brand { font-size: 0.85rem; opacity: 0.55; font-weight: 600; }
+			.guia-detail-brandlogo {
+				position: absolute; right: 1.5rem; top: 50%; transform: translateY(-50%);
+				width: 13rem; max-width: 45%; object-fit: contain; opacity: 0.12;
+				filter: grayscale(1); pointer-events: none; z-index: 0;
+			}
 			.guia-detail-desc  { color: #444; font-size: 0.9rem; line-height: 1.6; white-space: pre-line; }
 
 			.guia-detail-items { display: flex; flex-direction: column; gap: 1rem; }
@@ -1995,16 +2016,18 @@ document.addEventListener("DOMContentLoaded", () => {
 					grid.querySelectorAll('.guia-card').forEach(el => el.remove());
 
 					guides.forEach(g => {
-						const isPending = g.status === 'pending';
+						const isApproved = g.status === 'approved';
+						const locked     = !isApproved; // pending o in_review: aún sin acceso
+						const badge      = locked ? 'En revisión' : '';
 						const card = document.createElement('div');
-						card.className = 'guia-card' + (isPending ? ' guia-card-pending' : '');
+						card.className = 'guia-card' + (locked ? ' guia-card-pending' : '');
 						card.innerHTML = `
-							${isPending ? '<div class="guia-badge-pending">Pendiente</div>' : ''}
+							${badge ? `<div class="guia-badge-pending">${badge}</div>` : ''}
 							<div class="guia-card-brand-img"><img src="${BRANDS_URL}${g.brand_image}" alt="${g.brand_name}" style="width:${(g.brand_scale || 1) * 100}%"></div>
 							<img class="machine-img" src="${MACHINES_URL}${g.machine_image}" alt="${g.machine_name}">
 							<div class="guia-card-name">${g.machine_name}</div>
 						`;
-						if (!isPending) {
+						if (isApproved) {
 							card.addEventListener('click', () => openGuideDetail(g));
 						}
 						grid.insertBefore(card, addBtn);
@@ -2019,6 +2042,9 @@ document.addEventListener("DOMContentLoaded", () => {
 					document.getElementById('guia-detail-img').src   = `${MACHINES_URL}${guide.machine_image}`;
 					document.getElementById('guia-detail-name').textContent  = guide.machine_name;
 					document.getElementById('guia-detail-brand').textContent = guide.brand_name;
+					const _bimg = document.getElementById('guia-detail-brand-img');
+					if (guide.brand_image) { _bimg.src = `${BRANDS_URL}${guide.brand_image}`; _bimg.style.display = ''; }
+					else { _bimg.style.display = 'none'; }
 					document.getElementById('guia-detail-desc').textContent  = '';
 					document.getElementById('guia-detail-items').innerHTML   = '<p style="opacity:0.4;font-size:0.85rem">Cargando contenido...</p>';
 
@@ -2309,7 +2335,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 					document.getElementById('guia-back-btn').addEventListener('click', function() {
 						document.getElementById('guia-detail-wrap').style.display = 'none';
-						document.getElementById('guias-grid').style.display = 'flex';
+						document.getElementById('guias-grid').style.display = 'grid';
 					});
 				});
 			})();

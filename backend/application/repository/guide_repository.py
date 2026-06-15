@@ -25,7 +25,7 @@ class GuideRepository:
                 ApprovalRequest.client_id == client_id,
                 ApprovalRequest.type_id == type_id,
                 GuideRequest.machine_id == machine_id,
-                ApprovalRequest.status.in_(["pending", "approved"]),
+                ApprovalRequest.status.in_(["pending", "in_review", "approved"]),
             )
             .first()
         )
@@ -88,7 +88,7 @@ class GuideRepository:
             .join(Brands, Machines.brand_id == Brands.id)
             .filter(
                 Clients.wp_user_id == wp_user_id,
-                ApprovalRequest.status.in_(["pending", "approved"]),
+                ApprovalRequest.status.in_(["pending", "in_review", "approved"]),
             )
             .all()
         )
