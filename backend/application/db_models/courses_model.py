@@ -27,6 +27,7 @@ class CourseAccount(BaseModel):
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.current_timestamp())
     change_pass = db.Column(db.Boolean, nullable=False, default=False)
     fab_enabled = db.Column(db.Boolean, nullable=False, default=False)
+    uses_pin    = db.Column(db.Boolean, nullable=False, default=False)
 
 
 class Course(BaseModel):

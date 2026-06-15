@@ -57,6 +57,7 @@ class CoursesAccessRepository:
                 country_id=country.id if country else None,
                 created_at=peru_time(),
                 change_pass=1,
+                uses_pin=1,
             )
             g.db_session.add(account)
             g.db_session.flush()
@@ -127,6 +128,7 @@ class CoursesAccessRepository:
                 created_at=peru_time(),
                 change_pass=1,
                 fab_enabled=1,
+                uses_pin=1,
             )
             g.db_session.add(account)
             g.db_session.flush()
