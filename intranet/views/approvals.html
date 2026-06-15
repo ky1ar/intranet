@@ -547,7 +547,7 @@
 
 		typeLabel(r) {
 			// Para guías mostramos también el equipo: "Manual de Equipo · <modelo>"
-			if (r?.is_guide && r?.machine_name) return `${r.type} · ${r.machine_name}`;
+			if (r?.is_guide) return r.machine_name ? `Manual de Equipo · ${r.machine_name}` : 'Manual de Equipo';
 			return r?.type || '—';
 		},
 

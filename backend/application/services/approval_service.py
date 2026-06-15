@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime
-from flask import render_template, request
+from flask import render_template, request, g
 from flask_mail import Message
 from application import mail, socketio
 from application.handlers import handle_exceptions
@@ -11,6 +11,8 @@ from application.services.push_service import PushSender
 from application.services.courses_provisioning_service import (
     CoursesProvisioningService, FabProvisioningService, is_course_slug, is_fab_slug,
 )
+from application.services.guide_service import GuideService
+from application.db_models.guide_model import GuideRequest
 from config import Courses, Paths
 
 
@@ -132,7 +134,6 @@ class ApprovalService:
 
         # Guías: el contenido de la guía del equipo debe existir antes de aprobar.
         if type_slug == "guia":
-            from application.services.guide_service import GuideService
             exists, esc = GuideService().content_exists_for_request(request_id)
             if esc != 200:
                 return exists, esc
@@ -322,8 +323,6 @@ class ApprovalService:
         # (no en ApprovalRequest). Lo resolvemos aqui para que la vista de
         # Aprobaciones pueda mostrarlo vía /guide/voucher/.
         if req.type_rel and req.type_rel.slug == "guia":
-            from application.db_models.guide_model import GuideRequest
-            from flask import g
             guide_req = (
                 g.db_session.query(GuideRequest)
                 .filter(GuideRequest.approval_request_id == req.id)

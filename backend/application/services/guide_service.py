@@ -3,7 +3,10 @@ from application.handlers import handle_exceptions
 from application.utils import format_datetime
 from application.repository.guide_repository import GuideRepository
 from application.repository.approval_repository import ApprovalRepository
+from application.db_models.approval_model import ApprovalType
+from application.models import Clients
 from config import Paths
+from flask import g
 
 
 class GuideService:
@@ -21,8 +24,6 @@ class GuideService:
             return client_id, sc
 
         # Resolve 'guia' type_id
-        from application.db_models.approval_model import ApprovalType
-        from flask import g
         type_obj = g.db_session.query(ApprovalType).filter(ApprovalType.slug == "guia").first()
         if not type_obj:
             return "Tipo 'guia' no configurado en la base de datos", 500
@@ -97,8 +98,6 @@ class GuideService:
         result = []
         for row in rows:
             gr = row[0]
-            from application.models import Clients
-            from flask import g
             client = g.db_session.query(Clients).filter_by(id=row.client_id).first()
             result.append({
                 "id":               row.approval_id,
