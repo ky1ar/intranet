@@ -139,7 +139,7 @@ header.custom {
 /* ── Nav Card ── */
 .kd-nav-card {
 	background: #fff;
-    border-radius: 1.5rem;
+    border-radius: 1rem;
     padding: 1.5rem 0;
     overflow: hidden;
     display: flex;
@@ -235,7 +235,7 @@ header.custom {
 /* ── Content area ── */
 #kd-dashboard .woocommerce-MyAccount-content {
 	background: #fff;
-	border-radius: 16px;
+	border-radius: 1rem;
 	box-shadow: 0 2px 12px rgba(0,0,0,0.06);
 	padding: 2rem;
 	/* min-height: 500px; */
@@ -1715,42 +1715,73 @@ document.addEventListener("DOMContentLoaded", () => {
 			</div>
 
 			<style>
-			.guias-section { flex-direction: column; gap: 1.5rem; padding: 1.5rem; }
+			.guias-section { flex-direction: column; gap: 1.5rem; }
 			.guias-header h2 { margin: 0 0 0.3rem; font-size: 1.4rem; }
-			.guias-header p  { color: #666; margin: 0; font-size: 0.9rem; }
+			.guias-header p  { color: #666; margin: 0; }
 
 			.guias-grid {
-				display: flex;
-				flex-wrap: wrap;
-				gap: 1.2rem;
+				display: grid;
+				gap: 1rem;
+				grid-template-columns: repeat(auto-fill, 12.5rem);
+				background-color: var(--gray);
+				padding: 1.5rem;
+				border-radius: 1rem;
+				margin: -0.5rem;
 			}
 			.guia-card {
-				background: #fff;
-				border: 1px solid #eee;
-				border-radius: 14px;
-				padding: 1.2rem;
-				width: 160px;
+				background: var(--white);
+				border-radius: 0.75rem;
+				padding: 1.25rem;
 				display: flex;
 				flex-direction: column;
 				align-items: center;
-				gap: 0.6rem;
+				gap: 1rem;
 				cursor: pointer;
-				box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-				transition: transform 0.15s, box-shadow 0.15s;
-				text-align: center;
+				transition: var(--transition);
+				position: relative;
 			}
-			.guia-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
-			.guia-card img { width: 72px; height: 72px; object-fit: contain; border-radius: 8px; background: #f9f9f9; }
-			.guia-card-brand { font-size: 0.7rem; opacity: 0.45; font-weight: 600; text-transform: uppercase; }
-			.guia-card-name  { font-size: 0.85rem; font-weight: 700; color: #222; line-height: 1.2; }
-
-			.guia-card-pending { opacity: 0.75; cursor: default; }
-			.guia-card-pending:hover { transform: none; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+			.guia-card:hover {
+				transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+			}
+			.guia-card img {
+				width: 7rem;
+    			height: 7rem;
+			}
+			.guia-card-brand {
+				font-size: 0.7rem;
+				opacity: 0.45;
+				font-weight: 600;
+				text-transform: uppercase;
+				display: none;
+			}
+			.guia-card-name  {
+				font-size: 0.85rem;
+				font-weight: 600;
+				line-height: 0.9rem;
+			}
+			.guia-card-pending {
+				cursor: default;
+			}
+			.guia-card-pending:hover {
+				transform: none; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+			}
 			.guia-badge-pending {
-				font-size: 0.7rem; font-weight: 700;
-				background: #fff3cd; color: #856404;
-				padding: 3px 10px; border-radius: 20px;
-				align-self: center;
+				font-size: 0.7rem;
+				font-weight: 600;
+				background: var(--primary);
+				color: var(--white);
+				padding: 0.25rem 1rem;
+				border-radius: 2rem 0 0 2rem;
+				position: absolute;
+				right: 0;
+				top: 1rem;
+				z-index: 1;
+			}
+			.guia-card-pending img {
+				    opacity: 0.5;
+			}
+			.guia-card-pending .guia-card-name {
+				opacity: 0.5;
 			}
 
 			.guia-add-card {
@@ -1758,7 +1789,7 @@ document.addEventListener("DOMContentLoaded", () => {
 				border: 2px dashed #ddd;
 				border-radius: 14px;
 				padding: 1.2rem;
-				width: 160px;
+				width: 12.5rem;
 				display: flex;
 				flex-direction: column;
 				align-items: center;
@@ -1766,7 +1797,7 @@ document.addEventListener("DOMContentLoaded", () => {
 				gap: 0.5rem;
 				cursor: pointer;
 				transition: background 0.15s, border-color 0.15s;
-				min-height: 140px;
+				min-height: 200px;
 			}
 			.guia-add-card:hover { background: #f0f0f0; border-color: #e05a00; }
 			.guia-add-icon {
@@ -1813,7 +1844,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			.guia-modal-inner {
 				background: #fff; border-radius: 16px; padding: 1.8rem;
 				max-width: 460px; width: 90%; position: relative;
-				max-height: 90vh; overflow-y: auto;
+				max-height: 90vh; 
 			}
 			.guia-modal-inner h3 { margin: 0 0 0.3rem; font-size: 1.15rem; }
 			.guia-modal-sub { color: #666; font-size: 0.88rem; margin: 0 0 1.2rem; }

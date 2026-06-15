@@ -21,7 +21,7 @@
 								<span class="req-date" x-text="req.created_at"></span>
 							</div>
 							<div class="req-name" x-text="req.client_name || '—'"></div>
-							<div class="req-type" x-text="req.type"></div>
+							<div class="req-type" x-text="typeLabel(req)"></div>
 						</div>
 					</template>
 
@@ -69,7 +69,7 @@
 								<div class="desc">Servicio</div>
 								<div class="white service-box">
 									<img alt="" width="16" height="16" src="/static/icons/filled/pin.svg">
-									<span class="service-name" x-text="detail?.type || '—'"></span>
+									<span class="service-name" x-text="typeLabel(detail)"></span>
 								</div>
 							</div>
 
@@ -425,9 +425,17 @@
 			return i >= 0 ? name.slice(i + 1).toLowerCase() : '';
 		},
 
+		typeLabel(r) {
+			// Para guías mostramos también el equipo: "Guía de Equipo · <modelo>"
+			if (r?.is_guide && r?.machine_name) return `${r.type} · ${r.machine_name}`;
+			return r?.type || '—';
+		},
+
 		voucherUrl() {
 			if (!this.detail?.voucher_filename) return '';
-			return `${Alpine.store('cache').api}/approval/voucher/${this.detail.voucher_filename}`;
+			// Las guías sirven el comprobante desde /guide/voucher/ (otra carpeta).
+			const base = this.detail?.is_guide ? 'guide' : 'approval';
+			return `${Alpine.store('cache').api}/${base}/voucher/${this.detail.voucher_filename}`;
 		},
 
 		isVoucherImage() {

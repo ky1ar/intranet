@@ -308,6 +308,27 @@ class ApprovalService:
             "approved_at": format_datetime(req.approved_at) if req.approved_at else None,
             "created_at": format_datetime(req.created_at),
         }
+
+        # Las solicitudes de tipo 'guia' guardan el comprobante en GuideRequest
+        # (no en ApprovalRequest). Lo resolvemos aqui para que la vista de
+        # Aprobaciones pueda mostrarlo vía /guide/voucher/.
+        if req.type_rel and req.type_rel.slug == "guia":
+            from application.db_models.guide_model import GuideRequest
+            from flask import g
+            guide_req = (
+                g.db_session.query(GuideRequest)
+                .filter(GuideRequest.approval_request_id == req.id)
+                .first()
+            )
+            data["is_guide"] = True
+            if guide_req:
+                if guide_req.voucher_filename:
+                    data["voucher_filename"] = guide_req.voucher_filename
+                machine = guide_req.machine
+                if machine:
+                    brand = machine.brand.name if machine.brand else ""
+                    data["machine_name"] = f"{brand} {machine.model}".strip()
+
         if with_chats:
             data["chats"] = [
                 {

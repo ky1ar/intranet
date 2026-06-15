@@ -55,6 +55,14 @@ do_action( 'woocommerce_before_account_navigation' );
 			<span>Beneficios</span>
 		</a>
 
+		<!-- Guías -->
+		<a href="/mi-cuenta/?section=guias" class="kd-nav-item kd-item-guias" data-nav data-kind="section" data-section="guias" data-url="/mi-cuenta/?section=guias">
+			<svg class="kd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+			</svg>
+			<span>Manuales</span>
+		</a>
+
 		<!-- Perfil -->
 		<a href="/mi-cuenta/edit-account/" class="kd-nav-item kd-item-perfil <?php echo $is_account ? 'kd-active' : ''; ?>" data-nav data-kind="wc" data-endpoint="edit-account">
 			<svg class="kd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
