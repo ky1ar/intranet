@@ -68,7 +68,6 @@ class GuideRepository:
 
     @handle_db_exceptions
     def get_my_guides(self, wp_user_id):
-        full_name = func.concat(Brands.name, ' ', Machines.model).label("full_name")
         brand_image = func.concat(Brands.slug, '.', Brands.file).label("brand_image")
 
         rows = (
@@ -80,7 +79,7 @@ class GuideRepository:
                 Machines.image.label("machine_image"),
                 Brands.name.label("brand_name"),
                 Brands.scale.label("brand_scale"),
-                full_name,
+                Machines.model.label("full_name"),
                 brand_image,
             )
             .join(ApprovalRequest, GuideRequest.approval_request_id == ApprovalRequest.id)

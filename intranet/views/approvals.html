@@ -1,8 +1,20 @@
 <div x-data="approvals_data">
 	<div id="approvals">
 
-		<!-- Controls vacío por ahora -->
-		<div class="controls"></div>
+		<div class="controls">
+			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
+				<div class="item" @click="guides()">
+					<img alt="" width="18" height="18" src="/static/icons/line/book.svg">
+				</div>
+			</div>
+			
+			<div class="left mobile-hide frost">
+				<div class="item" @click="guides()">
+					<img alt="" width="20" height="20" src="/static/icons/line/book.svg">
+					<span>Manuales</span>
+				</div>
+			</div>
+		</div>
 
 		<!-- Kanban -->
 		<div class="main glass">

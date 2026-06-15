@@ -51,7 +51,6 @@ header.custom {
 	display: grid;
 	grid-template-columns: 260px 1fr;
 	gap: 1rem;
-	align-items: start;
 }
 
 /* ── Sidebar ── */
@@ -1639,7 +1638,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			?>
 
 			<div class="guias-header">
-				<h2>Mis Equipos</h2>
+				<h2>Mis Manuales</h2>
 				<p>Accede a las guías de los equipos que has adquirido.</p>
 			</div>
 
@@ -1741,17 +1740,29 @@ document.addEventListener("DOMContentLoaded", () => {
 				display: flex;
 				flex-direction: column;
 				align-items: center;
-				gap: 1rem;
+				gap: 1.25rem;
 				cursor: pointer;
 				transition: var(--transition);
 				position: relative;
 			}
+			.guia-card .guia-card-brand-img {
+				width: 5.5rem;
+				position: absolute;
+				left: 1rem;
+				top: 1.15rem;
+				transition: var(--transition);
+    			filter: grayscale(1);
+			}
 			.guia-card:hover {
 				transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12);
 			}
-			.guia-card img {
-				width: 7rem;
-    			height: 7rem;
+			.guia-card:hover .guia-card-brand-img {
+				filter: grayscale(0);
+			}
+			.guia-card .machine-img {
+				width: 8rem;
+				height: 8rem;
+				margin-top: 2.25rem;
 			}
 			.guia-card-brand {
 				font-size: 0.7rem;
@@ -1774,9 +1785,9 @@ document.addEventListener("DOMContentLoaded", () => {
 			.guia-badge-pending {
 				font-size: 0.7rem;
 				font-weight: 600;
-				background: var(--primary);
-				color: var(--white);
-				padding: 0.25rem 1rem;
+				background: var(--primaryopacity);
+    			color: var(--primary);
+				padding: 0.25rem 0.75rem;
 				border-radius: 2rem 0 0 2rem;
 				position: absolute;
 				right: 0;
@@ -1803,7 +1814,7 @@ document.addEventListener("DOMContentLoaded", () => {
 				gap: 0.5rem;
 				cursor: pointer;
 				transition: background 0.15s, border-color 0.15s;
-				min-height: 200px;
+				min-height: 15rem;
 			}
 			.guia-add-card:hover { background: #f0f0f0; border-color: #e05a00; }
 			.guia-add-icon {
@@ -1955,8 +1966,8 @@ document.addEventListener("DOMContentLoaded", () => {
 						card.className = 'guia-card' + (isPending ? ' guia-card-pending' : '');
 						card.innerHTML = `
 							${isPending ? '<div class="guia-badge-pending">Pendiente</div>' : ''}
-							<img src="${MACHINES_URL}${g.machine_image}" alt="${g.machine_name}">
-							<div class="guia-card-brand">${g.brand_name}</div>
+							<div class="guia-card-brand-img"><img src="${BRANDS_URL}${g.brand_image}" alt="${g.brand_name}" style="width:${(g.brand_scale || 1) * 100}%"></div>
+							<img class="machine-img" src="${MACHINES_URL}${g.machine_image}" alt="${g.machine_name}">
 							<div class="guia-card-name">${g.machine_name}</div>
 						`;
 						if (!isPending) {
