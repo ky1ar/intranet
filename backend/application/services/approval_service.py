@@ -116,7 +116,7 @@ class ApprovalService:
             g["slug"]: {"status_slug": g["slug"], "status_name": g["name"], "requests": []}
             for g in STATUS_GROUPS
         }
-        # Máximo 8 por columna (las más recientes; vienen ordenadas por fecha desc).
+        # Máximo 10 por columna (las más recientes; vienen ordenadas por fecha desc).
         # Limitamos aquí para no formatear/enviar/loguear cientos de solicitudes.
         for req in requests:
             st = req.status if req.status in grouped else "pending"

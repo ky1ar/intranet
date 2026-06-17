@@ -346,7 +346,7 @@ class PurchaseRepository:
 
 
     @handle_db_exceptions
-    def get_purchase_history(self, visibility, page, per_page=20):
+    def get_purchase_history(self, visibility, page, per_page=12):
         base = g.db_session.query(PurchaseRequest)
 
         if visibility:
