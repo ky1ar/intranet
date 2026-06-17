@@ -1,16 +1,22 @@
 <div x-data="approvals_data">
 	<div id="approvals">
-
 		<div class="controls">
-			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
-				<div class="item" @click="guides()">
-					<img alt="" width="18" height="18" src="/static/icons/line/book.svg">
+			<div class="toggle-collapse frost" @click="viewHistory()">
+				<div class="item">
+					<img alt="" width="18" height="18" src="/static/icons/line/history.svg">
 				</div>
 			</div>
 			
 			<div class="left mobile-hide frost">
+				<div class="item" @click="viewHistory()">
+					<img alt="" width="20" height="20" src="/static/icons/line/history.svg">
+					<span>Historial</span>
+				</div>
+			</div>
+
+			<div class="right frost-dark">
 				<div class="item" @click="guides()">
-					<img alt="" width="20" height="20" src="/static/icons/line/book.svg">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/book.svg">
 					<span>Manuales</span>
 				</div>
 			</div>
@@ -440,6 +446,97 @@
 			</div>
 		</div>
 
+			<!-- ── Modal: Historial ── -->
+			<div
+				x-show="$store.cache.isVisibleModal('history')"
+				@mousedown.self="$store.cache.hideLastModal()"
+				class="modal-wrap common-modal"
+				id="modal-history"
+				x-transition:enter="modal-enter"
+				x-transition:enter-start="modal-enter-start"
+				x-transition:enter-end="modal-enter-end"
+				x-transition:leave="modal-leave"
+				x-transition:leave-start="modal-leave-start"
+				x-transition:leave-end="modal-leave-end"
+				x-cloak
+			>
+				<div class="modal big glass2" @click.stop>
+					<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+					<div class="top">
+						<span class="title">Historial</span>
+
+						<div class="pagination">
+							<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstPage()" title="Primera página">
+								<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevPage()" title="Página anterior">
+								<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextPage()" title="Siguiente página">
+								<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastPage()" title="Última página">
+								<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+							</span>
+						</div>
+					</div>
+
+					<div class="modal-content history">
+						<table class="mobile-hide">
+							<thead>
+								<tr>
+									<th>Orden</th>
+									<th>Servicio</th>
+									<th>Cliente</th>
+									<th>Estado</th>
+									<th>Fecha</th>
+								</tr>
+							</thead>
+							<tbody>
+								<template x-for="h in history_list" :key="h.id">
+									<tr class="hover-opacity" @click="openDetail(h)">
+										<td class="req-id" x-text="`AP-${h.id}`"></td>
+										<td x-text="typeLabel(h)"></td>
+										<td x-text="h.client_name || '—'"></td>
+										<td><span class="req-badge" :class="statusClass(h.status)" x-text="statusLabel(h.status)"></span></td>
+										<td x-text="h.created_at"></td>
+									</tr>
+								</template>
+								<template x-if="history_list.length === 0">
+									<tr><td colspan="5" class="empty">Sin solicitudes</td></tr>
+								</template>
+							</tbody>
+						</table>
+
+						<div class="mobile-show mobile-table">
+							<template x-for="h in history_list" :key="h.id">
+								<div class="row white hover-opacity" @click="openDetail(h)">
+									<div class="head">
+										<div class="info">
+											<span class="id" x-text="`AP-${h.id}`"></span>
+											<span class="date" x-text="h.created_at"></span>
+										</div>
+										<span class="req-badge" :class="statusClass(h.status)" x-text="statusLabel(h.status)"></span>
+									</div>
+									<div class="body">
+										<span class="label">Cliente</span>
+										<span class="name" x-text="h.client_name || '—'"></span>
+									</div>
+									<div class="body">
+										<span class="label">Servicio</span>
+										<span class="name" x-text="typeLabel(h)"></span>
+									</div>
+								</div>
+							</template>
+							<template x-if="history_list.length === 0">
+								<div class="empty">Sin solicitudes</div>
+							</template>
+						</div>
+					</div>
+				</div>
+			</div>
+
 	</div>
 
 	<script>
@@ -453,6 +550,9 @@
 		user_id:      Alpine.store('cache').user.id,
 		chat_message: '',
 		gm: { view:'list', guides:[], loading:false, saving:false, search:'', results:[], machine:null, description:'', steps:[], drive_url:'' },
+		history_list: [],
+		current_page: 1,
+		total_pages:  null,
 
 		async init() {
 			const socket = Alpine.store('cache').socket;
@@ -755,6 +855,27 @@
 				else PineToast.flash(this.msgOf(j, 'Error al eliminar'), 'error');
 			} catch(e) { PineToast.flash('Error de conexión', 'error'); }
 		},
+		async viewHistory() {
+			await this.firstPage();
+			Alpine.store('cache').showModal('history');
+		},
+		async getHistory() {
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/approval/history?page=${this.current_page}`, { headers: { 'X-No-Toast': '1' } });
+				const j = await r.json();
+				const d = j.data || {};
+				this.history_list = d.list || [];
+				this.total_pages = d.pagination ? d.pagination.pages : 1;
+			} catch (e) {
+				console.error('Error fetching history', e);
+				this.history_list = [];
+			}
+		},
+		async firstPage() { this.current_page = 1; await this.getHistory(); },
+		async lastPage() { this.current_page = this.total_pages || 1; await this.getHistory(); },
+		async nextPage() { if (this.current_page + 1 > this.total_pages) return; this.current_page += 1; await this.getHistory(); },
+		async prevPage() { if (this.current_page - 1 < 1) return; this.current_page -= 1; await this.getHistory(); },
 		statusIcon(slug) {
 			const map = {
 				pending: 'pending',
@@ -871,7 +992,9 @@
 			background: #e3646421;
     		color: #e36464;
 		}
-
+		#modal-approval-detail {
+			z-index: 50;
+		}
 		#modal-approval-detail .modal {
 			gap: 1rem;
 		}
@@ -1186,5 +1309,39 @@
 		}
 		.gm-step-fields { flex:1; display:flex; flex-direction:column; gap:0.35rem; }
 		.gm-editor-actions { display:flex; justify-content:flex-end; gap:0.6rem; margin-top:0.8rem; }
+
+		/* ── Historial ── */
+		#modal-history .top {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#modal-history .top .title { font-weight: 700; font-size: 1.05rem; }
+		#modal-history .pagination { display: flex; gap: 0.75rem; }
+		#modal-history .pagination .disabled { opacity: 0.5; cursor: default !important; pointer-events: none; }
+		#modal-history .pagination .left img { transform: rotate(180deg); }
+		#modal-history .pagination span {
+			width: 2rem; height: 2rem; display: flex;
+			justify-content: center; align-items: center; border-radius: 2rem;
+		}
+		#modal-history .modal-content.history { overflow: auto; margin-top: 1rem; }
+		#modal-history table { width: 100%; border-collapse: collapse; }
+		#modal-history th, #modal-history td {
+			text-align: left; padding: 0.7rem 0.6rem; font-size: 0.82rem;
+			border-bottom: 1px solid rgba(0,0,0,0.06);
+		}
+		#modal-history th { font-weight: 600; opacity: 0.5; font-size: 0.72rem; text-transform: uppercase; }
+		#modal-history tbody tr { cursor: pointer; }
+		#modal-history td.req-id { font-weight: 600; opacity: 0.6; }
+		#modal-history td.empty, #modal-history .mobile-table .empty { text-align: center; opacity: 0.4; padding: 1.5rem 0; }
+		#modal-history .mobile-table { flex-direction: column; gap: 0.6rem; }
+		#modal-history .mobile-table .row { padding: 0.75rem; border-radius: 10px; display: flex; flex-direction: column; gap: 0.4rem; cursor: pointer; }
+		#modal-history .mobile-table .head { display: flex; justify-content: space-between; align-items: center; }
+		#modal-history .mobile-table .info { display: flex; flex-direction: column; }
+		#modal-history .mobile-table .info .id { font-weight: 600; font-size: 0.85rem; }
+		#modal-history .mobile-table .info .date { font-size: 0.68rem; opacity: 0.4; }
+		#modal-history .mobile-table .body { display: flex; justify-content: space-between; font-size: 0.8rem; }
+		#modal-history .mobile-table .body .label { opacity: 0.5; }
+
 	</style>
 </div>

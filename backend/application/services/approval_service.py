@@ -122,6 +122,23 @@ class ApprovalService:
         return [grouped[g["slug"]] for g in STATUS_GROUPS], 200
 
     @handle_exceptions
+    def history(self, data):
+        page     = data.get("page", 1)
+        per_page = data.get("per_page", 12)
+        result, sc = self.repository.get_requests_paginated(page, per_page)
+        if sc != 200:
+            return result, sc
+        return {
+            "list": [self._format_request(r) for r in result["list"]],
+            "pagination": {
+                "total":    result["total"],
+                "page":     result["page"],
+                "per_page": result["per_page"],
+                "pages":    result["pages"],
+            },
+        }, 200
+
+    @handle_exceptions
     def start_review(self, data):
         result, sc = self.repository.set_review(data.get("request_id"))
         if sc != 200:

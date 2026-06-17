@@ -34,6 +34,10 @@ class ApprovalController:
         return self.service.dashboard()
 
     @handle_logs_and_exceptions
+    def history(self, data):
+        return self.service.history(data)
+
+    @handle_logs_and_exceptions
     def get_request_detail(self, data):
         return self.service.get_request_detail(data.get("request_id"))
 

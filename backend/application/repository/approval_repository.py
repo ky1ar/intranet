@@ -151,6 +151,22 @@ class ApprovalRepository:
         return reqs or [], 200
 
     @handle_db_exceptions
+    def get_requests_paginated(self, page=1, per_page=12):
+        query = (
+            g.db_session.query(ApprovalRequest)
+            .order_by(ApprovalRequest.created_at.desc())
+        )
+        total = query.count()
+        items = query.offset((page - 1) * per_page).limit(per_page).all()
+        return {
+            "list": items,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "pages": (total + per_page - 1) // per_page,
+        }, 200
+
+    @handle_db_exceptions
     def set_review(self, request_id):
         req = (
             g.db_session.query(ApprovalRequest)

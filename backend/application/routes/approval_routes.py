@@ -41,6 +41,15 @@ def dashboard():
     return controller.get_dashboard({})
 
 
+@approval_bp.route("/history", methods=["GET"])
+def history():
+    payload = {
+        "page": int(request.args.get("page", 1)),
+        "per_page": int(request.args.get("per_page", 12)),
+    }
+    return controller.history(payload)
+
+
 @approval_bp.route("/<int:request_id>", methods=["GET"])
 def get_detail(request_id):
     return controller.get_request_detail({"request_id": request_id})
