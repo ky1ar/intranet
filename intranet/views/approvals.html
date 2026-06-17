@@ -632,8 +632,8 @@
 					body: JSON.stringify({ request_id: this.actionForm.request_id, user_id: cache.user.id }),
 				});
 				const j = await r.json();
-				if (j.success) { cache.hideLastModal(); await cache.refresh('approval_dashboard'); }
-				else { alert(j?.data || 'Error'); }
+				if (j.success) { cache.hideLastModal(); await cache.refresh('approval_dashboard'); PineToast.flash('Solicitud en revisión', 'success'); }
+				else { PineToast.flash(this.msgOf(j, 'Error'), 'error'); }
 			} finally { this.processing = false; }
 		},
 
@@ -651,8 +651,8 @@
 					}),
 				});
 				const j = await r.json();
-				if (j.success) { cache.hideLastModal(); await cache.refresh('approval_dashboard'); }
-				else { alert(j?.data || 'Error al aprobar'); }
+				if (j.success) { cache.hideLastModal(); await cache.refresh('approval_dashboard'); PineToast.flash('Solicitud aprobada', 'success'); }
+				else { PineToast.flash(this.msgOf(j, 'Error al aprobar'), 'error'); }
 			} finally { this.processing = false; }
 		},
 
@@ -670,9 +670,16 @@
 					}),
 				});
 				const j = await r.json();
-				if (j.success) { cache.hideLastModal(); await cache.refresh('approval_dashboard'); }
-				else { alert(j?.data || 'Error'); }
+				if (j.success) { cache.hideLastModal(); await cache.refresh('approval_dashboard'); PineToast.flash('Solicitud rechazada', 'success'); }
+				else { PineToast.flash(this.msgOf(j, 'Error'), 'error'); }
 			} finally { this.processing = false; }
+		},
+
+		msgOf(j, fallback) {
+			const d = j && j.data;
+			if (d && typeof d === 'object' && d.message) return d.message;
+			if (typeof d === 'string') return d;
+			return fallback || 'Ocurrió un error';
 		},
 
 		guides() {
@@ -736,8 +743,8 @@
 					body: JSON.stringify({ machine_id: this.gm.machine.id, description: (this.gm.description||'').trim(), items }),
 				});
 				const j = await r.json();
-				if (j.success) { this.gm.view = 'list'; await this.gmLoad(); }
-				else { alert(j?.data || 'Error al guardar la guía'); }
+				if (j.success) { this.gm.view = 'list'; await this.gmLoad(); PineToast.flash('Guía guardada', 'success'); }
+				else { PineToast.flash(this.msgOf(j, 'Error al guardar la guía'), 'error'); }
 			} finally { this.gm.saving = false; }
 		},
 		async gmDelete(g) {
@@ -746,9 +753,9 @@
 			try {
 				const r = await fetch(`${cache.api}/guide/content/${g.machine_id}`, { method:'DELETE' });
 				const j = await r.json();
-				if (j.success) await this.gmLoad();
-				else alert(j?.data || 'Error al eliminar');
-			} catch(e) { alert('Error de conexión'); }
+				if (j.success) { await this.gmLoad(); PineToast.flash('Guía eliminada', 'success'); }
+				else PineToast.flash(this.msgOf(j, 'Error al eliminar'), 'error');
+			} catch(e) { PineToast.flash('Error de conexión', 'error'); }
 		},
 		statusIcon(slug) {
 			const map = {

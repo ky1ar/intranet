@@ -605,7 +605,7 @@ body.modal-open {
 
 /***********************************************************************************/
 .pine-toast{
-    position: fixed;
+     position: fixed;
     right: 1rem;
     bottom: 1rem;
     z-index: 99999;
@@ -613,7 +613,7 @@ body.modal-open {
     align-items: center;
     gap: 0.5rem;
     padding: 1rem;
-    border-radius: 1rem;
+    border-radius: 0.75rem;
     opacity: 0;
     transition: opacity .18s ease, transform .18s ease;
     pointer-events: none;
@@ -634,6 +634,10 @@ body.modal-open {
     border-top-color: #ea7134;
 }
 @keyframes pine-spin{ to{ transform:rotate(360deg); } }
+.pine-toast.pine-flash-error{ background:#e36464 !important; }
+.pine-toast.pine-flash-success{ background:#1e7e44 !important; }
+.pine-toast.pine-flash-error .title,
+.pine-toast.pine-flash-success .title{ color:#fff; }
 /***********************************************************************************/
 .comments-container {
     display: flex;
@@ -1424,8 +1428,8 @@ body.modal-open {
         top: 1rem;
         left: 1rem;
         justify-content: center;
-        padding: 1.125rem 0;
-        border-radius: 2rem;
+        padding: 1.125rem;
+        text-align: center;
     }
 }
 /****************************************************	36rem	576px	 ***************************************************/ 

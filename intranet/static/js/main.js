@@ -18,10 +18,17 @@
         return el;
     }
 
+    function setSpinner(el, visible) {
+        const sp = el.querySelector(".spinner");
+        if (sp) sp.style.display = visible ? "" : "none";
+    }
+
     window.PineToast = {
         start(title = "Cargando…") {
             clearTimeout(hideTimer);
             const el = ensureToast();
+            el.classList.remove("pine-flash-error", "pine-flash-success");
+            setSpinner(el, true);
             el.querySelector(".title").textContent = title;
             el.classList.add("show");
         },
@@ -29,6 +36,27 @@
             const el = document.getElementById(ID);
             if (!el) return;
             hideTimer = setTimeout(() => el.classList.remove("show"), 150);
+        },
+        // Mensaje transitorio (sin spinner). type: "error" | "success" | "info"
+        flash(title = "", type = "info", ms = 3800) {
+            clearTimeout(hideTimer);
+            const el = ensureToast();
+            el.classList.remove("pine-flash-error", "pine-flash-success");
+            if (type === "error")   el.classList.add("pine-flash-error");
+            if (type === "success") el.classList.add("pine-flash-success");
+            setSpinner(el, false);
+            el.querySelector(".title").textContent = title;
+            el.classList.add("show");
+            hideTimer = setTimeout(() => {
+                el.classList.remove("show");
+                // Resetea color/spinner SOLO después del fundido (transición .18s),
+                // para que no parpadee blanco+spinner antes de desaparecer.
+                setTimeout(() => {
+                    if (el.classList.contains("show")) return; // un nuevo toast tomó el control
+                    el.classList.remove("pine-flash-error", "pine-flash-success");
+                    setSpinner(el, true);
+                }, 220);
+            }, ms);
         }
     };
 })();
