@@ -7,6 +7,7 @@ from application.db_models.approval_model import ApprovalRequest, ApprovalType, 
 from application.models import Clients
 from config import Paths
 from flask import g, request
+from sqlalchemy import or_
 from application.proxy.apiperu import ApiPeru
 
 
@@ -149,6 +150,24 @@ class ApprovalRepository:
             .all()
         )
         return reqs or [], 200
+
+    @handle_db_exceptions
+    def search_requests(self, term, limit=20):
+        like = f"%{term}%"
+        requests = (
+            g.db_session.query(ApprovalRequest)
+            .join(Clients, ApprovalRequest.client_id == Clients.id)
+            .filter(
+                or_(
+                    Clients.name.ilike(like),
+                    Clients.document.ilike(like),
+                )
+            )
+            .order_by(ApprovalRequest.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+        return requests or [], 200
 
     @handle_db_exceptions
     def get_requests_paginated(self, page=1, per_page=12):

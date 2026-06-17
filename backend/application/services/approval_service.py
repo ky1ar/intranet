@@ -116,10 +116,24 @@ class ApprovalService:
             g["slug"]: {"status_slug": g["slug"], "status_name": g["name"], "requests": []}
             for g in STATUS_GROUPS
         }
+        # Máximo 8 por columna (las más recientes; vienen ordenadas por fecha desc).
+        # Limitamos aquí para no formatear/enviar/loguear cientos de solicitudes.
         for req in requests:
             st = req.status if req.status in grouped else "pending"
+            if len(grouped[st]["requests"]) >= 10:
+                continue
             grouped[st]["requests"].append(self._format_request(req))
         return [grouped[g["slug"]] for g in STATUS_GROUPS], 200
+
+    @handle_exceptions
+    def search_requests(self, term):
+        term = (term or "").strip()
+        if len(term) < 2:
+            return [], 200
+        requests, sc = self.repository.search_requests(term)
+        if sc != 200:
+            return requests, sc
+        return [self._format_request(r) for r in requests], 200
 
     @handle_exceptions
     def history(self, data):

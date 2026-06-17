@@ -8,6 +8,10 @@
 			</div>
 			
 			<div class="left mobile-hide frost">
+				<div class="item" @click="search()">
+					<img alt="" width="20" height="20" src="/static/icons/line/find.svg">
+					<span>Buscar</span>
+				</div>
 				<div class="item" @click="viewHistory()">
 					<img alt="" width="20" height="20" src="/static/icons/line/history.svg">
 					<span>Historial</span>
@@ -446,6 +450,40 @@
 			</div>
 		</div>
 
+			<!-- ── Modal: Buscar ── -->
+			<div
+				x-show="$store.cache.isVisibleModal('search')"
+				@mousedown.self="$store.cache.hideLastModal()"
+				x-transition.duration.300ms
+				class="modal-wrap"
+				id="modal-search"
+				x-cloak>
+				<div class="modal little" @click.stop>
+					<div class="bottom glass2">
+						<img alt="" class="ico" width="20" height="20" src="/static/icons/line/find.svg">
+						<input type="text"
+							x-model="find_query"
+							placeholder="Nombre o DNI"
+							@input.debounce.300ms="findRequests()">
+						<div class="hover-opacity clear" x-show="find_query" title="Limpiar búsqueda" @click="find_query = ''; found_requests = [];">
+							<img alt="" width="12" height="12" src="/static/icons/filled/x.svg">
+						</div>
+					</div>
+					<div class="orders glass2" x-show="found_requests.length > 0">
+						<template x-for="r in found_requests" :key="r.id">
+							<div class="item" @click="openDetail(r)">
+								<div class="title">
+									<span class="order-number" x-text="`AP-${r.id}`"></span>
+									<span class="req-badge" :class="statusClass(r.status)" x-text="statusLabel(r.status)"></span>
+								</div>
+								<span class="client" x-text="r.client_name || '—'"></span>
+								<span class="service" x-text="typeLabel(r)"></span>
+							</div>
+						</template>
+					</div>
+				</div>
+			</div>
+
 			<!-- ── Modal: Historial ── -->
 			<div
 				x-show="$store.cache.isVisibleModal('history')"
@@ -553,6 +591,8 @@
 		history_list: [],
 		current_page: 1,
 		total_pages:  null,
+		find_query: '',
+		found_requests: [],
 
 		async init() {
 			const socket = Alpine.store('cache').socket;
@@ -854,6 +894,24 @@
 				if (j.success) { await this.gmLoad(); PineToast.flash('Guía eliminada', 'success'); }
 				else PineToast.flash(this.msgOf(j, 'Error al eliminar'), 'error');
 			} catch(e) { PineToast.flash('Error de conexión', 'error'); }
+		},
+		search() {
+			this.find_query = '';
+			this.found_requests = [];
+			Alpine.store('cache').showModal('search');
+		},
+		async findRequests() {
+			const term = (this.find_query || '').trim();
+			if (term.length < 2) { this.found_requests = []; return; }
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/approval/find/${encodeURIComponent(term)}`, { headers: { 'X-No-Toast': '1' } });
+				const j = await r.json();
+				this.found_requests = (j.success && j.data) ? j.data : [];
+			} catch (e) {
+				console.error('Error buscando solicitudes', e);
+				this.found_requests = [];
+			}
 		},
 		async viewHistory() {
 			await this.firstPage();
@@ -1309,6 +1367,30 @@
 		}
 		.gm-step-fields { flex:1; display:flex; flex-direction:column; gap:0.35rem; }
 		.gm-editor-actions { display:flex; justify-content:flex-end; gap:0.6rem; margin-top:0.8rem; }
+
+		/* ── Buscar ── */
+		#modal-search .modal { gap: 0.5rem; min-width: initial; }
+		#modal-search .bottom { display: flex; align-items: center; padding: 0.25rem 1rem; border-radius: 0.75rem; }
+		#modal-search .bottom .ico { opacity: 0.5; }
+		#modal-search .bottom input {
+			flex: 1; background-color: transparent; border: none; outline: none;
+			padding: 0.75rem; font-family: inherit; font-size: 1rem; font-weight: 400; min-width: 10rem;
+		}
+		#modal-search .bottom .clear { padding: 0.25rem; }
+		#modal-search .orders {
+			max-height: 18rem; overflow-y: auto; width: 100%; display: flex;
+			flex-direction: column; font-size: 1rem; border-radius: 0.75rem;
+		}
+		#modal-search .orders .item {
+			display: flex; flex-direction: column; gap: 0.35rem; padding: 0.75rem 1rem;
+			border-bottom: 2px solid #ffffff80; cursor: pointer; transition: var(--transition); background-color: transparent;
+		}
+		#modal-search .orders .item:last-child { border-bottom: none; }
+		#modal-search .orders .item:hover { background-color: #ffffff; }
+		#modal-search .orders .title {     flex-direction: row; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+		#modal-search .orders .item .order-number { font-size: 1rem; font-weight: 600; line-height: 1rem; }
+		#modal-search .orders .item .client { font-size: 0.85rem; font-weight: 500; }
+		#modal-search .orders .item .service { font-size: 0.75rem; font-weight: 600; color: var(--primary, #e05a00); }
 
 		/* ── Historial ── */
 		#modal-history .top {

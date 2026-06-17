@@ -41,6 +41,11 @@ def dashboard():
     return controller.get_dashboard({})
 
 
+@approval_bp.route("/find/<term>", methods=["GET"])
+def find(term):
+    return controller.search_requests(term)
+
+
 @approval_bp.route("/history", methods=["GET"])
 def history():
     payload = {
