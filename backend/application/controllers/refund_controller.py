@@ -20,6 +20,14 @@ class RefundController:
         return self.service.get_refund(refund_id)
 
     @handle_logs_and_exceptions
+    def search_requests(self, term):
+        return self.service.search_requests(term)
+
+    @handle_logs_and_exceptions
+    def history(self, data):
+        return self.service.history(data)
+
+    @handle_logs_and_exceptions
     def create(self):
         return self.service.create()
 

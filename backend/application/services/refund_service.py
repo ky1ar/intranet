@@ -200,6 +200,61 @@ class RefundService:
 
     # ── Detail ──
 
+    def _format_list_item(self, req):
+        co = req.client_order
+        client = co.client if co else None
+        return {
+            "id": req.id,
+            "status_id": req.status_id,
+            "status_name": req.status.name if req.status else None,
+            "status_slug": req.status.slug if req.status else None,
+            "is_admin_register": req.is_admin_register,
+            "client_name": client.name if client else None,
+            "client_dni": client.document if client else None,
+            "order_number": str(co.number) if co else None,
+            "reason": REASON_LABELS.get(req.reason, req.reason),
+            "net_refund": float(req.net_refund or 0),
+            "assigned_to_name": format_name(req.assignee.name, True) if req.assignee else None,
+            "created_at": format_datetime(req.created_at),
+        }
+
+    @handle_exceptions
+    def search_requests(self, term):
+        term = (term or "").strip()
+        if len(term) < 2:
+            return [], 200
+        user_id = int(get_jwt_identity())
+        only_commercial = (
+            self._has_perm(user_id, "view_commercial")
+            and not self._has_perm(user_id, "view_all")
+        )
+        rows, rc = self.repository.search_requests(term, only_commercial=only_commercial)
+        if rc != 200:
+            return rows, rc
+        return [self._format_list_item(r) for r in rows], 200
+
+    @handle_exceptions
+    def history(self, data):
+        page     = data.get("page", 1)
+        per_page = data.get("per_page", 12)
+        user_id  = int(get_jwt_identity())
+        only_commercial = (
+            self._has_perm(user_id, "view_commercial")
+            and not self._has_perm(user_id, "view_all")
+        )
+        result, rc = self.repository.get_requests_paginated(page, per_page, only_commercial=only_commercial)
+        if rc != 200:
+            return result, rc
+        return {
+            "list": [self._format_list_item(r) for r in result["list"]],
+            "pagination": {
+                "total":    result["total"],
+                "page":     result["page"],
+                "per_page": result["per_page"],
+                "pages":    result["pages"],
+            },
+        }, 200
+
     def _serialize_attachment(self, row):
         return {
             "id": row.id,
@@ -752,7 +807,7 @@ class RefundService:
         user_id = int(get_jwt_identity())
         if not self._has_perm(user_id, "links"):
             return "Sin permiso", 403
-        per_page = 20
+        per_page = 12
         page = int(request.args.get("page", 1))
         rows, total, rc = self.repository.get_links_page(page, per_page)
         if rc != 200:

@@ -4,7 +4,9 @@ from application.db_models.refund_model import (
     RefundRequest, RefundStatus, RefundAttachment, RefundChat, RefundLink
 )
 from application.db_models.module_model import UserModulePermission, ModulePermission, Module
+from application.models import Clients, ClientOrders
 from flask import g
+from sqlalchemy import or_, cast, String
 
 
 class RefundRepository:
@@ -23,6 +25,48 @@ class RefundRepository:
         if only_commercial:
             q = q.filter(RefundRequest.is_admin_register == False)
         return q.order_by(RefundRequest.created_at.desc()).all() or [], 200
+
+    @handle_db_exceptions
+    def search_requests(self, term, only_commercial=False, limit=20):
+        like = f"%{term}%"
+        q = (
+            g.db_session.query(RefundRequest)
+            .join(ClientOrders, RefundRequest.client_order_id == ClientOrders.id)
+            .join(Clients, ClientOrders.client_id == Clients.id)
+            .filter(RefundRequest.deleted_at.is_(None))
+            .filter(or_(
+                Clients.name.ilike(like),
+                Clients.document.ilike(like),
+                cast(ClientOrders.number, String).ilike(like),
+            ))
+        )
+        if only_commercial:
+            q = q.filter(RefundRequest.is_admin_register == False)
+        rows = q.order_by(RefundRequest.created_at.desc()).limit(limit).all()
+        return rows or [], 200
+
+    @handle_db_exceptions
+    def get_requests_paginated(self, page=1, per_page=12, only_commercial=False):
+        q = (
+            g.db_session.query(RefundRequest)
+            .filter(RefundRequest.deleted_at.is_(None))
+        )
+        if only_commercial:
+            q = q.filter(RefundRequest.is_admin_register == False)
+        total = q.count()
+        items = (
+            q.order_by(RefundRequest.created_at.desc())
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        )
+        return {
+            "list": items,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "pages": (total + per_page - 1) // per_page,
+        }, 200
 
     @handle_db_exceptions
     def get_by_id(self, refund_id):

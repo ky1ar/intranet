@@ -17,6 +17,22 @@ def dashboard():
     return controller.dashboard()
 
 
+@refund_bp.route("/find/<term>", methods=["GET"])
+@jwt_required()
+def find(term):
+    return controller.search_requests(term)
+
+
+@refund_bp.route("/history", methods=["GET"])
+@jwt_required()
+def history():
+    payload = {
+        "page": int(request.args.get("page", 1)),
+        "per_page": int(request.args.get("per_page", 12)),
+    }
+    return controller.history(payload)
+
+
 @refund_bp.route("/<int:refund_id>", methods=["GET"])
 @jwt_required()
 def get_refund(refund_id):

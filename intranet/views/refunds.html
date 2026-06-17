@@ -1,6 +1,16 @@
 <div x-data="refunds_data">
 	<div id="refunds">
 		<div class="controls">
+			<div class="left mobile-hide frost">
+				<div class="item" @click="search()">
+					<img alt="" width="20" height="20" src="/static/icons/line/find.svg">
+					<span>Buscar</span>
+				</div>
+				<div class="item" @click="viewHistory()">
+					<img alt="" width="20" height="20" src="/static/icons/line/history.svg">
+					<span>Historial</span>
+				</div>
+			</div>
 			<div class="right frost-dark" x-show="canRegister() || canLinks()">
 				<div class="item" x-show="canLinks()" @click="viewLinks()">
 					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/link.svg">
@@ -178,6 +188,140 @@
 									</div>
 								</template>
 							</div>
+						</div>
+					</template>
+				</div>
+			</div>
+		</div>
+
+		<!-- ── Modal historial ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('refund-history')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap common-modal"
+			id="modal-refund-history"
+			x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="top">
+					<span class="history-title">Historial</span>
+
+					<template x-if="history_list.length !== 0">
+						<div class="pagination">
+							<span class="white hover-opacity left" :class="history_page > 1 ? '':'disabled'" @click="firstHistoryPage()" title="Primera página">
+								<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity left" :class="history_page > 1 ? '':'disabled'" @click="prevHistoryPage()" title="Página anterior">
+								<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity" :class="history_page < history_total_pages ? '':'disabled'" @click="nextHistoryPage()" title="Siguiente página">
+								<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity" :class="history_page < history_total_pages ? '':'disabled'" @click="lastHistoryPage()" title="Última página">
+								<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+							</span>
+						</div>
+					</template>
+				</div>
+
+				<div class="modal-content">
+					<template x-if="history_list.length == 0">
+						<span style="padding: 1rem;">Aún no hay solicitudes en el historial.</span>
+					</template>
+
+					<template x-if="history_list.length > 0">
+						<div class="history">
+							<table class="static mobile-hide">
+								<thead>
+									<tr>
+										<th>ID</th>
+										<th>Cliente</th>
+										<th>Pedido</th>
+										<th>Motivo</th>
+										<th>Estado</th>
+										<th>Monto</th>
+										<th>Fecha</th>
+									</tr>
+								</thead>
+								<tbody>
+									<template x-for="h in history_list" :key="h.id">
+										<tr class="hover-opacity" style="cursor:pointer;" @click="openDetail(h.id)">
+											<td><b class="link-id" x-text="`EX-${h.id}`"></b></td>
+											<td x-text="h.client_name || '-'"></td>
+											<td x-text="h.order_number || '-'"></td>
+											<td x-text="h.reason"></td>
+											<td><span class="detail-status" :class="h.status_slug" x-text="h.status_name"></span></td>
+											<td x-text="`S/ ${Number(h.net_refund).toFixed(2)}`"></td>
+											<td x-text="h.created_at"></td>
+										</tr>
+									</template>
+								</tbody>
+							</table>
+
+							<div class="mobile-show mobile-table">
+								<template x-for="h in history_list" :key="h.id">
+									<div class="row white hover-opacity" @click="openDetail(h.id)">
+										<div class="head">
+											<div class="info">
+												<span class="id" x-text="`EX-${h.id}`"></span>
+												<span class="date" x-text="h.created_at"></span>
+											</div>
+											<span class="detail-status" :class="h.status_slug" x-text="h.status_name"></span>
+										</div>
+										<div class="body">
+											<span class="label">Cliente</span>
+											<span class="name" x-text="h.client_name || '-'"></span>
+										</div>
+										<div class="body">
+											<span class="label">Pedido</span>
+											<span class="name" x-text="h.order_number || '-'"></span>
+										</div>
+										<div class="body">
+											<span class="label">Monto</span>
+											<span class="name" x-text="`S/ ${Number(h.net_refund).toFixed(2)}`"></span>
+										</div>
+									</div>
+								</template>
+							</div>
+						</div>
+					</template>
+				</div>
+			</div>
+		</div>
+
+		<!-- ── Modal buscar ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('refund-search')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-refund-search"
+			x-cloak
+		>
+			<div class="modal little" @click.stop>
+				<div class="bottom glass2">
+					<img alt="" class="ico" width="20" height="20" src="/static/icons/line/find.svg">
+					<input type="text"
+						x-model="find_query"
+						placeholder="Nombre, DNI o N° pedido"
+						@input.debounce.300ms="findRequests()">
+					<div class="hover-opacity clear" x-show="find_query" title="Limpiar búsqueda" @click="find_query = ''; found_requests = [];">
+						<img alt="" width="12" height="12" src="/static/icons/filled/x.svg">
+					</div>
+				</div>
+				<div class="orders glass2" x-show="found_requests.length > 0">
+					<template x-for="r in found_requests" :key="r.id">
+						<div class="item" @click="openDetail(r.id)">
+							<div class="title">
+								<span class="order-number" x-text="`EX-${r.id}`"></span>
+								<span class="detail-status" :class="r.status_slug" x-text="r.status_name"></span>
+							</div>
+							<span class="client" x-text="r.client_name || '—'"></span>
+							<span class="service" x-text="`Pedido ${r.order_number || '—'} · ${r.reason}`"></span>
 						</div>
 					</template>
 				</div>
@@ -656,6 +800,12 @@
 			link_total_pages: 1,
 			link_processing: false,
 
+			history_list: [],
+			history_page: 1,
+			history_total_pages: 1,
+			find_query: '',
+			found_requests: [],
+
 			form: {
 				client_order_id: '',
 				client_order_found: false, client_found: false,
@@ -896,6 +1046,49 @@
 			},
 			async prevLinkPage()  {
 				if (this.link_page > 1) { this.link_page--; await this.getLinkHistory(); }
+			},
+
+			// ── Buscar ──
+			async search() {
+				this.find_query = '';
+				this.found_requests = [];
+				Alpine.store('cache').showModal('refund-search');
+			},
+			async findRequests() {
+				const term = (this.find_query || '').trim();
+				if (term.length < 2) { this.found_requests = []; return; }
+				try {
+					const res = await fetch(`${this.api}/refund/find/${encodeURIComponent(term)}`, {
+						headers: { 'Authorization': `Bearer ${this.token}`, 'X-No-Toast': '1' },
+					});
+					const json = await res.json();
+					this.found_requests = (res.ok && json.data) ? json.data : [];
+				} catch (e) { console.error(e); this.found_requests = []; }
+			},
+
+			// ── Historial ──
+			async viewHistory() {
+				await this.firstHistoryPage();
+				Alpine.store('cache').showModal('refund-history');
+			},
+			async getHistory() {
+				try {
+					const res = await fetch(`${this.api}/refund/history?page=${this.history_page}`, {
+						headers: { 'Authorization': `Bearer ${this.token}`, 'X-No-Toast': '1' },
+					});
+					const json = await res.json();
+					const data = json.data || {};
+					this.history_list = data.list || [];
+					this.history_total_pages = data.pagination?.pages || 1;
+				} catch (e) { console.error(e); }
+			},
+			async firstHistoryPage() { this.history_page = 1; await this.getHistory(); },
+			async lastHistoryPage()  { this.history_page = this.history_total_pages; await this.getHistory(); },
+			async nextHistoryPage()  {
+				if (this.history_page < this.history_total_pages) { this.history_page++; await this.getHistory(); }
+			},
+			async prevHistoryPage()  {
+				if (this.history_page > 1) { this.history_page--; await this.getHistory(); }
 			},
 
 			// ── Detail ──
@@ -1156,30 +1349,27 @@
 	</script>
 
 	<style>
-		.controls {
-			justify-content: end;
-		}
-		#modal-refund-links .modal {
+		#modal-refund-links .modal , #modal-refund-history .modal  {
 			max-width: fit-content;
 		}
-		#modal-refund-links .top {
+		#modal-refund-links .top , #modal-refund-history .top  {
 			justify-content: space-between;
 			display: flex;
 			align-items: center;
 			gap: 1rem;
 		}
-		#modal-refund-links .pagination {
+		#modal-refund-links .pagination , #modal-refund-history .pagination  {
 			display: flex;
 			gap: 0.75rem;
 		}
-		#modal-refund-links .pagination .disabled {
+		#modal-refund-links .pagination .disabled , #modal-refund-history .pagination .disabled  {
 			opacity: 0.5;
 			cursor: default !important;
 		}
-		#modal-refund-links .pagination .left img {
+		#modal-refund-links .pagination .left img , #modal-refund-history .pagination .left img  {
 			transform: rotate(180deg);
 		}
-		#modal-refund-links .pagination span {
+		#modal-refund-links .pagination span , #modal-refund-history .pagination span  {
 			width: 2rem;
 			height: 2rem;
 			display: flex;
@@ -1187,7 +1377,7 @@
 			align-items: center;
 			border-radius: 2rem;
 		}
-		#modal-refund-links .create-link {
+		#modal-refund-links .create-link , #modal-refund-history .create-link  {
 			display: flex;
 			gap: 0.25rem;
 			justify-content: center;
@@ -1198,42 +1388,42 @@
 			font-size: 0.8rem;
 			font-weight: 400;
 		}
-		#modal-refund-links .create-link img {
+		#modal-refund-links .create-link img , #modal-refund-history .create-link img  {
 			filter: invert(1);
 		}
-		#modal-refund-links table {
+		#modal-refund-links table , #modal-refund-history table  {
 			border-collapse: collapse;
 		}
-		#modal-refund-links table th {
+		#modal-refund-links table th , #modal-refund-history table th  {
 			padding: 0.5rem 0.75rem;
 			text-align: left;
 			font-weight: 600;
 			font-size: 0.8rem;
 			opacity: 0.75;
 		}
-		#modal-refund-links table.static tbody tr {
+		#modal-refund-links table.static tbody tr , #modal-refund-history table.static tbody tr  {
 			transition: none;
 		}
-		#modal-refund-links table.static tbody tr:hover {
+		#modal-refund-links table.static tbody tr:hover , #modal-refund-history table.static tbody tr:hover  {
 			background-color: transparent;
 		}
-		#modal-refund-links table.static td {
+		#modal-refund-links table.static td , #modal-refund-history table.static td  {
 			cursor: default;
 			line-height: 2rem;
 			padding: 0.5rem 0.75rem;
 			white-space: nowrap;
 		}
-		#modal-refund-links table td .controlls {
+		#modal-refund-links table td .controlls , #modal-refund-history table td .controlls  {
 			display: flex;
 			gap: 0.5rem;
 		}
-		#modal-refund-links table td .controlls .action {
+		#modal-refund-links table td .controlls .action , #modal-refund-history table td .controlls .action  {
 			width: 1.5rem;
 			height: 1.5rem;
 			display: flex;
 			justify-content: center;
 		}
-		#modal-refund-links table .link-id {
+		#modal-refund-links table .link-id , #modal-refund-history table .link-id  {
 			background-color: var(--white);
 			width: 1.75rem;
 			height: 1.75rem;
@@ -1245,7 +1435,7 @@
 			font-size: 0.8rem;
 			border: 1px solid var(--graydark);
 		}
-		#modal-refund-links table .link-status {
+		#modal-refund-links table .link-status , #modal-refund-history table .link-status  {
 			background-color: #d0f4ea;
 			border: 2px solid #abe9d8;
 			border-radius: 1rem;
@@ -1253,50 +1443,50 @@
 			font-size: 0.75rem;
 			font-weight: 500;
 		}
-		#modal-refund-links table .status-1 {
+		#modal-refund-links table .status-1 , #modal-refund-history table .status-1  {
 			background-color: #fff0de;
 			border: 2px solid #fcdab1;
 		}
-		#modal-refund-links table .status-2 {
+		#modal-refund-links table .status-2 , #modal-refund-history table .status-2  {
 			background-color: #dff5ff;
 			border: 2px solid #b4e1f2;
 		}
-		#modal-refund-links table .status-3 {
+		#modal-refund-links table .status-3 , #modal-refund-history table .status-3  {
 			background-color: #d0f4ea;
 			border: 2px solid #abe9d8;
 		}
-		#modal-refund-links table .status-4 {
+		#modal-refund-links table .status-4 , #modal-refund-history table .status-4  {
 			background-color: #fee3e1;
 			border: 2px solid #ffceca;
 		}
-		#modal-refund-links .mobile-table .head .status {
+		#modal-refund-links .mobile-table .head .status , #modal-refund-history .mobile-table .head .status  {
 			border-radius: 1rem;
 			padding: 0.25rem 0.75rem;
 			font-size: 0.75rem;
 			font-weight: 500;
 		}
-		#modal-refund-links .mobile-table .head .status.status-1 {
+		#modal-refund-links .mobile-table .head .status.status-1 , #modal-refund-history .mobile-table .head .status.status-1  {
 			background-color: #fff0de;
 			border: 2px solid #fcdab1;
 		}
-		#modal-refund-links .mobile-table .head .status.status-2 {
+		#modal-refund-links .mobile-table .head .status.status-2 , #modal-refund-history .mobile-table .head .status.status-2  {
 			background-color: #dff5ff;
 			border: 2px solid #b4e1f2;
 		}
-		#modal-refund-links .mobile-table .head .status.status-3 {
+		#modal-refund-links .mobile-table .head .status.status-3 , #modal-refund-history .mobile-table .head .status.status-3  {
 			background-color: #d0f4ea;
 			border: 2px solid #abe9d8;
 		}
-		#modal-refund-links .mobile-table .head .status.status-4 {
+		#modal-refund-links .mobile-table .head .status.status-4 , #modal-refund-history .mobile-table .head .status.status-4  {
 			background-color: #fee3e1;
 			border: 2px solid #ffceca;
 		}
-		#modal-refund-links .mobile-table .options {
+		#modal-refund-links .mobile-table .options , #modal-refund-history .mobile-table .options  {
 			display: flex;
 			gap: 0.75rem;
 			margin-top: 0.5rem;
 		}
-		#modal-refund-links .mobile-table .options .action {
+		#modal-refund-links .mobile-table .options .action , #modal-refund-history .mobile-table .options .action  {
 			flex: 1;
 			background-color: var(--newgray);
 			padding: 0.5rem 0.75rem;
@@ -1629,5 +1819,32 @@
 			#refunds .group { flex: unset; min-width: 100%; }
 			.form-grid { grid-template-columns: 1fr; }
 		}
+
+		#modal-refund-history .history-title { font-weight: 700; font-size: 1.05rem; }
+
+		/* ── Buscar ── */
+		#modal-refund-search .modal { gap: 0.5rem; min-width: initial; }
+		#modal-refund-search .bottom { display: flex; align-items: center; padding: 0.25rem 1rem; border-radius: 0.75rem; }
+		#modal-refund-search .bottom .ico { opacity: 0.5; }
+		#modal-refund-search .bottom input {
+			flex: 1; background-color: transparent; border: none; outline: none;
+			padding: 0.75rem; font-family: inherit; font-size: 1rem; font-weight: 400; min-width: 10rem;
+		}
+		#modal-refund-search .bottom .clear { padding: 0.25rem; }
+		#modal-refund-search .orders {
+			max-height: 18rem; overflow-y: auto; width: 100%; display: flex;
+			flex-direction: column; border-radius: 0.75rem; margin-top: 0.5rem;
+		}
+		#modal-refund-search .orders .item {
+			display: flex; flex-direction: column; gap: 0.35rem; padding: 0.75rem 1rem;
+			border-bottom: 2px solid #ffffff80; cursor: pointer; transition: var(--transition);
+		}
+		#modal-refund-search .orders .item:last-child { border-bottom: none; }
+		#modal-refund-search .orders .item:hover { background-color: #ffffff; }
+		#modal-refund-search .orders .title {    flex-direction: row; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+		#modal-refund-search .orders .item .order-number { font-size: 1rem; font-weight: 600; }
+		#modal-refund-search .orders .item .client { font-size: 0.85rem; font-weight: 500; }
+		#modal-refund-search .orders .item .service { font-size: 0.75rem; opacity: 0.6; }
+
 	</style>
 </div>
