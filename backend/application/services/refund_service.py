@@ -183,9 +183,13 @@ class RefundService:
             for s in statuses
         }
 
+        # Tope (10) solo en columnas terminales (ejecutado / revertido), que acumulan
+        # cientos; las etapas activas se muestran completas.
         for req in requests:
             sid = req.status_id
             if sid not in grouped:
+                continue
+            if grouped[sid]["status_slug"] in ("executed", "reverted") and len(grouped[sid]["requests"]) >= 10:
                 continue
             grouped[sid]["requests"].append({
                 "id": req.id,

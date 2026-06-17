@@ -366,7 +366,8 @@ class ImportService:
                 imports_list.append(imports_data)
             
             imports_list.sort(key=lambda x: x["passed_days"], reverse=True)
-            imports_list = imports_list[:10]  # máximo 10 por columna (no inflar respuesta/logs)
+            if is_last:
+                imports_list = imports_list[:10]  # tope solo en el último estado (acumula muchos)
 
             result.append({
                 "status_id": status.id,

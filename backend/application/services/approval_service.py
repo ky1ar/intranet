@@ -116,11 +116,11 @@ class ApprovalService:
             g["slug"]: {"status_slug": g["slug"], "status_name": g["name"], "requests": []}
             for g in STATUS_GROUPS
         }
-        # Máximo 10 por columna (las más recientes; vienen ordenadas por fecha desc).
-        # Limitamos aquí para no formatear/enviar/loguear cientos de solicitudes.
+        # Tope (10) solo en la columna terminal "Aprobado", que puede acumular cientos.
+        # Las demás (pendiente / en revisión / rechazado) se muestran completas.
         for req in requests:
             st = req.status if req.status in grouped else "pending"
-            if len(grouped[st]["requests"]) >= 10:
+            if st == "approved" and len(grouped[st]["requests"]) >= 10:
                 continue
             grouped[st]["requests"].append(self._format_request(req))
         return [grouped[g["slug"]] for g in STATUS_GROUPS], 200

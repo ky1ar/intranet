@@ -482,12 +482,12 @@ class PurchaseService:
             return statuses, sc
 
         by_status = {s.id: [] for s in statuses}
-        # Máximo 10 por columna (las más recientes; vienen ordenadas por id desc).
-        # Limitamos aquí para no formatear/enviar/loguear cientos de solicitudes.
+        # Tope (10) solo en la columna terminal "Entregado" (status_id=7), que acumula
+        # cientos; las demás etapas se muestran completas.
         for purchase in purchase_requests:
             if purchase.status_id not in by_status:
                 continue
-            if len(by_status[purchase.status_id]) >= 10:
+            if purchase.status_id == 7 and len(by_status[purchase.status_id]) >= 10:
                 continue
             by_status[purchase.status_id].append({
                 "id": purchase.id,
