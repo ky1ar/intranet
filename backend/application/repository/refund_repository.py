@@ -4,9 +4,10 @@ from application.db_models.refund_model import (
     RefundRequest, RefundStatus, RefundAttachment, RefundChat, RefundLink
 )
 from application.db_models.module_model import UserModulePermission, ModulePermission, Module
-from application.models import Clients, ClientOrders
+from application.models import Clients, ClientOrders, Users
 from flask import g
-from sqlalchemy import or_, cast, String
+from sqlalchemy import or_, cast, String, func
+from datetime import datetime, timedelta
 
 
 class RefundRepository:
@@ -67,6 +68,79 @@ class RefundRepository:
             "per_page": per_page,
             "pages": (total + per_page - 1) // per_page,
         }, 200
+
+    # ── Statistics ──────────────────────────────────────────────────────────
+
+    def _stats_scope(self, q, only_commercial):
+        q = q.filter(RefundRequest.deleted_at.is_(None))
+        if only_commercial:
+            q = q.filter(RefundRequest.is_admin_register == False)
+        return q
+
+    @handle_db_exceptions
+    def stats_total(self, only_commercial=False):
+        q = self._stats_scope(g.db_session.query(func.count(RefundRequest.id)), only_commercial)
+        return q.scalar() or 0, 200
+
+    @handle_db_exceptions
+    def stats_executed_money(self, only_commercial=False):
+        q = (
+            g.db_session.query(
+                func.coalesce(func.sum(RefundRequest.net_refund), 0),
+                func.coalesce(func.sum(RefundRequest.penalty_amount), 0),
+            )
+            .join(RefundStatus, RefundRequest.status_id == RefundStatus.id)
+            .filter(RefundStatus.slug == "executed")
+        )
+        q = self._stats_scope(q, only_commercial)
+        row = q.first()
+        return (float(row[0] or 0), float(row[1] or 0)), 200
+
+    @handle_db_exceptions
+    def stats_penalty_count(self, only_commercial=False):
+        q = self._stats_scope(
+            g.db_session.query(func.count(RefundRequest.id))
+            .filter(RefundRequest.applies_penalty == True),
+            only_commercial,
+        )
+        return q.scalar() or 0, 200
+
+    @handle_db_exceptions
+    def stats_by_reason(self, only_commercial=False):
+        q = self._stats_scope(
+            g.db_session.query(RefundRequest.reason, func.count(RefundRequest.id)),
+            only_commercial,
+        )
+        return q.group_by(RefundRequest.reason).order_by(func.count(RefundRequest.id).desc()).all() or [], 200
+
+    @handle_db_exceptions
+    def stats_by_month(self, only_commercial=False):
+        period = func.date_format(RefundRequest.created_at, "%Y-%m").label("period")
+        q = self._stats_scope(
+            g.db_session.query(period, func.count(RefundRequest.id)),
+            only_commercial,
+        )
+        return q.group_by("period").order_by("period").all() or [], 200
+
+    @handle_db_exceptions
+    def stats_by_assignee(self, start_date=None, end_date=None, only_commercial=False):
+        q = (
+            g.db_session.query(Users.id, Users.name, func.count(RefundRequest.id))
+            .join(Users, RefundRequest.assigned_to == Users.id)
+        )
+        q = self._stats_scope(q, only_commercial)
+        if start_date and end_date:
+            try:
+                start = datetime.strptime(start_date, "%Y-%m-%d")
+                end_excl = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)
+                q = q.filter(RefundRequest.created_at >= start, RefundRequest.created_at < end_excl)
+            except ValueError:
+                pass
+        return (
+            q.group_by(Users.id, Users.name)
+            .order_by(func.count(RefundRequest.id).desc())
+            .all()
+        ) or [], 200
 
     @handle_db_exceptions
     def get_by_id(self, refund_id):

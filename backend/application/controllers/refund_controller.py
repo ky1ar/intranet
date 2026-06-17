@@ -28,6 +28,10 @@ class RefundController:
         return self.service.history(data)
 
     @handle_logs_and_exceptions
+    def statistics(self, data):
+        return self.service.statistics(data)
+
+    @handle_logs_and_exceptions
     def create(self):
         return self.service.create()
 

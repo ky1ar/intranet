@@ -44,6 +44,11 @@ PAYMENT_LABELS = {
     "scotiabank":  "Transferencia Scotiabank",
 }
 
+MONTHS = {
+    1: "Ene", 2: "Feb", 3: "Mar", 4: "Abr", 5: "May", 6: "Jun",
+    7: "Jul", 8: "Ago", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dic",
+}
+
 # Payment methods that require the client to provide a deposit account.
 # plin_yape must be refunded to a BCP account; bank transfers to an account of
 # the same bank the client selected.
@@ -253,6 +258,46 @@ class RefundService:
                 "per_page": result["per_page"],
                 "pages":    result["pages"],
             },
+        }, 200
+
+    @handle_exceptions
+    def statistics(self, data):
+        start_date = data.get("start_date")
+        end_date   = data.get("end_date")
+        # Estadísticas globales: las ven todos, sin scoping comercial (incluye caja chica).
+        total, _        = self.repository.stats_total()
+        money, _        = self.repository.stats_executed_money()
+        pen_count, _    = self.repository.stats_penalty_count()
+        reason_rows, _  = self.repository.stats_by_reason()
+        month_rows, _   = self.repository.stats_by_month()
+        assignee_rows, _ = self.repository.stats_by_assignee(start_date, end_date)
+
+        net_sum, penalty_sum = money
+        penalty_percent = round((pen_count / total) * 100) if total else 0
+
+        by_reason = [
+            {"reason": REASON_LABELS.get(r, r or "—"), "count": c}
+            for r, c in reason_rows
+        ]
+        by_month = [
+            {"period": f"{MONTHS.get(int(p.split('-')[1]), p)} {p[2:4]}", "count": c}
+            for p, c in month_rows
+        ]
+        by_assignee = [
+            {"assignee": format_name(name, True), "count": c}
+            for uid, name, c in assignee_rows
+        ]
+
+        return {
+            "count": {
+                "total": total,
+                "refunded_amount": net_sum,
+                "penalty_percent": penalty_percent,
+                "penalty_amount": penalty_sum,
+            },
+            "by_month": by_month,
+            "by_reason": by_reason,
+            "by_assignee": by_assignee,
         }, 200
 
     def _serialize_attachment(self, row):

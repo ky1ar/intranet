@@ -33,6 +33,16 @@ def history():
     return controller.history(payload)
 
 
+@refund_bp.route("/statistics", methods=["GET"])
+@jwt_required()
+def statistics():
+    payload = {
+        "start_date": request.args.get("start_date"),
+        "end_date": request.args.get("end_date"),
+    }
+    return controller.statistics(payload)
+
+
 @refund_bp.route("/<int:refund_id>", methods=["GET"])
 @jwt_required()
 def get_refund(refund_id):

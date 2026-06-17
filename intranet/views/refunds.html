@@ -10,6 +10,10 @@
 					<img alt="" width="20" height="20" src="/static/icons/line/history.svg">
 					<span>Historial</span>
 				</div>
+				<div class="item" @click="viewStatistics()">
+					<img alt="" width="20" height="20" src="/static/icons/line/report.svg">
+					<span>Estadísticas</span>
+				</div>
 			</div>
 			<div class="right frost-dark" x-show="canRegister() || canLinks()">
 				<div class="item" x-show="canLinks()" @click="viewLinks()">
@@ -324,6 +328,63 @@
 							<span class="service" x-text="`Pedido ${r.order_number || '—'} · ${r.reason}`"></span>
 						</div>
 					</template>
+				</div>
+			</div>
+		</div>
+
+		<!-- ── Modal estadísticas ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('refund-stats')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-refund-stats"
+			x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="top">
+					<span class="title">Estadísticas</span>
+				</div>
+
+				<div class="modal-content">
+					<div class="kpi">
+						<div class="item white">
+							<p>Total</p>
+							<span x-text="$store.cache.getData('refund_statistics')?.count.total ?? 0"></span>
+						</div>
+						<div class="item white">
+							<p>Monto extornado</p>
+							<span x-text="`S/ ${Number($store.cache.getData('refund_statistics')?.count.refunded_amount || 0).toFixed(2)}`"></span>
+						</div>
+						<div class="item white">
+							<p>% con penalidad</p>
+							<span x-text="`${$store.cache.getData('refund_statistics')?.count.penalty_percent ?? 0}%`"></span>
+						</div>
+						<div class="item white">
+							<p>Penalidades</p>
+							<span x-text="`S/ ${Number($store.cache.getData('refund_statistics')?.count.penalty_amount || 0).toFixed(2)}`"></span>
+						</div>
+					</div>
+
+					<div class="charts">
+						<div class="glass2 box">
+							<span>Extornos por mes</span>
+							<canvas x-ref="refundMonthChart" width="160" height="80"></canvas>
+						</div>
+
+						<div class="glass2 box">
+							<span>Por motivo</span>
+							<canvas x-ref="refundReasonChart" width="160" height="80"></canvas>
+						</div>
+
+						<div class="glass2 box">
+							<span>Por responsable</span>
+							<canvas x-ref="refundAssigneeChart" width="160" height="80"></canvas>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -780,6 +841,23 @@
 	</div>
 
 	<script>
+		var chartRefundMonth = null;
+		var chartRefundReason = null;
+		var chartRefundAssignee = null;
+		var STATS_AXIS = {
+			ticks: { color: '#666', font: { size: 12, family: 'Lexend', weight: '500' } },
+			grid:  { color: 'transparent' },
+			border: { display: false },
+		};
+		var STATS_CHART_OPTS = {
+			responsive: true,
+			plugins: { legend: { display: false } },
+			scales: {
+				x: STATS_AXIS,
+				y: { beginAtZero: true, ticks: { ...STATS_AXIS.ticks, precision: 0 }, grid: { color: '#fff' }, border: { display: false } },
+			},
+		};
+
 		Alpine.data('refunds_data', () => ({
 			token: localStorage.getItem('user_token'),
 			api:   Alpine.store('cache').api,
@@ -1089,6 +1167,58 @@
 			},
 			async prevHistoryPage()  {
 				if (this.history_page > 1) { this.history_page--; await this.getHistory(); }
+			},
+
+			// ── Estadísticas ──
+			async viewStatistics() {
+				await Alpine.store('cache').fetchData([
+					{ key: 'refund_statistics', url: '/refund/statistics', force: true },
+				]);
+				Alpine.store('cache').showModal('refund-stats');
+				await this.initStatsCharts();
+			},
+			async initStatsCharts() {
+				const stats = Alpine.store('cache').getData('refund_statistics');
+				if (!stats) return;
+				if (!this.$refs.refundMonthChart || !this.$refs.refundReasonChart || !this.$refs.refundAssigneeChart) return;
+				await new Promise(r => requestAnimationFrame(() => setTimeout(r, 50)));
+
+				if (chartRefundMonth)  chartRefundMonth.destroy();
+				if (chartRefundReason) chartRefundReason.destroy();
+
+				chartRefundMonth = new Chart(this.$refs.refundMonthChart, {
+					type: 'line',
+					data: {
+						labels: stats.by_month.map(r => r.period),
+						datasets: [{ label: 'Extornos', data: stats.by_month.map(r => r.count), fill: true, tension: 0.3, backgroundColor: 'rgba(234,113,52,0.5)', borderWidth: 0 }],
+					},
+					options: STATS_CHART_OPTS,
+				});
+
+				chartRefundReason = new Chart(this.$refs.refundReasonChart, {
+					type: 'bar',
+					data: {
+						labels: stats.by_reason.map(r => r.reason),
+						datasets: [{ label: 'Extornos', data: stats.by_reason.map(r => r.count), backgroundColor: 'rgba(255,160,42,0.75)', borderWidth: 0 }],
+					},
+					options: STATS_CHART_OPTS,
+				});
+
+				this.buildAssigneeChart(stats);
+			},
+			buildAssigneeChart(stats) {
+				const canvas = this.$refs.refundAssigneeChart;
+				if (!canvas) return;
+				const byA = Array.isArray(stats.by_assignee) ? stats.by_assignee : [];
+				if (chartRefundAssignee) { chartRefundAssignee.destroy(); chartRefundAssignee = null; }
+				chartRefundAssignee = new Chart(canvas, {
+					type: 'bar',
+					data: {
+						labels: byA.map(r => r.assignee),
+						datasets: [{ label: 'Extornos', data: byA.map(r => r.count), backgroundColor: 'rgba(15,32,39,0.75)', borderWidth: 0 }],
+					},
+					options: { ...STATS_CHART_OPTS, plugins: { legend: { display: false }, tooltip: { enabled: false } } },
+				});
 			},
 
 			// ── Detail ──
@@ -1845,6 +1975,18 @@
 		#modal-refund-search .orders .item .order-number { font-size: 1rem; font-weight: 600; }
 		#modal-refund-search .orders .item .client { font-size: 0.85rem; font-weight: 500; }
 		#modal-refund-search .orders .item .service { font-size: 0.75rem; opacity: 0.6; }
+
+
+		/* ── Estadísticas ── */
+		#modal-refund-stats .top { display: flex; justify-content: space-between; align-items: center; }
+		#modal-refund-stats .top .title { font-weight: 700; font-size: 1.05rem; }
+		#modal-refund-stats .kpi { display: flex; gap: 1rem; flex-wrap: wrap; }
+		#modal-refund-stats .kpi .item { flex: 1; min-width: 8rem; display: flex; padding: 1rem; flex-direction: column; gap: 0.25rem; border-radius: 0.75rem; }
+		#modal-refund-stats .kpi .item span { font-weight: 500; font-size: 1.4rem; color: var(--primary); }
+		#modal-refund-stats .kpi .item p { margin: 0; display: flex; flex: 1; align-items: center; font-weight: 500; opacity: 0.7; font-size: 0.85rem; }
+		#modal-refund-stats .charts { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 1rem; }
+		#modal-refund-stats .charts .box { padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; min-width: 24rem; flex: 1; border-radius: 0.75rem; }
+		#modal-refund-stats .charts .box span { font-weight: 500; }
 
 	</style>
 </div>
