@@ -1665,6 +1665,15 @@ document.addEventListener("DOMContentLoaded", () => {
 					</div>
 					<img id="guia-detail-brand-img" class="guia-detail-brandlogo" src="" alt="">
 				</div>
+				<div class="guia-voltage-warning" role="alert">
+					<span class="guia-voltage-ico">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+					</span>
+					<div class="guia-voltage-text">
+						<span class="guia-voltage-title">¡Importante! Selecciona siempre <strong>220V</strong></span>
+						<span class="guia-voltage-sub">Antes de encender tu equipo, verifica que el selector de voltaje esté en <strong>220V</strong>. Usar 110V puede dañar la máquina.</span>
+					</div>
+				</div>
 				<div class="guia-detail-desc" id="guia-detail-desc"></div>
 				<div class="guia-detail-items" id="guia-detail-items"></div>
 			</div>
@@ -1860,6 +1869,26 @@ document.addEventListener("DOMContentLoaded", () => {
 				filter: grayscale(1); pointer-events: none; z-index: 0;
 			}
 			.guia-detail-desc  { color: #444; font-size: 0.9rem; line-height: 1.6; white-space: pre-line; }
+
+			/* Advertencia de voltaje (siempre 220V) */
+			.guia-voltage-warning {
+				display: flex; align-items: center; gap: 1rem;
+				padding: 1.1rem 1.5rem; border-radius: 16px;
+				background: #fffaf0;
+				border: 1px solid #00000010; 
+				box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+			}
+			.guia-voltage-ico {
+				width: 2.75rem; height: 2.75rem; min-width: 2.75rem; border-radius: 50%;
+				background: #fdf0d6; color: #c98a00;
+				display: flex; align-items: center; justify-content: center;
+			}
+			.guia-voltage-ico svg { width: 1.35rem; height: 1.35rem; }
+			.guia-voltage-text { display: flex; flex-direction: column; gap: 0.15rem; }
+			.guia-voltage-title { font-size: 0.98rem; font-weight: 800; color: #1f2937; }
+			.guia-voltage-title strong { color: #e05a00; }
+			.guia-voltage-sub { font-size: 0.83rem; line-height: 1.5; color: #6b7280; }
+			.guia-voltage-sub strong { color: #e05a00; font-weight: 700; }
 
 			.guia-detail-items { display: flex; flex-direction: column; gap: 1rem; }
 			.guia-item-card {
