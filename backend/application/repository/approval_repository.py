@@ -126,7 +126,7 @@ class ApprovalRepository:
         )
         g.db_session.add(req)
         g.db_session.commit()
-        return {"id": req.id, "already_exists": False}, 200
+        return {"id": req.id, "already_exists": False, "type_name": type_obj.name}, 200
 
     def _save_voucher(self):
         """Guarda el adjunto de boleta/factura (solo imagen o PDF). Devuelve el nombre o None."""

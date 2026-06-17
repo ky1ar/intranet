@@ -553,9 +553,7 @@
 
 		voucherUrl() {
 			if (!this.detail?.voucher_filename) return '';
-			// Las guías sirven el comprobante desde /guide/voucher/ (otra carpeta).
-			const base = this.detail?.is_guide ? 'guide' : 'approval';
-			return `${Alpine.store('cache').api}/${base}/voucher/${this.detail.voucher_filename}`;
+			return `${Alpine.store('cache').api}/approval/voucher/${this.detail.voucher_filename}`;
 		},
 
 		isVoucherImage() {

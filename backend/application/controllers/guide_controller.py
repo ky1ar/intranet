@@ -48,10 +48,6 @@ class GuideController:
         return self.service.get_content_admin(data["machine_id"])
 
     @handle_logs_and_exceptions
-    def list_requests(self, data):
-        return self.service.list_requests(data.get("status"))
-
-    @handle_logs_and_exceptions
     def save_content(self, data):
         if validation := validate_request(data, {"machine_id"}):
             return validation, 400
@@ -60,9 +56,3 @@ class GuideController:
     @handle_logs_and_exceptions
     def upload_media(self, data):
         return self.service.upload_media()
-
-    def serve_voucher(self, filename):
-        filepath = self.service.serve_voucher(filename)
-        if not filepath:
-            return {"error": "Archivo no encontrado"}, 404
-        return send_file(filepath)

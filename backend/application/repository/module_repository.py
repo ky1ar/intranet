@@ -165,6 +165,22 @@ class ModuleRepository:
 
 
     @handle_db_exceptions
+    def get_user_ids_with_permission(self, module_id, permission_slug):
+        rows = (
+            g.db_session.query(UserModulePermission.user_id)
+            .join(ModulePermission, UserModulePermission.module_permission_id == ModulePermission.id)
+            .filter(
+                ModulePermission.module_id == module_id,
+                ModulePermission.slug == permission_slug,
+                UserModulePermission.granted == True,
+            )
+            .distinct()
+            .all()
+        )
+        return [r[0] for r in rows], 200
+
+
+    @handle_db_exceptions
     def set_default_module(self, user_id, module_id):
         (
             g.db_session.query(UserModuleAccess)

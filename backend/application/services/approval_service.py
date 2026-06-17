@@ -1,18 +1,18 @@
 import logging
 import os
 from datetime import datetime
-from flask import render_template, request, g
+from flask import render_template, request
 from flask_mail import Message
 from application import mail, socketio
 from application.handlers import handle_exceptions
 from application.utils import format_datetime, format_name, file_extension
 from application.repository.approval_repository import ApprovalRepository
 from application.services.push_service import PushSender
+from application.services.module_service import ModuleService
 from application.services.courses_provisioning_service import (
     CoursesProvisioningService, FabProvisioningService, is_course_slug, is_fab_slug,
 )
 from application.services.guide_service import GuideService
-from application.db_models.guide_model import GuideRequest
 from config import Courses, Paths
 
 
@@ -29,6 +29,7 @@ class ApprovalService:
     def __init__(self):
         self.repository = ApprovalRepository()
         self.push_service = PushSender()
+        self.module_service = ModuleService()
 
     @handle_exceptions
     def get_wp_profile(self, wp_user_id):
@@ -80,8 +81,24 @@ class ApprovalService:
 
         if result.get("already_exists"):
             return {"message": "Ya existe una solicitud activa para este servicio", "id": result["id"]}, 200
+        self._notify_new_request(result["id"], result.get("type_name") or data.get("type_slug"))
         socketio.emit("approval_update", {})
         return {"message": "Solicitud enviada correctamente", "id": result["id"]}, 200
+
+    def _notify_new_request(self, request_id, type_name):
+        """Push a quienes tengan el permiso 'notify' del modulo de aprobaciones."""
+        try:
+            user_ids, _ = self.module_service.get_user_ids_with_permission("approvals", "notify")
+            if not user_ids:
+                return
+            self.push_service.send_to_users(
+                user_ids=user_ids,
+                title="Nueva solicitud de aprobación",
+                body=f"AP-{request_id} - {type_name}",
+                data={"url": "/approvals", "title": "Nueva solicitud de aprobación"},
+            )
+        except Exception:
+            logging.exception("Error notificando nueva solicitud de aprobación AP-%s", request_id)
 
     @handle_exceptions
     def get_all_requests(self, status_filter=None):
@@ -319,23 +336,14 @@ class ApprovalService:
             "created_at": format_datetime(req.created_at),
         }
 
-        # Las solicitudes de tipo 'guia' guardan el comprobante en GuideRequest
-        # (no en ApprovalRequest). Lo resolvemos aqui para que la vista de
-        # Aprobaciones pueda mostrarlo vía /guide/voucher/.
+        # Las solicitudes de tipo 'guia' llevan machine_id. Marcamos is_guide
+        # para que la vista muestre el nombre del equipo en la etiqueta.
         if req.type_rel and req.type_rel.slug == "guia":
-            guide_req = (
-                g.db_session.query(GuideRequest)
-                .filter(GuideRequest.approval_request_id == req.id)
-                .first()
-            )
             data["is_guide"] = True
-            if guide_req:
-                if guide_req.voucher_filename:
-                    data["voucher_filename"] = guide_req.voucher_filename
-                machine = guide_req.machine
-                if machine:
-                    brand = machine.brand.name if machine.brand else ""
-                    data["machine_name"] = f"{brand} {machine.model}".strip()
+            machine = req.machine
+            if machine:
+                brand = machine.brand.name if machine.brand else ""
+                data["machine_name"] = f"{brand} {machine.model}".strip()
 
         if with_chats:
             data["chats"] = [

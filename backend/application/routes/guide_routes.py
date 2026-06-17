@@ -54,12 +54,6 @@ def delete_content(machine_id):
     return controller.delete_content({"machine_id": machine_id})
 
 
-@guide_bp.route("/list", methods=["GET"])
-def list_requests():
-    data = {"status": request.args.get("status")}
-    return controller.list_requests(data)
-
-
 @guide_bp.route("/content/save", methods=["POST"])
 def save_content():
     return controller.save_content(request.get_json())
@@ -69,7 +63,3 @@ def save_content():
 def upload_media():
     return controller.upload_media({})
 
-
-@guide_bp.route("/voucher/<filename>", methods=["GET"])
-def serve_voucher(filename):
-    return controller.serve_voucher(filename)

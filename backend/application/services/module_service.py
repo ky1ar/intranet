@@ -264,6 +264,14 @@ class ModuleService:
         return {"granted": has}, 200
 
 
+    @handle_exceptions
+    def get_user_ids_with_permission(self, module_slug, permission_slug):
+        module, mc = self.module_repository.get_module_by_slug(module_slug)
+        if mc != 200:
+            return [], 200
+        return self.module_repository.get_user_ids_with_permission(module.id, permission_slug)
+
+
     # ── Admin ──────────────────────────────────────────────────────────────
 
     @handle_exceptions

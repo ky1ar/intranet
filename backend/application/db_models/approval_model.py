@@ -22,12 +22,14 @@ class ApprovalRequest(BaseModel):
     access_url        = db.Column(db.Text)
     invoice_number    = db.Column(db.String(50))
     voucher_filename  = db.Column(db.String(255))
+    machine_id        = db.Column(db.Integer, db.ForeignKey("machines.id"))
     created_at        = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
     updated_at        = db.Column(db.DateTime, onupdate=db.func.now())
 
     type_rel  = db.relationship("ApprovalType", lazy="joined")
     client    = db.relationship("Clients", foreign_keys=[client_id], lazy="joined")
     approver  = db.relationship("Users", foreign_keys=[approved_by], lazy="joined")
+    machine   = db.relationship("Machines", lazy="joined")
 
 
 class ApprovalChats(BaseModel):

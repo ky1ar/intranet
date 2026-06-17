@@ -1,18 +1,6 @@
 from application.db_models.base_model import db, BaseModel
 
 
-class GuideRequest(BaseModel):
-    __tablename__ = "guide_request"
-
-    id                  = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    approval_request_id = db.Column(db.Integer, db.ForeignKey("approval_request.id"), nullable=False, unique=True)
-    machine_id          = db.Column(db.Integer, db.ForeignKey("machines.id"), nullable=False)
-    voucher_filename    = db.Column(db.String(255))
-
-    approval = db.relationship("ApprovalRequest", lazy="joined")
-    machine  = db.relationship("Machines", lazy="joined")
-
-
 class MachineGuide(BaseModel):
     __tablename__ = "machine_guide"
 
