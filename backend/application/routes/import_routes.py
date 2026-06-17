@@ -36,6 +36,11 @@ def history():
     return controller.import_history(payload)
 
 
+@import_bp.route("/statistics", methods=["GET"])
+def statistics():
+    return controller.import_statistics()
+
+
 @import_bp.route("/dashboard", methods=["GET"])
 @jwt_required()
 def dashboard():

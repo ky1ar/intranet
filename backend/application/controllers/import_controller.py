@@ -31,6 +31,10 @@ class ImportController:
     def import_history(self, data):
         return self.import_service.history(data)
 
+    @handle_logs_and_exceptions
+    def import_statistics(self):
+        return self.import_service.statistics()
+
 
     @handle_logs_and_exceptions
     def import_dashboard(self):

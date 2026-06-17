@@ -7,7 +7,8 @@ from application.db_models.import_model import (
     ImportShipmentLine
 )
 from flask import g
-from sqlalchemy import or_
+from sqlalchemy import or_, func
+from datetime import date, timedelta
 
 
 class ImportRepository:
@@ -264,6 +265,96 @@ class ImportRepository:
         )
         return imports or [], 200
 
+
+    # ── Statistics (global, excluye borradores estado 1) ─────────────────────
+
+    @handle_db_exceptions
+    def stats_total(self):
+        n = (
+            g.db_session.query(func.count(ImportShipment.id))
+            .filter(ImportShipment.status_id != 1)
+            .scalar()
+        )
+        return n or 0, 200
+
+    @handle_db_exceptions
+    def stats_active(self):
+        n = (
+            g.db_session.query(func.count(ImportShipment.id))
+            .filter(ImportShipment.status_id != 1, ImportShipment.delivery_date.is_(None))
+            .scalar()
+        )
+        return n or 0, 200
+
+    @handle_db_exceptions
+    def stats_arriving(self):
+        today = date.today()
+        in7 = today + timedelta(days=7)
+        n = (
+            g.db_session.query(func.count(ImportShipment.id))
+            .filter(
+                ImportShipment.status_id != 1,
+                ImportShipment.delivery_date.is_(None),
+                ImportShipment.eta_date >= today,
+                ImportShipment.eta_date <= in7,
+            )
+            .scalar()
+        )
+        return n or 0, 200
+
+    @handle_db_exceptions
+    def stats_lead_time(self):
+        avg_days = (
+            g.db_session.query(
+                func.avg(func.datediff(ImportShipment.delivery_date, ImportStatusHistory.created_at))
+            )
+            .join(
+                ImportStatusHistory,
+                (ImportStatusHistory.import_shipment_id == ImportShipment.id)
+                & (ImportStatusHistory.status_id == 1),
+            )
+            .filter(ImportShipment.status_id != 1, ImportShipment.delivery_date.isnot(None))
+            .scalar()
+        )
+        return (round(float(avg_days), 1) if avg_days is not None else 0), 200
+
+    @handle_db_exceptions
+    def stats_arrivals_by_month(self):
+        period = func.date_format(ImportShipment.eta_date, "%Y-%m").label("period")
+        rows = (
+            g.db_session.query(period, func.count(ImportShipment.id))
+            .filter(ImportShipment.status_id != 1, ImportShipment.eta_date.isnot(None))
+            .group_by("period").order_by("period").all()
+        )
+        return rows or [], 200
+
+    @handle_db_exceptions
+    def stats_by_provider(self, limit=10):
+        cnt = func.count(func.distinct(ImportShipmentLine.import_shipment_id))
+        rows = (
+            g.db_session.query(ImportProvider.name, cnt)
+            .join(ImportShipmentLine, ImportShipmentLine.provider_id == ImportProvider.id)
+            .join(ImportShipment, ImportShipment.id == ImportShipmentLine.import_shipment_id)
+            .filter(ImportShipment.status_id != 1)
+            .group_by(ImportProvider.name)
+            .order_by(cnt.desc())
+            .limit(limit)
+            .all()
+        )
+        return rows or [], 200
+
+    @handle_db_exceptions
+    def stats_by_port(self):
+        port_label = func.coalesce(ImportPort.name, ImportShipment.custom_port_name, "Sin puerto").label("port")
+        rows = (
+            g.db_session.query(port_label, func.count(ImportShipment.id))
+            .outerjoin(ImportPort, ImportShipment.port_id == ImportPort.id)
+            .filter(ImportShipment.status_id != 1)
+            .group_by(port_label)
+            .order_by(func.count(ImportShipment.id).desc())
+            .all()
+        )
+        return rows or [], 200
 
     @handle_db_exceptions
     def get_import(self, import_id):

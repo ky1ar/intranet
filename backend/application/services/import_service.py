@@ -17,6 +17,12 @@ from application import socketio
 from config import Paths
 
 
+IMONTHS = {
+    1: "Ene", 2: "Feb", 3: "Mar", 4: "Abr", 5: "May", 6: "Jun",
+    7: "Jul", 8: "Ago", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dic",
+}
+
+
 class ImportService:
     def __init__(self):
         self.import_repository = ImportRepository()
@@ -507,6 +513,35 @@ class ImportService:
                 "per_page": result["per_page"],
                 "pages":    result["pages"],
             },
+        }, 200
+
+    @handle_exceptions
+    def statistics(self):
+        total, _         = self.import_repository.stats_total()
+        active, _        = self.import_repository.stats_active()
+        arriving, _      = self.import_repository.stats_arriving()
+        lead, _          = self.import_repository.stats_lead_time()
+        eta_rows, _      = self.import_repository.stats_arrivals_by_month()
+        provider_rows, _ = self.import_repository.stats_by_provider()
+        port_rows, _     = self.import_repository.stats_by_port()
+
+        by_month = [
+            {"period": f"{IMONTHS.get(int(p.split('-')[1]), p)} {p[2:4]}", "count": c}
+            for p, c in eta_rows
+        ]
+        by_provider = [{"provider": name, "count": c} for name, c in provider_rows]
+        by_port = [{"port": name, "count": c} for name, c in port_rows]
+
+        return {
+            "count": {
+                "total": total,
+                "active": active,
+                "arriving": arriving,
+                "lead_time": lead,
+            },
+            "by_month": by_month,
+            "by_provider": by_provider,
+            "by_port": by_port,
         }, 200
 
     @handle_exceptions
