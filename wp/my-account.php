@@ -1983,6 +1983,21 @@ document.addEventListener("DOMContentLoaded", () => {
 				font-weight: 700; padding: 0.8rem 2rem; border-radius: 2rem; transition: opacity .2s;
 			}
 			.guia-drive-btn:hover { opacity: 0.88; }
+
+			/* Bonus Track - PDFs embebidos */
+			.guia-bonus-wrap {
+				padding: 1.5rem 1rem; border-radius: 12px; background: #fdf3ee;
+				display: flex; flex-direction: column; gap: 0.75rem;
+			}
+			.guia-bonus-wrap .guia-drive-title,
+			.guia-bonus-wrap .guia-drive-sub { text-align: center; }
+			.guia-bonus-pdf { display: flex; flex-direction: column; gap: 0.4rem; }
+			.guia-bonus-pdf-title { font-weight: 700; font-size: 0.95rem; color: #222; }
+			.guia-bonus-frame {
+				width: 100%; height: 600px; border: 1px solid #e7d8ce;
+				border-radius: 10px; background: #fff;
+			}
+			.guia-bonus-fallback { font-size: 0.8rem; color: #e05a00; text-decoration: underline; }
 			</style>
 
 			<script>
@@ -2081,25 +2096,12 @@ document.addEventListener("DOMContentLoaded", () => {
 					const items = content.items || [];
 					if (!items.length) {
 						container.innerHTML = '<p style="opacity:0.4;font-size:0.85rem">Sin contenido disponible aún.</p>';
-						return;
 					}
 
 					let stepNum = 0;
 					items.forEach(item => {
-						// Bonus Track: botón al Drive
-						if (item.type === 'drive' && item.url) {
-							const wrap = document.createElement('div');
-							wrap.className = 'guia-drive-wrap';
-							wrap.innerHTML = `
-								<div class="guia-drive-title">Bonus Track</div>
-								<p class="guia-drive-sub">¡Revisa esta información para que seas un experto en impresiones 3D!</p>
-								<a href="${item.url}" target="_blank" rel="noopener" class="guia-drive-btn">
-									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-									Link de Google Drive
-								</a>`;
-							container.appendChild(wrap);
-							return;
-						}
+						// El antiguo Bonus Track (link de Drive) se reemplazó por los PDFs fijos: ver appendBonusTrack()
+						if (item.type === 'drive') return;
 
 						const card = document.createElement('div');
 						card.className = 'guia-step-card';
@@ -2130,6 +2132,30 @@ document.addEventListener("DOMContentLoaded", () => {
 						}
 						container.appendChild(card);
 					});
+
+					appendBonusTrack(container);
+				}
+
+				// ── Bonus Track: PDFs fijos (CAD + Tips) para todos los equipos ──
+				function appendBonusTrack(container) {
+					const PDF_BASE = `${INTRANET}/static/pdf`;
+					const pdfs = [
+						{ title: 'Diseño CAD',           file: 'cad.pdf'  },
+						{ title: 'Tips de impresión 3D', file: 'tips.pdf' },
+					];
+
+					const wrap = document.createElement('div');
+					wrap.className = 'guia-bonus-wrap';
+					wrap.innerHTML = `
+						<div class="guia-drive-title">Bonus Track</div>
+						<p class="guia-drive-sub">¡Revisa esta información para que seas un experto en impresiones 3D!</p>
+						${pdfs.map(p => `
+							<div class="guia-bonus-pdf">
+								<div class="guia-bonus-pdf-title">${p.title}</div>
+								<iframe class="guia-bonus-frame" src="${PDF_BASE}/${p.file}#toolbar=1&view=FitH" title="${p.title}" loading="lazy"></iframe>
+								<a href="${PDF_BASE}/${p.file}" target="_blank" rel="noopener" class="guia-bonus-fallback">¿No se muestra? Ábrelo en una pestaña nueva</a>
+							</div>`).join('')}`;
+					container.appendChild(wrap);
 				}
 
 				// ── Perfil cacheado (phone/dni) ─────────────────────────────────
