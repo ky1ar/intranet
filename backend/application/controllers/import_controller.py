@@ -23,6 +23,14 @@ class ImportController:
     def import_view(self, import_id):
         return self.import_service.view(import_id)
 
+    @handle_logs_and_exceptions
+    def import_search(self, term):
+        return self.import_service.search_imports(term)
+
+    @handle_logs_and_exceptions
+    def import_history(self, data):
+        return self.import_service.history(data)
+
 
     @handle_logs_and_exceptions
     def import_dashboard(self):

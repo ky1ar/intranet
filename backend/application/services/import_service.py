@@ -360,6 +360,7 @@ class ImportService:
                 imports_list.append(imports_data)
             
             imports_list.sort(key=lambda x: x["passed_days"], reverse=True)
+            imports_list = imports_list[:10]  # máximo 10 por columna (no inflar respuesta/logs)
 
             result.append({
                 "status_id": status.id,
@@ -462,6 +463,51 @@ class ImportService:
         }
         return response, 200
     
+
+    def _format_list_item(self, item):
+        summary = self._shipment_summary(item)
+        reg, rc = self.import_repository.get_import_history(item.id, 1)
+        created_at = format_datetime(reg.created_at) if rc == 200 and reg else None
+        return {
+            "id": item.id,
+            "status_id": item.status_id,
+            "status_name": item.status.name if item.status else None,
+            "business_name": item.business.name if item.business else "-",
+            "port_name": item.port.name.title() if item.port and item.port.name else "-",
+            "providers_text": summary["providers_text"],
+            "providers_full_text": summary["providers_full_text"],
+            "line_count": summary["line_count"],
+            "local_agent_name": item.local_agent_name.title() if item.local_agent_name else None,
+            "origin_agent_name": item.origin_agent_name.title() if item.origin_agent_name else None,
+            "created_at": created_at,
+        }
+
+    @handle_exceptions
+    def search_imports(self, term):
+        term = (term or "").strip()
+        if len(term) < 2:
+            return [], 200
+        rows, rc = self.import_repository.search_imports(term)
+        if rc != 200:
+            return rows, rc
+        return [self._format_list_item(r) for r in rows], 200
+
+    @handle_exceptions
+    def history(self, data):
+        page     = data.get("page", 1)
+        per_page = data.get("per_page", 12)
+        result, rc = self.import_repository.get_imports_paginated(page, per_page)
+        if rc != 200:
+            return result, rc
+        return {
+            "list": [self._format_list_item(r) for r in result["list"]],
+            "pagination": {
+                "total":    result["total"],
+                "page":     result["page"],
+                "per_page": result["per_page"],
+                "pages":    result["pages"],
+            },
+        }, 200
 
     @handle_exceptions
     def view(self, import_id):

@@ -7,6 +7,7 @@ from application.db_models.import_model import (
     ImportShipmentLine
 )
 from flask import g
+from sqlalchemy import or_
 
 
 class ImportRepository:
@@ -28,6 +29,49 @@ class ImportRepository:
             .all()
         )
         return imports or [], 200
+
+
+    @handle_db_exceptions
+    def search_imports(self, term, limit=20):
+        like = f"%{term}%"
+        rows = (
+            g.db_session.query(ImportShipment)
+            .outerjoin(ImportShipmentLine, ImportShipmentLine.import_shipment_id == ImportShipment.id)
+            .outerjoin(ImportProvider, ImportShipmentLine.provider_id == ImportProvider.id)
+            .filter(ImportShipment.status_id != 1)
+            .filter(or_(
+                ImportProvider.name.ilike(like),
+                ImportShipment.local_agent_name.ilike(like),
+                ImportShipment.origin_agent_name.ilike(like),
+            ))
+            .order_by(ImportShipment.id.desc())
+            .distinct()
+            .limit(limit)
+            .all()
+        )
+        return rows or [], 200
+
+
+    @handle_db_exceptions
+    def get_imports_paginated(self, page=1, per_page=12):
+        q = (
+            g.db_session.query(ImportShipment)
+            .filter(ImportShipment.status_id != 1)
+        )
+        total = q.count()
+        items = (
+            q.order_by(ImportShipment.id.desc())
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        )
+        return {
+            "list": items,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "pages": (total + per_page - 1) // per_page,
+        }, 200
     
 
     @handle_db_exceptions

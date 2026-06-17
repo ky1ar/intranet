@@ -22,6 +22,20 @@ def view(import_id):
     return controller.import_view(import_id)
 
 
+@import_bp.route("/find/<term>", methods=["GET"])
+def find(term):
+    return controller.import_search(term)
+
+
+@import_bp.route("/history", methods=["GET"])
+def history():
+    payload = {
+        "page": int(request.args.get("page", 1)),
+        "per_page": int(request.args.get("per_page", 12)),
+    }
+    return controller.import_history(payload)
+
+
 @import_bp.route("/dashboard", methods=["GET"])
 @jwt_required()
 def dashboard():
