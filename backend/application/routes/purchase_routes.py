@@ -58,6 +58,12 @@ def history():
     return controller.purchase_history(page)
 
 
+@purchase_bp.route("/statistics", methods=["GET"])
+@jwt_required()
+def statistics():
+    return controller.purchase_statistics()
+
+
 @purchase_bp.route("/<int:purchase_id>/chat", methods=["POST"])
 @jwt_required()
 def send_chat(purchase_id):

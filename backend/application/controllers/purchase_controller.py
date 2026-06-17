@@ -56,6 +56,10 @@ class PurchaseController:
     def purchase_history(self, page):
         return self.purchase.history(page)
 
+    @handle_logs_and_exceptions
+    def purchase_statistics(self):
+        return self.purchase.statistics()
+
 
     @handle_logs_and_exceptions
     def purchase_send_chat(self, data):

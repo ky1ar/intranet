@@ -14,6 +14,9 @@
 				<div class="item" @click="viewHistory()">
 					<img alt="" width="18" height="18" src="/static/icons/line/history.svg">
 				</div>
+				<div class="item" @click="viewStatistics()">
+					<img alt="" width="18" height="18" src="/static/icons/line/report.svg">
+				</div>
 			</div>
 
 			<div class="left mobile-hide frost">
@@ -24,6 +27,10 @@
 				<div class="item" @click="viewHistory()">
 					<img alt="" width="20" height="20" src="/static/icons/line/history.svg">
 					<span>Historial</span>
+				</div>
+				<div class="item" @click="viewStatistics()">
+					<img alt="" width="20" height="20" src="/static/icons/line/report.svg">
+					<span>Estadísticas</span>
 				</div>
 			</div>
 
@@ -594,6 +601,61 @@
 			</div>
 		</div>
 
+		<!-- ── Modal estadísticas ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('purchases-stats')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-purchases-stats"
+			x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="top">
+					<span class="title">Estadísticas</span>
+				</div>
+
+				<div class="modal-content">
+					<div class="kpi">
+						<div class="item white">
+							<p>Total</p>
+							<span x-text="$store.cache.getData('purchases_statistics')?.count.total ?? 0"></span>
+						</div>
+						<div class="item white">
+							<p>Pendientes</p>
+							<span x-text="$store.cache.getData('purchases_statistics')?.count.pending ?? 0"></span>
+						</div>
+						<div class="item white">
+							<p>Monto total</p>
+							<span x-text="`S/ ${Number($store.cache.getData('purchases_statistics')?.count.total_amount || 0).toFixed(2)}`"></span>
+						</div>
+						<div class="item white">
+							<p>Monto del mes</p>
+							<span x-text="`S/ ${Number($store.cache.getData('purchases_statistics')?.count.month_amount || 0).toFixed(2)}`"></span>
+						</div>
+					</div>
+
+					<div class="charts">
+						<div class="glass2 box">
+							<span>Compras por mes</span>
+							<canvas x-ref="purchaseMonthChart" width="160" height="80"></canvas>
+						</div>
+						<div class="glass2 box">
+							<span>Por departamento</span>
+							<canvas x-ref="purchaseDeptChart" width="160" height="80"></canvas>
+						</div>
+						<div class="glass2 box">
+							<span>Monto por mes (S/)</span>
+							<canvas x-ref="purchaseAmountChart" width="160" height="80"></canvas>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
 	</div>
 
 
@@ -601,6 +663,23 @@
 
 
 	<script>
+		var chartPurchaseMonth = null;
+		var chartPurchaseDept = null;
+		var chartPurchaseAmount = null;
+		var PSTATS_AXIS = {
+			ticks: { color: '#666', font: { size: 12, family: 'Lexend', weight: '500' } },
+			grid:  { color: 'transparent' },
+			border: { display: false },
+		};
+		var PSTATS_OPTS = {
+			responsive: true,
+			plugins: { legend: { display: false } },
+			scales: {
+				x: PSTATS_AXIS,
+				y: { beginAtZero: true, ticks: { ...PSTATS_AXIS.ticks, precision: 0 }, grid: { color: '#fff' }, border: { display: false } },
+			},
+		};
+
 		Alpine.data('purchases_data', () => ({
 			token: localStorage.getItem('user_token'),
 
@@ -1241,6 +1320,51 @@
 				}
 			},
 
+			// ── Estadísticas ──
+			async viewStatistics() {
+				await Alpine.store('cache').fetchData([
+					{ key: 'purchases_statistics', url: '/purchases/statistics', force: true },
+				]);
+				Alpine.store('cache').showModal('purchases-stats');
+				await this.initStatsCharts();
+			},
+			async initStatsCharts() {
+				const stats = Alpine.store('cache').getData('purchases_statistics');
+				if (!stats) return;
+				if (!this.$refs.purchaseMonthChart || !this.$refs.purchaseDeptChart || !this.$refs.purchaseAmountChart) return;
+				await new Promise(r => requestAnimationFrame(() => setTimeout(r, 50)));
+
+				if (chartPurchaseMonth)  chartPurchaseMonth.destroy();
+				if (chartPurchaseDept)   chartPurchaseDept.destroy();
+				if (chartPurchaseAmount) chartPurchaseAmount.destroy();
+
+				chartPurchaseMonth = new Chart(this.$refs.purchaseMonthChart, {
+					type: 'line',
+					data: {
+						labels: stats.by_month.map(r => r.period),
+						datasets: [{ label: 'Compras', data: stats.by_month.map(r => r.count), fill: true, tension: 0.3, backgroundColor: 'rgba(234,113,52,0.5)', borderWidth: 0 }],
+					},
+					options: PSTATS_OPTS,
+				});
+
+				chartPurchaseDept = new Chart(this.$refs.purchaseDeptChart, {
+					type: 'bar',
+					data: {
+						labels: stats.by_department.map(r => r.department),
+						datasets: [{ label: 'Compras', data: stats.by_department.map(r => r.count), backgroundColor: 'rgba(15,32,39,0.75)', borderWidth: 0 }],
+					},
+					options: { ...PSTATS_OPTS, plugins: { legend: { display: false }, tooltip: { enabled: false } } },
+				});
+
+				chartPurchaseAmount = new Chart(this.$refs.purchaseAmountChart, {
+					type: 'bar',
+					data: {
+						labels: stats.amount_by_month.map(r => r.period),
+						datasets: [{ label: 'Monto', data: stats.amount_by_month.map(r => r.amount), backgroundColor: 'rgba(255,160,42,0.75)', borderWidth: 0 }],
+					},
+					options: PSTATS_OPTS,
+				});
+			},
 			async viewHistory() {
 				await this.firstPage();
 				Alpine.store('cache').showModal('purchases-history');
@@ -2192,5 +2316,17 @@
 			
 		}
 		
+
+		/* ── Estadísticas ── */
+		#modal-purchases-stats .top { display: flex; justify-content: space-between; align-items: center; }
+		#modal-purchases-stats .top .title { font-weight: 700; font-size: 1.05rem; }
+		#modal-purchases-stats .kpi { display: flex; gap: 1rem; flex-wrap: wrap; }
+		#modal-purchases-stats .kpi .item { flex: 1; min-width: 8rem; display: flex; padding: 1rem; flex-direction: column; gap: 0.25rem; border-radius: 0.75rem; }
+		#modal-purchases-stats .kpi .item span { font-weight: 500; font-size: 1.4rem; color: var(--primary); }
+		#modal-purchases-stats .kpi .item p { margin: 0; display: flex; flex: 1; align-items: center; font-weight: 500; opacity: 0.7; font-size: 0.85rem; }
+		#modal-purchases-stats .charts { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 1rem; }
+		#modal-purchases-stats .charts .box { padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; min-width: 24rem; flex: 1; border-radius: 0.75rem; }
+		#modal-purchases-stats .charts .box span { font-weight: 500; }
+
 	</style>
 </div>

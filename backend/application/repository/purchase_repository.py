@@ -2,10 +2,10 @@ import logging
 from decimal import Decimal
 from datetime import date, datetime, timezone, timedelta, timezone
 from application.handlers import handle_db_exceptions
-from application.models import PurchaseRequest, PurchaseType, PurchaseUrgency, PurchaseItems, PurchaseChats
+from application.models import PurchaseRequest, PurchaseType, PurchaseUrgency, PurchaseItems, PurchaseChats, Users, UserDepartment
 from application.utils import peru_time
 from flask import g
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from flask_jwt_extended import get_jwt_identity
 from sqlalchemy.orm import selectinload
 
@@ -344,6 +344,75 @@ class PurchaseRepository:
         results = base.order_by(PurchaseRequest.id.desc()).limit(20).all()
         return results, 200
 
+
+    # ── Statistics (global, excluye eliminados) ──────────────────────────────
+
+    @handle_db_exceptions
+    def stats_total(self):
+        n = (
+            g.db_session.query(func.count(PurchaseRequest.id))
+            .filter(PurchaseRequest.deleted_at.is_(None))
+            .scalar()
+        )
+        return n or 0, 200
+
+    @handle_db_exceptions
+    def stats_pending(self):
+        n = (
+            g.db_session.query(func.count(PurchaseRequest.id))
+            .filter(
+                PurchaseRequest.deleted_at.is_(None),
+                PurchaseRequest.status_id.notin_([7, 10]),
+            )
+            .scalar()
+        )
+        return n or 0, 200
+
+    @handle_db_exceptions
+    def stats_total_amount(self, month_only=False):
+        q = (
+            g.db_session.query(func.coalesce(func.sum(PurchaseItems.price * PurchaseItems.quantity), 0))
+            .join(PurchaseRequest, PurchaseItems.purchase_id == PurchaseRequest.id)
+            .filter(PurchaseRequest.deleted_at.is_(None), PurchaseItems.deleted_at.is_(None))
+        )
+        if month_only:
+            start = datetime.today().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            q = q.filter(PurchaseRequest.created_at >= start)
+        return float(q.scalar() or 0), 200
+
+    @handle_db_exceptions
+    def stats_by_month(self):
+        period = func.date_format(PurchaseRequest.created_at, "%Y-%m").label("period")
+        rows = (
+            g.db_session.query(period, func.count(PurchaseRequest.id))
+            .filter(PurchaseRequest.deleted_at.is_(None))
+            .group_by("period").order_by("period").all()
+        )
+        return rows or [], 200
+
+    @handle_db_exceptions
+    def stats_amount_by_month(self):
+        period = func.date_format(PurchaseRequest.created_at, "%Y-%m").label("period")
+        rows = (
+            g.db_session.query(period, func.coalesce(func.sum(PurchaseItems.price * PurchaseItems.quantity), 0))
+            .join(PurchaseRequest, PurchaseItems.purchase_id == PurchaseRequest.id)
+            .filter(PurchaseRequest.deleted_at.is_(None), PurchaseItems.deleted_at.is_(None))
+            .group_by("period").order_by("period").all()
+        )
+        return rows or [], 200
+
+    @handle_db_exceptions
+    def stats_by_department(self):
+        rows = (
+            g.db_session.query(UserDepartment.name, func.count(PurchaseRequest.id))
+            .join(Users, PurchaseRequest.user_id == Users.id)
+            .join(UserDepartment, Users.department_id == UserDepartment.id)
+            .filter(PurchaseRequest.deleted_at.is_(None))
+            .group_by(UserDepartment.name)
+            .order_by(func.count(PurchaseRequest.id).desc())
+            .all()
+        )
+        return rows or [], 200
 
     @handle_db_exceptions
     def get_purchase_history(self, visibility, page, per_page=12):

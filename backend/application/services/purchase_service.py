@@ -9,6 +9,12 @@ from application import socketio
 from flask_jwt_extended import get_jwt_identity
 
 
+_PMONTHS = {
+    1: "Ene", 2: "Feb", 3: "Mar", 4: "Abr", 5: "May", 6: "Jun",
+    7: "Jul", 8: "Ago", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dic",
+}
+
+
 class PurchaseService:
     def __init__(self):
         self.purchase_repository = PurchaseRepository()
@@ -616,6 +622,41 @@ class PurchaseService:
 
         return data, 200
 
+
+    @handle_exceptions
+    def statistics(self):
+        total, _          = self.purchase_repository.stats_total()
+        pending, _        = self.purchase_repository.stats_pending()
+        total_amount, _   = self.purchase_repository.stats_total_amount()
+        month_amount, _   = self.purchase_repository.stats_total_amount(month_only=True)
+        month_rows, _     = self.purchase_repository.stats_by_month()
+        dept_rows, _      = self.purchase_repository.stats_by_department()
+        amount_rows, _    = self.purchase_repository.stats_amount_by_month()
+
+        by_month = [
+            {"period": f"{_PMONTHS.get(int(p.split('-')[1]), p)} {p[2:4]}", "count": c}
+            for p, c in month_rows
+        ]
+        by_department = [
+            {"department": (name or "Sin área"), "count": c}
+            for name, c in dept_rows
+        ]
+        amount_by_month = [
+            {"period": f"{_PMONTHS.get(int(p.split('-')[1]), p)} {p[2:4]}", "amount": float(a or 0)}
+            for p, a in amount_rows
+        ]
+
+        return {
+            "count": {
+                "total": total,
+                "pending": pending,
+                "total_amount": float(total_amount or 0),
+                "month_amount": float(month_amount or 0),
+            },
+            "by_month": by_month,
+            "by_department": by_department,
+            "amount_by_month": amount_by_month,
+        }, 200
 
     @handle_exceptions
     def history(self, page):
