@@ -2,9 +2,10 @@ import re, logging
 from application.utils import peru_time
 from application.handlers import handle_db_exceptions
 from application.db_models.warehouse_model import WarehouseCodes, WarehouseStock, WarehouseLog
-from application.models import Brands, Machines, Category
+from application.models import Brands, Machines, Category, Users
 from sqlalchemy import or_, func, cast, String, not_, exists
 from flask import g
+from datetime import datetime
 
 
 class WarehouseRepository:
@@ -363,6 +364,81 @@ class WarehouseRepository:
         g.db_session.commit()
         return True, 200
 
+
+    # ── Statistics ───────────────────────────────────────────────────────────
+
+    @handle_db_exceptions
+    def stats_total_units(self):
+        n = g.db_session.query(func.coalesce(func.sum(WarehouseStock.stock), 0)).scalar()
+        return int(n or 0), 200
+
+    @handle_db_exceptions
+    def stats_occupied_locations(self):
+        n = (
+            g.db_session.query(func.count(func.distinct(WarehouseStock.code_id)))
+            .filter(WarehouseStock.stock > 0)
+            .scalar()
+        )
+        return int(n or 0), 200
+
+    @handle_db_exceptions
+    def stats_total_locations(self):
+        n = g.db_session.query(func.count(WarehouseCodes.id)).scalar()
+        return int(n or 0), 200
+
+    @handle_db_exceptions
+    def stats_out_month(self):
+        start = datetime.today().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        n = (
+            g.db_session.query(func.coalesce(func.sum(WarehouseLog.quantity), 0))
+            .filter(WarehouseLog.action.in_(["pick"]), WarehouseLog.created_at >= start)
+            .scalar()
+        )
+        return int(n or 0), 200
+
+    @handle_db_exceptions
+    def stats_top_stock_products(self, limit=10):
+        label = func.concat(Brands.name, " ", Machines.model)
+        total = func.coalesce(func.sum(WarehouseStock.stock), 0)
+        rows = (
+            g.db_session.query(label, total)
+            .join(Machines, WarehouseStock.product_id == Machines.id)
+            .join(Brands, Machines.brand_id == Brands.id)
+            .group_by(Machines.id, Brands.name, Machines.model)
+            .order_by(total.desc())
+            .limit(limit)
+            .all()
+        )
+        return rows or [], 200
+
+    @handle_db_exceptions
+    def stats_top_removed_products(self, limit=10):
+        label = func.concat(Brands.name, " ", Machines.model)
+        qty = func.coalesce(func.sum(WarehouseLog.quantity), 0)
+        rows = (
+            g.db_session.query(label, qty)
+            .join(Machines, WarehouseLog.product_id == Machines.id)
+            .join(Brands, Machines.brand_id == Brands.id)
+            .filter(WarehouseLog.action.in_(["pick"]))
+            .group_by(Machines.id, Brands.name, Machines.model)
+            .order_by(qty.desc())
+            .limit(limit)
+            .all()
+        )
+        return rows or [], 200
+
+    @handle_db_exceptions
+    def stats_by_user(self, limit=10):
+        cnt = func.count(WarehouseLog.id)
+        rows = (
+            g.db_session.query(Users.name, cnt)
+            .join(Users, WarehouseLog.user_id == Users.id)
+            .group_by(Users.id, Users.name)
+            .order_by(cnt.desc())
+            .limit(limit)
+            .all()
+        )
+        return rows or [], 200
 
     @handle_db_exceptions
     def get_logs(self, page=1, per_page=30):

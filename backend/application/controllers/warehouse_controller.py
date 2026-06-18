@@ -47,6 +47,10 @@ class WarehouseController:
     def warehouse_get_logs(self, page):
         return self.warehouse.get_logs(page=page)
 
+    @handle_logs_and_exceptions
+    def warehouse_statistics(self):
+        return self.warehouse.statistics()
+
 
     @handle_logs_and_exceptions
     def warehouse_get_occupied_locations(self):

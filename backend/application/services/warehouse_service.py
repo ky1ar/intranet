@@ -4,6 +4,7 @@ from application.repository.warehouse_repository import WarehouseRepository
 from application.services.push_service import PushSender
 from application.repository.user_repository import UserRepository
 from flask_jwt_extended import get_jwt_identity
+from application.utils import format_name
 
 
 class WarehouseService:
@@ -81,6 +82,34 @@ class WarehouseService:
     @handle_exceptions
     def get_logs(self, page=1):
         return self.warehouse_repository.get_logs(page=page)
+
+    @handle_exceptions
+    def statistics(self):
+        units, _      = self.warehouse_repository.stats_total_units()
+        occupied, _   = self.warehouse_repository.stats_occupied_locations()
+        total_loc, _  = self.warehouse_repository.stats_total_locations()
+        out_month, _  = self.warehouse_repository.stats_out_month()
+        stock_rows, _ = self.warehouse_repository.stats_top_stock_products()
+        removed_rows, _ = self.warehouse_repository.stats_top_removed_products()
+        user_rows, _  = self.warehouse_repository.stats_by_user()
+
+        occupancy = round((occupied / total_loc) * 100) if total_loc else 0
+
+        by_stock   = [{"product": name, "stock": int(v or 0)} for name, v in stock_rows]
+        by_removed = [{"product": name, "qty": int(v or 0)} for name, v in removed_rows]
+        by_user    = [{"user": format_name(name, True), "count": c} for name, c in user_rows]
+
+        return {
+            "count": {
+                "units": units,
+                "occupied": occupied,
+                "occupancy": occupancy,
+                "out_month": out_month,
+            },
+            "by_stock": by_stock,
+            "by_removed": by_removed,
+            "by_user": by_user,
+        }, 200
 
 
     @handle_exceptions

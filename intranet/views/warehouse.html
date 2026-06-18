@@ -1,9 +1,18 @@
 <div x-data="warehouse_data">
 	<div id="warehouse">
 		<div class="controls">
-			<div class="toggle-collapse frost" @click="openHistoryModal()" x-show="$store.cache.hasPermission('warehouse', 'history')">
+			<div class="toggle-collapse frost" @click="$store.cache.toogleMoreMenu()" @click.outside="$store.cache.hideMoreMenu()">
 				<div class="item">
-					<img alt="" width="24" height="24" src="/static/icons/line/history.svg">
+					<img alt="" width="24" height="24" src="/static/icons/line/more.svg">
+				</div>
+			</div>
+
+			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
+				<div class="item" @click="openHistoryModal()">
+					<img alt="" width="18" height="18" src="/static/icons/line/history.svg">
+				</div>
+				<div class="item" @click="viewStatistics()">
+					<img alt="" width="18" height="18" src="/static/icons/line/report.svg">
 				</div>
 			</div>
 			
@@ -11,6 +20,10 @@
 				<div class="item" @click="openHistoryModal()">
 					<img alt="" width="20" height="20" src="/static/icons/line/history.svg">
 					<span>Historial</span>
+				</div>
+				<div class="item hover-opacity press" @click="viewStatistics()" x-show="$store.cache.hasPermission('warehouse', 'history')">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/report.svg">
+					<span>Estadísticas</span>
 				</div>
 			</div>
 			
@@ -688,6 +701,61 @@
 				</div>
 			</div>
 		</div>
+		<!-- Modal estadísticas -->
+		<div
+			x-show="$store.cache.isVisibleModal('warehouse-stats')"
+			@mousedown.self="$store.cache.hideModal('warehouse-stats')"
+			class="modal-wrap"
+			id="modal-warehouse-stats"
+			x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="top">
+					<span class="title">Estadísticas</span>
+				</div>
+
+				<div class="modal-content">
+					<div class="kpi">
+						<div class="item white">
+							<p>Unidades en stock</p>
+							<span x-text="stats?.count.units ?? 0"></span>
+						</div>
+						<div class="item white">
+							<p>Ubicaciones ocupadas</p>
+							<span x-text="stats?.count.occupied ?? 0"></span>
+						</div>
+						<div class="item white">
+							<p>% Ocupación</p>
+							<span x-text="`${stats?.count.occupancy ?? 0}%`"></span>
+						</div>
+						<div class="item white">
+							<p>Salidas del mes</p>
+							<span x-text="stats?.count.out_month ?? 0"></span>
+						</div>
+					</div>
+
+					<div class="charts">
+						<div class="glass2 box">
+							<span>Top productos en stock</span>
+							<canvas x-ref="whStockChart" width="160" height="80"></canvas>
+						</div>
+						<div class="glass2 box">
+							<span>Top más retirados</span>
+							<canvas x-ref="whRemovedChart" width="160" height="80"></canvas>
+						</div>
+						<div class="glass2 box">
+							<span>Movimientos por usuario</span>
+							<canvas x-ref="whUserChart" width="160" height="80"></canvas>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
 		<!-- Modal historial de movimientos -->
 		<div
 			x-show="$store.cache.isVisibleModal('warehouse-history')"
@@ -820,11 +888,37 @@
 	
 
 	<script>
+		var chartWhStock = null;
+		var chartWhRemoved = null;
+		var chartWhUser = null;
+		var WSTATS_AXIS = {
+			ticks: { color: '#666', font: { size: 12, family: 'Lexend', weight: '500' } },
+			grid:  { color: 'transparent' },
+			border: { display: false },
+		};
+		var WSTATS_OPTS = {
+			responsive: true,
+			plugins: { legend: { display: false } },
+			scales: {
+				x: WSTATS_AXIS,
+				y: { beginAtZero: true, ticks: { ...WSTATS_AXIS.ticks, precision: 0 }, grid: { color: '#fff' }, border: { display: false } },
+			},
+		};
+		var WSTATS_OPTS_NOX = {
+			responsive: true,
+			plugins: { legend: { display: false } },
+			scales: {
+				x: { ...WSTATS_AXIS, ticks: { display: false } },
+				y: { beginAtZero: true, ticks: { ...WSTATS_AXIS.ticks, precision: 0 }, grid: { color: '#fff' }, border: { display: false } },
+			},
+		};
+
 		Alpine.data('warehouse_data', () => ({
 			token: localStorage.getItem('user_token'),
 
 			api: Alpine.store('cache').api,
 			user: Alpine.store('cache').user,
+			stats: null,
 
 			// ── Placeholder animado ────────────────────────────
 			animated_placeholder: '',
@@ -1678,6 +1772,55 @@
 			// ══════════════════════════════════════════════════
 			//  HISTORIAL
 			// ══════════════════════════════════════════════════
+			// ── Estadísticas ──
+			async viewStatistics() {
+				try {
+					const res = await fetch(`${this.api}/warehouse/statistics`, {
+						headers: { 'Authorization': `Bearer ${this.token}`, 'X-No-Toast': '1' },
+					});
+					const json = await res.json();
+					this.stats = (res.ok && json.data) ? json.data : null;
+				} catch (e) { console.error(e); this.stats = null; }
+				Alpine.store('cache').showModal('warehouse-stats');
+				await this.initStatsCharts();
+			},
+			async initStatsCharts() {
+				const stats = this.stats;
+				if (!stats) return;
+				if (!this.$refs.whStockChart || !this.$refs.whRemovedChart || !this.$refs.whUserChart) return;
+				await new Promise(r => requestAnimationFrame(() => setTimeout(r, 50)));
+
+				if (chartWhStock)   chartWhStock.destroy();
+				if (chartWhRemoved) chartWhRemoved.destroy();
+				if (chartWhUser)    chartWhUser.destroy();
+
+				chartWhStock = new Chart(this.$refs.whStockChart, {
+					type: 'bar',
+					data: {
+						labels: stats.by_stock.map(r => r.product),
+						datasets: [{ label: 'Unidades', data: stats.by_stock.map(r => r.stock), backgroundColor: 'rgba(255,160,42,0.75)', borderWidth: 0 }],
+					},
+					options: WSTATS_OPTS_NOX,
+				});
+
+				chartWhRemoved = new Chart(this.$refs.whRemovedChart, {
+					type: 'bar',
+					data: {
+						labels: stats.by_removed.map(r => r.product),
+						datasets: [{ label: 'Retirados', data: stats.by_removed.map(r => r.qty), backgroundColor: 'rgba(15,32,39,0.75)', borderWidth: 0 }],
+					},
+					options: WSTATS_OPTS_NOX,
+				});
+
+				chartWhUser = new Chart(this.$refs.whUserChart, {
+					type: 'bar',
+					data: {
+						labels: stats.by_user.map(r => r.user),
+						datasets: [{ label: 'Movimientos', data: stats.by_user.map(r => r.count), backgroundColor: 'rgba(234,113,52,0.6)', borderWidth: 0 }],
+					},
+					options: WSTATS_OPTS,
+				});
+			},
 			async openHistoryModal() {
 				this.history_logs  = [];
 				this.history_total = 0;
@@ -2888,5 +3031,17 @@
 			padding-left: 2.4rem;
 		}
 		
+
+		/* ── Estadísticas ── */
+		#modal-warehouse-stats .top { display: flex; justify-content: space-between; align-items: center; }
+		#modal-warehouse-stats .top .title { font-weight: 700; font-size: 1.05rem; }
+		#modal-warehouse-stats .kpi { display: flex; gap: 1rem; flex-wrap: wrap; }
+		#modal-warehouse-stats .kpi .item { flex: 1; min-width: 8rem; display: flex; padding: 1rem; flex-direction: column; gap: 0.25rem; border-radius: 0.75rem; }
+		#modal-warehouse-stats .kpi .item span { font-weight: 500; font-size: 1.4rem; color: var(--primary); }
+		#modal-warehouse-stats .kpi .item p { margin: 0; display: flex; flex: 1; align-items: center; font-weight: 500; opacity: 0.7; font-size: 0.85rem; }
+		#modal-warehouse-stats .charts { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 1rem; }
+		#modal-warehouse-stats .charts .box { padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; min-width: 24rem; flex: 1; border-radius: 0.75rem; }
+		#modal-warehouse-stats .charts .box span { font-weight: 500; }
+
 	</style>
 </div>

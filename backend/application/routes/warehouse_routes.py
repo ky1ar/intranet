@@ -58,6 +58,12 @@ def get_logs():
     return controller.warehouse_get_logs(page)
 
 
+@warehouse_bp.route("/statistics", methods=["GET"])
+@jwt_required()
+def statistics():
+    return controller.warehouse_statistics()
+
+
 @warehouse_bp.route("/locations/occupied", methods=["GET"])
 def get_occupied_locations():
     return controller.warehouse_get_occupied_locations()
