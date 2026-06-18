@@ -71,7 +71,9 @@ class GuideRepository:
                 Machines.image.label("machine_image"),
                 Brands.name.label("brand_name"),
                 Brands.scale.label("brand_scale"),
+                Brands.slug.label("brand_slug"),
                 Machines.model.label("full_name"),
+                Machines.type.label("machine_type"),
                 brand_image,
             )
             .join(Clients, ApprovalRequest.client_id == Clients.id)
@@ -93,6 +95,18 @@ class GuideRepository:
             .first()
         )
         return client, 200
+
+    @handle_db_exceptions
+    def get_machine_wiki_meta(self, machine_id):
+        row = (
+            g.db_session.query(Machines.type.label("type"), Brands.slug.label("brand_slug"))
+            .join(Brands, Machines.brand_id == Brands.id)
+            .filter(Machines.id == machine_id)
+            .first()
+        )
+        if not row:
+            return None, 200
+        return {"type": row.type, "brand_slug": row.brand_slug}, 200
 
     @handle_db_exceptions
     def has_approved_access(self, wp_user_id, machine_id):

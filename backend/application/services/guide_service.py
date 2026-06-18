@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from application.handlers import handle_exceptions
@@ -6,8 +7,17 @@ from application.repository.approval_repository import ApprovalRepository
 from application.services.push_service import PushSender
 from application.services.module_service import ModuleService
 from application.db_models.approval_model import ApprovalType
-from config import Paths
+from config import Paths, Config
 from flask import g
+
+
+# Bundles JSON pre-construidos del Centro de aprendizaje (ver scripts/build_guides.py).
+# Se elige uno según el tipo de máquina y la marca. Las imágenes usan el placeholder
+# __GUIDE_BASE__, reemplazado por la base pública de uploads (/shared_uploads/guides).
+_GUIDES_DATA_DIR = os.path.normpath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "guides_data")
+)
+_WIKI_CACHE = {}
 
 
 class GuideService:
@@ -69,7 +79,9 @@ class GuideService:
                 "machine_id":     row.machine_id,
                 "machine_image":  row.machine_image,
                 "brand_name":     row.brand_name,
+                "brand_slug":     row.brand_slug,
                 "machine_name":   row.full_name,
+                "machine_type":   row.machine_type,
                 "brand_image":   row.brand_image,
                 "brand_scale":   row.brand_scale,
                 "status":         row.status,
@@ -93,6 +105,45 @@ class GuideService:
             "description": guide.description or "",
             "items": guide.items or [],
         }, 200
+
+    @handle_exceptions
+    def get_wiki(self, wp_user_id, machine_id):
+        has_access, sc = self.repo.has_approved_access(wp_user_id, machine_id)
+        if sc != 200:
+            return has_access, sc
+        if not has_access:
+            return "Acceso no autorizado", 403
+
+        meta, sc = self.repo.get_machine_wiki_meta(machine_id)
+        if sc != 200:
+            return meta, sc
+        if not meta:
+            return "Equipo no encontrado", 404
+
+        mtype = (meta.get("type") or "fdm").lower()
+        slug  = (meta.get("brand_slug") or "").lower()
+        if mtype == "lcd":
+            key = "lcd"
+        elif slug == "bambu-lab":
+            key = "fdm_bambu"
+        else:
+            key = "fdm_other"
+
+        return self._load_bundle(key)
+
+    def _load_bundle(self, key):
+        """Carga el bundle JSON pre-construido y resuelve la base de imágenes."""
+        if key in _WIKI_CACHE:
+            return _WIKI_CACHE[key], 200
+        path = os.path.join(_GUIDES_DATA_DIR, f"{key}.json")
+        if not os.path.isfile(path):
+            logging.error("Bundle de guía no encontrado: %s", path)
+            return "Contenido de guía no disponible", 404
+        image_base = f"{(Config.BASE_URL or '').rstrip('/')}/guides"
+        with open(path, encoding="utf-8") as fh:
+            data = json.loads(fh.read().replace("__GUIDE_BASE__", image_base))
+        _WIKI_CACHE[key] = data
+        return data, 200
 
     def serve_media(self, filename, wp_user_id, machine_id):
         """Return (filepath, mimetype) after verifying access, or (None, error_msg)."""

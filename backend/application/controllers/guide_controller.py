@@ -25,6 +25,12 @@ class GuideController:
             return validation, 400
         return self.service.get_content(data["wp_user_id"], data["machine_id"])
 
+    @handle_logs_and_exceptions
+    def get_wiki(self, data):
+        if validation := validate_request(data, {"wp_user_id", "machine_id"}):
+            return validation, 400
+        return self.service.get_wiki(data["wp_user_id"], data["machine_id"])
+
     def serve_media(self, filename, wp_user_id, machine_id):
         filepath, err = self.service.serve_media(filename, wp_user_id, machine_id)
         if not filepath:

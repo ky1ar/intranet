@@ -28,6 +28,15 @@ def get_content(machine_id):
     return controller.get_content(data)
 
 
+@guide_bp.route("/wiki/<int:machine_id>", methods=["GET"])
+def get_wiki(machine_id):
+    data = {
+        "machine_id": machine_id,
+        "wp_user_id": request.args.get("wp_user_id", type=int),
+    }
+    return controller.get_wiki(data)
+
+
 @guide_bp.route("/media/<filename>", methods=["GET"])
 def serve_media(filename):
     return controller.serve_media(

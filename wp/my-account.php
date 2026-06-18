@@ -2013,20 +2013,145 @@ document.addEventListener("DOMContentLoaded", () => {
 			}
 			.guia-drive-btn:hover { opacity: 0.88; }
 
-			/* Bonus Track - PDFs embebidos */
-			.guia-bonus-wrap {
-				padding: 1.5rem 1rem; border-radius: 12px; background: #fdf3ee;
-				display: flex; flex-direction: column; gap: 0.75rem;
+			/* Videos del equipo en grilla */
+			.guia-video-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+				gap: 1rem;
 			}
-			.guia-bonus-wrap .guia-drive-title,
-			.guia-bonus-wrap .guia-drive-sub { text-align: center; }
-			.guia-bonus-pdf { display: flex; flex-direction: column; gap: 0.4rem; }
-			.guia-bonus-pdf-title { font-weight: 700; font-size: 0.95rem; color: #222; }
-			.guia-bonus-frame {
-				width: 100%; height: 600px; border: 1px solid #e7d8ce;
-				border-radius: 10px; background: #fff;
+
+			/* ═══ Centro de aprendizaje (wiki por tipo) ═══ */
+			.guia-lc {
+				display: flex; flex-direction: column; gap: 1.25rem;
+				border: 1px solid #00000010; border-radius: 16px;
+				padding: 1.5rem; background: #fff; margin-top: 0.5rem;
 			}
-			.guia-bonus-fallback { font-size: 0.8rem; color: #e05a00; text-decoration: underline; }
+			.guia-lc-head { display: flex; align-items: center; gap: 0.85rem; }
+			.guia-lc-head-ico { font-size: 1.6rem; line-height: 1; }
+			.guia-lc-head-title { font-size: 1.2rem; font-weight: 800; color: #1f2937; }
+			.guia-lc-head-sub { font-size: 0.85rem; color: #6b7280; line-height: 1.4; }
+
+			.guia-lc-tabs { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+			.guia-lc-tab {
+				display: inline-flex; align-items: center; gap: 0.45rem;
+				background: #fff; border: 1px solid #e4e4e4; border-radius: 12px;
+				padding: 0.7rem 1.1rem; font-size: 0.85rem; font-weight: 600;
+				color: #4b5563; cursor: pointer; transition: all 0.15s; font-family: inherit;
+			}
+			.guia-lc-tab:hover { border-color: #e05a00; color: #e05a00; }
+			.guia-lc-tab.active {
+				background: #fff6ef; border-color: #e05a00; color: #e05a00;
+				box-shadow: inset 0 0 0 1px #e05a00;
+			}
+			.guia-lc-tab-ico { font-size: 1rem; }
+			.guia-lc-tab-support { margin-left: auto; }
+
+			.guia-lc-loading { color: #9aa0a6; font-size: 0.88rem; padding: 1.5rem 0; }
+
+			.guia-lc-grid { display: grid; grid-template-columns: 1fr 16rem; gap: 1.5rem; align-items: start; }
+			.guia-lc-content { min-width: 0; border: 1px solid #f0f0f0; border-radius: 14px; padding: 1.25rem 1.5rem; }
+
+			.guia-guidehead { display: flex; align-items: center; gap: 0.9rem; }
+			.guia-guidehead-ico {
+				width: 2.75rem; height: 2.75rem; min-width: 2.75rem; border-radius: 12px;
+				background: #fff6ef; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;
+			}
+			.guia-guidehead-title { font-size: 1.05rem; font-weight: 800; color: #1f2937; }
+			.guia-guidehead-sub { font-size: 0.83rem; color: #6b7280; line-height: 1.4; }
+			.guia-guidehead-meta {
+				display: flex; flex-wrap: wrap; gap: 1.25rem; margin: 0.85rem 0 1rem;
+				font-size: 0.78rem; color: #9aa0a6; font-weight: 600;
+			}
+
+			/* Acordeón */
+			.guia-acc { display: flex; flex-direction: column; }
+			.guia-acc-item { border-top: 1px solid #f0f0f0; }
+			.guia-acc-item:last-child { border-bottom: 1px solid #f0f0f0; }
+			.guia-acc-head {
+				width: 100%; display: flex; align-items: center; gap: 0.75rem;
+				background: none; border: none; cursor: pointer; padding: 0.95rem 0;
+				text-align: left; font-family: inherit;
+			}
+			.guia-acc-num {
+				width: 1.5rem; height: 1.5rem; min-width: 1.5rem; border-radius: 50%;
+				background: #f3f4f6; color: #6b7280; font-size: 0.75rem; font-weight: 700;
+				display: flex; align-items: center; justify-content: center;
+			}
+			.guia-acc-item.open .guia-acc-num { background: #e05a00; color: #fff; }
+			.guia-acc-title { flex: 1; font-size: 0.92rem; font-weight: 700; color: #1f2937; }
+			.guia-acc-chev { width: 1.1rem; height: 1.1rem; color: #9aa0a6; transition: transform 0.2s; flex-shrink: 0; }
+			.guia-acc-item.open .guia-acc-chev { transform: rotate(180deg); }
+			.guia-acc-body { display: none; padding: 0 0 1.1rem 2.25rem; font-size: 0.88rem; color: #444; line-height: 1.65; }
+			.guia-acc-item.open .guia-acc-body { display: block; }
+
+			/* Markdown */
+			.guia-acc-body p { margin: 0 0 0.7rem; }
+			.guia-md-h3 { font-size: 0.92rem; font-weight: 700; color: #1f2937; margin: 1rem 0 0.4rem; }
+			.guia-md-h4 { font-size: 0.86rem; font-weight: 700; color: #374151; margin: 0.8rem 0 0.3rem; }
+			.guia-md-list { margin: 0 0 0.8rem; padding-left: 1.2rem; }
+			.guia-md-list li { margin-bottom: 0.3rem; }
+			.guia-acc-body code { background: #f3f4f6; padding: 0.1rem 0.35rem; border-radius: 5px; font-size: 0.85em; }
+			.guia-md-tablewrap { overflow-x: auto; margin: 0 0 0.9rem; }
+			.guia-md-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+			.guia-md-table th, .guia-md-table td { border: 1px solid #eee; padding: 0.5rem 0.7rem; text-align: left; }
+			.guia-md-table th { background: #fafafa; font-weight: 700; color: #374151; }
+			.guia-md-shot {
+				display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem;
+				border: 1.5px dashed #e0d3c8; border-radius: 12px; background: #fcf7f3;
+				padding: 1.5rem 1rem; margin: 0.6rem 0 0.9rem; color: #b08968; text-align: center;
+			}
+			.guia-md-shot svg { width: 1.6rem; height: 1.6rem; opacity: 0.6; }
+			.guia-md-shot span { font-size: 0.8rem; }
+			.guia-md-fig { margin: 0.6rem 0 0.9rem; }
+			.guia-md-fig img { max-width: 100%; border-radius: 10px; border: 1px solid #eee; }
+			.guia-md-fig figcaption { font-size: 0.76rem; color: #9aa0a6; margin-top: 0.35rem; text-align: center; }
+
+			/* TOC */
+			.guia-lc-toc {
+				position: sticky; top: 7.5rem; border: 1px solid #f0f0f0;
+				border-radius: 14px; padding: 1.1rem 1.25rem; background: #fff;
+			}
+			.guia-lc-toc-title { font-size: 0.85rem; font-weight: 800; color: #1f2937; margin-bottom: 0.75rem; }
+			.guia-lc-toc-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.1rem; }
+			.guia-lc-toc-list li {
+				display: flex; align-items: flex-start; gap: 0.6rem; cursor: pointer;
+				font-size: 0.82rem; color: #6b7280; padding: 0.45rem 0.5rem;
+				border-radius: 8px; transition: background 0.15s, color 0.15s; line-height: 1.3;
+			}
+			.guia-lc-toc-list li span {
+				width: 1.4rem; height: 1.4rem; min-width: 1.4rem; border-radius: 50%;
+				background: #f3f4f6; color: #9aa0a6; font-size: 0.72rem; font-weight: 700;
+				display: flex; align-items: center; justify-content: center;
+			}
+			.guia-lc-toc-list li:hover { background: #faf7f4; color: #1f2937; }
+			.guia-lc-toc-list li.active { color: #e05a00; font-weight: 700; }
+			.guia-lc-toc-list li.active span { background: #e05a00; color: #fff; }
+
+			/* Bloques de soporte */
+			.guia-lc-support { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem; }
+			.guia-sup-card {
+				display: flex; align-items: center; gap: 0.85rem; text-decoration: none;
+				border: 1px solid #00000010; border-radius: 14px; padding: 1.1rem 1.25rem;
+				color: inherit; transition: box-shadow 0.15s, transform 0.1s; background: #fff;
+			}
+			.guia-sup-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,.07); transform: translateY(-1px); }
+			.guia-sup-ico {
+				width: 2.5rem; height: 2.5rem; min-width: 2.5rem; border-radius: 12px;
+				background: #fff6ef; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+			}
+			.guia-sup-wa .guia-sup-ico { background: #e7f8ef; }
+			.guia-sup-txt { flex: 1; min-width: 0; }
+			.guia-sup-title { font-weight: 700; font-size: 0.9rem; color: #1f2937; }
+			.guia-sup-sub { font-size: 0.78rem; color: #9aa0a6; line-height: 1.3; }
+			.guia-sup-chev { color: #c9c9c9; font-size: 1.3rem; line-height: 1; }
+			.guia-sup-panel h4 { margin: 0 0 0.5rem; font-size: 1rem; font-weight: 800; color: #1f2937; }
+			.guia-sup-panel p { font-size: 0.88rem; color: #555; margin: 0 0 0.8rem; }
+
+			@media (max-width: 900px) {
+				.guia-lc-grid { grid-template-columns: 1fr; }
+				.guia-lc-toc { position: static; }
+				.guia-lc-tab-support { margin-left: 0; }
+			}
 			</style>
 
 			<script>
@@ -2098,7 +2223,7 @@ document.addEventListener("DOMContentLoaded", () => {
 					try {
 						const r = await fetch(`${API}/guide/content/${guide.machine_id}?wp_user_id=${WP_USER_ID}`, { headers: { 'X-No-Toast': '1' } });
 						const j = await r.json();
-						renderGuideContent(j.data || {}, guide.machine_id);
+						renderGuideContent(j.data || {}, guide);
 					} catch(e) {
 						document.getElementById('guia-detail-items').innerHTML = '<p style="opacity:0.4;font-size:0.85rem">Sin contenido disponible.</p>';
 					}
@@ -2117,37 +2242,45 @@ document.addEventListener("DOMContentLoaded", () => {
 					return null;
 				}
 
-				function renderGuideContent(content, machine_id) {
+				function renderGuideContent(content, guide) {
+					const machine_id = guide.machine_id;
 					document.getElementById('guia-detail-desc').textContent = content.description || '';
 					const container = document.getElementById('guia-detail-items');
 					container.innerHTML = '';
 
-					const items = content.items || [];
-					if (!items.length) {
-						container.innerHTML = '<p style="opacity:0.4;font-size:0.85rem">Sin contenido disponible aún.</p>';
-					}
+					// El antiguo Bonus Track (link de Drive) ya no se usa; el contenido de
+					// aprendizaje se arma desde la wiki por tipo de máquina (ver appendLearningCenter)
+					const items  = (content.items || []).filter(it => it.type !== 'drive');
+					const videos = items.filter(it => it.type === 'video' && it.url);
+					const others = items.filter(it => !(it.type === 'video' && it.url));
 
-					let stepNum = 0;
-					items.forEach(item => {
-						// El antiguo Bonus Track (link de Drive) se reemplazó por los PDFs fijos: ver appendBonusTrack()
-						if (item.type === 'drive') return;
-
-						const card = document.createElement('div');
-						card.className = 'guia-step-card';
-
-						if (item.type === 'video' && item.url) {
-							stepNum++;
+					// Videos del equipo (unboxing, calibración, carga de filamento...) en grilla
+					if (videos.length) {
+						const grid = document.createElement('div');
+						grid.className = 'guia-video-grid';
+						videos.forEach((item, idx) => {
 							const id = youtubeId(item.url);
 							const media = id
 								? `<div class="guia-video"><iframe src="https://www.youtube.com/embed/${id}" title="${item.title || ''}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`
 								: `<a href="${item.url}" target="_blank" rel="noopener" class="guia-item-link">Ver video</a>`;
+							const card = document.createElement('div');
+							card.className = 'guia-step-card';
 							card.innerHTML = `
 								<div class="guia-step-head">
-									<span class="guia-step-num">${stepNum}</span>
+									<span class="guia-step-num">${idx + 1}</span>
 									<span class="guia-step-title">${item.title || ''}</span>
 								</div>
 								${media}`;
-						} else if (item.type === 'image' && item.filename) {
+							grid.appendChild(card);
+						});
+						container.appendChild(grid);
+					}
+
+					// Otros recursos cargados por el equipo (imágenes / PDFs)
+					others.forEach(item => {
+						const card = document.createElement('div');
+						card.className = 'guia-step-card';
+						if (item.type === 'image' && item.filename) {
 							card.innerHTML = `<div class="guia-step-title">${item.title || ''}</div>
 								<img src="${API}/guide/media/${item.filename}?wp_user_id=${WP_USER_ID}&machine_id=${machine_id}" alt="${item.title || ''}">`;
 						} else if (item.type === 'pdf' && item.filename) {
@@ -2162,29 +2295,174 @@ document.addEventListener("DOMContentLoaded", () => {
 						container.appendChild(card);
 					});
 
-					appendBonusTrack(container);
+					// Centro de aprendizaje (wiki por tipo de máquina: FDM / LCD)
+					appendLearningCenter(container, guide);
 				}
 
-				// ── Bonus Track: PDFs fijos (CAD + Tips) para todos los equipos ──
-				function appendBonusTrack(container) {
-					const PDF_BASE = `${INTRANET}/static/pdf`;
-					const pdfs = [
-						{ title: 'Diseño CAD',           file: 'cad.pdf'  },
-						{ title: 'Tips de impresión 3D', file: 'tips.pdf' },
-					];
+				// ── Centro de aprendizaje: wiki por tipo de máquina (FDM / LCD) ──
+				// El backend lee y parsea las guías (static/guide/<tipo>/*.md) y entrega el
+				// JSON completo en /guide/wiki/<machine_id>; aquí solo se renderiza.
+				const WA_PHONE = '51970539751';
 
+				function escHtml(t) {
+					return (t || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+				}
+
+				function tabIcon(tab) {
+					const t = (tab.title || '').toLowerCase();
+					if (t.includes('error'))                                              return '⚠️';
+					if (t.includes('tip'))                                                return '🧪';
+					if (t.includes('cad') || t.includes('modelo') || t.includes('diseño')) return '📦';
+					if (t.includes('segur'))                                              return '🛡️';
+					if (t.includes('postpro') || t.includes('lavado'))                    return '🧼';
+					if (t.includes('tecnolog'))                                           return '🔬';
+					return '📘';
+				}
+
+				function renderGuidePanel(panelEl, tab) {
+					const mins = tab.reading_min || 2;
+					const sections = tab.sections || [];
+					const toc = sections.map((s, i) => `<li data-sec="${i}"${i === 0 ? ' class="active"' : ''}><span>${i + 1}</span>${escHtml(s.title)}</li>`).join('');
+					const acc = sections.map((s, i) => `
+						<div class="guia-acc-item${i === 0 ? ' open' : ''}" data-sec="${i}">
+							<button class="guia-acc-head">
+								<span class="guia-acc-num">${i + 1}</span>
+								<span class="guia-acc-title">${escHtml(s.title)}</span>
+								<svg class="guia-acc-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+							</button>
+							<div class="guia-acc-body">${s.html || ''}</div>
+						</div>`).join('');
+					const subtitle = tab.intro ? escHtml(tab.intro.split('\n')[0]) : '';
+					panelEl.innerHTML = `
+						<div class="guia-lc-grid">
+							<div class="guia-lc-content">
+								<div class="guia-guidehead">
+									<div class="guia-guidehead-ico">${tabIcon(tab)}</div>
+									<div>
+										<div class="guia-guidehead-title">${escHtml(tab.title)}</div>
+										<div class="guia-guidehead-sub">${subtitle}</div>
+									</div>
+								</div>
+								<div class="guia-guidehead-meta">
+									<span>⏱️ Lectura: ${mins} min</span>
+									<span>📶 Nivel: ${escHtml(tab.level || 'Básico')}</span>
+								</div>
+								<div class="guia-acc">${acc}</div>
+							</div>
+							<aside class="guia-lc-toc">
+								<div class="guia-lc-toc-title">📑 En esta guía</div>
+								<ol class="guia-lc-toc-list">${toc}</ol>
+							</aside>
+						</div>`;
+
+					function syncToc() {
+						const openItem = panelEl.querySelector('.guia-acc-item.open');
+						const idx = openItem ? openItem.getAttribute('data-sec') : null;
+						panelEl.querySelectorAll('.guia-lc-toc-list li').forEach(li => li.classList.toggle('active', li.getAttribute('data-sec') === idx));
+					}
+					panelEl.querySelectorAll('.guia-acc-head').forEach(h => {
+						h.addEventListener('click', () => {
+							const item = h.closest('.guia-acc-item');
+							const wasOpen = item.classList.contains('open');
+							panelEl.querySelectorAll('.guia-acc-item').forEach(x => x.classList.remove('open'));
+							if (!wasOpen) item.classList.add('open');
+							syncToc();
+						});
+					});
+					panelEl.querySelectorAll('.guia-lc-toc-list li').forEach(li => {
+						li.addEventListener('click', () => {
+							const idx = li.getAttribute('data-sec');
+							const item = panelEl.querySelector(`.guia-acc-item[data-sec="${idx}"]`);
+							panelEl.querySelectorAll('.guia-acc-item').forEach(x => x.classList.remove('open'));
+							item.classList.add('open');
+							syncToc();
+							item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+						});
+					});
+				}
+
+				function supportPanelHtml() {
+					return `<div class="guia-sup-panel">
+						<h4>Soporte y capacitación</h4>
+						<p>¿Tienes dudas con tu equipo o con tu primera impresión? Nuestro equipo te acompaña en todo el proceso.</p>
+						<ul class="guia-md-list">
+							<li><strong>WhatsApp:</strong> +51 970 539 751 (atención únicamente por chat). Envíanos fotos o videos del problema para orientarte mejor.</li>
+							<li><strong>Capacitación virtual:</strong> agenda una sesión para aprender el flujo completo de impresión.</li>
+							<li><strong>K3D FAB:</strong> impresiones 3D a pedido y repuestos cuando los necesites.</li>
+						</ul>
+					</div>`;
+				}
+
+				function renderSupportBlocks(el) {
+					el.innerHTML = `
+						<a class="guia-sup-card" href="https://stlkrear3d.com/" target="_blank" rel="noopener">
+							<div class="guia-sup-ico">🧩</div>
+							<div class="guia-sup-txt"><div class="guia-sup-title">K3D FAB</div><div class="guia-sup-sub">Impresiones 3D a pedido, repuestos y más.</div></div>
+							<span class="guia-sup-chev">›</span>
+						</a>
+						<a class="guia-sup-card" href="https://wa.me/${WA_PHONE}?text=${encodeURIComponent('Hola, quiero información sobre la capacitación virtual')}" target="_blank" rel="noopener">
+							<div class="guia-sup-ico">🎓</div>
+							<div class="guia-sup-txt"><div class="guia-sup-title">Capacitación virtual</div><div class="guia-sup-sub">Cursos y talleres para mejorar tus habilidades.</div></div>
+							<span class="guia-sup-chev">›</span>
+						</a>
+						<a class="guia-sup-card guia-sup-wa" href="https://wa.me/${WA_PHONE}" target="_blank" rel="noopener">
+							<div class="guia-sup-ico">🟢</div>
+							<div class="guia-sup-txt"><div class="guia-sup-title">Soporte técnico por WhatsApp</div><div class="guia-sup-sub">Atención rápida para resolver tus dudas.</div></div>
+							<span class="guia-sup-chev">›</span>
+						</a>`;
+				}
+
+				async function appendLearningCenter(container, guide) {
 					const wrap = document.createElement('div');
-					wrap.className = 'guia-bonus-wrap';
+					wrap.className = 'guia-lc';
 					wrap.innerHTML = `
-						<div class="guia-drive-title">Bonus Track</div>
-						<p class="guia-drive-sub">¡Revisa esta información para que seas un experto en impresiones 3D!</p>
-						${pdfs.map(p => `
-							<div class="guia-bonus-pdf">
-								<div class="guia-bonus-pdf-title">${p.title}</div>
-								<iframe class="guia-bonus-frame" src="${PDF_BASE}/${p.file}#toolbar=1&view=FitH" title="${p.title}" loading="lazy"></iframe>
-								<a href="${PDF_BASE}/${p.file}" target="_blank" rel="noopener" class="guia-bonus-fallback">¿No se muestra? Ábrelo en una pestaña nueva</a>
-							</div>`).join('')}`;
+						<div class="guia-lc-head">
+							<span class="guia-lc-head-ico">🎓</span>
+							<div>
+								<div class="guia-lc-head-title">Centro de aprendizaje</div>
+								<div class="guia-lc-head-sub">Complementa tu capacitación con guías prácticas, soluciones y recursos para imprimir mejor desde el primer día.</div>
+							</div>
+						</div>
+						<div class="guia-lc-tabs"></div>
+						<div class="guia-lc-panel"><p class="guia-lc-loading">Cargando guías...</p></div>
+						<div class="guia-lc-support"></div>`;
 					container.appendChild(wrap);
+
+					const tabsEl  = wrap.querySelector('.guia-lc-tabs');
+					const panelEl = wrap.querySelector('.guia-lc-panel');
+					renderSupportBlocks(wrap.querySelector('.guia-lc-support'));
+
+					let data = null;
+					try {
+						const r = await fetch(`${API}/guide/wiki/${guide.machine_id}?wp_user_id=${WP_USER_ID}`, { headers: { 'X-No-Toast': '1' } });
+						const j = await r.json();
+						data = j.data;
+					} catch (e) {}
+
+					if (!data || !Array.isArray(data.tabs) || !data.tabs.length) { wrap.remove(); return; }
+
+					wrap.querySelector('.guia-lc-head-title').textContent = data.label || 'Centro de aprendizaje';
+
+					data.tabs.forEach((tab, idx) => {
+						const btn = document.createElement('button');
+						btn.className = 'guia-lc-tab' + (idx === 0 ? ' active' : '');
+						btn.innerHTML = `<span class="guia-lc-tab-ico">${tabIcon(tab)}</span>${escHtml(tab.title)}`;
+						btn.addEventListener('click', () => selectTab(idx));
+						tabsEl.appendChild(btn);
+					});
+					const supBtn = document.createElement('button');
+					supBtn.className = 'guia-lc-tab guia-lc-tab-support';
+					supBtn.innerHTML = `<span class="guia-lc-tab-ico">🎧</span>Soporte y capacitación`;
+					supBtn.addEventListener('click', () => selectTab(-1));
+					tabsEl.appendChild(supBtn);
+
+					function selectTab(idx) {
+						tabsEl.querySelectorAll('.guia-lc-tab').forEach(b => b.classList.remove('active'));
+						if (idx === -1) { supBtn.classList.add('active'); panelEl.innerHTML = supportPanelHtml(); return; }
+						tabsEl.querySelectorAll('.guia-lc-tab')[idx].classList.add('active');
+						renderGuidePanel(panelEl, data.tabs[idx]);
+					}
+					selectTab(0);
 				}
 
 				// ── Perfil cacheado (phone/dni) ─────────────────────────────────

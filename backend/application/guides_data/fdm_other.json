@@ -1,0 +1,230 @@
+{
+ "type": "fdm",
+ "label": "Centro de aprendizaje FDM",
+ "tabs": [
+  {
+   "title": "Guía rápida de Cura",
+   "level": "Básico",
+   "reading_min": 6,
+   "intro": "Aprende el flujo básico para preparar un modelo 3D en Cura y generar el archivo listo para imprimir en una impresora FDM.\n\n---",
+   "sections": [
+    {
+     "title": "¿Qué es Cura?",
+     "html": "<p>Cura es un programa laminador o *slicer*. Su función es convertir un modelo 3D, como un archivo STL, OBJ o 3MF, en un archivo que la impresora pueda leer.</p><p>En Cura podrás configurar parámetros como altura de capa, relleno, temperatura, velocidad, soportes y adherencia a la cama.</p><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Pantalla principal de Cura</span></div>"
+    },
+    {
+     "title": "Conoce la interfaz principal",
+     "html": "<p>La pantalla principal de Cura se divide en varias zonas importantes:</p><ul class=\"guia-md-list\"><li><strong>Área de trabajo:</strong> donde se visualiza el modelo sobre la cama de impresión.</li><li><strong>Selector de impresora:</strong> permite elegir el equipo configurado.</li><li><strong>Panel de parámetros:</strong> donde se ajusta la calidad, material, relleno, soportes y más.</li><li><strong>Herramientas de modelo:</strong> mover, escalar, rotar y duplicar.</li><li><strong>Botón de laminar:</strong> genera el archivo de impresión.</li></ul><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Interfaz de Cura con zonas señaladas</span></div><p><strong>Tip K3D:</strong> Antes de laminar, verifica que la impresora, el material y la boquilla seleccionada sean correctos.</p>"
+    },
+    {
+     "title": "Agregar o seleccionar tu impresora",
+     "html": "<p>Antes de preparar un modelo, debes asegurarte de tener seleccionada la impresora correcta.</p><p>Pasos:</p><ol class=\"guia-md-list\"><li>Ingresa al selector de impresora.</li><li>Elige el modelo de impresora configurado.</li><li>Verifica el volumen de impresión.</li><li>Confirma el tamaño de boquilla, usualmente 0.4 mm.</li></ol><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Selector de impresora en Cura</span></div><p><strong>Recomendación:</strong> Si tu modelo de impresora no aparece, puedes usar un perfil compatible o solicitar soporte a Krear 3D.</p>"
+    },
+    {
+     "title": "Importar un archivo STL, OBJ o 3MF",
+     "html": "<p>Para cargar un modelo:</p><ol class=\"guia-md-list\"><li>Haz clic en el botón de abrir archivo.</li><li>Selecciona el archivo STL, OBJ o 3MF.</li><li>Espera a que el modelo aparezca sobre la cama.</li><li>Verifica que esté bien posicionado.</li></ol><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Botón para importar archivo</span></div><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Modelo cargado sobre la cama</span></div><p><strong>Tip K3D:</strong> Si el modelo aparece muy pequeño o muy grande, revisa la escala antes de laminar.</p>"
+    },
+    {
+     "title": "Herramientas básicas del modelo",
+     "html": "<p>Cura permite modificar la posición, tamaño y orientación del modelo antes de imprimir.</p><h4 class=\"guia-md-h3\">Mover</h4><p>Sirve para cambiar la posición del modelo sobre la cama.</p><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Herramienta Mover</span></div><h4 class=\"guia-md-h3\">Escalar</h4><p>Permite aumentar o reducir el tamaño del modelo.</p><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Herramienta Escalar</span></div><h4 class=\"guia-md-h3\">Rotar</h4><p>Permite girar el modelo para mejorar la orientación de impresión.</p><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Herramienta Rotar</span></div><h4 class=\"guia-md-h3\">Espejo</h4><p>Permite invertir el modelo en un eje.</p><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Herramienta Espejo</span></div><p><strong>Recomendación:</strong> Una buena orientación puede reducir soportes, mejorar la resistencia y acortar el tiempo de impresión.</p>"
+    },
+    {
+     "title": "Parámetros básicos de impresión",
+     "html": "<p>Los parámetros definen cómo se imprimirá el modelo.</p><h4 class=\"guia-md-h3\">Altura de capa</h4><p>Determina el nivel de detalle de la impresión.</p><ul class=\"guia-md-list\"><li><strong>0.12 mm:</strong> más detalle, más tiempo.</li><li><strong>0.20 mm:</strong> equilibrio recomendado.</li><li><strong>0.28 mm:</strong> impresión más rápida, menos detalle.</li></ul><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Parámetro Altura de capa</span></div><p><strong>Tip K3D:</strong> Para empezar, usa 0.20 mm en PLA.</p><h4 class=\"guia-md-h3\">Paredes</h4><p>Define el grosor exterior de la pieza.</p><ul class=\"guia-md-list\"><li>2 paredes: uso básico.</li><li>3 paredes: mayor resistencia.</li><li>4 paredes o más: piezas funcionales o resistentes.</li></ul><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Parámetro Paredes</span></div><h4 class=\"guia-md-h3\">Relleno</h4><p>Define cuánto material se usará dentro del modelo.</p><ul class=\"guia-md-list\"><li>10%: piezas decorativas.</li><li>15% a 20%: uso general.</li><li>30% o más: piezas resistentes.</li></ul><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Parámetro Relleno / Infill</span></div><h4 class=\"guia-md-h3\">Temperatura</h4><p>La temperatura depende del material utilizado.</p><div class=\"guia-md-tablewrap\"><table class=\"guia-md-table\"><thead><tr><th>Material</th><th>Boquilla aprox.</th><th>Cama aprox.</th></tr></thead><tbody><tr><td>PLA</td><td>190–220 °C</td><td>50–60 °C</td></tr><tr><td>PETG</td><td>220–250 °C</td><td>70–85 °C</td></tr><tr><td>ABS</td><td>235–260 °C</td><td>90–110 °C</td></tr><tr><td>TPU</td><td>210–240 °C</td><td>40–60 °C</td></tr></tbody></table></div><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Parámetro Material / Temperatura</span></div><p><strong>Tip K3D:</strong> Revisa siempre la temperatura recomendada en la etiqueta del filamento.</p><h4 class=\"guia-md-h3\">Velocidad</h4><p>Controla qué tan rápido imprime la máquina.</p><ul class=\"guia-md-list\"><li>40–60 mm/s: recomendado para principiantes.</li><li>80 mm/s o más: requiere buena calibración.</li><li>TPU: usar velocidades más bajas.</li></ul><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Parámetro Velocidad</span></div>"
+    },
+    {
+     "title": "Soportes",
+     "html": "<p>Los soportes ayudan a imprimir zonas en el aire o voladizos.</p><p>Actívalos cuando el modelo tenga partes inclinadas o suspendidas.</p><p>Tipos comunes:</p><ul class=\"guia-md-list\"><li><strong>Soporte normal:</strong> más estable.</li><li><strong>Soporte tipo árbol:</strong> más fácil de retirar en muchos modelos.</li></ul><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Parámetro Soportes</span></div><p><strong>Recomendación:</strong> No todos los modelos necesitan soporte. Revisa la vista previa antes de imprimir.</p>"
+    },
+    {
+     "title": "Adhesión a la cama",
+     "html": "<p>La adhesión ayuda a que la pieza se mantenga pegada durante la impresión.</p><p>Opciones comunes:</p><ul class=\"guia-md-list\"><li><strong>Skirt:</strong> línea alrededor del modelo para purgar filamento.</li><li><strong>Brim:</strong> borde pegado a la pieza para mejorar adherencia.</li><li><strong>Raft:</strong> base completa debajo de la pieza.</li></ul><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Parámetro Adhesión a la cama</span></div><p><strong>Tip K3D:</strong> Si la pieza se despega, prueba usando Brim.</p>"
+    },
+    {
+     "title": "Laminar el modelo",
+     "html": "<p>Una vez configurados los parámetros, haz clic en <strong>Laminar</strong> o <strong>Slice</strong>.</p><p>Cura calculará:</p><ul class=\"guia-md-list\"><li>tiempo estimado de impresión;</li><li>cantidad de material;</li><li>recorrido de la boquilla;</li><li>soportes generados;</li><li>capas del modelo.</li></ul><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Botón Laminar / Slice</span></div>"
+    },
+    {
+     "title": "Revisar la vista previa",
+     "html": "<p>La vista previa permite revisar el modelo capa por capa antes de imprimir.</p><p>Verifica:</p><ul class=\"guia-md-list\"><li>que la primera capa esté completa;</li><li>que los soportes aparezcan donde corresponde;</li><li>que no existan partes flotando;</li><li>que el tiempo y material sean razonables;</li><li>que el modelo esté bien orientado.</li></ul><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Vista Preview de Cura</span></div><p><strong>Recomendación:</strong> Nunca envíes a imprimir sin revisar la vista previa.</p>"
+    },
+    {
+     "title": "Guardar el archivo para imprimir",
+     "html": "<p>Después de laminar, puedes guardar el archivo en formato G-code.</p><p>Pasos:</p><ol class=\"guia-md-list\"><li>Haz clic en guardar archivo.</li><li>Selecciona la memoria SD, USB o carpeta.</li><li>Lleva el archivo a la impresora.</li><li>Inicia la impresión desde la pantalla del equipo.</li></ol><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Guardar G-code</span></div><p><strong>Nota:</strong> Algunas impresoras permiten enviar el archivo por red, WiFi o nube, según el modelo.</p>"
+    },
+    {
+     "title": "Checklist antes de imprimir",
+     "html": "<p>Antes de iniciar una impresión, revisa:</p><ul class=\"guia-md-list\"><li>La cama está limpia.</li><li>El filamento está cargado correctamente.</li><li>La boquilla no está obstruida.</li><li>La impresora está nivelada o calibrada.</li><li>El archivo corresponde al modelo correcto.</li><li>El material seleccionado coincide con el filamento.</li><li>La primera capa se adhiere correctamente.</li></ul><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Checklist visual antes de imprimir</span></div>"
+    },
+    {
+     "title": "Perfil inicial recomendado para PLA",
+     "html": "<p>Para usuarios nuevos, puedes empezar con estos valores:</p><div class=\"guia-md-tablewrap\"><table class=\"guia-md-table\"><thead><tr><th>Parámetro</th><th>Valor sugerido</th></tr></thead><tbody><tr><td>Altura de capa</td><td>0.20 mm</td></tr><tr><td>Boquilla</td><td>0.4 mm</td></tr><tr><td>Temperatura de boquilla</td><td>200–210 °C</td></tr><tr><td>Temperatura de cama</td><td>55–60 °C</td></tr><tr><td>Relleno</td><td>15%–20%</td></tr><tr><td>Velocidad</td><td>50 mm/s</td></tr><tr><td>Soportes</td><td>Solo si el modelo lo requiere</td></tr><tr><td>Adhesión</td><td>Skirt o Brim</td></tr></tbody></table></div><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Perfil básico PLA en Cura</span></div>"
+    },
+    {
+     "title": "Errores comunes rápidos",
+     "html": "<h4 class=\"guia-md-h3\">La pieza no se pega a la cama</h4><p>Posibles causas: cama sucia, mala nivelación, temperatura baja, primera capa muy alta o falta de adhesión.</p><p>Solución recomendada: limpia la cama, calibra la plataforma, usa Brim y revisa el Z-offset.</p><h4 class=\"guia-md-h3\">La impresión tiene hilos</h4><p>Posibles causas: temperatura muy alta, retracción insuficiente o filamento húmedo.</p><p>Solución recomendada: baja la temperatura, revisa retracción y seca el filamento si es necesario.</p><h4 class=\"guia-md-h3\">Las capas se separan</h4><p>Posibles causas: temperatura baja, ventilación incorrecta o material mal configurado.</p><p>Solución recomendada: sube la temperatura, revisa la velocidad y usa el perfil correcto.</p><h4 class=\"guia-md-h3\">Los soportes son difíciles de retirar</h4><p>Posibles causas: densidad de soporte alta, distancia entre soporte y pieza muy baja u orientación poco favorable.</p><p>Solución recomendada: reduce densidad, prueba soporte tipo árbol o cambia la orientación del modelo.</p>"
+    },
+    {
+     "title": "Soporte Krear 3D",
+     "html": "<p>Si necesitas ayuda, envíanos fotos o videos del problema para poder orientarte mejor.</p><p><strong>Soporte técnico vía WhatsApp:</strong> +51 970 539 751   <strong>Atención únicamente por chat.</strong></p>"
+    }
+   ]
+  },
+  {
+   "title": "Errores comunes",
+   "level": "Intermedio",
+   "reading_min": 5,
+   "intro": "**Objetivo:** ayudar al cliente a identificar rápidamente qué está fallando, cuál puede ser la causa y qué acción tomar antes de volver a imprimir.\n\n**Nivel:** básico a intermedio  \n**Tiempo estimado:** 10 a 15 min  \n**Formato recomendado en web:** acordeón por problema + buscador por síntoma.\n\n---",
+   "sections": [
+    {
+     "title": "Cómo usar esta guía",
+     "html": "<p>Cuando una impresión falla, primero identifica el síntoma visual. Luego revisa las posibles causas en orden: calibración, material, parámetros de laminado y estado mecánico de la impresora.</p><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/errores/errores_p02.png</code>   <strong>Uso en web:</strong> portada o banner de la guía.</p>"
+    },
+    {
+     "title": "No extruye al inicio de la impresión",
+     "html": "<p><strong>Cómo se ve:</strong> la impresora se mueve, pero al iniciar no deposita filamento o deja líneas incompletas.</p><p><strong>Causas posibles:</strong></p><ul class=\"guia-md-list\"><li>la boquilla está demasiado cerca de la cama;</li><li>el filamento no fue cargado correctamente;</li><li>la boquilla está parcialmente obstruida;</li><li>la primera capa está configurada muy rápida;</li><li>el extrusor no está empujando el filamento.</li></ul><p><strong>Soluciones recomendadas:</strong></p><ol class=\"guia-md-list\"><li>Revisa la nivelación o el Z-offset.</li><li>Carga nuevamente el filamento y verifica que salga por la boquilla.</li><li>Limpia o destapa la boquilla si el flujo es irregular.</li><li>Reduce la velocidad de primera capa.</li><li>Usa una línea de purga o skirt antes de imprimir la pieza.</li></ol><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/errores/errores_p03.png</code></p><p><strong>Tip K3D:</strong> si la boquilla deja una marca sobre la cama o el filamento sale aplastado, el Z-offset puede estar demasiado bajo.</p>"
+    },
+    {
+     "title": "La pieza no se pega a la cama",
+     "html": "<p><strong>Cómo se ve:</strong> la primera capa se despega, se arrastra con la boquilla o las esquinas se levantan.</p><p><strong>Causas posibles:</strong></p><ul class=\"guia-md-list\"><li>cama sucia con grasa o polvo;</li><li>mala nivelación;</li><li>Z-offset muy alto;</li><li>temperatura de cama baja;</li><li>velocidad de primera capa muy alta;</li><li>poca superficie de contacto del modelo.</li></ul><p><strong>Soluciones recomendadas:</strong></p><ol class=\"guia-md-list\"><li>Limpia la cama con alcohol isopropílico, si el tipo de superficie lo permite.</li><li>Recalibra la cama o ajusta el Z-offset.</li><li>Sube ligeramente la temperatura de cama según el material.</li><li>Activa <strong>Brim</strong> si la pieza tiene poca base.</li><li>Reduce la velocidad de primera capa.</li></ol><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/errores/errores_p04.png</code></p><p><strong>Recomendación:</strong> para PLA, una cama entre 50 °C y 60 °C suele funcionar bien como punto de partida.</p>"
+    },
+    {
+     "title": "Hilos entre partes del modelo / Stringing",
+     "html": "<p><strong>Cómo se ve:</strong> aparecen hilos finos de filamento entre zonas separadas de la pieza.</p><p><strong>Causas posibles:</strong></p><ul class=\"guia-md-list\"><li>temperatura demasiado alta;</li><li>retracción insuficiente;</li><li>filamento húmedo;</li><li>velocidad de viaje baja;</li><li>material muy fluido.</li></ul><p><strong>Soluciones recomendadas:</strong></p><ol class=\"guia-md-list\"><li>Baja la temperatura de boquilla en pasos de 5 °C.</li><li>Ajusta la retracción según el tipo de extrusor.</li><li>Seca el filamento si estuvo expuesto a humedad.</li><li>Aumenta la velocidad de movimiento o travel.</li><li>Activa opciones de evitar cruces sobre perímetros si el laminador lo permite.</li></ol><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/errores/errores_p05.png</code></p><p><strong>Tip K3D:</strong> en equipos Bambu, primero prueba con el perfil estándar del material antes de tocar muchos parámetros manualmente.</p>"
+    },
+    {
+     "title": "Warping o esquinas levantadas",
+     "html": "<p><strong>Cómo se ve:</strong> las esquinas de la pieza se levantan y la base se deforma.</p><p><strong>Causas posibles:</strong></p><ul class=\"guia-md-list\"><li>mala adhesión de primera capa;</li><li>contracción del material;</li><li>corrientes de aire;</li><li>cama con temperatura insuficiente;</li><li>pieza grande con base extensa.</li></ul><p><strong>Soluciones recomendadas:</strong></p><ol class=\"guia-md-list\"><li>Limpia la cama y revisa el Z-offset.</li><li>Usa Brim para aumentar la superficie de adhesión.</li><li>Evita corrientes de aire durante la impresión.</li><li>Usa impresora cerrada o enclosure para ABS/ASA.</li><li>Ajusta temperatura de cama según el material.</li></ol><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/errores/errores_p06.png</code></p>"
+    },
+    {
+     "title": "Capas desplazadas",
+     "html": "<p><strong>Cómo se ve:</strong> una parte de la impresión aparece corrida hacia un lado.</p><p><strong>Causas posibles:</strong></p><ul class=\"guia-md-list\"><li>correas flojas;</li><li>poleas mal ajustadas;</li><li>choque de la boquilla contra la pieza;</li><li>velocidad o aceleración demasiado alta;</li><li>motor perdiendo pasos.</li></ul><p><strong>Soluciones recomendadas:</strong></p><ol class=\"guia-md-list\"><li>Revisa tensión de correas.</li><li>Verifica que la pieza esté bien adherida a la cama.</li><li>Reduce velocidad/aceleración si el perfil es muy agresivo.</li><li>Revisa que no haya obstáculos en los ejes.</li><li>Evita soportes o bordes que puedan golpear la boquilla.</li></ol><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/errores/errores_p07.png</code></p>"
+    },
+    {
+     "title": "Subextrusión",
+     "html": "<p><strong>Cómo se ve:</strong> capas débiles, líneas separadas, paredes incompletas o huecos entre pasadas.</p><p><strong>Causas posibles:</strong></p><ul class=\"guia-md-list\"><li>boquilla parcialmente obstruida;</li><li>temperatura baja;</li><li>filamento con diámetro irregular;</li><li>extrusor sucio o con poca presión;</li><li>velocidad demasiado alta para el flujo disponible.</li></ul><p><strong>Soluciones recomendadas:</strong></p><ol class=\"guia-md-list\"><li>Sube la temperatura de boquilla en pasos de 5 °C.</li><li>Reduce velocidad de impresión.</li><li>Limpia boquilla y engranaje del extrusor.</li><li>Revisa que el filamento corra libremente.</li><li>Cambia la boquilla si está muy gastada u obstruida.</li></ol><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/errores/errores_p08.png</code></p>"
+    },
+    {
+     "title": "Sobreextrusión",
+     "html": "<p><strong>Cómo se ve:</strong> exceso de material, bordes abultados, capas muy gruesas o detalles deformados.</p><p><strong>Causas posibles:</strong></p><ul class=\"guia-md-list\"><li>flujo demasiado alto;</li><li>temperatura alta;</li><li>perfil incorrecto de material;</li><li>boquilla o diámetro configurado incorrectamente.</li></ul><p><strong>Soluciones recomendadas:</strong></p><ol class=\"guia-md-list\"><li>Verifica que la boquilla configurada coincida con la real.</li><li>Reduce flujo o extrusion multiplier si el laminador lo permite.</li><li>Baja temperatura en pasos de 5 °C.</li><li>Usa un perfil estándar del material como punto de partida.</li></ol><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/errores/errores_p09.png</code></p>"
+    },
+    {
+     "title": "Soportes difíciles de retirar",
+     "html": "<p><strong>Cómo se ve:</strong> los soportes se pegan demasiado a la pieza o dejan marcas fuertes.</p><p><strong>Causas posibles:</strong></p><ul class=\"guia-md-list\"><li>distancia Z de soporte muy baja;</li><li>densidad de soporte alta;</li><li>orientación poco favorable;</li><li>temperatura alta;</li><li>tipo de soporte no adecuado.</li></ul><p><strong>Soluciones recomendadas:</strong></p><ol class=\"guia-md-list\"><li>Reorienta el modelo para reducir soportes.</li><li>Usa soporte tipo árbol si conviene.</li><li>Reduce densidad de soporte.</li><li>Aumenta la distancia entre soporte y pieza si el laminador lo permite.</li><li>Usa interfaces de soporte solo cuando sean necesarias.</li></ol><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/errores/errores_p10.png</code></p>"
+    },
+    {
+     "title": "Mala calidad superficial",
+     "html": "<p><strong>Cómo se ve:</strong> líneas muy visibles, vibraciones, marcas, superficie irregular o detalles poco definidos.</p><p><strong>Causas posibles:</strong></p><ul class=\"guia-md-list\"><li>altura de capa muy alta;</li><li>velocidad excesiva;</li><li>vibración mecánica;</li><li>temperatura incorrecta;</li><li>filamento húmedo.</li></ul><p><strong>Soluciones recomendadas:</strong></p><ol class=\"guia-md-list\"><li>Usa altura de capa menor si buscas más detalle.</li><li>Reduce velocidad para piezas estéticas.</li><li>Revisa correas, ruedas y estabilidad de la máquina.</li><li>Ajusta temperatura según material.</li><li>Seca el filamento si hay burbujas o textura irregular.</li></ol><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/errores/errores_p11.png</code></p>"
+    },
+    {
+     "title": "Checklist rápido antes de pedir soporte",
+     "html": "<p>Antes de contactar a soporte, recopila:</p><ul class=\"guia-md-list\"><li>foto de la pieza fallida;</li><li>foto de la primera capa;</li><li>material usado;</li><li>temperatura de boquilla y cama;</li><li>modelo de impresora;</li><li>software usado;</li><li>captura de parámetros principales;</li><li>video corto si el problema ocurre durante la impresión.</li></ul><p><strong>CTA sugerido:</strong> <code>Contactar soporte técnico por WhatsApp</code></p>"
+    }
+   ]
+  },
+  {
+   "title": "Tips de impresión 3D",
+   "level": "Básico",
+   "reading_min": 3,
+   "intro": "**Objetivo:** dar recomendaciones rápidas para mejorar calidad, adherencia, resistencia y acabado en impresiones FDM.\n\n**Nivel:** básico  \n**Tiempo estimado:** 8 a 12 min  \n**Formato recomendado en web:** tarjetas con tips + imágenes ejemplo.\n\n---",
+   "sections": [
+    {
+     "title": "Empieza con un perfil estándar",
+     "html": "<p>Si es tu primera impresión, evita modificar demasiados parámetros. Usa un perfil estándar del software y cambia solo lo necesario.</p><p><strong>Recomendación inicial:</strong></p><ul class=\"guia-md-list\"><li>PLA como material;</li><li>altura de capa 0.20 mm;</li><li>relleno 15% a 20%;</li><li>soportes solo si el modelo lo requiere;</li><li>velocidad estándar del equipo.</li></ul><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/tips/tips_p02.png</code></p>"
+    },
+    {
+     "title": "La primera capa es lo más importante",
+     "html": "<p>Una mala primera capa puede arruinar toda la impresión.</p><p><strong>Debe verse:</strong></p><ul class=\"guia-md-list\"><li>continua;</li><li>ligeramente aplastada;</li><li>bien adherida;</li><li>sin espacios entre líneas;</li><li>sin filamento raspado por la boquilla.</li></ul><p><strong>Acciones útiles:</strong></p><ul class=\"guia-md-list\"><li>limpia la cama;</li><li>calibra o ajusta Z-offset;</li><li>reduce velocidad de primera capa;</li><li>usa Brim si la pieza tiene poca base.</li></ul><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/errores/errores_p04.png</code></p>"
+    },
+    {
+     "title": "Orienta la pieza antes de laminar",
+     "html": "<p>La orientación define cuánto soporte necesitarás, qué acabado tendrá la pieza y qué tan resistente será.</p><p><strong>Evalúa:</strong></p><ul class=\"guia-md-list\"><li>la cara visible;</li><li>la dirección de esfuerzo;</li><li>el contacto con la cama;</li><li>el uso de soportes;</li><li>el tiempo de impresión.</li></ul><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/tips/tips_p15.png</code></p>"
+    },
+    {
+     "title": "Usa soportes solo cuando sean necesarios",
+     "html": "<p>Los soportes ayudan, pero también pueden dejar marcas y aumentar el tiempo.</p><p><strong>Recomendación:</strong></p><ul class=\"guia-md-list\"><li>si el voladizo supera aprox. 45°, probablemente necesite soporte;</li><li>prueba soporte tipo árbol para figuras o geometrías orgánicas;</li><li>usa soporte solo desde la placa cuando quieras reducir marcas;</li><li>cambia la orientación antes de activar soportes excesivos.</li></ul><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/tips/tips_p14.png</code></p>"
+    },
+    {
+     "title": "Ajusta la temperatura según el material",
+     "html": "<p>Cada filamento tiene un rango de temperatura. Imprimir muy frío puede causar subextrusión; imprimir muy caliente puede generar hilos o mala definición.</p><div class=\"guia-md-tablewrap\"><table class=\"guia-md-table\"><thead><tr><th>Material</th><th>Boquilla aprox.</th><th>Cama aprox.</th></tr></thead><tbody><tr><td>PLA</td><td>190-220 °C</td><td>50-60 °C</td></tr><tr><td>PETG</td><td>220-250 °C</td><td>70-85 °C</td></tr><tr><td>ABS</td><td>235-260 °C</td><td>90-110 °C</td></tr><tr><td>TPU</td><td>210-240 °C</td><td>40-60 °C</td></tr><tr><td>ASA</td><td>240-260 °C</td><td>90-110 °C</td></tr></tbody></table></div><p><strong>Tip K3D:</strong> usa la etiqueta del filamento como referencia principal.</p><p><strong>[IMAGEN SUGERIDA]</strong> captura del panel de filamento en Bambu Studio o Cura.</p>"
+    },
+    {
+     "title": "Controla el relleno y las paredes",
+     "html": "<p>No siempre necesitas mucho relleno. Muchas veces aumentar paredes mejora más la resistencia que subir demasiado el infill.</p><p><strong>Referencia rápida:</strong></p><ul class=\"guia-md-list\"><li>piezas decorativas: 10% a 15% de relleno;</li><li>piezas generales: 15% a 20%;</li><li>piezas funcionales: 25% a 40%;</li><li>piezas resistentes: más paredes + material adecuado.</li></ul><p><strong>[IMAGEN SUGERIDA]</strong> captura del panel de relleno/Strength en Bambu Studio.</p>"
+    },
+    {
+     "title": "Mantén el filamento seco",
+     "html": "<p>La humedad puede causar burbujas, mala superficie, hilos y capas débiles.</p><p><strong>Señales de humedad:</strong></p><ul class=\"guia-md-list\"><li>sonido de burbujeo en la boquilla;</li><li>textura rugosa;</li><li>stringing excesivo;</li><li>baja resistencia de la pieza.</li></ul><p><strong>Soluciones:</strong></p><ul class=\"guia-md-list\"><li>guarda filamentos en bolsa sellada;</li><li>usa desecante;</li><li>seca materiales como PETG, TPU, Nylon o PC antes de imprimir.</li></ul><p><strong>[IMAGEN SUGERIDA]</strong> foto de filamento en caja seca o secador de filamento.</p>"
+    },
+    {
+     "title": "Limpia y revisa la impresora",
+     "html": "<p>Pequeños problemas mecánicos pueden generar grandes fallas.</p><p><strong>Revisa periódicamente:</strong></p><ul class=\"guia-md-list\"><li>boquilla;</li><li>extrusor;</li><li>correas;</li><li>cama;</li><li>ruedas o guías;</li><li>ventiladores;</li><li>restos de filamento.</li></ul><p><strong>[IMAGEN SUGERIDA]</strong> foto de mantenimiento básico de impresora FDM.</p>"
+    },
+    {
+     "title": "No imprimas piezas grandes sin prueba previa",
+     "html": "<p>Antes de imprimir una pieza grande o de muchas horas, realiza una prueba pequeña.</p><p><strong>Puedes probar:</strong></p><ul class=\"guia-md-list\"><li>tolerancias;</li><li>encaje;</li><li>temperatura;</li><li>resistencia;</li><li>orientación;</li><li>calidad de superficie.</li></ul><p><strong>Tip K3D:</strong> una prueba de 20 minutos puede evitar perder 8 horas de impresión.</p>"
+    },
+    {
+     "title": "Checklist final antes de imprimir",
+     "html": "<ul class=\"guia-md-list\"><li>Modelo correcto.</li><li>Material correcto.</li><li>Boquilla correcta.</li><li>Perfil correcto.</li><li>Cama limpia.</li><li>Primera capa revisada.</li><li>Soportes revisados en preview.</li><li>Tiempo y material validados.</li><li>Filamento suficiente.</li></ul><p><strong>CTA sugerido:</strong> <code>Ir a guía de errores comunes</code>.</p>"
+    }
+   ]
+  },
+  {
+   "title": "Diseño CAD para FDM",
+   "level": "Básico",
+   "reading_min": 4,
+   "intro": "**Objetivo:** explicar cómo diseñar piezas más fáciles de imprimir en FDM, reduciendo fallas, soportes innecesarios y problemas de ensamblaje.\n\n**Nivel:** básico a intermedio  \n**Tiempo estimado:** 15 a 20 min  \n**Formato recomendado en web:** guía por secciones + ejemplos visuales.\n\n---",
+   "sections": [
+    {
+     "title": "¿Qué es CAD y por qué importa en impresión 3D?",
+     "html": "<p>El CAD o diseño asistido por computadora permite crear modelos digitales que luego pueden fabricarse mediante impresión 3D. Para imprimir en FDM, el modelo debe ser sólido, cerrado y tener dimensiones compatibles con la máquina.</p><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/cad/cad_p04.png</code></p>"
+    },
+    {
+     "title": "Tipos de modelado 3D",
+     "html": "<h4 class=\"guia-md-h3\">Modelado sólido</h4><p>Ideal para piezas funcionales, repuestos, soportes, carcasas, adaptadores y mecanismos. Trabaja con operaciones como extruir, cortar, perforar, unir y sustraer sólidos.</p><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/cad/cad_p05.png</code></p><h4 class=\"guia-md-h3\">Modelado de superficies</h4><p>Útil para piezas estéticas, carcasas con curvas, formas orgánicas o diseños libres. Puede ser menos preciso si luego se requiere ensamblaje exacto.</p><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/cad/cad_p06.png</code></p><h4 class=\"guia-md-h3\">Escultura digital</h4><p>Recomendada para personajes, figuras, miniaturas, joyería, texturas y detalles orgánicos.</p><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/cad/cad_p07.png</code></p>"
+    },
+    {
+     "title": "Software recomendado según el nivel",
+     "html": "<div class=\"guia-md-tablewrap\"><table class=\"guia-md-table\"><thead><tr><th>Necesidad</th><th>Software sugerido</th><th>Nivel</th></tr></thead><tbody><tr><td>Aprender desde cero</td><td>Tinkercad</td><td>Básico</td></tr><tr><td>Piezas funcionales</td><td>Fusion 360, Onshape, FreeCAD</td><td>Intermedio</td></tr><tr><td>Modelado profesional</td><td>SolidWorks, Inventor, Rhino</td><td>Intermedio/avanzado</td></tr><tr><td>Escultura y personajes</td><td>Blender, ZBrush</td><td>Intermedio/avanzado</td></tr></tbody></table></div><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/cad/cad_p08.png</code></p><p><strong>Tip K3D:</strong> para clientes nuevos que quieren diseñar piezas simples, Tinkercad es una buena entrada; para piezas funcionales, Fusion 360 u Onshape suelen ser mejores opciones.</p>"
+    },
+    {
+     "title": "Diseña piezas sólidas y cerradas",
+     "html": "<p>Para FDM, el modelo debe ser imprimible como un volumen sólido. Evita superficies abiertas, caras invertidas o paredes sin espesor.</p><p><strong>Reglas básicas:</strong></p><ul class=\"guia-md-list\"><li>el modelo debe estar cerrado;</li><li>no debe tener agujeros en la malla;</li><li>cada pared debe tener espesor real;</li><li>evita geometría interna innecesaria;</li><li>exporta en STL, 3MF u OBJ según el flujo usado.</li></ul><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/tips/tips_p03.png</code></p>"
+    },
+    {
+     "title": "Espesor mínimo de pared",
+     "html": "<p>Una pared muy delgada puede no imprimirse o quedar frágil. Como referencia práctica:</p><div class=\"guia-md-tablewrap\"><table class=\"guia-md-table\"><thead><tr><th>Tipo de pieza</th><th>Espesor mínimo recomendado</th></tr></thead><tbody><tr><td>Decorativa</td><td>0.8 mm a 1.2 mm</td></tr><tr><td>Uso general</td><td>1.2 mm a 1.6 mm</td></tr><tr><td>Funcional/resistente</td><td>1.6 mm a 2.4 mm o más</td></tr></tbody></table></div><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/tips/tips_p04.png</code></p><p><strong>Recomendación:</strong> diseña paredes en múltiplos del ancho de línea. Para boquilla de 0.4 mm, valores como 0.8 mm, 1.2 mm o 1.6 mm suelen funcionar bien.</p>"
+    },
+    {
+     "title": "Usa redondeos y chaflanes",
+     "html": "<p>Los bordes completamente rectos pueden concentrar esfuerzos. Los redondeos o chaflanes ayudan a distribuir cargas y mejorar la resistencia.</p><p><strong>Úsalo en:</strong></p><ul class=\"guia-md-list\"><li>esquinas de piezas funcionales;</li><li>soportes;</li><li>piezas que recibirán peso;</li><li>bases que puedan despegarse;</li><li>zonas donde hay cambios bruscos de sección.</li></ul><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/tips/tips_p05.png</code></p>"
+    },
+    {
+     "title": "Orientación de impresión",
+     "html": "<p>La orientación influye en resistencia, acabado, uso de soporte y tiempo de impresión.</p><p><strong>Evalúa antes de laminar:</strong></p><ul class=\"guia-md-list\"><li>qué cara debe tener mejor acabado;</li><li>qué dirección recibirá carga;</li><li>si se pueden reducir soportes;</li><li>si la base tiene suficiente contacto con la cama;</li><li>si conviene dividir la pieza en partes.</li></ul><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/tips/tips_p15.png</code></p><p><strong>Tip K3D:</strong> una misma pieza puede fallar o salir bien solo cambiando su orientación.</p>"
+    },
+    {
+     "title": "Diseña para reducir soportes",
+     "html": "<p>Los soportes aumentan tiempo, consumo de material y postprocesado. Siempre que sea posible, diseña con ángulos imprimibles.</p><p><strong>Buenas prácticas:</strong></p><ul class=\"guia-md-list\"><li>evita voladizos muy largos;</li><li>usa chaflanes de 45° en lugar de salientes horizontales;</li><li>divide piezas complejas;</li><li>orienta el modelo para que las zonas críticas no queden suspendidas;</li><li>usa puentes cortos cuando sea viable.</li></ul><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/tips/tips_p14.png</code></p>"
+    },
+    {
+     "title": "Tolerancias para piezas que encajan",
+     "html": "<p>FDM no es perfectamente exacto; deja holgura en ensambles, tapas, ejes, pines o piezas que deben encajar.</p><div class=\"guia-md-tablewrap\"><table class=\"guia-md-table\"><thead><tr><th>Tipo de encaje</th><th>Holgura inicial sugerida</th></tr></thead><tbody><tr><td>Encaje ajustado</td><td>0.15 mm a 0.25 mm por lado</td></tr><tr><td>Encaje normal</td><td>0.25 mm a 0.40 mm por lado</td></tr><tr><td>Encaje libre</td><td>0.40 mm a 0.60 mm por lado</td></tr></tbody></table></div><p><strong>Recomendación:</strong> imprime una pequeña prueba de tolerancia antes de fabricar una pieza final grande.</p><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/cad/cad_p18.png</code></p>"
+    },
+    {
+     "title": "Agujeros, ejes y tornillos",
+     "html": "<p>Los agujeros impresos en FDM pueden salir ligeramente más pequeños por expansión del material.</p><p><strong>Buenas prácticas:</strong></p><ul class=\"guia-md-list\"><li>sobredimensiona agujeros pequeños;</li><li>usa insertos térmicos si la pieza será desmontable;</li><li>diseña paredes suficientes alrededor del agujero;</li><li>evita roscas muy pequeñas impresas directamente;</li><li>considera perforar o repasar el agujero después de imprimir.</li></ul><p><strong>[IMAGEN SUGERIDA]</strong> <code>imagenes/cad/cad_p19.png</code></p>"
+    },
+    {
+     "title": "Exportación correcta del archivo",
+     "html": "<p>Antes de exportar:</p><ul class=\"guia-md-list\"><li>verifica que el modelo esté en milímetros;</li><li>revisa que esté cerrado;</li><li>elimina cuerpos ocultos innecesarios;</li><li>usa STL para piezas simples;</li><li>usa 3MF cuando quieras conservar más información del proyecto.</li></ul><p><strong>CTA sugerido:</strong> <code>Continuar con Bambu Studio</code> o <code>Continuar con Cura</code>.</p>"
+    },
+    {
+     "title": "Checklist de diseño FDM",
+     "html": "<p>Antes de imprimir, revisa:</p><ul class=\"guia-md-list\"><li>paredes con espesor suficiente;</li><li>modelo cerrado y sin errores;</li><li>orientación pensada para FDM;</li><li>soportes reducidos cuando sea posible;</li><li>tolerancias para ensambles;</li><li>agujeros y encajes con holgura;</li><li>redondeos en zonas de esfuerzo;</li><li>archivo exportado correctamente.</li></ul>"
+    }
+   ]
+  }
+ ]
+}
