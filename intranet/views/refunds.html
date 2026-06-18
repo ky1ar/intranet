@@ -1217,7 +1217,7 @@
 						labels: byA.map(r => r.assignee),
 						datasets: [{ label: 'Extornos', data: byA.map(r => r.count), backgroundColor: 'rgba(15,32,39,0.75)', borderWidth: 0 }],
 					},
-					options: { ...STATS_CHART_OPTS, plugins: { legend: { display: false }, tooltip: { enabled: false } } },
+					options: STATS_CHART_OPTS,
 				});
 			},
 

@@ -1353,7 +1353,7 @@
 						labels: stats.by_department.map(r => r.department),
 						datasets: [{ label: 'Compras', data: stats.by_department.map(r => r.count), backgroundColor: 'rgba(15,32,39,0.75)', borderWidth: 0 }],
 					},
-					options: { ...PSTATS_OPTS, plugins: { legend: { display: false }, tooltip: { enabled: false } } },
+					options: PSTATS_OPTS,
 				});
 
 				chartPurchaseAmount = new Chart(this.$refs.purchaseAmountChart, {

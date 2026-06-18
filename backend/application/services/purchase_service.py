@@ -634,7 +634,7 @@ class PurchaseService:
         amount_rows, _    = self.purchase_repository.stats_amount_by_department()
 
         by_month = [
-            {"period": f"{_PMONTHS.get(int(p.split('-')[1]), p)} {p[2:4]}", "count": c}
+            {"period": f"{_PMONTHS.get(int(p.split('-')[1]), p)} {p[:4]}", "count": c}
             for p, c in month_rows
         ]
         by_department = [

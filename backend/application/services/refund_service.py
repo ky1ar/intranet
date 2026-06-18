@@ -284,7 +284,7 @@ class RefundService:
             for r, c in reason_rows
         ]
         by_month = [
-            {"period": f"{MONTHS.get(int(p.split('-')[1]), p)} {p[2:4]}", "count": c}
+            {"period": f"{MONTHS.get(int(p.split('-')[1]), p)} {p[:4]}", "count": c}
             for p, c in month_rows
         ]
         by_assignee = [

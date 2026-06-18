@@ -2591,7 +2591,7 @@
 						labels: stats.by_provider.map(r => r.provider),
 						datasets: [{ label: 'Importaciones', data: stats.by_provider.map(r => r.count), backgroundColor: 'rgba(15,32,39,0.75)', borderWidth: 0 }],
 					},
-					options: { ...ISTATS_OPTS, plugins: { legend: { display: false }, tooltip: { enabled: false } } },
+					options: ISTATS_OPTS,
 				});
 
 				chartImportPort = new Chart(this.$refs.importPortChart, {

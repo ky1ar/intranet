@@ -527,7 +527,7 @@ class ImportService:
         port_rows, _     = self.import_repository.stats_by_port()
 
         by_month = [
-            {"period": f"{IMONTHS.get(int(p.split('-')[1]), p)} {p}", "count": c}
+            {"period": f"{IMONTHS.get(int(p.split('-')[1]), p)} {p[:4]}", "count": c}
             for p, c in eta_rows
         ]
         by_provider = [{"provider": name, "count": c} for name, c in provider_rows]
