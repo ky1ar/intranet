@@ -752,6 +752,7 @@ body.modal-open {
     flex-direction: column;
     gap: 0.5rem;
     padding: 0.75rem 0.5rem;
+    overflow: auto;
 }
 #sidebar ul li {
     display: flex;

@@ -5,7 +5,7 @@ from application.handlers import handle_db_exceptions
 from application.models import PurchaseRequest, PurchaseType, PurchaseUrgency, PurchaseItems, PurchaseChats, Users, UserDepartment
 from application.utils import peru_time
 from flask import g
-from sqlalchemy import or_, func
+from sqlalchemy import or_, func, case, and_
 from flask_jwt_extended import get_jwt_identity
 from sqlalchemy.orm import selectinload
 
@@ -393,11 +393,12 @@ class PurchaseRepository:
     @handle_db_exceptions
     def stats_amount_by_department(self):
         amount = func.coalesce(func.sum(PurchaseItems.price * PurchaseItems.quantity), 0)
+        eff_dept = self._effective_dept_expr()
         rows = (
             g.db_session.query(UserDepartment.name, amount)
             .join(PurchaseRequest, PurchaseItems.purchase_id == PurchaseRequest.id)
             .join(Users, PurchaseRequest.user_id == Users.id)
-            .join(UserDepartment, Users.department_id == UserDepartment.id)
+            .join(UserDepartment, UserDepartment.id == eff_dept)
             .filter(PurchaseRequest.deleted_at.is_(None), PurchaseItems.deleted_at.is_(None))
             .group_by(UserDepartment.name)
             .order_by(amount.desc())
@@ -405,12 +406,25 @@ class PurchaseRepository:
         )
         return rows or [], 200
 
+    def _effective_dept_expr(self):
+        # Ajuste puntual: el usuario 15 estuvo en Marketing (id 4) hasta el 2026-06-08
+        # y luego pasó a Comercial (id 3). Devolvemos el área vigente a la fecha de la
+        # compra; el resto usa su área actual (Users.department_id). Usado por las
+        # estadísticas "Por departamento" (conteo) y "Monto por área".
+        return case(
+            (and_(PurchaseRequest.user_id == 15,
+                  func.date(PurchaseRequest.created_at) <= "2026-06-08"), 4),
+            (PurchaseRequest.user_id == 15, 3),
+            else_=Users.department_id,
+        )
+
     @handle_db_exceptions
     def stats_by_department(self):
+        eff_dept = self._effective_dept_expr()
         rows = (
             g.db_session.query(UserDepartment.name, func.count(PurchaseRequest.id))
             .join(Users, PurchaseRequest.user_id == Users.id)
-            .join(UserDepartment, Users.department_id == UserDepartment.id)
+            .join(UserDepartment, UserDepartment.id == eff_dept)
             .filter(PurchaseRequest.deleted_at.is_(None))
             .group_by(UserDepartment.name)
             .order_by(func.count(PurchaseRequest.id).desc())
