@@ -752,7 +752,6 @@ body.modal-open {
     flex-direction: column;
     gap: 0.5rem;
     padding: 0.75rem 0.5rem;
-    overflow: auto;
 }
 #sidebar ul li {
     display: flex;
@@ -880,6 +879,7 @@ body.modal-open {
     background-color: transparent;
     gap: 0.25rem;
     border-radius: 0;
+    overflow: auto;
 }
 #sidebar.menu-expanded ul li {
     width: 10rem;

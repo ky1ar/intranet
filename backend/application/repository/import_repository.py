@@ -404,7 +404,7 @@ class ImportRepository:
                 import_shipment.pay_date = data.get("pay_date")
                 import_shipment.traffic_light = data.get("traffic_light")
 
-            if current_status_id == 12:
+            if current_status_id == 11:
                 import_shipment.delivery_date = data.get("delivery_date")
                 import_shipment.delivery_time = data.get("delivery_time")
                 import_shipment.delivery_name = data.get("delivery_name")
