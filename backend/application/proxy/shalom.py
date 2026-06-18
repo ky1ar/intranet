@@ -55,11 +55,11 @@ class Shalom:
     def _envelope(cls, shalom_response):
         """Devuelve la respuesta completa ({success, message, data}), descifrándola si viene cifrada.
 
-        Cuando viene cifrada, el texto plano ya es el envelope completo; el 'data'
-        real está anidado dentro (envelope['data']), no en el response externo.
+        Shalom puede anidar el cifrado (el texto plano vuelve a ser un sobre
+        {encrypted, data}); se descifra en bucle hasta llegar al envelope real.
         """
-        if shalom_response.get("encrypted"):
-            return cls._decrypt(shalom_response.get("data"))
+        while isinstance(shalom_response, dict) and shalom_response.get("encrypted"):
+            shalom_response = cls._decrypt(shalom_response.get("data"))
         return shalom_response
 
 

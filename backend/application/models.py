@@ -284,6 +284,7 @@ class Machines(BaseModel):
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
     model = db.Column(db.String(255), nullable=False)
     image = db.Column(db.String(255), nullable=False)
+    type = db.Column(db.String(5), nullable=False)
 
     brand = db.relationship("Brands", lazy="joined", foreign_keys=[brand_id])
     category = db.relationship("Category", lazy="joined", foreign_keys=[category_id])

@@ -1,0 +1,87 @@
+{
+  "centro_aprendizaje": "LCD / Resina",
+  "modo_visual": "tabs_con_panel_dinamico_y_acordeones",
+  "software_principal": "CHITUBOX",
+  "software_alternativo": "Photon Workshop para equipos Anycubic cuando aplique",
+  "tema_por_defecto": "guia_chitubox_lcd_resina",
+  "guias": [
+    {
+      "titulo": "Guía rápida de CHITUBOX",
+      "slug": "guia-chitubox-lcd-resina",
+      "archivo": "guia_chitubox_lcd_resina.md",
+      "icono": "software",
+      "cta": "Ver guía",
+      "categoria": "Software",
+      "nivel": "Básico",
+      "tiempo": "10-12 min"
+    },
+    {
+      "titulo": "Tecnología LCD / MSLA / DLP",
+      "slug": "tecnologia-lcd-msla-dlp",
+      "archivo": "guia_intro_tecnologia_lcd_resina.md",
+      "icono": "resina",
+      "cta": "Aprender",
+      "categoria": "Fundamentos",
+      "nivel": "Básico",
+      "tiempo": "6 min"
+    },
+    {
+      "titulo": "Seguridad y manipulación de resina",
+      "slug": "seguridad-resina",
+      "archivo": "guia_seguridad_resina.md",
+      "icono": "seguridad",
+      "cta": "Ver cuidados",
+      "categoria": "Seguridad",
+      "nivel": "Básico",
+      "tiempo": "6 min"
+    },
+    {
+      "titulo": "Postproceso: lavado y curado",
+      "slug": "postproceso-wash-cure",
+      "archivo": "guia_postprocesado_wash_cure.md",
+      "icono": "wash-cure",
+      "cta": "Ver proceso",
+      "categoria": "Postproceso",
+      "nivel": "Básico",
+      "tiempo": "8 min"
+    },
+    {
+      "titulo": "Errores comunes en resina",
+      "slug": "errores-comunes-lcd-resina",
+      "archivo": "guia_errores_comunes_lcd_resina.md",
+      "icono": "alerta",
+      "cta": "Ver soluciones",
+      "categoria": "Solución de problemas",
+      "nivel": "Intermedio",
+      "tiempo": "10 min"
+    },
+    {
+      "titulo": "Modelos y diseño para resina",
+      "slug": "modelos-diseno-resina",
+      "archivo": "guia_modelos_y_diseno_resina.md",
+      "icono": "modelo-3d",
+      "cta": "Ver recomendaciones",
+      "categoria": "Diseño",
+      "nivel": "Básico",
+      "tiempo": "7 min"
+    }
+  ],
+  "bloques_soporte": [
+    {
+      "titulo": "K3D FAB",
+      "descripcion": "Modelos y recursos para imprimir."
+    },
+    {
+      "titulo": "Capacitación virtual",
+      "descripcion": "Agenda una sesión para aprender el flujo completo."
+    },
+    {
+      "titulo": "Soporte técnico por WhatsApp",
+      "descripcion": "Envía fotos o videos para recibir ayuda."
+    }
+  ],
+  "imagenes_base": {
+    "chitubox": "imagenes/chitubox/",
+    "dlp_resina": "imagenes/dlp_resina/"
+  }
+}

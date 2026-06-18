@@ -1,0 +1,48 @@
+{
+  "learning_center": "Centro de aprendizaje FDM",
+  "guides": [
+    {
+      "slug": "bambu-studio-fdm",
+      "title": "Guía rápida de Bambu Studio",
+      "file": "guia_bambu_studio_fdm.md",
+      "cta": "Ver guía",
+      "recommended_for": "Bambu Lab"
+    },
+    {
+      "slug": "cura-fdm",
+      "title": "Guía rápida de Cura",
+      "file": "guia_cura_fdm.md",
+      "cta": "Ver guía",
+      "recommended_for": "Creality, Sovol, Anycubic y otras FDM abiertas"
+    },
+    {
+      "slug": "errores-comunes-fdm",
+      "title": "Errores comunes de impresión",
+      "file": "guia_errores_comunes_fdm.md",
+      "cta": "Ver soluciones"
+    },
+    {
+      "slug": "tips-impresion-3d-fdm",
+      "title": "Tips para mejorar tus impresiones 3D",
+      "file": "guia_tips_impresion_3d_fdm.md",
+      "cta": "Ver tips"
+    },
+    {
+      "slug": "diseno-cad-fdm",
+      "title": "Diseño CAD para impresión FDM",
+      "file": "guia_diseno_cad_fdm.md",
+      "cta": "Ver guía"
+    }
+  ],
+  "image_note": "Las imágenes son renders de los PDFs antiguos. Se pueden usar como referencia, recortar o reemplazar por capturas/fotos nuevas manteniendo el nombre lógico por sección.",
+  "colors": {
+    "accent": "#F26A21",
+    "surface": "#FFF6EF",
+    "text": "#1F2937"
+  },
+  "software_logic": {
+    "bambu_studio": "Mostrar como guía principal cuando el manual pertenezca a equipos Bambu Lab.",
+    "cura": "Mostrar como guía alternativa cuando el manual pertenezca a equipos Creality, Sovol, Anycubic u otras FDM abiertas.",
+    "general_fdm": "Las guías de errores, tips y diseño CAD aplican transversalmente a todos los equipos FDM."
+  }
+}
