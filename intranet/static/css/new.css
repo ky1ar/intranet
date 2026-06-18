@@ -879,6 +879,7 @@ body.modal-open {
     box-shadow: none;
     background-color: transparent;
     gap: 0.25rem;
+    border-radius: 0;
 }
 #sidebar.menu-expanded ul li {
     width: 10rem;
