@@ -648,7 +648,7 @@
 							<canvas x-ref="purchaseDeptChart" width="160" height="80"></canvas>
 						</div>
 						<div class="glass2 box">
-							<span>Monto por mes (S/)</span>
+							<span>Monto por área (S/)</span>
 							<canvas x-ref="purchaseAmountChart" width="160" height="80"></canvas>
 						</div>
 					</div>
@@ -1359,8 +1359,8 @@
 				chartPurchaseAmount = new Chart(this.$refs.purchaseAmountChart, {
 					type: 'bar',
 					data: {
-						labels: stats.amount_by_month.map(r => r.period),
-						datasets: [{ label: 'Monto', data: stats.amount_by_month.map(r => r.amount), backgroundColor: 'rgba(255,160,42,0.75)', borderWidth: 0 }],
+						labels: stats.amount_by_department.map(r => r.department),
+						datasets: [{ label: 'Monto', data: stats.amount_by_department.map(r => r.amount), backgroundColor: 'rgba(255,160,42,0.75)', borderWidth: 0 }],
 					},
 					options: PSTATS_OPTS,
 				});

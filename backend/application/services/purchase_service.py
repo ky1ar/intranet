@@ -631,7 +631,7 @@ class PurchaseService:
         month_amount, _   = self.purchase_repository.stats_total_amount(month_only=True)
         month_rows, _     = self.purchase_repository.stats_by_month()
         dept_rows, _      = self.purchase_repository.stats_by_department()
-        amount_rows, _    = self.purchase_repository.stats_amount_by_month()
+        amount_rows, _    = self.purchase_repository.stats_amount_by_department()
 
         by_month = [
             {"period": f"{_PMONTHS.get(int(p.split('-')[1]), p)} {p[2:4]}", "count": c}
@@ -641,9 +641,9 @@ class PurchaseService:
             {"department": (name or "Sin área"), "count": c}
             for name, c in dept_rows
         ]
-        amount_by_month = [
-            {"period": f"{_PMONTHS.get(int(p.split('-')[1]), p)} {p[2:4]}", "amount": float(a or 0)}
-            for p, a in amount_rows
+        amount_by_department = [
+            {"department": (name or "Sin área"), "amount": float(a or 0)}
+            for name, a in amount_rows
         ]
 
         return {
@@ -655,7 +655,7 @@ class PurchaseService:
             },
             "by_month": by_month,
             "by_department": by_department,
-            "amount_by_month": amount_by_month,
+            "amount_by_department": amount_by_department,
         }, 200
 
     @handle_exceptions

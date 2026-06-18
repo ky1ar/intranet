@@ -391,13 +391,17 @@ class PurchaseRepository:
         return rows or [], 200
 
     @handle_db_exceptions
-    def stats_amount_by_month(self):
-        period = func.date_format(PurchaseRequest.created_at, "%Y-%m").label("period")
+    def stats_amount_by_department(self):
+        amount = func.coalesce(func.sum(PurchaseItems.price * PurchaseItems.quantity), 0)
         rows = (
-            g.db_session.query(period, func.coalesce(func.sum(PurchaseItems.price * PurchaseItems.quantity), 0))
+            g.db_session.query(UserDepartment.name, amount)
             .join(PurchaseRequest, PurchaseItems.purchase_id == PurchaseRequest.id)
+            .join(Users, PurchaseRequest.user_id == Users.id)
+            .join(UserDepartment, Users.department_id == UserDepartment.id)
             .filter(PurchaseRequest.deleted_at.is_(None), PurchaseItems.deleted_at.is_(None))
-            .group_by("period").order_by("period").all()
+            .group_by(UserDepartment.name)
+            .order_by(amount.desc())
+            .all()
         )
         return rows or [], 200
 
