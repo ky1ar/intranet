@@ -521,13 +521,13 @@ class ImportService:
         total, _         = self.import_repository.stats_total()
         active, _        = self.import_repository.stats_active()
         arriving, _      = self.import_repository.stats_arriving()
-        lead, _          = self.import_repository.stats_lead_time()
+        containers, _    = self.import_repository.stats_containers()
         eta_rows, _      = self.import_repository.stats_arrivals_by_month()
         provider_rows, _ = self.import_repository.stats_by_provider()
         port_rows, _     = self.import_repository.stats_by_port()
 
         by_month = [
-            {"period": f"{IMONTHS.get(int(p.split('-')[1]), p)} {p[2:4]}", "count": c}
+            {"period": f"{IMONTHS.get(int(p.split('-')[1]), p)} {p}", "count": c}
             for p, c in eta_rows
         ]
         by_provider = [{"provider": name, "count": c} for name, c in provider_rows]
@@ -538,7 +538,7 @@ class ImportService:
                 "total": total,
                 "active": active,
                 "arriving": arriving,
-                "lead_time": lead,
+                "containers": containers,
             },
             "by_month": by_month,
             "by_provider": by_provider,

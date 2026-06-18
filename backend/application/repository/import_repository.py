@@ -281,7 +281,7 @@ class ImportRepository:
     def stats_active(self):
         n = (
             g.db_session.query(func.count(ImportShipment.id))
-            .filter(ImportShipment.status_id != 1, ImportShipment.delivery_date.is_(None))
+            .filter(ImportShipment.status_id != 1, ImportShipment.status_id < 13)
             .scalar()
         )
         return n or 0, 200
@@ -303,20 +303,13 @@ class ImportRepository:
         return n or 0, 200
 
     @handle_db_exceptions
-    def stats_lead_time(self):
-        avg_days = (
-            g.db_session.query(
-                func.avg(func.datediff(ImportShipment.delivery_date, ImportStatusHistory.created_at))
-            )
-            .join(
-                ImportStatusHistory,
-                (ImportStatusHistory.import_shipment_id == ImportShipment.id)
-                & (ImportStatusHistory.status_id == 1),
-            )
-            .filter(ImportShipment.status_id != 1, ImportShipment.delivery_date.isnot(None))
+    def stats_containers(self):
+        n = (
+            g.db_session.query(func.coalesce(func.sum(ImportShipment.fcl), 0))
+            .filter(ImportShipment.status_id != 1)
             .scalar()
         )
-        return (round(float(avg_days), 1) if avg_days is not None else 0), 200
+        return int(n or 0), 200
 
     @handle_db_exceptions
     def stats_arrivals_by_month(self):
