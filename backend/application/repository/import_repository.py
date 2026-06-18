@@ -89,6 +89,34 @@ class ImportRepository:
     
 
     @handle_db_exceptions
+    def get_history_created_map(self, import_ids, status_ids):
+        """{(import_id, status_id): created_at} en UNA consulta de columnas.
+
+        Se piden columnas sueltas (no la entidad ImportStatusHistory) para evitar
+        que SQLAlchemy cargue sus relaciones joined/selectin por cada fila.
+        """
+        if not import_ids or not status_ids:
+            return {}, 200
+        rows = (
+            g.db_session.query(
+                ImportStatusHistory.import_shipment_id,
+                ImportStatusHistory.status_id,
+                ImportStatusHistory.created_at,
+            )
+            .filter(
+                ImportStatusHistory.import_shipment_id.in_(import_ids),
+                ImportStatusHistory.status_id.in_(status_ids),
+            )
+            .order_by(ImportStatusHistory.id.asc())
+            .all()
+        )
+        out = {}
+        for imp_id, st_id, created in rows:
+            out.setdefault((imp_id, st_id), created)
+        return out, 200
+
+
+    @handle_db_exceptions
     def get_options_type(self):
         types = (
             g.db_session.query(ImportType)

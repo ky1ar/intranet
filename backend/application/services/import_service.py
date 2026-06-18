@@ -314,6 +314,14 @@ class ImportService:
             return statuses, sc
         
         visible_statuses = [s for s in statuses if s.id not in (1, 14)]
+
+        # Historial en UNA sola consulta: created_at por (import, estado actual) y
+        # (import, estado inicial=1). Evita el N+1 (2 queries por import).
+        all_ids = [imp.id for imp in imports]
+        needed_status_ids = list({s.id for s in visible_statuses} | {1})
+        hist_map, _ = self.import_repository.get_history_created_map(all_ids, needed_status_ids)
+        today = date.today()
+
         result = []
         for i, status in enumerate(visible_statuses):
             is_last = (i == len(visible_statuses) - 1)
@@ -325,17 +333,17 @@ class ImportService:
                 passed_days = 0
                 updated_today = False
 
-                current_status, _ = self.import_repository.get_status_history(item.id, status.id)
-                if current_status and current_status.created_at.date() == date.today():
+                current_created = hist_map.get((item.id, status.id))
+                if current_created and current_created.date() == today:
                     updated_today = True
 
-                first_status, _ = self.import_repository.get_status_history(item.id, 1)
+                first_created = hist_map.get((item.id, 1))
                 if is_last:
-                    if first_status and current_status:
-                        passed_days = calculate_passed_days(first_status.created_at, current_status.created_at)
+                    if first_created and current_created:
+                        passed_days = calculate_passed_days(first_created, current_created)
                 else:
-                    if first_status:
-                        passed_days = calculate_passed_days(first_status.created_at)
+                    if first_created:
+                        passed_days = calculate_passed_days(first_created)
 
                 summary = self._shipment_summary(item)
 
