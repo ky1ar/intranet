@@ -10,7 +10,7 @@ import re
 
 _SHOT_RE = re.compile(r'^\**\[SCREENSHOT[^\]]*\]\**\s*$', re.I)
 _IMG_RE  = re.compile(r'^!\[([^\]]*)\]\(([^)]+)\)')
-_STOP_RE = re.compile(r'^(#{2,6}\s|[-*]\s|\d+\.\s|\||!\[|---|\**\[SCREENSHOT)', re.I)
+_STOP_RE = re.compile(r'^(#{2,6}\s|[-*]\s|\d+\.\s|\||!\[|---|\**\[SCREENSHOT|\**\[IMAGEN)', re.I)
 
 
 def _esc(t):
@@ -77,6 +77,26 @@ def _blocks(md, image_base):
             continue
         if _SHOT_RE.match(line):
             html += _shot_box(re.sub(r'[\*\[\]]', '', line).strip())
+            i += 1
+            continue
+        if re.match(r'^\**\[IMAGEN', line, re.I):
+            # [IMAGEN SUGERIDA] `ruta.png`  -> imagen real
+            # [IMAGEN SUGERIDA] descripción  /  [IMAGEN SUGERIDA: descripción] -> placeholder
+            mm = re.match(r'^\**\[IMAGEN[^\]]*\]\**\s*`?\s*(.*?)\s*`?\s*$', line, re.I)
+            payload = (mm.group(1).strip().strip('`').strip() if mm else '')
+            if not payload:
+                inb = re.search(r'\[IMAGEN[^\]]*?:\s*([^\]]+)\]', line, re.I)
+                payload = inb.group(1).strip() if inb else ''
+            if re.search(r'\.(png|jpe?g|webp|gif|svg)$', payload, re.I):
+                if re.match(r'^https?:', payload, re.I):
+                    src = payload
+                else:
+                    rel = re.sub(r'^\./?', '', payload)
+                    rel = re.sub(r'^imagenes/', '', rel)
+                    src = f"{image_base}/{rel}"
+                html += f'<figure class="guia-md-fig"><img src="{src}" alt="" loading="lazy"></figure>'
+            else:
+                html += _shot_box(payload)
             i += 1
             continue
         m = _IMG_RE.match(line)

@@ -86,7 +86,7 @@
     },
     {
      "title": "Partes principales de una impresora de resina",
-     "html": "<ul class=\"guia-md-list\"><li><strong>Cubeta o tanque de resina:</strong> contiene la resina líquida.</li><li><strong>FEP o film:</strong> lámina transparente en la base del tanque.</li><li><strong>Plataforma de impresión:</strong> superficie donde se adhiere la pieza.</li><li><strong>Pantalla LCD / fuente UV:</strong> genera la luz que cura cada capa.</li><li><strong>Eje Z:</strong> mueve la plataforma durante la impresión.</li><li><strong>Tapa protectora:</strong> reduce exposición a luz externa y contiene vapores.</li></ul><p><strong>[IMAGEN SUGERIDA: Diagrama propio de partes de una impresora LCD]</strong></p>"
+     "html": "<ul class=\"guia-md-list\"><li><strong>Cubeta o tanque de resina:</strong> contiene la resina líquida.</li><li><strong>FEP o film:</strong> lámina transparente en la base del tanque.</li><li><strong>Plataforma de impresión:</strong> superficie donde se adhiere la pieza.</li><li><strong>Pantalla LCD / fuente UV:</strong> genera la luz que cura cada capa.</li><li><strong>Eje Z:</strong> mueve la plataforma durante la impresión.</li><li><strong>Tapa protectora:</strong> reduce exposición a luz externa y contiene vapores.</li></ul><div class=\"guia-md-shot\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m21 15-5-5L5 21\"/></svg><span>Diagrama propio de partes de una impresora LCD</span></div>"
     },
     {
      "title": "Flujo general de trabajo",
