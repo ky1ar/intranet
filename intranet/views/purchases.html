@@ -14,7 +14,7 @@
 				<div class="item" @click="viewHistory()">
 					<img alt="" width="18" height="18" src="/static/icons/line/history.svg">
 				</div>
-				<div class="item" @click="viewStatistics()">
+				<div class="item" @click="viewStatistics()" x-show="$store.cache.hasPermission('purchases', 'statistics')">
 					<img alt="" width="18" height="18" src="/static/icons/line/report.svg">
 				</div>
 			</div>
@@ -28,7 +28,7 @@
 					<img alt="" width="20" height="20" src="/static/icons/line/history.svg">
 					<span>Historial</span>
 				</div>
-				<div class="item" @click="viewStatistics()">
+				<div class="item" @click="viewStatistics()" x-show="$store.cache.hasPermission('purchases', 'statistics')">
 					<img alt="" width="20" height="20" src="/static/icons/line/report.svg">
 					<span>Estadísticas</span>
 				</div>
