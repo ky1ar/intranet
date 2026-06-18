@@ -7,7 +7,10 @@ controller = ConversationController()
 
 @conversation_bp.route("", methods=["GET"])
 def get_conversations():
-    return controller.get_conversations({})
+    return controller.get_conversations({
+        "limit":  request.args.get("limit", 25, type=int),
+        "offset": request.args.get("offset", 0, type=int),
+    })
 
 
 @conversation_bp.route("/<wa_id>/messages", methods=["GET"])

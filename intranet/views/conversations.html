@@ -15,7 +15,7 @@
 					</button>
 				</div>
 
-				<div class="conv-list">
+				<div class="conv-list" @scroll="onScroll($event)">
 					<template x-if="conversations.length === 0">
 						<div class="conv-empty-list">Sin conversaciones</div>
 					</template>
@@ -42,6 +42,10 @@
 								</div>
 							</div>
 						</div>
+					</template>
+
+					<template x-if="loadingMore">
+						<div class="conv-loading-more">Cargando más…</div>
 					</template>
 				</div>
 			</div>
@@ -243,6 +247,9 @@
 
 	Alpine.data('conversations_data', () => ({
 		conversations:   [],
+		convLimit:       25,
+		convHasMore:     true,
+		loadingMore:     false,
 		selected:        null,
 		messages:        [],
 		replyText:       '',
@@ -261,9 +268,34 @@
 
 		async load() {
 			const api = Alpine.store('cache').api;
-			const r = await fetch(`${api}/conversations`, { headers: { 'X-No-Toast': '1' } });
+			const r = await fetch(`${api}/conversations?limit=${this.convLimit}&offset=0`, { headers: { 'X-No-Toast': '1' } });
 			const j = await r.json();
 			this.conversations = j.data || [];
+			this.convHasMore   = this.conversations.length === this.convLimit;
+		},
+
+		async loadMore() {
+			if (this.loadingMore || !this.convHasMore) return;
+			this.loadingMore = true;
+			try {
+				const api    = Alpine.store('cache').api;
+				const offset = this.conversations.length;
+				const r = await fetch(`${api}/conversations?limit=${this.convLimit}&offset=${offset}`, { headers: { 'X-No-Toast': '1' } });
+				const j = await r.json();
+				const batch = j.data || [];
+				const seen  = new Set(this.conversations.map(c => c.wa_id));
+				this.conversations.push(...batch.filter(c => !seen.has(c.wa_id)));
+				this.convHasMore = batch.length === this.convLimit;
+			} finally {
+				this.loadingMore = false;
+			}
+		},
+
+		onScroll(e) {
+			const el = e.target;
+			if (el.scrollTop + el.clientHeight >= el.scrollHeight - 80) {
+				this.loadMore();
+			}
 		},
 
 		async select(conv) {
@@ -288,10 +320,13 @@
 
 		async _poll() {
 			const api = Alpine.store('cache').api;
-			// Refresh conversation list silently
-			const r = await fetch(`${api}/conversations`, { headers: { 'X-No-Toast': '1' } });
+			// Refresh the currently-loaded window silently (keeps infinite-scroll progress)
+			const count = Math.max(this.convLimit, this.conversations.length);
+			const r = await fetch(`${api}/conversations?limit=${count}&offset=0`, { headers: { 'X-No-Toast': '1' } });
 			const j = await r.json();
-			this.conversations = j.data || [];
+			const fresh = j.data || [];
+			this.conversations = fresh;
+			this.convHasMore   = fresh.length === count;
 
 			// Refresh open thread silently
 			if (this.selected) {
@@ -477,6 +512,12 @@
 		text-align: center;
 		color: #bbb;
 		font-size: 0.85rem;
+	}
+	.conv-loading-more {
+		padding: 0.85rem 1.25rem;
+		text-align: center;
+		color: #bbb;
+		font-size: 0.78rem;
 	}
 
 	/* ── Conversation item ── */

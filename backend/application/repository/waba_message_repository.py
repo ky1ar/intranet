@@ -23,7 +23,7 @@ class WabaMessageRepository:
         return msg, 200
 
     @handle_db_exceptions
-    def get_conversations(self):
+    def get_conversations(self, limit=25, offset=0):
         # Last message per wa_id
         last_ids = (
             g.db_session.query(func.max(WabaMessage.id))
@@ -33,6 +33,8 @@ class WabaMessageRepository:
             g.db_session.query(WabaMessage)
             .filter(WabaMessage.id.in_(last_ids))
             .order_by(WabaMessage.created_at.desc())
+            .limit(limit)
+            .offset(offset)
             .all()
         )
 

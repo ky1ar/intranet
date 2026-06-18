@@ -8,7 +8,10 @@ class ConversationController:
 
     @handle_logs_and_exceptions
     def get_conversations(self, data):
-        return self.service.get_conversations()
+        return self.service.get_conversations(
+            data.get("limit", 25),
+            data.get("offset", 0),
+        )
 
     @handle_logs_and_exceptions
     def get_messages(self, data):

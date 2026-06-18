@@ -9,8 +9,8 @@ class ConversationService:
         self.whatsapp   = Whatsapp()
 
     @handle_exceptions
-    def get_conversations(self):
-        return self.repository.get_conversations()
+    def get_conversations(self, limit=25, offset=0):
+        return self.repository.get_conversations(limit, offset)
 
     @handle_exceptions
     def get_messages(self, wa_id):
