@@ -63,10 +63,6 @@
     {
      "title": "Checklist antes de imprimir",
      "html": "<p>Antes de iniciar una impresión de resina, revisa:</p><ul class=\"guia-md-list\"><li>la plataforma está limpia y bien nivelada;</li><li>el FEP está limpio, tenso y sin daños visibles;</li><li>la resina está filtrada o bien agitada;</li><li>la impresora corresponde al perfil seleccionado;</li><li>la exposición es adecuada para la resina;</li><li>el modelo tiene soportes suficientes;</li><li>revisaste la vista previa;</li><li>tienes guantes, mascarilla y espacio ventilado.</li></ul>"
-    },
-    {
-     "title": "Soporte Krear 3D",
-     "html": "<p>Si necesitas ayuda, envía fotos o videos del caso para poder orientarte mejor.</p><p><strong>Soporte técnico vía WhatsApp:</strong> +51 970 539 751   <strong>Atención únicamente por chat.</strong></p>"
     }
    ]
   },
@@ -103,10 +99,6 @@
     {
      "title": "Cuándo elegir resina y cuándo elegir FDM",
      "html": "<div class=\"guia-md-tablewrap\"><table class=\"guia-md-table\"><thead><tr><th>Necesidad</th><th>Mejor opción</th></tr></thead><tbody><tr><td>Figuras detalladas</td><td>Resina</td></tr><tr><td>Miniaturas</td><td>Resina</td></tr><tr><td>Piezas grandes y económicas</td><td>FDM</td></tr><tr><td>Piezas funcionales resistentes</td><td>FDM o resina técnica</td></tr><tr><td>Modelos dentales</td><td>Resina</td></tr><tr><td>Prototipos rápidos grandes</td><td>FDM</td></tr></tbody></table></div>"
-    },
-    {
-     "title": "Soporte Krear 3D",
-     "html": "<p>Para dudas de configuración, exposición o fallas de impresión, envía fotos o videos del caso al soporte técnico.</p>"
     }
    ]
   },
