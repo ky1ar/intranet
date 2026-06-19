@@ -2043,7 +2043,6 @@ document.addEventListener("DOMContentLoaded", () => {
 				box-shadow: inset 0 0 0 1px #e05a00;
 			}
 			.guia-lc-tab-ico { font-size: 1rem; }
-			.guia-lc-tab-support { margin-left: auto; }
 
 			.guia-lc-loading { color: #9aa0a6; font-size: 0.88rem; padding: 1.5rem 0; }
 
@@ -2148,8 +2147,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
 			@media (max-width: 900px) {
 				.guia-lc-grid { grid-template-columns: 1fr; }
-				.guia-lc-toc { position: static; }
-				.guia-lc-tab-support { margin-left: 0; }
+				.guia-lc-toc { display: none; }
+			}
+			@media (max-width: 560px) {
+				.guia-lc { padding: 1.1rem; gap: 1rem; border-radius: 14px; }
+				.guia-lc-head { gap: 0.6rem; }
+				.guia-lc-head-ico { font-size: 1.35rem; }
+				.guia-lc-head-title { font-size: 1.05rem; }
+				.guia-lc-head-sub { font-size: 0.8rem; }
+				.guia-lc-tabs { gap: 0.45rem; }
+				.guia-lc-tab { padding: 0.55rem 0.85rem; font-size: 0.8rem; border-radius: 10px; }
+				.guia-lc-content { padding: 1rem; border-radius: 12px; }
+				.guia-guidehead-meta { gap: 0.75rem; }
+				.guia-acc-head { gap: 0.55rem; padding: 0.85rem 0; }
+				.guia-acc-body { padding-left: 0.25rem; }
+				.guia-md-shot { padding: 1.1rem 0.75rem; }
 			}
 			</style>
 
