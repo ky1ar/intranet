@@ -2089,7 +2089,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			.guia-md-h3 { font-size: 0.92rem; font-weight: 700; color: #1f2937; margin: 1rem 0 0.4rem; }
 			.guia-md-h4 { font-size: 0.86rem; font-weight: 700; color: #374151; margin: 0.8rem 0 0.3rem; }
 			.guia-md-list { margin: 0 0 0.8rem; padding-left: 1.2rem; }
-			.guia-md-list li { margin-bottom: 0.3rem; }
+			.guia-md-list li { list-style: circle; margin-bottom: 0.3rem; }
 			.guia-acc-body code { background: #f3f4f6; padding: 0.1rem 0.35rem; border-radius: 5px; font-size: 0.85em; }
 			.guia-md-tablewrap { overflow-x: auto; margin: 0 0 0.9rem; }
 			.guia-md-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
@@ -2395,21 +2395,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
 				function renderSupportBlocks(el) {
 					el.innerHTML = `
-						<a class="guia-sup-card" href="https://stlkrear3d.com/" target="_blank" rel="noopener">
-							<div class="guia-sup-ico">🧩</div>
-							<div class="guia-sup-txt"><div class="guia-sup-title">K3D FAB</div><div class="guia-sup-sub">Impresiones 3D a pedido, repuestos y más.</div></div>
-							<span class="guia-sup-chev">›</span>
-						</a>
-						<a class="guia-sup-card" href="https://wa.me/${WA_PHONE}?text=${encodeURIComponent('Hola, quiero información sobre la capacitación virtual')}" target="_blank" rel="noopener">
-							<div class="guia-sup-ico">🎓</div>
-							<div class="guia-sup-txt"><div class="guia-sup-title">Capacitación virtual</div><div class="guia-sup-sub">Cursos y talleres para mejorar tus habilidades.</div></div>
-							<span class="guia-sup-chev">›</span>
-						</a>
 						<a class="guia-sup-card guia-sup-wa" href="https://wa.me/${WA_PHONE}" target="_blank" rel="noopener">
 							<div class="guia-sup-ico">🟢</div>
 							<div class="guia-sup-txt"><div class="guia-sup-title">Soporte técnico por WhatsApp</div><div class="guia-sup-sub">Atención rápida para resolver tus dudas.</div></div>
 							<span class="guia-sup-chev">›</span>
-						</a>`;
+						</a>
+						<a class="guia-sup-card" href="/cursos/">
+							<div class="guia-sup-ico">🎓</div>
+							<div class="guia-sup-txt"><div class="guia-sup-title">Potencia tus conocimientos</div><div class="guia-sup-sub">Cursos con contenido de calidad.</div></div>
+							<span class="guia-sup-chev">›</span>
+						</a>
+						<a class="guia-sup-card" href="/stl/">
+							<div class="guia-sup-ico">🧩</div>
+							<div class="guia-sup-txt"><div class="guia-sup-title">K3D FAB</div><div class="guia-sup-sub">Diseños listos para imprimir.</div></div>
+							<span class="guia-sup-chev">›</span>
+						</a>
+						`;
 				}
 
 				async function appendLearningCenter(container, guide) {
@@ -2450,15 +2451,9 @@ document.addEventListener("DOMContentLoaded", () => {
 						btn.addEventListener('click', () => selectTab(idx));
 						tabsEl.appendChild(btn);
 					});
-					const supBtn = document.createElement('button');
-					supBtn.className = 'guia-lc-tab guia-lc-tab-support';
-					supBtn.innerHTML = `<span class="guia-lc-tab-ico">🎧</span>Soporte y capacitación`;
-					supBtn.addEventListener('click', () => selectTab(-1));
-					tabsEl.appendChild(supBtn);
 
 					function selectTab(idx) {
 						tabsEl.querySelectorAll('.guia-lc-tab').forEach(b => b.classList.remove('active'));
-						if (idx === -1) { supBtn.classList.add('active'); panelEl.innerHTML = supportPanelHtml(); return; }
 						tabsEl.querySelectorAll('.guia-lc-tab')[idx].classList.add('active');
 						renderGuidePanel(panelEl, data.tabs[idx]);
 					}

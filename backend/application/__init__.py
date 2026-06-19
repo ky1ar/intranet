@@ -5,7 +5,6 @@ monkey.patch_all()
 import redis
 import firebase_admin
 from firebase_admin import credentials
-
 from flask import Flask, g, request
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy

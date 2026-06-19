@@ -63,10 +63,6 @@
     {
      "title": "Errores comunes rápidos",
      "html": "<h4 class=\"guia-md-h3\">La pieza no se pega a la cama</h4><p>Posibles causas: cama sucia, mala nivelación, temperatura baja, primera capa muy alta o falta de adhesión.</p><p>Solución recomendada: limpia la cama, calibra la plataforma, usa Brim y revisa el Z-offset.</p><h4 class=\"guia-md-h3\">La impresión tiene hilos</h4><p>Posibles causas: temperatura muy alta, retracción insuficiente o filamento húmedo.</p><p>Solución recomendada: baja la temperatura, revisa retracción y seca el filamento si es necesario.</p><h4 class=\"guia-md-h3\">Las capas se separan</h4><p>Posibles causas: temperatura baja, ventilación incorrecta o material mal configurado.</p><p>Solución recomendada: sube la temperatura, revisa la velocidad y usa el perfil correcto.</p><h4 class=\"guia-md-h3\">Los soportes son difíciles de retirar</h4><p>Posibles causas: densidad de soporte alta, distancia entre soporte y pieza muy baja u orientación poco favorable.</p><p>Solución recomendada: reduce densidad, prueba soporte tipo árbol o cambia la orientación del modelo.</p>"
-    },
-    {
-     "title": "Soporte Krear 3D",
-     "html": "<p>Si necesitas ayuda, envíanos fotos o videos del problema para poder orientarte mejor.</p><p><strong>Soporte técnico vía WhatsApp:</strong> +51 970 539 751   <strong>Atención únicamente por chat.</strong></p>"
     }
    ]
   },
@@ -74,7 +70,7 @@
    "title": "Errores comunes",
    "level": "Intermedio",
    "reading_min": 5,
-   "intro": "**Objetivo:** ayudar al cliente a identificar rápidamente qué está fallando, cuál puede ser la causa y qué acción tomar antes de volver a imprimir.\n\n**Nivel:** básico a intermedio  \n**Tiempo estimado:** 10 a 15 min  \n**Formato recomendado en web:** acordeón por problema + buscador por síntoma.\n\n---",
+   "intro": "Identifica rápidamente qué está fallando, cuál puede ser la causa y qué acción tomar antes de volver a imprimir.\n\n**Nivel:** básico a intermedio  \n**Tiempo estimado:** 10 a 15 min  \n**Formato recomendado en web:** acordeón por problema + buscador por síntoma.\n\n---",
    "sections": [
     {
      "title": "Cómo usar esta guía",
@@ -126,7 +122,7 @@
    "title": "Tips de impresión 3D",
    "level": "Básico",
    "reading_min": 3,
-   "intro": "**Objetivo:** dar recomendaciones rápidas para mejorar calidad, adherencia, resistencia y acabado en impresiones FDM.\n\n**Nivel:** básico  \n**Tiempo estimado:** 8 a 12 min  \n**Formato recomendado en web:** tarjetas con tips + imágenes ejemplo.\n\n---",
+   "intro": "Recomendaciones rápidas para mejorar calidad, adherencia, resistencia y acabado en impresiones FDM.\n\n**Nivel:** básico  \n**Tiempo estimado:** 8 a 12 min  \n**Formato recomendado en web:** tarjetas con tips + imágenes ejemplo.\n\n---",
    "sections": [
     {
      "title": "Empieza con un perfil estándar",
@@ -174,7 +170,7 @@
    "title": "Diseño CAD para FDM",
    "level": "Básico",
    "reading_min": 4,
-   "intro": "**Objetivo:** explicar cómo diseñar piezas más fáciles de imprimir en FDM, reduciendo fallas, soportes innecesarios y problemas de ensamblaje.\n\n**Nivel:** básico a intermedio  \n**Tiempo estimado:** 15 a 20 min  \n**Formato recomendado en web:** guía por secciones + ejemplos visuales.\n\n---",
+   "intro": "Diseña piezas más fáciles de imprimir en FDM, reduciendo fallas, soportes innecesarios y problemas de ensamblaje.\n\n**Nivel:** básico a intermedio  \n**Tiempo estimado:** 15 a 20 min  \n**Formato recomendado en web:** guía por secciones + ejemplos visuales.\n\n---",
    "sections": [
     {
      "title": "¿Qué es CAD y por qué importa en impresión 3D?",
