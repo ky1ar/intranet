@@ -26,10 +26,10 @@
 							:class="selected && selected.wa_id === conv.wa_id ? 'conv-item-active' : ''"
 							@click="select(conv)"
 						>
-							<div class="conv-avatar" x-text="initials(conv.contact_name)"></div>
+							<div class="conv-avatar" x-text="initials(displayName(conv))"></div>
 							<div class="conv-item-body">
 								<div class="conv-item-top">
-									<span class="conv-item-name" x-text="conv.contact_name"></span>
+									<span class="conv-item-name" x-text="displayName(conv)"></span>
 									<span class="conv-item-time" x-text="formatTime(conv.created_at)"></span>
 								</div>
 								<div class="conv-item-preview">
@@ -69,9 +69,9 @@
 
 						<!-- Thread header -->
 						<div class="conv-thread-header">
-							<div class="conv-thread-avatar" x-text="initials(selected.contact_name)"></div>
+							<div class="conv-thread-avatar" x-text="initials(displayName(selected))"></div>
 							<div>
-								<div class="conv-thread-name" x-text="selected.contact_name"></div>
+								<div class="conv-thread-name" x-text="displayName(selected)"></div>
 								<div class="conv-thread-phone" x-text="formatPhone(selected.wa_id)"></div>
 							</div>
 						</div>
@@ -87,13 +87,13 @@
 									<div class="conv-bubble" :class="msg.direction === 'out' ? 'bubble-out' : 'bubble-in'">
 										<!-- Media header -->
 										<template x-if="msg.media_url && bubbleMediaType(msg) === 'pdf'">
-											<a class="bubble-pdf-link" :href="msg.media_url" target="_blank" rel="noopener">
+											<a class="bubble-pdf-link" href="#" @click.prevent="openAttachment(msg)">
 												<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
 												Ver PDF adjunto
 											</a>
 										</template>
 										<template x-if="msg.media_url && bubbleMediaType(msg) !== 'pdf'">
-											<img class="bubble-media-img" :src="msg.media_url" alt="Imagen adjunta" loading="lazy">
+											<img class="bubble-media-img" :src="msg.media_url" alt="Imagen adjunta" loading="lazy" style="cursor:pointer" @click="openAttachment(msg)">
 										</template>
 										<!-- Body -->
 										<div class="bubble-text" x-html="renderBubbleHtml(msg)"></div>
@@ -139,6 +139,35 @@
 			</div>
 		</div>
 
+	</div>
+
+	<!-- Modal: visor de adjunto (PDF / imagen) -->
+	<div
+		x-show="$store.cache.isVisibleModal('attachment')"
+		@mousedown.self="$store.cache.hideLastModal()"
+		class="modal-wrap"
+		id="modal-attachment"
+		x-transition:enter="modal-enter"
+		x-transition:enter-start="modal-enter-start"
+		x-transition:enter-end="modal-enter-end"
+		x-transition:leave="modal-leave"
+		x-transition:leave-start="modal-leave-start"
+		x-transition:leave-end="modal-leave-end"
+		x-cloak
+	>
+		<div class="modal small glass2" @click.stop>
+			<div class="modal-grabber">
+				<div class="modal-grabber-bar"></div>
+			</div>
+			<div class="modal-content">
+				<template x-if="viewer_payload?.kind === 'pdf'">
+					<iframe :src="viewer_payload.url" style="width:100%; height:70vh; border:0;"></iframe>
+				</template>
+				<template x-if="viewer_payload?.kind === 'image'">
+					<img style="border-radius:0.75rem; max-width:100%;" :src="viewer_payload.url">
+				</template>
+			</div>
+		</div>
 	</div>
 
 
@@ -255,6 +284,7 @@
 		replyText:       '',
 		loadingMessages: false,
 		sending:         false,
+		viewer_payload:  null,
 		_pollTimer:      null,
 
 		async init() {
@@ -415,6 +445,42 @@
 			}
 			// Inbound or free text — plain text, no x-html risk
 			return _fmtWa(_escHtml(msg.content || `(${msg.msg_type})`));
+		},
+
+		openAttachment(msg) {
+			if (!msg || !msg.media_url) return;
+			const kind = this.bubbleMediaType(msg) === 'pdf' ? 'pdf' : 'image';
+			this.viewer_payload = { kind, url: msg.media_url };
+			Alpine.store('cache').showModal('attachment');
+		},
+
+		reorderName(raw) {
+			if (!raw) return null;
+			const name = String(raw).trim().replace(/\s+/g, ' ');
+			if (name.includes(',')) {
+				const [last, first] = name.split(',');
+				if (first && first.trim() && last && last.trim()) return `${first.trim()} ${last.trim()}`;
+			}
+			return name || null;
+		},
+
+		// Nombre extraido del template saliente (param 'name'/'username')
+		nameFromTemplate(conv) {
+			if (!conv || conv.direction !== 'out' || !conv.template_name) return null;
+			const tmpl = WA_TEMPLATES[conv.template_name];
+			if (!tmpl || !Array.isArray(tmpl.params)) return null;
+			let idx = tmpl.params.indexOf('name');
+			if (idx < 0) idx = tmpl.params.indexOf('username');
+			if (idx < 0) return null;
+			const values = (conv.content || '').split(' | ');
+			return this.reorderName(values[idx]);
+		},
+
+		displayName(conv) {
+			if (!conv) return '';
+			const cn = conv.contact_name;
+			if (cn && cn !== conv.wa_id) return cn;
+			return this.nameFromTemplate(conv) || cn || conv.wa_id;
 		},
 
 		bubbleMediaType(msg) {
@@ -745,6 +811,8 @@
 		animation: conv-spin 0.6s linear infinite;
 	}
 	@keyframes conv-spin { to { transform: rotate(360deg); } }
+
+	#modal-attachment { z-index: 50; }
 
 	/* ── Responsive ── */
 	@media (max-width: 680px) {

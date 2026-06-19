@@ -6,6 +6,7 @@ from application import app, db
 from config import WABA as API
 from config import Config
 from config import Odoo
+from application.utils import reorder_name
 
 
 class Whatsapp:
@@ -80,9 +81,10 @@ class Whatsapp:
         try:
             to        = payload.get("to", "")
             msg_type  = payload.get("type", "")
-            content   = None
-            tmpl_name = None
-            media_url = None
+            content      = None
+            tmpl_name    = None
+            media_url    = None
+            contact_name = None
 
             if msg_type == "template":
                 tmpl      = payload.get("template", {})
@@ -95,14 +97,21 @@ class Whatsapp:
                         elif p.get("type") == "document":
                             media_url = p.get("document", {}).get("link")
                     elif comp.get("type") == "body":
-                        params  = [str(p.get("text", "")) for p in comp.get("parameters", []) if p.get("type") == "text"]
+                        body_params = [p for p in comp.get("parameters", []) if p.get("type") == "text"]
+                        params  = [str(p.get("text", "")) for p in body_params]
                         content = " | ".join(filter(None, params)) or None
+                        # El nombre del cliente viaja en el parametro 'name'/'username'
+                        for p in body_params:
+                            if p.get("parameter_name") in ("name", "username"):
+                                contact_name = reorder_name(p.get("text"))
+                                break
             elif msg_type == "text":
                 content = payload.get("text", {}).get("body")
 
             with app.app_context():
                 msg = WabaMessage(
                     wa_id          = to,
+                    contact_name   = contact_name,
                     direction      = 'out',
                     msg_type       = msg_type,
                     content        = content,

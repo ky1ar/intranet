@@ -62,6 +62,23 @@ def parse_date_iso(iso):
     return datetime.strptime(iso, "%Y-%m-%d").date()
 
 
+def reorder_name(full_name):
+    """Normaliza nombres en formato "Apellidos, Nombres" a "Nombres Apellidos".
+
+    Ej: "Flores Quispe, Claudio Antonio" -> "Claudio Antonio Flores Quispe".
+    Sin coma, devuelve el nombre con espacios normalizados.
+    """
+    if not full_name:
+        return None
+    name = " ".join(str(full_name).split())
+    if "," in name:
+        last, first = name.split(",", 1)
+        last, first = last.strip(), first.strip()
+        if first and last:
+            return f"{first} {last}"
+    return name or None
+
+
 def format_name(full_name, simple=False):
     if not full_name:
         return "Usuario"

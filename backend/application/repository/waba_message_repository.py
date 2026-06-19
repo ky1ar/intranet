@@ -70,6 +70,23 @@ class WabaMessageRepository:
                 if c.name:
                     name_map[c.phone] = c.name.title()
 
+        # Last fallback: name captured from outbound templates (param 'name'/'username')
+        still_unnamed = [m.wa_id for m in last_msgs if m.wa_id not in name_map]
+        if still_unnamed:
+            out_rows = (
+                g.db_session.query(WabaMessage.wa_id, WabaMessage.contact_name)
+                .filter(
+                    WabaMessage.wa_id.in_(still_unnamed),
+                    WabaMessage.direction == 'out',
+                    WabaMessage.contact_name.isnot(None),
+                )
+                .order_by(WabaMessage.id.desc())
+                .all()
+            )
+            for row in out_rows:
+                if row.wa_id not in name_map and row.contact_name:
+                    name_map[row.wa_id] = row.contact_name
+
         return [
             {
                 "wa_id":         m.wa_id,
