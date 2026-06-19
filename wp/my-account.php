@@ -95,6 +95,7 @@ header.custom {
     position: absolute;
     top: 3.25rem;
     left: 1.5rem;
+	background-color: white;
 }
 .kd-avatar-img {
 	width: 100%;
@@ -1451,7 +1452,10 @@ document.addEventListener("DOMContentLoaded", () => {
 			<script>
             (function() {
                 const API        = 'https://devapi.krear3d.com';
-                const PLATFORM   = 'https://cursos.krear3d.com/';
+                // const API        = 'https://api.krear3d.com';
+                const PLATFORM   = 'https://stag.krear3d.com/';
+                // const PLATFORM   = 'https://cursoskrear3d.com/';
+
                 const WP_USER_ID = <?php echo (int) $wp_user_id; ?>;
                 const WP_EMAIL   = <?php echo json_encode( $wp_user_email ); ?>;
                 const WP_USERNAME = <?php echo json_encode( $wp_user_display ); ?>;
@@ -2167,12 +2171,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
 			<script>
 			(function() {
+				// const API         = 'https://api.krear3d.com';
 				const API         = 'https://devapi.krear3d.com';
 				const WP_USER_ID  = <?php echo (int) $gwa_user_id; ?>;
 				const WP_EMAIL    = <?php echo json_encode( $gwa_user_email ); ?>;
 				const WP_PHONE    = <?php echo json_encode( $gwa_user_phone ?: '' ); ?>;
 				const WP_DNI      = <?php echo json_encode( $gwa_user_dni ?: '' ); ?>;
 
+				// const INTRANET     = 'https://intranet.krear3d.com';
 				const INTRANET     = 'https://devintranet.krear3d.com';
 				const MACHINES_URL = `${INTRANET}/static/images/uploads/machines/`;
 				const BRANDS_URL = `${INTRANET}/static/images/uploads/brands/`;
