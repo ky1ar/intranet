@@ -1674,7 +1674,6 @@ document.addEventListener("DOMContentLoaded", () => {
 						<span class="guia-voltage-sub">Antes de encender tu equipo, verifica que el selector de voltaje esté en <strong>220V</strong>. Usar 110V puede dañar la máquina.</span>
 					</div>
 				</div>
-				<div class="guia-detail-desc" id="guia-detail-desc"></div>
 				<div class="guia-detail-items" id="guia-detail-items"></div>
 			</div>
 
@@ -2214,7 +2213,6 @@ document.addEventListener("DOMContentLoaded", () => {
 					const _bimg = document.getElementById('guia-detail-brand-img');
 					if (guide.brand_image) { _bimg.src = `${BRANDS_URL}${guide.brand_image}`; _bimg.style.display = ''; }
 					else { _bimg.style.display = 'none'; }
-					document.getElementById('guia-detail-desc').textContent  = '';
 					document.getElementById('guia-detail-items').innerHTML   = '<p style="opacity:0.4;font-size:0.85rem">Cargando contenido...</p>';
 
 					grid.style.display   = 'none';
@@ -2244,7 +2242,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 				function renderGuideContent(content, guide) {
 					const machine_id = guide.machine_id;
-					document.getElementById('guia-detail-desc').textContent = content.description || '';
 					const container = document.getElementById('guia-detail-items');
 					container.innerHTML = '';
 

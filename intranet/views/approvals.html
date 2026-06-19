@@ -419,8 +419,6 @@
 								<div class="gm-machine-name" x-text="gm.machine?.name"></div>
 							</div>
 
-							<label class="gm-label">Introducción (opcional)</label>
-							<textarea class="gm-input" rows="2" x-model="gm.description" placeholder="Ej: Te enviamos un paso a paso para tu impresora…"></textarea>
 
 							<label class="gm-label">Pasos (título + link de YouTube)</label>
 							<div class="gm-steps">
@@ -437,8 +435,6 @@
 							</div>
 							<button class="gm-btn ghost" @click="gmAddStep()">+ Agregar paso</button>
 
-							<label class="gm-label">Link de Google Drive (Bonus Track)</label>
-							<input type="text" class="gm-input" placeholder="https://drive.google.com/…" x-model="gm.drive_url">
 
 							<div class="gm-editor-actions">
 								<button class="gm-btn ghost" @click="gmBack()">Cancelar</button>
