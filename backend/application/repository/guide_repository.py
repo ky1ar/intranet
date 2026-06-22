@@ -37,6 +37,7 @@ class GuideRepository:
             client_id=client_id,
             type_id=type_id,
             status="pending",
+            created_at=peru_time(),
             invoice_number=invoice_number,
             machine_id=machine_id,
             voucher_filename=voucher_filename,
