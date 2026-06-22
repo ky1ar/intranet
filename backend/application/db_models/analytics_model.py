@@ -10,6 +10,9 @@ class AuditRoute(BaseModel):
     id         = db.Column(db.Integer, autoincrement=True, primary_key=True, nullable=False)
     user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
     route      = db.Column(db.String(255), nullable=False)
+    device_id  = db.Column(db.String(64), index=True)
+    ip         = db.Column(db.String(64))
+    user_agent = db.Column(db.String(255))
     visited_at = db.Column(db.TIMESTAMP, server_default=PERU_NOW, index=True)
 
 

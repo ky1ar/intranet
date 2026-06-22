@@ -8,7 +8,7 @@ class AnalyticsService:
         self.repository = AnalyticsRepository()
 
     @handle_exceptions
-    def log_screen(self, route):
+    def log_screen(self, route, device_id=None, ip=None, user_agent=None):
         user_id = int(get_jwt_identity())
 
         if not route or not isinstance(route, str):
@@ -18,4 +18,8 @@ class AnalyticsService:
         if not route:
             return "Ruta invalida", 400
 
-        return self.repository.log_visit(user_id, route)
+        device_id = (device_id or "").strip()[:64] or None
+        ip = (ip or "").strip()[:64] or None
+        user_agent = (user_agent or "").strip()[:255] or None
+
+        return self.repository.log_visit(user_id, route, device_id, ip, user_agent)

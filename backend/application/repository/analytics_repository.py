@@ -6,8 +6,14 @@ from flask import g
 class AnalyticsRepository:
 
     @handle_db_exceptions
-    def log_visit(self, user_id, route):
-        view = AuditRoute(user_id=user_id, route=route)
+    def log_visit(self, user_id, route, device_id=None, ip=None, user_agent=None):
+        view = AuditRoute(
+            user_id=user_id,
+            route=route,
+            device_id=device_id,
+            ip=ip,
+            user_agent=user_agent,
+        )
         g.db_session.add(view)
         g.db_session.commit()
         return True, 200

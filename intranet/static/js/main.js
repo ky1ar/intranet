@@ -552,7 +552,10 @@ document.addEventListener('alpine:init', () => {
                         'Authorization': `Bearer ${token}`,
                         'X-No-Toast': '1',
                     },
-                    body: JSON.stringify({ route: path }),
+                    body: JSON.stringify({
+                        route: path,
+                        device_id: this.getOrCreateDeviceId(),
+                    }),
                 }).catch(() => {});
             } catch (e) {}
         },

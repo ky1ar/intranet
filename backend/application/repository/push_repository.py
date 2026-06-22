@@ -102,6 +102,20 @@ class PushRepository:
 
 
     @handle_db_exceptions
+    def delete_tokens(self, tokens):
+        if not tokens:
+            return 0, 200
+
+        deleted = (
+            g.db_session.query(FireCloudTokens)
+            .filter(FireCloudTokens.token.in_(list(tokens)))
+            .delete(synchronize_session=False)
+        )
+        g.db_session.commit()
+        return deleted, 200
+
+
+    @handle_db_exceptions
     def delete_device(self, user_id, device_id):
         q = (
             g.db_session.query(FireCloudTokens)
