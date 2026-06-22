@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --primary: #ea7134;
+      --gray: #f5f5f5;
+      --graydarkest: #333;
+      --font: 'Lexend', sans-serif;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 1rem;
+      font-family: var(--font);
+      font-size: 0.85rem;
+      background: #fff;
+    }
+
+    .card {
+      background-color: white;
+      padding: 1rem;
+    }
+
+    .shipping-label {
+      border: dashed 2px var(--graydarkest);
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+
+    .shipping-label .line span {
+      max-width: 100%;
+      display: inline-block;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    .block {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      position: relative;
+      width: 100%;
+    }
+
+    .block h2 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin: 0;
+    }
+
+    .block img {
+      position: absolute;
+      right: 0;
+      width: 128px;
+      height: auto;
+    }
+
+    .data {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      width: 100%;
+    }
+
+    .line {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .group {
+      display: flex;
+      justify-content: space-between;
+      gap: 2rem;
+    }
+
+    .divider {
+      border-top: dashed 2px var(--gray);
+    }
+  </style>
+</head>
+<body>
+  <div class="card" id="shipping-label-export">
+    <div class="shipping-label">
+      <div class="block">
+        <h2>Remitente</h2>
+        <img alt="logo" src="https://registro.krear3d.com/static/images/logo1.svg">
+
+        <div class="data">
+          <div class="line">
+            <strong>Nombres y apellidos:</strong>
+            <span>{{ order.client.name }}</span>
+          </div>
+          <div class="group">
+            <div class="line">
+              <strong>DNI/RUC:</strong>
+              <span>{{ order.client.document }}</span>
+            </div>
+            <div class="line">
+              <strong>Celular:</strong>
+              <span>{{ order.client.phone[2:] }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      {% if order.origin_id == 1 %}
+      <div class="block">
+        <h2>Destinatario</h2>
+        <div class="data">
+          <div class="group">
+            <div class="line">
+              <strong>Nombres y apellidos:</strong>
+              <span>Marlon Trejo Jara</span>
+            </div>
+            <div class="line">
+              <strong>DNI:</strong>
+              <span>48332468</span>
+            </div>
+          </div>
+          <div class="group">
+            <div class="line">
+              <strong>Razón Social:</strong>
+              <span>Fabricaciones Digitales del Peru S.A.</span>
+            </div>
+            <div class="line">
+              <strong>Celular:</strong>
+              <span>970539751</span>
+            </div>
+          </div>
+          <div class="line">
+            <strong>Dirección:</strong>
+            <span>Calle Javier Fernández 262 Miraflores, Lima</span>
+          </div>
+          <div class="line">
+            <strong>Horario:</strong>
+            <span>Lunes a Sábado 9:00am a 7:00pm</span>
+          </div>
+        </div>
+      </div>
+      {% elif order.origin_id == 2 %}
+      <div class="block">
+        <h2>Destinatario</h2>
+        <div class="data">
+          <div class="group">
+            <div class="line">
+              <strong>Nombres y apellidos:</strong>
+              <span>Marlon Trejo Jara<br>Alfredo Garate Mendoza</span>
+            </div>
+            <div class="line">
+              <strong>DNI:</strong>
+              <span>48332468<br>73023671</span>
+            </div>
+          </div>
+          <div class="group">
+            <div class="line">
+              <strong>Razón Social:</strong>
+              <span>Fabricaciones Digitales del Peru S.A.</span>
+            </div>
+            <div class="line">
+              <strong>Celular:</strong>
+              <span>970539751</span>
+            </div>
+          </div>
+          <div class="line">
+            <strong>Agencia Shalom de recepción:</strong>
+            <span>Lima, Chorrillos - Las Delicias De Villa</span>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="divider"></div>
+
+      <div class="block">
+        <h2>Detalles del envío</h2>
+        <div class="data">
+          <div class="group">
+            <div class="line">
+              <strong>Equipo:</strong>
+              <span>{{ order.machine.model }}</span>
+            </div>
+            <div class="line">
+              <strong>N° de Orden:</strong>
+              <span>{{ order.order_number }}</span>
+            </div>
+          </div>
+          <div class="line">
+            <strong>Accesorios:</strong>
+            <span>
+                {% for item in accessories %}
+                - {{ item }}<br>
+                {% endfor %}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

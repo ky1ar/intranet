@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es-PE">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-touch-fullscreen" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Krear 3D">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#F07E46">
+    <title>Krear 3D</title>
+
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/static/images/logo-256a.png">
+    <link rel="apple-touch-startup-image" href="/static/images/logo-256a.png">
+    <link rel="icon" href="/static/images/favw.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <script src="/static/js/zxing-browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pinecone-router@6.2.1/dist/router.min.js" ></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.5/dist/signature_pad.umd.min.js"></script>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+
+    <!--<link rel="stylesheet" href="static/css/style.css?v=0.1.0.7215">-->
+    <link rel="stylesheet" href="/static/css/new.css?v=1.7.3">
+</head>
+
+<body class="container" x-data="data" :class="{'modal-open': $store.cache.hasActiveModals()}">
+    <script src="/static/js/firebase-config.js?v=1.7.3"></script>
+    <script src="/static/js/main.js?v=1.7.3"></script>
+
+    <template x-route="/"           x-handler="loginRedirect" x-template.preload.target.content="/views/login.html"></template>
+    <template x-route="/home"       x-handler="loginVerify" x-template.preload.target.content="/views/home.html"></template>
+    <template x-route="/attendance" x-handler="loginVerify" x-template.preload.target.content="/views/attendance.html"></template>
+    <template x-route="/schedule"   x-handler="loginVerify" x-template.preload.target.content="/views/schedule.html"></template>
+    <template x-route="/guest"      x-handler="loginVerify" x-template.preload.target.content="/views/guest.html"></template>
+    <template x-route="/training"   x-handler="loginVerify" x-template.preload.target.content="/views/training.html"></template>
+    <template x-route="/board"      x-handler="loginVerify" x-template.preload.target.content="/views/board.html"></template>
+    <template x-route="/support"    x-handler="loginVerify" x-template.preload.target.content="/views/support.html"></template>
+    <template x-route="/tracking"   x-handler="loginVerify" x-template.preload.target.content="/views/tracking.html"></template>
+    <template x-route="/logistics"  x-handler="loginVerify" x-template.preload.target.content="/views/logistics.html"></template>
+    <template x-route="/warehouse"  x-handler="loginVerify" x-template.preload.target.content="/views/warehouse.html"></template>
+    <template x-route="/driver"     x-handler="loginVerify" x-template.preload.target.content="/views/driver.html"></template>
+    <template x-route="/clients"    x-handler="loginVerify" x-template.preload.target.content="/views/clients.html"></template>
+    <template x-route="/machines"   x-handler="loginVerify" x-template.preload.target.content="/views/machines.html"></template>
+    <template x-route="/marketing"  x-handler="loginVerify" x-template.preload.target.content="/views/marketing.html"></template>
+    <template x-route="/purchases"  x-handler="loginVerify" x-template.preload.target.content="/views/purchases.html"></template>
+    <template x-route="/complaint"  x-handler="loginVerify" x-template.preload.target.content="/views/complaint.html"></template>
+    <template x-route="/imports"    x-handler="loginVerify" x-template.preload.target.content="/views/imports.html"></template>
+    <template x-route="/safebuy"    x-handler="loginVerify" x-template.preload.target.content="/views/safebuy.html"></template>
+    <template x-route="/refunds"    x-handler="loginVerify" x-template.preload.target.content="/views/refunds.html"></template>
+    <template x-route="/approvals"  x-handler="loginVerify" x-template.preload.target.content="/views/approvals.html"></template>
+    <template x-route="/admin"      x-handler="loginVerify" x-template.preload.target.content="/views/admin.html"></template>
+    <template x-route="/conversations"      x-handler="loginVerify" x-template.preload.target.content="/views/conversations.html"></template>
+    
+    <template x-if="$store.cache.user.id">
+        <div>
+            <div id="sidebar" :class="{'menu-expanded': $store.cache.menu_expanded && !$store.cache.is_narrow, 'white': $store.cache.menu_expanded && !$store.cache.is_narrow}">
+                <div class="home-logo white-frost" @click="$store.cache.sidebar_expanded = !$store.cache.sidebar_expanded"
+                     :class="{'expanded': $store.cache.sidebar_expanded}">
+                    <img class="home" src="/static/images/single-logo.svg" alt="Logo" width="32" height="32">
+                </div>
+                
+                <div class="expanded-logo" @click="$store.cache.sidebar_expanded = !$store.cache.sidebar_expanded">
+                    <img class="home" src="https://www.tiendakrear3d.com/wp-content/uploads/2024/10/logo-new1-1.svg" alt="Logo" width="140" height="29">
+                </div>
+
+                <ul class="white-frost">
+                    <template x-for="page in $store.cache.getPages()" :key="page.name">
+                        <li :class="{'active': $store.cache.active_page == '/' + page.name}">
+                            <a :href="`/${page.name}`">
+                                <img width="20" height="20" :src="`/static/icons/line/${page.image}`" alt="">
+                                <span x-text="page.label"></span>
+                            </a>
+                            <span x-text="page.label"></span>
+                        </li>
+                    </template>
+
+                    <template x-if="$store.cache.sidebar_expanded && $store.cache.getUnpinnedPages().length > 0">
+                        <li class="divider"></li>
+                    </template>
+
+                    <template x-for="page in $store.cache.sidebar_expanded ? $store.cache.getUnpinnedPages() : []" :key="page.name">
+                        <li :class="{'active': $store.cache.active_page == '/' + page.name}">
+                            <a :href="'/' + page.name">
+                                <img width="20" height="20" :src="`/static/icons/line/${page.image}`" alt="">
+                                <span x-text="page.label"></span>
+                            </a>
+                            <span x-text="page.label"></span>
+                        </li>
+                    </template>
+                </ul>
+
+                <div class="config white-frost">
+                    <div class="reglamento mobile-hide"
+                        @click="$store.cache.openPdfModal('/static/pdf/reglamento1_6.pdf', 'Reglamento')"
+                    >
+                        <img width="22" height="22" src="/static/icons/line/guard.svg" alt="">
+                        <span>Reglamento</span>
+                    </div>
+
+                    <div class="user-cont hover-opacity" @click="$store.cache.toogleSidebarMenu()">
+                        <img alt="user" class="user" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="40" height="40">
+                        <div class="user-text">
+                            <b x-text="$store.cache.user.name.split(' ')[0]"></b>
+                            <span x-text="$store.cache.user.department_name"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="$store.cache.sidebar_menu" x-transition.duration.300ms x-cloak @click.outside="$store.cache.hideSidebarMenu()" class="frost menu">
+                    <div x-data="avatarCrop">
+                        <div class="avatar-wrap" @click="$refs.fileInput.click()" title="Cambiar foto de perfil">
+                            <img alt="user" class="image" :src="'/static/images/uploads/users/' + $store.cache.user.image" width="80" height="80">
+                            <div class="avatar-overlay">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                            </div>
+                        </div>
+                        <input type="file" x-ref="fileInput" accept="image/jpeg,image/png,image/webp" style="display:none" @change="onSelected($event)">
+
+                        <!-- Modal crop -->
+                        <div class="avatar-modal-overlay" x-show="open" x-transition.opacity
+                             @mousedown.self="open=false"
+                             @mousemove="onDragMove($event)" @mouseup="dragging=false"
+                             @touchmove.passive="onDragMove($event)" @touchend="dragging=false">
+                            <div class="avatar-modal-box">
+                                <b>Previsualización (512×512)</b>
+                                <div class="avatar-crop-circle"
+                                     @mousedown="onDragStart($event)" @touchstart.passive="onDragStart($event)">
+                                    <img x-ref="preview" class="avatar-crop-img" draggable="false"
+                                         :style="`transform:translate(${offsetX}px,${offsetY}px) scale(${zoom})`">
+                                </div>
+                                <div class="avatar-zoom-row">
+                                    <span>Zoom</span>
+                                    <input type="range" min="1" max="3" step="0.01" x-model="zoom">
+                                </div>
+                                <div class="avatar-modal-actions">
+                                    <button class="btn-cancel" @click="open=false">Cancelar</button>
+                                    <button class="btn-save" @click="upload()" :disabled="saving" x-text="saving ? 'Guardando...' : 'Guardar'"></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text">
+                        <b x-text="$store.cache.user.name"></b>
+                        <span x-text="$store.cache.user.department_name"></span>
+                        <span class="ver" x-text="`versión ${localStorage.getItem('app_version')}`"></span>
+                    </div>
+
+                    <div class="settings hover-opacity" @click="$store.cache.hideSidebarMenu(); $store.cache.openModuleSettings();">
+                        <img alt="settings" src="/static/icons/line/settings.svg" width="18" height="18">
+                    </div>
+
+                    <div class="controlss">
+                        <div class="white hover-opacity"
+                            x-show="!$store.cache.notifications_enabled"
+                            @click="$store.cache.requestPushPermission();">
+                            Activar
+                            <img alt="controls" src="/static/icons/line/notifications.svg" width="16" height="16">
+                        </div>
+                        
+                        <div class="white mobile-show" @click="$store.cache.openPdfModal('/static/pdf/reglamento1_6.pdf', 'Reglamento')">
+                            Reglamento
+                            <img alt="controls" src="/static/icons/line/guard.svg" width="16" height="16">
+                        </div>
+
+                        <div class="button hover-opacity" @click="$store.cache.logout()">
+                            Cerrar sesión
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                x-show="$store.cache.isVisibleModal('push-info')"
+                @mousedown.self="$store.cache.hideLastModal()"
+                class="modal-wrap"
+                id="modal-push-info"
+                x-transition:enter="modal-enter"
+                x-transition:enter-start="modal-enter-start"
+                x-transition:enter-end="modal-enter-end"
+                x-transition:leave="modal-leave"
+                x-transition:leave-start="modal-leave-start"
+                x-transition:leave-end="modal-leave-end"
+                x-cloak
+            >
+                <div class="modal glass2" @click.stop>
+                    <div class="modal-grabber">
+                        <div class="modal-grabber-bar"></div>
+                    </div>
+                    
+                    <img alt="user" src="/static/images/uploads/users/00000000.jpg" width="64" height="64">
+
+                    <span class="title">Activa tus avisos</span>
+
+                    <p x-html="$store.cache.pushHelpMessage()"></p>
+
+                    <div class="fields">
+                        <button class="button hover-opacity"
+                                @click="$store.cache.requestPushPermission(); $store.cache.hideModal('push-info')">
+                            Activar notificaciones
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                x-show="$store.cache.isVisibleModal('pdf-viewer')"
+                @mousedown.self="$store.cache.closePdfModal()"
+                class="modal-wrap"
+                id="modal-pdf-viewer"
+                x-transition:enter="modal-enter"
+                x-transition:enter-start="modal-enter-start"
+                x-transition:enter-end="modal-enter-end"
+                x-transition:leave="modal-leave"
+                x-transition:leave-start="modal-leave-start"
+                x-transition:leave-end="modal-leave-end"
+                x-cloak
+            >
+                <div class="modal glass2" @click.stop>
+                    <div class="modal-grabber">
+                        <div class="modal-grabber-bar"></div>
+                    </div>
+
+                    <div style="height: 100dvh;">
+                        <iframe :src="$store.cache.pdf_url ? ($store.cache.pdf_url + `#view=FitH`) : ``" style="width:100%; height:100%; border:0;" loading="lazy"></iframe>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                x-show="$store.cache.isVisibleModal('module-settings')"
+                @mousedown.self="$store.cache.hideModal('module-settings')"
+                class="modal-wrap"
+                id="modal-module-settings"
+                x-transition:enter="modal-enter"
+                x-transition:enter-start="modal-enter-start"
+                x-transition:enter-end="modal-enter-end"
+                x-transition:leave="modal-leave"
+                x-transition:leave-start="modal-leave-start"
+                x-transition:leave-end="modal-leave-end"
+                x-cloak
+            >
+                <div class="modal little glass2" @click.stop>
+                    <div class="modal-grabber">
+                        <div class="modal-grabber-bar"></div>
+                    </div>
+
+                    <div class="top">
+                        <span class="title">Personalizar menú</span>
+                        <span class="subtitle">Elige tu página de inicio, fija módulos y ordénalos.</span>
+                    </div>
+
+                    <div class="mod-settings modal-content">
+                        <div class="mod-toggle">
+                            <span class="mod-toggle-label">Menú expandido</span>
+                            <label class="box">
+                                <input type="checkbox"
+                                       :checked="$store.cache.menu_expanded"
+                                       @change="$store.cache.setMenuExpanded($event.target.checked)">
+                                <div class="slider"></div>
+                            </label>
+                        </div>
+
+                        <div class="mod-list">
+                            <template x-for="(mod, idx) in $store.cache._settings_modules" :key="mod.slug">
+                                <div class="mod-item hover-opacity white"
+                                     draggable="true"
+                                     @dragstart="$store.cache._dragStart(idx)"
+                                     @dragover.prevent="$store.cache._dragOver(idx)"
+                                     @dragend="$store.cache._dragEnd()"
+                                     :class="{'dragging': $store.cache._drag_idx === idx}">
+
+                                    <div class="mod-drag">
+                                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                            <circle cx="4" cy="3" r="1.2" fill="#999"/>
+                                            <circle cx="10" cy="3" r="1.2" fill="#999"/>
+                                            <circle cx="4" cy="7" r="1.2" fill="#999"/>
+                                            <circle cx="10" cy="7" r="1.2" fill="#999"/>
+                                            <circle cx="4" cy="11" r="1.2" fill="#999"/>
+                                            <circle cx="10" cy="11" r="1.2" fill="#999"/>
+                                        </svg>
+                                    </div>
+
+                                    <img width="18" height="18" 
+                                         :src="`/static/icons/line/${$store.cache.module_ui[mod.slug]?.image || mod.slug}`" alt="">
+                                    
+                                    <span class="mod-name" x-text="$store.cache.module_ui[mod.slug]?.label || mod.name"></span>
+
+                                    <div class="mod-actions">
+                                        <div class="mod-default hover-opacity"
+                                             :class="{'active': mod.is_default}"
+                                             @click="$store.cache._setSettingsDefault(mod.slug)"
+                                             title="Página de inicio">
+                                            <img width="18" height="18" :src="`/static/icons/${mod.is_default ? 'filled' : 'line'}/home.svg`" alt="">
+                                        </div>
+
+                                        <div class="mod-pin hover-opacity"
+                                             :class="{'active': mod.is_pinned}"
+                                             @click="mod.is_pinned = !mod.is_pinned"
+                                             title="Fijar en sidebar">
+                                            <img width="18" height="18" :src="`/static/icons/${mod.is_pinned ? 'filled' : 'line'}/pin.svg`" alt="">
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        
+                    </div>
+
+                    <div class="buttons">
+                        <button class="button save-btn hover-opacity" 
+                            @click="$store.cache.saveModuleSettings()"
+                            :disabled="$store.cache._settings_saving">
+                            <span x-text="$store.cache._settings_saving ? 'Guardando...' : 'Guardar cambios'"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </template>
+    
+    <div id="content" :class="{'sidebar': $store.cache.sidebar, 'menu-expanded': $store.cache.menu_expanded}"></div>
+
+
+</body>
+</html>

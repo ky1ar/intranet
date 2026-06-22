@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-touch-fullscreen" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Krear 3D" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="#F07E46">
+    <meta name="theme-color" content="#F07E46">
+    <title>Krear 3D</title>
+
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/static/images/logo-256a.png">
+    <link rel="apple-touch-startup-image" href="/static/images/logo-256a.png">
+    <link rel="icon" href="/static/images/favw.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pinecone-router@6.2.1/dist/router.min.js" ></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.5/dist/signature_pad.umd.min.js"></script>
+    
+    <link rel="stylesheet" href="/static/css/new.css?v=1.7.3">
+</head>
+
+<body class="container" x-data="data">
+    <script src="/static/js/main.js?v=1.7.3"></script>
+    <template x-route="/refund/:token" x-handler="refundTokenVerify" x-template.preload.target.content="/views/refund.html"></template>
+    <template x-route="/:token" x-handler="tokenVerify" x-template.preload.target.content="/views/guest.html"></template>
+    <template x-route="/" x-template.preload.target.content="views/home.html"></template>
+
+    <div id="content"></div>
+</body>
+</html>

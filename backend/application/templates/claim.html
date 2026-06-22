@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Confirmación de Reclamo - Krear 3D</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f4f4; font-family: Arial, Helvetica, sans-serif;">
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f4; padding:20px 0;">
+        <tr>
+            <td align="center">
+
+                <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden;">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style="background:#111111; padding:20px; text-align:center;">
+                            <h1 style="color:#ffffff; margin:0; font-size:22px;">
+                                Krear 3D
+                            </h1>
+                            <p style="color:#cccccc; margin:5px 0 0; font-size:14px;">
+                                Confirmación de registro en el Libro de Reclamaciones
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding:30px; color:#333333; font-size:15px; line-height:1.6;">
+                            
+                            <p>Hola,</p>
+
+                            
+                            <p>
+                                Hemos recibido correctamente tu reclamo en nuestro
+                                <strong>Libro de Reclamaciones</strong>.
+                            </p>
+
+                            <p style="margin:20px 0; font-size:16px;">
+                                <strong>N° de Reclamo:</strong> {{ complaint_id }}
+                            </p>
+                            
+                            
+                            <p>
+                                Nuestro equipo revisará la información enviada y se pondrá en contacto contigo dentro del plazo establecido por ley.
+                            </p>
+
+                            <p>
+                                Si necesitas información adicional, puedes comunicarte con nosotros a través de nuestros canales oficiales.
+                            </p>
+
+                            <p style="margin-top:25px;">
+                                Gracias por confiar en <strong>Krear 3D</strong>.
+                            </p>
+
+                            <p style="margin-top:30px;">
+                                Atentamente,<br>
+                                <strong>Equipo Krear 3D</strong>
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background:#f0f0f0; padding:15px; text-align:center; font-size:12px; color:#666666;">
+                            © {{ current_year if current_year else "2026" }} Krear 3D. Todos los derechos reservados.
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>

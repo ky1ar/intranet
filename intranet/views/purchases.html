@@ -1,0 +1,2332 @@
+<div x-data="purchases_data">
+	<div id="purchases" class="dashboard">
+        <div class="controls">
+			<div class="toggle-collapse frost" @click="$store.cache.toogleMoreMenu()" @click.outside="$store.cache.hideMoreMenu()">
+				<div class="item">
+					<img alt="" width="24" height="24" src="/static/icons/line/more.svg">
+				</div>
+			</div>
+
+			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
+				<div class="item" @click="search()">
+					<img alt="" width="18" height="18" src="/static/icons/line/find.svg">
+				</div>
+				<div class="item" @click="viewHistory()">
+					<img alt="" width="18" height="18" src="/static/icons/line/history.svg">
+				</div>
+				<div class="item" @click="viewStatistics()" x-show="$store.cache.hasPermission('purchases', 'statistics')">
+					<img alt="" width="18" height="18" src="/static/icons/line/report.svg">
+				</div>
+			</div>
+
+			<div class="left mobile-hide frost">
+				<div class="item" @click="search()">
+					<img alt="" width="20" height="20" src="/static/icons/line/find.svg">
+					<span>Buscar</span>
+				</div>
+				<div class="item" @click="viewHistory()">
+					<img alt="" width="20" height="20" src="/static/icons/line/history.svg">
+					<span>Historial</span>
+				</div>
+				<div class="item" @click="viewStatistics()" x-show="$store.cache.hasPermission('purchases', 'statistics')">
+					<img alt="" width="20" height="20" src="/static/icons/line/report.svg">
+					<span>Estadísticas</span>
+				</div>
+			</div>
+
+			<div class="right frost-dark">
+				<div class="item" @click="addPurchase()">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/add.svg">
+					<span>Añadir</span>
+				</div>
+			</div>
+		</div>
+
+		<div class="main glass">
+			<template x-for="group in $store.cache.getData('purchases_dashboard')" :key="group.status_id">
+				<div class="group">
+					<div class="group-head">
+						<img alt="" width="20" height="20" :src="'/static/icons/module/purchases/' + (statusIcons[group.status_slug] || 'pending.svg')">
+						<span class="group-name" x-text="group.status_name"></span>
+						<span class="group-count" x-text="group.requests.length"></span>
+					</div>
+
+					<template x-for="purchase in group.requests" :key="purchase.id">
+						<div class="req-card white hover-opacity" @click="viewPurchase(purchase)">
+							<div class="req-top">
+								<template x-if="purchase.express == 1">
+									<span class="req-id pri" x-html="`PR-${String(purchase.id)}<img title='Caja chica' width='16' height='16' src='/static/icons/filled/dollars.svg'>`"></span>
+								</template>
+
+								<template x-if="purchase.express == 0">
+									<span class="req-id" x-text="`PR-${String(purchase.id)}`"></span>
+								</template>
+								
+								<div class="req-date" x-text="purchase.created_at"></div>
+							</div>
+
+							<div class="req-user">
+								<img :src="'/static/images/uploads/users/' + purchase.requester_image" width="24" height="24" alt="user">
+								<div class="req-bottom">
+									<span x-text="purchase.requester_name"></span>
+									<span class="req-dept" x-text="purchase.requester_department"></span>
+								</div>
+							</div>
+							<img class="req-urgency" :src="`/static/icons/filled/${purchase.urgency_slug}.svg`" :title="`Urgencia ${purchase.urgency_name}`" width="16" height="16">
+						</div>
+					</template>
+				</div>
+			</template>
+		</div>
+
+		<div
+			x-show="$store.cache.isVisibleModal('process')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-process"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			
+			<div class="modal glass2" :class="{'big': process_purchase.modal !== 'add'}" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="modal-content dual" x-init="
+					const left  = $el.querySelector('.container');
+					const right = $el.querySelector('.comments-container');
+					new ResizeObserver(() => {
+						if (window.innerWidth < 1200) return;
+						right.style.maxHeight = left.offsetHeight + 'px';
+					}).observe(left);
+				">
+					<div class="container overflow">
+						<div class="title" x-show="process_purchase.modal !== 'add'">
+							<span x-text="`Solicitud ${process_purchase.pr}`"></span>
+
+							<p class="created"
+								x-text="`Creada por ${(process_purchase.self_created ? 'ti' : process_purchase.user_name)} el ${process_purchase.created_at}`">
+							</p>
+						</div>
+
+						
+						<div class="boxes" x-show="['view','delete'].includes(process_purchase.modal)">
+							<div class="box-cont">
+								<div class="desc">Detalles</div>
+								<label class="white white-box">
+									<div class="lbl">Tipo</div>
+									<div class="selected" x-text="process_purchase.type_name"></div>
+								</label>
+
+								<label class="white white-box">
+									<div class="lbl">Urgencia</div>
+									<div class="selected" x-text="process_purchase.urgency_name"></div>
+								</label>
+							</div>
+
+							<div class="box-cont">
+								<div class="desc">Opciones</div>
+								<div class="white full-box">
+									<div class="express">
+										<div class="data">
+											<div class="top">Caja chica</div>
+											<p>Pago desde el fondo de caja chica</p>
+										</div>
+
+										<div class="switch">
+											<div class="text" x-text="process_purchase.express ? 'Sí':'No'"></div>
+										</div>
+									</div>
+
+									<div class="express">
+										<div class="data">
+											<div class="top">Validación TI</div>
+											<p>Requiere aprobación del área de TI</p>
+										</div>
+
+										<div class="switch">
+											<div class="text" x-text="process_purchase.it_validation ? 'Sí':'No'"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div class="box-cont">
+								<div class="desc">Ítems solicitados</div>
+
+								<div class="items-cont white">
+									<div class="items-header">
+										<span class="number">#</span>
+
+										<div class="row">
+											<span>Ítem</span>
+											<span class="right">Cant.</span>
+											<span class="right">Precio</span>
+										</div>
+									</div>
+
+									<template x-for="(item, index) in process_purchase.items" :key="index">
+										<div class="items-row">
+											<div class="delete">
+												<span x-text="index + 1"></span>
+											</div>
+
+											<div class="row space">
+												<div class="description">
+													<label :title="item?.title">
+														<template x-if="item.url">
+															<a :href="item.url" target="_blank" rel="noopener" x-text="item.title"></a>
+														</template>
+
+														<template x-if="!item.url">
+															<span class="static" x-text="item.title"></span>
+														</template>
+													</label>
+
+													<label x-show="process_purchase.status_id == 4 && process_purchase.can_manage">
+														<input class="url" type="url" placeholder="Agregar # de pedido" x-model="item.order_number">
+													</label>
+
+													<label x-show="process_purchase.status_id > 4">
+														<span class="url" x-text="item.order_number" title="Número de pedido"></span>
+													</label>
+												</div>
+												
+												<label>
+													<span class="static right" x-text="item.quantity"></span>
+												</label>
+
+												<label>
+													<span class="static right" x-text="item.price || 0"></span>
+												</label>
+											</div>
+										</div>
+									</template>
+
+									<div class="items-row">
+										<div class="dummy"></div>
+
+										<div class="row space">
+											<div class="description">
+												<span class="static">Total</span>
+											</div>
+											
+											<label>
+												<span class="static right bold" x-text="sumQty(process_purchase.items)"></span>
+											</label>
+
+											<label>
+												<span class="static right bold" x-text="sumPrice(process_purchase.items)"></span>
+											</label>
+										</div>
+									</div>
+									
+								</div>
+							</div>
+						</div>
+						
+						<!-- INPUTS -->
+
+						<div class="boxes" x-show="['edit','approve','add'].includes(process_purchase.modal)">
+							<div class="box-cont">
+								<div class="desc">Detalles</div>
+								<label class="white white-box">
+									<div class="lbl">Tipo</div>
+
+									<select x-model="process_purchase.type_id">
+										<template x-for="type in $store.cache.getData('purchases_type')" :key="type.id">
+											<option :value="type.id" x-text="type.name"></option>
+										</template>
+									</select>
+								</label>
+
+								<label class="white white-box">
+									<div class="lbl">Urgencia</div>
+
+									<select x-model="process_purchase.urgency_id">
+										<template x-for="urgency in $store.cache.getData('purchases_urgency')" :key="urgency.id">
+											<option :value="urgency.id" x-text="urgency.name"></option>
+										</template>
+									</select>
+								</label>
+							</div>
+							
+							<div class="box-cont">
+								<div class="desc">Opciones</div>
+								<div class="white full-box">
+									<div class="express">
+										<div class="data">
+											<div class="top">Caja chica</div>
+											<p>Pago desde el fondo de caja chica</p>
+										</div>
+
+										<div class="switch">
+											<div class="text" x-text="process_purchase.express ? 'Sí':'No'"></div>
+											<label class="box">
+												<input id="express" type="checkbox" x-model="process_purchase.express">
+												<div class="slider"></div>
+											</label>
+										</div>
+									</div>
+
+									<div class="express">
+										<div class="data">
+											<div class="top">Validación TI</div>
+											<p>Requiere aprobación del área de TI</p>
+										</div>
+
+										<div class="switch">
+											<div class="text" x-text="process_purchase.it_validation ? 'Sí':'No'"></div>
+											<label class="box">
+												<input id="it-validation" type="checkbox" x-model="process_purchase.it_validation">
+												<div class="slider"></div>
+											</label>
+										</div>
+									</div>
+								</div>
+							</div>
+							
+							<div class="box-cont">
+								<div class="desc">Ítems solicitados</div>
+
+								<div class="items-cont white">
+									<div class="items-header">
+										<span class="number">#</span>
+
+										<div class="row">
+											<span>Ítem</span>
+											<span class="right">Cant.</span>
+											<span class="right">Precio</span>
+											<!-- <span class="mobile-hide">URL</span> -->
+										</div>
+										<!-- <button type="button" class="new hover-opacity" @click="addItem()" title="Agregar">
+											<img alt="Agregar" width="16" height="16" src="/static/icons/line/add.svg">
+										</button> -->
+									</div>
+
+									<template x-for="(item, index) in process_purchase.items" :key="index">
+										<div class="items-row">
+											<div class="delete hover-opacity" @click="removeItem(index)" title="Eliminar" >
+												<img alt="eliminar" width="14" height="14" src="/static/icons/line/delete.svg">
+												<span x-text="index + 1"></span>
+											</div>
+
+											<div class="row">
+												<div class="description">
+													<label :title="item?.title">
+														<input type="text" placeholder="Agregar título" x-model="item.title">
+													</label>
+
+													<label :title="item?.url">
+														<input class="url" type="url" placeholder="Añadir URL" x-model="item.url">
+													</label>
+												</div>
+												
+												<label>
+													<input class="right" type="number" min="1" step="1" placeholder="1" x-model.number="item.quantity">
+												</label>
+
+												<label>
+													<input class="right" type="number" min="0" step="0.01" placeholder="0.00" x-model.number="item.price">
+												</label>
+											</div>
+										</div>
+									</template>
+
+									<div class="items-row add">
+										<div class="add-button hover-opacity" @click="addItem()">+ Añadir ítem</div>
+									</div>
+
+									<div class="items-row">
+										<div class="dummy"></div>
+
+										<div class="row">
+											<div class="description">
+												<span class="bold">Total</span>
+											</div>
+											
+											<label>
+												<input class="bold right" type="number" :value="sumQty(process_purchase.items)" disabled>
+											</label>
+
+											<label>
+												<input class="bold right" type="number" :value="sumPrice(process_purchase.items)" disabled>
+											</label>
+										</div>
+									</div>
+									
+									<!-- <div class="items-row total" x-show="process_purchase.items?.length">
+										<span></span>
+										<div class="sub glass2">
+											<span>Total</span>
+											<span x-text="sumQty(process_purchase.items)"></span>
+											<span x-text="sumPrice(process_purchase.items)"></span>
+											<span class="mobile-hide"></span>
+										</div>
+										<span></span>
+									</div> -->
+								</div>
+							</div>
+						</div>
+
+						<!-- COMMENTS -->
+
+						<label class="white" x-show="process_purchase.modal === 'add'">
+							<input type="text" x-model="process_purchase.comment" placeholder="Ingresa un comentario...">
+						</label>
+
+						<!-- BUTTONS -->
+
+						<div class="buttons" x-show="process_purchase.modal === 'add'">
+							<button class="button icon hover-opacity" @click="newRequest()" :class="buttons.add.class">
+								<img alt="update" width="16" height="16" src="/static/icons/line/add.svg">
+								<span x-text="buttons.add.text"></span>
+							</button>
+						</div>	
+
+						<div class="buttons"
+    						x-show="process_purchase.modal === 'view' && process_purchase.can_manage && process_purchase.status_id > 2 && process_purchase.status_id < 7">
+							<button x-show="process_purchase.status_id == 3" class="button icon lime hover-opacity" @click="progressRequest()" :class="buttons.progress.class">
+								<img alt="eliminar" width="16" height="16" src="/static/icons/line/progress.svg">
+								<span x-text="buttons.progress.text"></span>
+							</button>
+
+							<button x-show="process_purchase.status_id == 4" class="button icon blue hover-opacity" @click="payRequest()" :class="buttons.payed.class">
+								<img alt="eliminar" width="16" height="16" src="/static/icons/line/payed.svg">
+								<span x-text="buttons.payed.text"></span>
+							</button>
+
+							<button x-show="process_purchase.status_id == 5" class="button icon violet hover-opacity" @click="invoiceRequest()" :class="buttons.invoiced.class">
+								<img alt="update" width="16" height="16" src="/static/icons/line/invoice.svg">
+								<span x-text="buttons.invoiced.text"></span>
+							</button>
+
+							<button x-show="process_purchase.status_id == 6"
+								class="button icon teal hover-opacity"
+								@click="deliverRequest()"
+								:class="buttons.delivered.class">
+								<img alt="entregado" width="16" height="16" src="/static/icons/line/deliver.svg">
+								<span x-text="buttons.delivered.text"></span>
+							</button>
+						</div>
+
+						<div class="buttons" x-show="process_purchase.modal === 'edit'">
+							<button class="button icon black hover-opacity" @click="deleteRequest()" :class="buttons.remove.class">
+								<img alt="eliminar" width="16" height="16" src="/static/icons/line/delete.svg">
+								<span x-text="buttons.remove.text"></span>
+							</button>
+
+							<button class="button icon hover-opacity" @click="updateRequest()" :class="buttons.update.class">
+								<img alt="update" width="16" height="16" src="/static/icons/line/update.svg">
+								<span x-text="buttons.update.text"></span>
+							</button>
+						</div>
+
+						<div class="buttons" x-show="process_purchase.modal === 'approve'">
+							<button class="button icon black hover-opacity" @click="rejectRequest()" :class="buttons.reject.class">
+								<img alt="eliminar" width="16" height="16" src="/static/icons/line/delete.svg">
+								<span x-text="buttons.reject.text"></span>
+							</button>
+
+							<button class="button icon hover-opacity" @click="approveRequest()" :class="buttons.approve.class">
+								<img alt="update" width="16" height="16" src="/static/icons/line/approve.svg">
+								<span x-text="buttons.approve.text"></span>
+							</button>
+						</div>
+
+						<div class="buttons" x-show="process_purchase.modal === 'delete'">
+							<button class="button icon red hover-opacity" @click="deleteRequest()" :class="buttons.remove.class">
+								<img alt="eliminar" width="16" height="16" src="/static/icons/line/delete.svg">
+								<span x-text="buttons.remove.text"></span>
+							</button>
+
+							<button x-show="process_purchase.can_manage && (process_purchase.express || process_purchase.status_id == 2)" class="button icon lime hover-opacity" @click="progressRequest()" :class="buttons.progress.class">
+								<img alt="eliminar" width="16" height="16" src="/static/icons/line/progress.svg">
+								<span x-text="buttons.progress.text"></span>
+							</button>
+						</div>
+					</div>
+					
+					<div class="comments-container white" x-show="process_purchase.modal !== 'add'">
+						<div class="comments-box overflow" x-ref="commentsBox">
+							<template x-if="!process_purchase.chats || process_purchase.chats.length === 0">
+								<div class="no-comments">Nada por aquí</div>
+							</template>
+							
+							<template x-for="chat in process_purchase.chats" :key="chat.id">
+								<div class="user-comment" :class="{'self': chat.commenter_id == user_id}">
+									<img alt="user" :src="'/static/images/uploads/users/' + chat.commenter_image" width="24" height="24">
+									<div class="white bubble">
+										<div class="top">
+											<span x-text="chat.commenter_id == user_id ? 'Tú' :chat.commenter_name"></span>
+											<p x-text="chat.created_at"></p>
+										</div>
+										<p x-text="chat.comment"></p>
+									</div>
+								</div>
+							</template>
+						</div>
+
+						<div class="comments-input white" x-show="process_purchase.status_id <= 6">
+							<label>
+								<textarea type="text" x-model="process_purchase.message" placeholder="Ingresa un mensaje..." @keydown.enter="handleEnterSend($event)"></textarea>
+							</label>
+							<div class="send hover-opacity" @click="sendChat()" :class="{'disabled': process_purchase.message == '' || process_purchase.message === undefined}">
+								<img alt="enviar" width="16" height="16" src="/static/icons/filled/send.svg">
+							</div>
+						</div>
+					</div>
+					
+				</div>
+
+			</div>
+		</div>
+
+		<div
+			x-show="$store.cache.isVisibleModal('purchases-search')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-purchases-search"
+			x-cloak>
+			<div class="modal little" @click.stop>
+				<div class="bottom glass2">
+					<img alt="" class="ico" width="20" height="20" src="/static/icons/line/find.svg">
+					<input type="text"
+						x-model="find_query"
+						placeholder="Nombre de usuario, título de ítem"
+						@input="findPurchases()">
+					<div class="hover-opacity clear" x-show="find_query" @click="find_query = ''; finded_purchases = [];">
+						<img alt="" width="12" height="12" src="/static/icons/filled/x.svg">
+					</div>
+				</div>
+				<div class="orders glass2" x-show="finded_purchases.length > 0">
+					<template x-for="p in finded_purchases" :key="p.id">
+						<div class="req-card white hover-opacity" @click="$store.cache.hideLastModal(); viewPurchase(p)">
+							<div class="req-top">
+								<template x-if="p.express == 1">
+									<span class="req-id pri" x-html="`PR-${String(p.id)}<img title='Caja chica' width='16' height='16' src='/static/icons/filled/dollars.svg'>`"></span>
+								</template>
+								<template x-if="!p.express">
+									<span class="req-id" x-text="`PR-${String(p.id)}`"></span>
+								</template>
+								<div class="req-date" x-text="p.created_at"></div>
+							</div>
+
+							<div class="req-user">
+								<img :src="'/static/images/uploads/users/' + p.requester_image" width="24" height="24" alt="user">
+								<div class="req-bottom">
+									<span x-text="p.requester_name"></span>
+									<span class="req-dept" x-text="p.requester_department"></span>
+								</div>
+							</div>
+							<img class="req-urgency" :src="`/static/icons/filled/${p.urgency_slug}.svg`" :title="`Urgencia ${p.urgency_name}`" width="16" height="16">
+						</div>
+					</template>
+				</div>
+			</div>
+		</div>
+
+		<div
+			x-show="$store.cache.isVisibleModal('purchases-history')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-purchases-history"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="top">
+					<span class="title">Historial</span>
+
+					<div class="pagination">
+						<span class="white hover-opacity left" :class="current_page > 1 ? '' : 'disabled'" @click="firstPage()">
+							<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity left" :class="current_page > 1 ? '' : 'disabled'" @click="prevPage()">
+							<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity" :class="current_page < total_pages ? '' : 'disabled'" @click="nextPage()">
+							<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity" :class="current_page < total_pages ? '' : 'disabled'" @click="lastPage()">
+							<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+						</span>
+					</div>
+				</div>
+
+				<div class="modal-content history">
+					<table>
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>Usuario</th>
+								<th>Estado</th>
+								<th>Fecha</th>
+							</tr>
+						</thead>
+						<tbody>
+							<template x-for="h in history_list" :key="h.id">
+								<tr @click="viewPurchase(h)">
+									<td class="pr-col">
+										<b x-text="`PR-${h.id}`"></b>
+									</td>
+									<td class="user-col">
+										<img :src="'/static/images/uploads/users/' + h.requester_image" width="28" height="28" alt="user">
+										<span x-text="h.requester_name"></span>
+									</td>
+									<td class="status-col">
+										<span class="status-pill" :class="h.status_slug" x-text="h.status_name"></span>
+									</td>
+									<td class="date-col" x-text="h.created_at"></td>
+								</tr>
+							</template>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+
+		<!-- ── Modal estadísticas ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('purchases-stats')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-purchases-stats"
+			x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="top">
+					<span class="title">Estadísticas</span>
+				</div>
+
+				<div class="modal-content">
+					<div class="kpi">
+						<div class="item white">
+							<p>Total</p>
+							<span x-text="$store.cache.getData('purchases_statistics')?.count.total ?? 0"></span>
+						</div>
+						<div class="item white">
+							<p>Pendientes</p>
+							<span x-text="$store.cache.getData('purchases_statistics')?.count.pending ?? 0"></span>
+						</div>
+						<div class="item white">
+							<p>Monto total</p>
+							<span x-text="`S/ ${Number($store.cache.getData('purchases_statistics')?.count.total_amount || 0).toFixed(2)}`"></span>
+						</div>
+						<div class="item white">
+							<p>Monto del mes</p>
+							<span x-text="`S/ ${Number($store.cache.getData('purchases_statistics')?.count.month_amount || 0).toFixed(2)}`"></span>
+						</div>
+					</div>
+
+					<div class="charts">
+						<div class="glass2 box">
+							<span>Compras por mes</span>
+							<canvas x-ref="purchaseMonthChart" width="160" height="80"></canvas>
+						</div>
+						<div class="glass2 box">
+							<span>Por departamento</span>
+							<canvas x-ref="purchaseDeptChart" width="160" height="80"></canvas>
+						</div>
+						<div class="glass2 box">
+							<span>Monto por área (S/)</span>
+							<canvas x-ref="purchaseAmountChart" width="160" height="80"></canvas>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+	</div>
+
+
+
+
+
+	<script>
+		var chartPurchaseMonth = null;
+		var chartPurchaseDept = null;
+		var chartPurchaseAmount = null;
+		var PSTATS_AXIS = {
+			ticks: { color: '#666', font: { size: 12, family: 'Lexend', weight: '500' } },
+			grid:  { color: 'transparent' },
+			border: { display: false },
+		};
+		var PSTATS_OPTS = {
+			responsive: true,
+			plugins: { legend: { display: false } },
+			scales: {
+				x: PSTATS_AXIS,
+				y: { beginAtZero: true, ticks: { ...PSTATS_AXIS.ticks, precision: 0 }, grid: { color: '#fff' }, border: { display: false } },
+			},
+		};
+
+		Alpine.data('purchases_data', () => ({
+			token: localStorage.getItem('user_token'),
+
+			api: Alpine.store('cache').api,
+			user_id: Alpine.store('cache').user.id,
+			// department_id: Alpine.store('cache').user.department_id,
+			processing: false,
+			find_query: '',
+			finded_purchases: [],
+			current_page: 1,
+			total_pages: null,
+			history_list: [],
+			buttons: {
+				add:   { text: 'Registrar', class: '' },
+				update:   { text: 'Actualizar', class: '' },
+				remove:   { text: 'Eliminar', class: '' },
+				approve:   { text: 'Aprobar', class: '' },
+				reject:   { text: 'Rechazar', class: '' },
+				progress:   { text: 'En progreso', class: '' },
+				payed:   { text: 'Pagado', class: '' },
+				invoiced:   { text: 'Facturado', class: '' },
+				delivered: { text: 'Entregado', class: '' }, 
+			},
+			process_purchase: {
+				id: null,
+				type_id: 1,
+				urgency_id: 2,
+				express: false,
+				it_validation: false,
+				needed_date: "",
+				user_image: "00000000.jpg",
+				modal: "add",
+				can_approve: false,
+				items: [
+					{
+						title: "",
+						description: "",
+						quantity: 1,
+						price: "",
+						url: "",
+						ruc: "",
+					}
+				],
+			},
+			editing: false,
+
+			statusIcons: {
+				pending:         'requested.svg',
+				leader_approve:  'leader.svg',
+				manager_approve: 'manager.svg',
+				progress:        'progress.svg',
+				payed:           'payed.svg',
+				billed:          'billed.svg',
+				delivered:       'deliver.svg',
+			},
+
+
+			async init() {
+				console.log('Inicializando Purchases...');
+
+				const socket = Alpine.store('cache').socket;
+				if (socket) {
+					socket.removeAllListeners();
+					socket.on("purchase_update_dashboard", async () => {
+						await Alpine.store('cache').refresh('purchases_dashboard');
+					});
+				}
+
+				await Alpine.store('cache').fetchData([
+					{ key: 'purchases_dashboard', url: `/purchases/requests`, force: true },
+					{ key: 'purchases_type', url: '/purchases/options/type' },
+					{ key: 'purchases_urgency', url: '/purchases/options/urgency' },
+				]);
+				// await Alpine.store('cache').verify();
+			},
+
+			resetOrder() {
+				this.editing = false;
+				this.process_purchase = {
+					id: null,
+					type_id: 1,
+					urgency_id: 2,
+					express: false,
+					it_validation: false,
+					needed_date: "",
+					can_approve: false,
+					modal: "add",
+					user_image: "00000000.jpg",
+					items: [
+						{
+							title: "",
+							description: "",
+							quantity: 1,
+							price: "",
+							url: "",
+							ruc: "",
+						},
+					],
+				};
+				this.buttons.add.text = "Registrar solicitud";
+			},
+
+			async deleteRequest() {
+				if (this.processing) return;
+
+				this.processing = true;
+
+				try {
+					const response = await fetch(
+						`${this.api}/purchases/${this.process_purchase.id}`,
+						{
+							method: "PUT",
+							headers: {
+								"Content-Type": "application/json",
+								"Authorization": `Bearer ${this.token}`,
+							},
+							body: JSON.stringify({ delete: true }),
+						}
+					);
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || "Error al eliminar");
+					}
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process");
+
+				} catch (error) {
+					this.showError("remove", error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			handleEnterSend(e) {
+				if (e.shiftKey) return;
+
+				e.preventDefault();
+				this.sendChat();
+			},
+
+			async progressRequest() {
+				if (this.processing) return;
+
+				this.processing = true;
+
+				try {
+					const response = await fetch(
+						`${this.api}/purchases/${this.process_purchase.id}`,
+						{
+							method: "PUT",
+							headers: {
+								"Content-Type": "application/json",
+								"Authorization": `Bearer ${this.token}`,
+							},
+							body: JSON.stringify({ action: "progress" }),
+						}
+					);
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || "Error al eliminar");
+					}
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process");
+
+				} catch (error) {
+					this.showError("payed", error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async deliverRequest() {
+				if (this.processing) return;
+
+				this.processing = true;
+
+				try {
+					const response = await fetch(
+					`${this.api}/purchases/${this.process_purchase.id}`,
+					{
+						method: "PUT",
+						headers: {
+						"Content-Type": "application/json",
+						"Authorization": `Bearer ${this.token}`,
+						},
+						body: JSON.stringify({ action: "delivered" }),
+					}
+					);
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+					throw new Error(jsonData?.data?.message || jsonData?.message || "Error al marcar como entregado");
+					}
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process");
+
+				} catch (error) {
+					this.showError("delivered", error.message);
+				} finally {
+					this.processing = false;
+				}
+				},
+			async payRequest() {
+				if (this.processing) return;
+
+				const items = (this.process_purchase.items || []).map(i => ({
+					id: i.id,
+					order_number: (i.order_number || '').trim() || null,
+				}));
+
+				const missing = items.some(i => !i.order_number);
+				if (missing) {
+					this.showError("payed", "Ingresa el Nº de pedido en todos los ítems");
+					return;
+				}
+
+				this.processing = true;
+
+				try {
+					const response = await fetch(
+						`${this.api}/purchases/${this.process_purchase.id}`,
+						{
+							method: "PUT",
+							headers: {
+								"Content-Type": "application/json",
+								"Authorization": `Bearer ${this.token}`,
+							},
+							body: JSON.stringify({
+								action: "payed",
+								items, // 👈 send order numbers
+							}),
+						}
+					);
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || jsonData?.message || "Error al marcar como pagado");
+					}
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process");
+
+				} catch (error) {
+					this.showError("payed", error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			sumQty(items) {
+				return (items || []).reduce((acc, i) => acc + (Number(i.quantity) || 0), 0);
+			},
+
+			sumPrice(items) {
+				const total = (items || []).reduce((acc, i) => {
+					const qty = Number(i.quantity) || 0;
+					const price = (i.price === "" || i.price === null || i.price === undefined) ? 0 : Number(i.price) || 0;
+					return acc + (qty * price);
+				}, 0);
+
+				return total.toFixed(2);
+			},
+
+			async invoiceRequest() {
+				if (this.processing) return;
+
+				this.processing = true;
+
+				try {
+					const response = await fetch(
+						`${this.api}/purchases/${this.process_purchase.id}`,
+						{
+							method: "PUT",
+							headers: {
+								"Content-Type": "application/json",
+								"Authorization": `Bearer ${this.token}`,
+							},
+							body: JSON.stringify({ action: "invoiced" }),
+						}
+					);
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || "Error al eliminar");
+					}
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process");
+
+				} catch (error) {
+					this.showError("payed", error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async updateRequest() {
+				if (this.processing) return;
+
+				const items = this.process_purchase.items
+					.map(i => ({
+						title: (i.title || "").trim(),
+						description: (i.description || "").trim(),
+						quantity: Number(i.quantity) || 0,
+						price: i.price === "" ? null : Number(i.price),
+						url: (i.url || "").trim(),
+						ruc: (i.ruc || "").trim(),
+					}))
+					.filter(i => i.title && i.quantity > 0);
+
+				if (!items.length) {
+					this.showError("update", "Debe agregar al menos 1 ítem");
+					return;
+				}
+
+				const payload = {
+					type_id: this.process_purchase.type_id,
+					urgency_id: this.process_purchase.urgency_id,
+					express: this.process_purchase.express ? 1 : 0,
+					it_validation: this.process_purchase.it_validation ? 1 : 0,
+					needed_date: this.process_purchase.needed_date || null,
+					items,
+				};
+
+				this.processing = true;
+
+				try {
+					const response = await fetch(
+						`${this.api}/purchases/${this.process_purchase.id}`,
+						{
+							method: "PUT",
+							headers: {
+								"Content-Type": "application/json",
+								"Authorization": `Bearer ${this.token}`,
+							},
+							body: JSON.stringify(payload),
+						}
+					);
+
+					const json = await response.json();
+					if (!response.ok) {
+						throw new Error(json?.message || "Error al actualizar");
+					}
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process");
+
+				} catch (error) {
+					this.showError("update", error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async newRequest() {
+				if (this.processing) return;
+
+				const items = this.process_purchase.items
+					.map((i) => ({
+						title: (i.title || "").trim(),
+						description: (i.description || "").trim(),
+						quantity: Number(i.quantity) || 0,
+						price:
+							i.price === "" || i.price === null || i.price === undefined
+								? null
+								: Number(i.price),
+						url: (i.url || "").trim(),
+						ruc: (i.ruc || "").trim(),
+					}))
+					.filter((i) => i.title && i.quantity > 0);
+
+				if (!items.length) {
+					this.showError("add", "Debe agregar al menos 1 ítem");
+					return;
+				}
+
+				const payload = {
+					type_id: this.process_purchase.type_id,
+					urgency_id: this.process_purchase.urgency_id,
+					express: this.process_purchase.express ? 1 : 0,
+					it_validation: this.process_purchase.it_validation ? 1 : 0,
+					needed_date: this.process_purchase.needed_date || null,
+					comment: this.process_purchase.comment || null,
+					items: items,
+				};
+
+				this.processing = true;
+
+				try {
+					const response = await fetch(`${this.api}/purchases/process`, {
+						method: "POST",
+						headers: { 
+							"Content-Type": "application/json",
+							"Authorization": `Bearer ${this.token}`,
+						},
+						body: JSON.stringify(payload),
+					});
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || jsonData?.message || "Error al registrar la solicitud");
+					}
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process");
+				} catch (error) {
+					this.showError("add", error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			scrollCommentsToBottom(behavior = 'smooth') {
+				const box = this.$refs.commentsBox;
+				if (!box) return;
+
+				box.scrollTo({
+					top: box.scrollHeight,
+					behavior
+				});
+			},
+
+			async sendChat() {
+				if (!this.process_purchase.message || this.processing) return;
+
+				this.processing = true;
+
+				try {
+					const response = await fetch(`${this.api}/purchases/${this.process_purchase.id}/chat`, {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+							"Authorization": `Bearer ${this.token}`,
+						},
+						body: JSON.stringify({
+							comment: this.process_purchase.message,
+						}),
+					});
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || "Error enviando comentario");
+					}
+					const data = jsonData.data
+					this.process_purchase.chats.push({
+						id: data.id,
+						comment: data.comment,
+						commenter_id: data.commenter_id,
+						commenter_name: data.commenter_name,
+						commenter_image: data.commenter_image,
+						created_at: data.created_at,
+					});
+
+					this.process_purchase.message = "";
+					this.$nextTick(() => this.scrollCommentsToBottom());
+
+				} catch (error) {
+					console.error(error);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async approveRequest() {
+				if (this.processing) return;
+
+				const items = this.process_purchase.items
+					.map(i => ({
+						title: (i.title || "").trim(),
+						description: (i.description || "").trim(),
+						quantity: Number(i.quantity) || 0,
+						price:
+							i.price === "" || i.price === null || i.price === undefined
+								? null
+								: Number(i.price),
+						url: (i.url || "").trim(),
+						ruc: (i.ruc || "").trim(),
+					}))
+					.filter(i => i.title && i.quantity > 0);
+
+				if (!items.length) {
+					this.showError("approve", "Debe agregar al menos 1 ítem");
+					return;
+				}
+
+				this.processing = true;
+
+				try {
+					await fetch(`${this.api}/purchases/${this.process_purchase.id}`, {
+						method: "PUT",
+						headers: {
+							"Content-Type": "application/json",
+							"Authorization": `Bearer ${this.token}`,
+						},
+						body: JSON.stringify({
+							action: "approve",
+							type_id: this.process_purchase.type_id,
+							urgency_id: this.process_purchase.urgency_id,
+							express: this.process_purchase.express ? 1 : 0,
+							it_validation: this.process_purchase.it_validation ? 1 : 0,
+							needed_date: this.process_purchase.needed_date || null,
+							items,
+						}),
+					});
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process");
+
+				} catch (error) {
+					this.showError("approve", error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async rejectRequest() {
+				if (this.processing) return;
+
+				this.processing = true;
+
+				try {
+					await fetch(`${this.api}/purchases/${this.process_purchase.id}`, {
+						method: "PUT",
+						headers: {
+							"Content-Type": "application/json",
+							"Authorization": `Bearer ${this.token}`,
+						},
+						body: JSON.stringify({ action: "reject" }),
+					});
+
+					this.resetOrder();
+					Alpine.store("cache").hideModal("process");
+
+				} catch (error) {
+					this.showError("reject", error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			addPurchase() {
+				this.resetOrder();
+				this.process_purchase.modal = 'add';
+				Alpine.store('cache').showModal('process');
+			},
+
+			async viewPurchase(purchase) {
+				this.editing = true;
+
+				try {
+					const response = await fetch(`${this.api}/purchases/${purchase.id}`, {
+						headers: {
+							"Content-Type": "application/json",
+							"Authorization": `Bearer ${this.token}`,
+						},
+					});
+					const dataJson = await response.json();
+					const data = dataJson.data;
+
+					if (!response.ok) {
+						throw new Error(data?.message || "Error al obtener la solicitud");
+					}
+
+					this.process_purchase = data;
+					if (!this.process_purchase.items.length) {
+						this.process_purchase.items = [
+							{
+								title: "",
+								description: "",
+								quantity: 1,
+								price: "",
+								url: "",
+								ruc: "",
+							},
+						];
+					}
+					Alpine.store("cache").showModal("process");
+					this.$nextTick(() => this.scrollCommentsToBottom('auto'));
+				} catch (error) {
+					console.error(error);
+				} 
+			},
+
+			addItem() {
+				this.process_purchase.items.push({
+					title: '',
+					description: '',
+					quantity: 1,
+					price: '',
+					url: '',
+					ruc: '',
+				});
+			},
+
+			removeItem(index) {
+				if (this.process_purchase.items.length === 1) {
+					this.process_purchase.items = [
+						{
+							title: '',
+							description: '',
+							quantity: 1,
+							price: '',
+							url: '',
+							ruc: '',
+						}
+					];
+					return;
+				}
+				this.process_purchase.items.splice(index, 1);
+			},
+			
+			async search() {
+				this.find_query = '';
+				this.finded_purchases = [];
+				Alpine.store('cache').showModal('purchases-search');
+			},
+
+			async findPurchases() {
+				const query = this.find_query;
+				try {
+					if (query.length < 2) {
+						this.finded_purchases = [];
+						return;
+					}
+					const response = await fetch(`${this.api}/purchases/find/${encodeURIComponent(query)}`, {
+						headers: { 'Authorization': `Bearer ${this.token}` },
+					});
+					const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+					this.finded_purchases = jsonData.data;
+				} catch (error) {
+					this.finded_purchases = [];
+				}
+			},
+
+			// ── Estadísticas ──
+			async viewStatistics() {
+				await Alpine.store('cache').fetchData([
+					{ key: 'purchases_statistics', url: '/purchases/statistics', force: true },
+				]);
+				Alpine.store('cache').showModal('purchases-stats');
+				await this.initStatsCharts();
+			},
+			async initStatsCharts() {
+				const stats = Alpine.store('cache').getData('purchases_statistics');
+				if (!stats) return;
+				if (!this.$refs.purchaseMonthChart || !this.$refs.purchaseDeptChart || !this.$refs.purchaseAmountChart) return;
+				await new Promise(r => requestAnimationFrame(() => setTimeout(r, 50)));
+
+				if (chartPurchaseMonth)  chartPurchaseMonth.destroy();
+				if (chartPurchaseDept)   chartPurchaseDept.destroy();
+				if (chartPurchaseAmount) chartPurchaseAmount.destroy();
+
+				chartPurchaseMonth = new Chart(this.$refs.purchaseMonthChart, {
+					type: 'line',
+					data: {
+						labels: stats.by_month.map(r => r.period),
+						datasets: [{ label: 'Compras', data: stats.by_month.map(r => r.count), fill: true, tension: 0.3, backgroundColor: 'rgba(234,113,52,0.5)', borderWidth: 0 }],
+					},
+					options: PSTATS_OPTS,
+				});
+
+				chartPurchaseDept = new Chart(this.$refs.purchaseDeptChart, {
+					type: 'bar',
+					data: {
+						labels: stats.by_department.map(r => r.department),
+						datasets: [{ label: 'Compras', data: stats.by_department.map(r => r.count), backgroundColor: 'rgba(15,32,39,0.75)', borderWidth: 0 }],
+					},
+					options: PSTATS_OPTS,
+				});
+
+				chartPurchaseAmount = new Chart(this.$refs.purchaseAmountChart, {
+					type: 'bar',
+					data: {
+						labels: stats.amount_by_department.map(r => r.department),
+						datasets: [{ label: 'Monto', data: stats.amount_by_department.map(r => r.amount), backgroundColor: 'rgba(255,160,42,0.75)', borderWidth: 0 }],
+					},
+					options: PSTATS_OPTS,
+				});
+			},
+			async viewHistory() {
+				await this.firstPage();
+				Alpine.store('cache').showModal('purchases-history');
+			},
+
+			async firstPage() {
+				this.current_page = 1;
+				await this.getHistory();
+			},
+
+			async lastPage() {
+				this.current_page = this.total_pages;
+				await this.getHistory();
+			},
+
+			async nextPage() {
+				const new_page = this.current_page + 1;
+				if (new_page > this.total_pages) return;
+				this.current_page = new_page;
+				await this.getHistory();
+			},
+
+			async prevPage() {
+				const new_page = this.current_page - 1;
+				if (new_page < 1) return;
+				this.current_page = new_page;
+				await this.getHistory();
+			},
+
+			async getHistory() {
+				try {
+					const response = await fetch(`${this.api}/purchases/history?page=${this.current_page}`, {
+						headers: { 'Authorization': `Bearer ${this.token}` },
+					});
+					const data = await response.json();
+					const jsonData = data.data || {};
+					this.history_list = jsonData.list || [];
+					this.total_pages = jsonData.pagination?.pages || 1;
+				} catch (error) {
+					console.error('Error fetching history', error);
+				}
+			},
+
+			showError(btnKey, errorMsg) {
+                const originalText = this.buttons[btnKey].text;
+                const originalClass = this.buttons[btnKey].class;
+
+                if (originalClass == 'error') {
+                    return;
+                }
+                this.buttons[btnKey].text = errorMsg;
+                this.buttons[btnKey].class = 'error';
+
+                setTimeout(() => {
+                    this.buttons[btnKey].text = originalText;
+                    this.buttons[btnKey].class = originalClass;
+                }, 1000);
+            },
+
+		}));
+	</script>
+	
+
+
+
+
+
+
+	<style>
+		.comments-container {
+			width: 24rem;
+			min-width: 24rem;
+		}
+		.modal .grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr auto auto;
+			gap: 1rem;
+			align-items: center;
+		}
+		#purchases {
+			display: flex;
+			min-height: calc(100vh - 6.5rem);
+			gap: 1rem;
+			overflow: auto;
+			flex-direction: column;
+		}
+		#purchases .main {
+			display: flex;
+			overflow-x: auto;
+			flex: 1;
+		}
+		#purchases .group {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			border-right: 3px solid #ffffff80;
+			gap: 0.75rem;
+			min-width: 15rem;
+			padding: 0.75rem;
+		}
+		#purchases .group:last-child {
+			border-right: none;
+		}
+		#purchases .group-head {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.5rem;
+			padding-bottom: 0.25rem;
+		}
+		#purchases .group-name {
+			font-weight: 600;
+			font-size: 0.85rem;
+		}
+		#purchases .group-count {
+			font-size: 0.7rem;
+			opacity: 0.4;
+			font-weight: 500;
+			display: none;
+		}
+		#purchases .req-card {
+			padding: 0.75rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.35rem;
+			cursor: pointer;
+			position: relative;
+		}
+		#purchases .req-top {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#purchases .req-id {
+			font-weight: 600;
+			font-size: 0.9rem;
+			position: relative;
+			line-height: 1rem;
+		}
+		#purchases .req-id.pri {
+			color: var(--primary);
+		}
+		#purchases .req-id img {
+			right: -1.35rem;
+    		top: -0.05rem;
+			position: absolute;
+		}
+		#purchases .req-urgency {
+			position: absolute;
+			right: 0.75rem;
+			bottom: 0.75rem;
+		}
+		#purchases .req-user {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			font-size: 0.75rem;
+			font-weight: 600;
+			margin-top: 0.25rem;
+		}
+		#purchases .req-user img {
+			border-radius: 2rem;
+		}
+		#purchases .req-bottom {
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+			flex: 1;
+		}
+		#purchases .req-dept {
+			font-size: 0.7rem;
+			opacity: 0.4;
+			font-weight: 500;
+			line-height: 0.7rem;
+			max-width: 70%;
+			white-space: nowrap;
+			text-overflow: ellipsis;
+			overflow: hidden;
+		}
+		#purchases .req-type {
+			font-size: 0.7rem;
+			opacity: 0.5;
+			font-weight: 500;
+		}
+		#purchases .req-type.express {
+			color: var(--primary);
+			opacity: 1;
+			font-style: italic;
+		}
+		#purchases .req-date {
+			font-size: 0.65rem;
+			line-height: 0.65rem;
+			opacity: 0.35;
+		}
+		
+		#modal-process {
+			z-index: 50;
+		}
+		#modal-process .modal {
+			overflow-y: unset;
+		}
+		#modal-process .modal .title span {
+			line-height: 1rem;
+		}
+		#modal-process .items-box {
+			flex-direction: column;
+			position: relative;
+			display: flex;
+			gap: 0.5rem;
+			margin: 0.25rem 0;
+		}
+		
+		
+		#modal-process .view-box {
+			flex-direction: column;
+			display: flex;
+			border: 2px solid #ffffff;
+			overflow: auto;
+			background-color: var(--white);
+			border-radius: 0.75rem;
+		}
+		#modal-process .view-header {
+			display: grid;
+			grid-template-columns: 0.15fr 6fr;
+			gap: 0.75rem;
+			align-items: center;
+			font-weight: 600;
+			padding: 0.5rem 0.75rem;
+			background-color: var(--graydark);
+			text-transform: uppercase;
+			font-size: 0.75rem;
+		}
+		#modal-process .view-header .sub {
+			display: grid;
+			grid-template-columns: 3fr 0.5fr 0.5fr 0.5fr 1.25fr;
+			gap: 0.75rem;
+			align-items: center;
+		}
+		#modal-process .view-row {
+			grid-template-columns: 0.15fr 6fr;
+			display: grid;
+			gap: 0.5rem;
+			align-items: center;
+			padding: 0.5rem 0.75rem;
+			border-bottom: 2px solid #0000000f;
+		}
+		#modal-process .view-row:first {
+			border-top: none;
+		}
+		
+		#modal-process .view-row .sub {
+			display: grid;
+			grid-template-columns: 3fr 0.5fr 0.5fr 0.5fr 1.25fr;
+			gap: 0.75rem;
+			align-items: center;
+		}
+		#modal-process .view-row .row-title {
+			font-size: 0.8rem;
+		}
+		#modal-process .view-row .list {
+			flex-direction: column;
+			gap: 0.5rem;
+    		padding: 0.25rem 0;
+		}
+		#modal-process .view-row .list .pair {
+			display: flex;
+			justify-content: space-between;
+			flex-direction: column;
+		}
+		#modal-process .view-row .list .pair .order {
+			box-shadow: none;
+    		border: 2px solid #dddddd;
+		}
+		#modal-process .view-row .list .pair .order input {
+			height: 2rem;
+		}
+		#modal-process .view-row .list .specs {
+			display: grid;
+			grid-template-columns: 0.5fr 0.75fr 0.5fr 1fr;
+			gap: 0.25rem;
+		}
+		#modal-process .view-row .list .label {
+			font-size: 0.75rem;
+    		opacity: 0.5;
+		}
+		#modal-process .view-row .list .name {
+			font-weight: 500;
+			font-size: 0.8rem;
+			line-height: 0.85rem;
+		}
+		#modal-process .view-row.total {
+			font-weight: 600;
+			font-size: 0.75rem;
+			background-color: var(--graydark);
+    		text-transform: uppercase;
+			padding: 0.5rem 0.75rem;
+			border-bottom: none;
+		}
+		#modal-process .container {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			width: 100%;
+		}
+		#modal-process .boxes {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+		}
+		#modal-process .boxes .box-cont {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.5rem;
+		}
+		#modal-process .boxes .box-cont .desc {
+			width: 100%;
+			font-weight: 600;
+			text-transform: uppercase;
+			font-size: 0.7rem;
+			opacity: 0.5;
+		}
+		
+		.items-cont {
+			padding: 0 1rem;
+			border-radius: 0.5rem;
+			flex: 1;
+		}
+		.items-cont .items-header {
+			gap: 0.75rem;
+			display: flex;
+			padding: 0.75rem 0;
+			text-transform: uppercase;
+			font-size: 0.7rem;
+			font-weight: 500;
+			opacity: 0.5;
+		}
+		.items-cont .items-header .number {
+			width: 1.5rem;
+    		padding: 0 0.5rem;
+		}
+		.items-cont .items-header .row {
+			display: grid;
+			gap: 0.75rem;
+			grid-template-columns: 2.25fr 0.4fr 0.5fr;
+			align-items: center;
+			width: 100%;
+			padding-right: 0.5rem;
+		}
+		.items-cont .items-header .row .right {
+			text-align: right;
+		}
+		/* .items-cont .items-header .new {
+			padding: 0;
+			margin: 0;
+			border: 0;
+			background-color: transparent;
+			width: 2rem;
+			height: 1.5rem;
+		} */
+		.items-cont .items-row {
+			display: flex;
+			gap: 0.75rem;
+			align-items: center;
+			padding: 0.75rem 0;
+			border-top: 1px solid #00000014;
+		}
+		.items-cont .items-row .delete {
+			min-width: 1.5rem;
+			height: 1.5rem;
+			border-radius: 1rem;
+			background-color: var(--graydark);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 0.7rem;
+			font-weight: 600;
+			color: #0000006e;
+			position: relative;
+		}
+		.items-cont .items-row .delete img {
+		    position: absolute;
+			opacity: 0;
+			transition: var(--transition);
+		}
+		.items-cont .items-row .delete span {
+			transition: var(--transition);
+		}
+		.items-cont .items-row .delete:hover img {
+			opacity: 1;
+		}
+		.items-cont .items-row .delete:hover span {
+			opacity: 0;
+		}
+		.items-cont .items-row .row {
+			display: grid;
+			gap: 0.75rem;
+			grid-template-columns: 2.25fr 0.4fr 0.5fr;
+			align-items: center;
+			flex: 1;
+		}
+		.items-cont .items-row .row.space {
+			padding-right: 0.5rem;
+		}
+		.items-cont .items-row.add {
+			border: none;
+    		padding: 0.25rem;
+		}
+		.items-cont .items-row.add + .items-row{
+			border: none;
+		}
+		.items-cont .items-row .add-button {
+			border: 1px dashed #000000;
+			padding: 0.5rem 1rem;
+			border-radius: 0.5rem;
+			width: 100%;
+			opacity: 0.25;
+			align-items: center;
+			font-weight: 500;
+			font-size: 0.8rem;
+			text-align: center;
+		}
+		.items-cont .items-row .dummy {
+			width: 1.25rem;
+		}
+		.items-cont .items-row .bold {
+			font-weight: 600 !important;
+		}
+		.items-cont .items-row .row .description {
+			display: flex;
+			flex-direction: column;
+			gap: 0.125rem;
+			font-weight: 600;
+			overflow: hidden;
+		}
+		.items-cont .items-row label {
+			padding: 0;
+		}
+		.items-cont .items-row label input {
+			height: initial;
+    		font-size: 0.85rem;
+			font-weight: 500;
+			text-overflow: ellipsis;
+		}
+		.items-cont .items-row label a {
+			font-weight: 500;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			overflow: hidden;
+			color: var(--primary);
+		}
+		.items-cont .items-row label .static {
+			font-weight: 500;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			overflow: hidden;
+		}
+		.items-cont .items-row label .url {
+			font-size: 0.75rem;
+			opacity: 0.5;
+		}
+		.items-cont .items-row label .right {
+			text-align: right;
+			flex: 1;
+			text-overflow: unset;
+    		margin-right: -0.25rem;
+		}
+		/* .items-cont .items-box .remove {
+			padding: 0;
+			margin: 0;
+			border: 0;
+			border-radius: 1rem;
+			background-color: transparent;
+			box-shadow: none;
+			width: 2rem;
+			height: 2.5rem;
+		} */
+
+		#modal-process .text-area {
+			max-width: 48rem;
+    		border: none;
+			min-height: 2rem;
+    		padding: 0.75rem 1rem;
+		}
+		#modal-process .buttons {
+			display: flex;
+    		gap: 0.75rem;
+		}
+
+		#modal-process .boxes .box-cont .white-box {
+			border-radius: 0.5rem;
+			position: relative;
+		}
+		#modal-process .boxes .box-cont .white-box .lbl {
+			position: absolute;
+			top: 0.75rem;
+			left: 1rem;
+			font-size: 0.7rem;
+			opacity: 0.5;
+		}
+		#modal-process .boxes .box-cont .white-box .selected {
+			padding-top: 1.75rem;
+			padding-bottom: 0.75rem;
+			padding-left: 0.25rem;
+			height: initial;
+			font-weight: 500;
+		}
+		#modal-process .boxes .box-cont .white-box select {
+			padding-top: 1.75rem;
+			padding-bottom: 0.75rem;
+			height: initial;
+			font-weight: 500;
+		}
+		#modal-process .boxes .full-box {
+			width: 100%;
+			padding: 0 1rem;
+			display: flex;
+			flex-direction: column;
+			border-radius: 0.5rem;
+		}
+		#modal-process .boxes .express {
+			display: flex;
+			justify-content: space-between;
+			border-bottom: 1px solid #00000014;
+			padding: 0.75rem 0;
+		}
+		#modal-process .boxes .express .data {
+			display: flex;
+			flex-direction: column;
+			gap: 0.125rem;
+		}
+		#modal-process .boxes .express .data .top {
+			font-weight: 500;
+		}
+		#modal-process .boxes .express .data p {
+			margin: 0;
+			font-size: 0.7rem;
+			opacity: 0.5;
+		}
+		#modal-process .boxes .express .switch {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		#modal-process .boxes .switch .text {
+			opacity: 0.5;
+			font-size: 0.75rem;
+		}
+		#modal-process .boxes .switch .box {
+			position: relative;
+			width: 2rem;
+			height: 1.25rem;
+			flex: initial;
+		}
+		#modal-process .boxes .switch .box input {
+			opacity: 0;
+			width: 0;
+			height: 0;
+		}
+		#modal-process .boxes .switch .box .slider {
+			border-radius: 2rem;
+			position: absolute;
+			cursor: pointer;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background-color: var(--graydarkest);
+			transition: all 0.25s ease-in-out;
+		}
+		#modal-process .boxes .switch .box .slider:before {
+			position: absolute;
+			content: "";
+			height: 0.75rem;
+			width: 0.75rem;
+			left: 0.25rem;
+			bottom: 0.25rem;
+			background-color: white;
+			transition: all 0.25s ease-in-out;
+			border-radius: 50%;
+		}
+		#modal-process .boxes .switch .box input:checked + .slider {
+			background-color: var(--primary);
+		}
+		#modal-process .boxes .switch .box input:checked + .slider:before {
+			transform: translateX(0.75rem);
+		}
+		#modal-process .boxes .full-box .express + .express {
+			border-bottom: none;
+		}
+		.pending {
+			background: var(--newgray);
+    		border: 2px solid #c7c6c6;
+		}
+		.leader_approve {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		.manager_approve {
+			background-color: #d0f4ea;
+    		border: 2px solid #abe9d8;
+		}
+		.deleted {
+			background-color: #fee3e1;
+    		border: 2px solid #ffceca;
+		}
+		.rejected {
+			background-color: #fee3e1;
+			border: 2px solid #ffceca;
+		}
+		.delivered {
+			background-color: #fbc8af;
+			border: 2px solid #efa783;
+		}
+		.progress {
+			background-color: #f0ffde;
+    		border: 2px solid #c0dba0;
+		}
+		.payed {
+			background-color: #dff5ff;
+    		border: 2px solid #b4e1f2;
+		}
+		.billed {
+			background-color: #e4d4fb;
+    		border: 2px solid #d0beeb;
+		}
+
+		
+
+		#purchases table {
+			border-collapse: collapse;
+			width: 100%;
+		}
+		#purchases table th {
+			padding: 1rem;
+			text-align: left;
+			font-weight: 600;
+		}
+		#purchases table tbody tr {
+			transition: var(--transition);
+			border-top: 2px solid #ffffff80;
+		}
+		#purchases table tbody tr:hover {
+			background-color: var(--white);
+			border-top: 2px solid transparent;
+		}
+		#purchases table td {
+			padding: 1rem;
+			cursor: pointer;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		#purchases table td.user {
+			display: flex;
+			gap: 0.75rem;
+			align-items: center;
+		}
+		#purchases table td.user img {
+			border-radius: 2rem;
+		}
+		#purchases table.static tbody tr {
+			transition: none;
+		}
+		#purchases table.static tbody tr:hover {
+			background-color: transparent;
+		}
+		#purchases table.static td {
+			cursor: default;
+			line-height: 2rem;
+		}
+		#purchases table td.order {
+			width: 8rem;
+		}
+		#purchases table td.machine_box {
+			width: 12rem;
+			max-width: 12rem;
+		}
+		#purchases table td.client {
+			width: 20rem;
+			max-width: 20rem;
+		}
+		#purchases table td .controlls {
+			display: flex;
+    		gap: 0.5rem;
+		}
+		#purchases table td .controlls .action {
+			width: 1.5rem;
+			height: 1.5rem;
+			display: flex;
+			justify-content: center;
+		}
+		#purchases table .machine {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		#purchases table .link-id {
+			background-color: var(--white);
+			width: 1.75rem;
+			height: 1.75rem;
+			border-radius: 1rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-weight: 500;
+			font-size: 0.8rem;
+			border: 1px solid var(--graydark);
+		}
+		#purchases table .link-status {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#purchases table .link-status.status-1 {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		#purchases table .link-status.status-2 {
+			background-color: #dff5ff;
+    		border: 2px solid #b4e1f2;
+		}
+		#purchases table .link-status.status-3 {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+		}
+		#purchases table .link-status.status-4 {
+			background-color: #e4d4fb;
+    		border: 2px solid #d0beeb;
+		}
+		#purchases table .link-status.status-5 {
+			background-color: #fee3e1;
+    		border: 2px solid #ffceca;
+		}
+		#purchases table .finished {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#purchases table .finished.active {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		#purchases table .machine img {
+			mix-blend-mode: darken;
+		}
+		#purchases table .machine .model {
+			display: flex;
+    		flex-direction: column;
+		}
+		#purchases table .machine .model span {
+			font-weight: 500;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 8rem;
+		}
+		#purchases table .machine .model span + span {
+			font-weight: 400;
+			font-size: 0.75rem;
+			opacity: 0.6;
+		}
+		#modal-purchases-search .modal {
+			gap: 0.5rem;
+			min-width: initial;
+		}
+		#modal-purchases-search .bottom {
+			display: flex;
+			align-items: center;
+			padding: 0.25rem 1rem;
+			border-radius: 0.75rem;
+		}
+		#modal-purchases-search .bottom .ico {
+			opacity: 0.5;
+		}
+		#modal-purchases-search .bottom input {
+			flex: 1;
+			background-color: transparent;
+			border: none;
+			outline: none;
+			padding: 0.75rem;
+			font-family: inherit;
+			font-size: 1rem;
+			font-weight: 400;
+			min-width: 10rem;
+		}
+		#modal-purchases-search .bottom .clear {
+			padding: 0.25rem;
+		}
+		#modal-purchases-search .bottom .clear img {
+			min-width: 0.75rem;
+			min-height: 0.75rem;
+		}
+		#modal-purchases-search .orders {
+			max-height: 24rem;
+			overflow-y: auto;
+			width: 100%;
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			padding: 0.5rem;
+			border-radius: 0.75rem;
+		}
+		#modal-purchases-search .orders .req-card {
+			cursor: pointer;
+		}
+		#modal-purchases-history .top {
+			justify-content: space-between;
+			display: flex;
+		}
+		#modal-purchases-history .pagination {
+			display: flex;
+			gap: 0.75rem;
+		}
+		#modal-purchases-history .pagination .disabled {
+			opacity: 0.5;
+			pointer-events: none;
+		}
+		#modal-purchases-history .pagination .left img {
+			transform: rotate(180deg);
+		}
+		#modal-purchases-history .pagination span {
+			width: 2rem;
+			height: 2rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			border-radius: 2rem;
+			cursor: pointer;
+		}
+		#modal-purchases-history .modal-content.history {
+			overflow-y: auto;
+			padding: 0;
+		}
+		#modal-purchases-history table {
+			border-collapse: collapse;
+			width: 100%;
+		}
+		#modal-purchases-history table th {
+			padding: 0.5rem 0.75rem;
+			text-align: left;
+			font-weight: 600;
+			font-size: 0.75rem;
+			position: sticky;
+			top: 0;
+			background-color: var(--gray);
+			z-index: 1;
+		}
+		#modal-purchases-history table tbody tr {
+			transition: var(--transition);
+			border-top: 2px solid #ffffff80;
+			cursor: pointer;
+		}
+		#modal-purchases-history table tbody tr:hover {
+			background-color: var(--white);
+		}
+		#modal-purchases-history table td {
+			padding: 0.5rem 0.75rem;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			font-size: 0.85rem;
+		}
+		#modal-purchases-history table td.pr-col {
+			width: 5rem;
+		}
+		#modal-purchases-history table td.user-col {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		#modal-purchases-history table td.user-col img {
+			border-radius: 2rem;
+			min-width: 28px;
+		}
+		#modal-purchases-history table td.status-col {
+			width: 10rem;
+		}
+		#modal-purchases-history table td.date-col {
+			width: 12rem;
+			opacity: 0.6;
+			font-size: 0.75rem;
+		}
+		#modal-purchases-history .status-pill {
+			border-radius: 1rem;
+			padding: 0.2rem 0.6rem;
+			font-size: 0.7rem;
+			font-weight: 600;
+		}
+
+		@media only screen and (max-width: 75rem) {
+			#modal-process .container {
+				overflow: visible;
+			}
+			.comments-container {
+				width: 100%;
+				min-width: initial;
+				max-height: initial !important;
+			}
+			.comments-container .comments-box {
+				overflow: visible;
+			}
+		}
+
+		@media only screen and (max-width: 48rem) {
+			#purchases .main {
+				flex-direction: column;
+			}
+			#purchases .group {
+				min-width: 100%;
+				border-right: none;
+				border-bottom: 3px solid #ffffff80;
+			}
+			#purchases .group:last-child {
+				border-bottom: none;
+			}
+			.modal .grid {
+				grid-template-columns: 1fr 1fr;
+			}
+
+			#modal-process .express {
+				justify-content: space-between;
+			}
+			#modal-process .items-box {
+				gap: 1rem;
+			}
+			#modal-process .items-row .sub {
+				grid-template-columns: 0.5fr 0.5fr 1fr;
+    			gap: 0.35rem;
+			}
+			#modal-process .items-row label:first-child {
+				grid-column: 1 / -1;
+			}
+			#modal-process .view-row .sub {
+				grid-template-columns: 0.5fr 0.5fr 0.75fr 0.75fr;
+    			gap: 0.35rem;
+			}
+			#modal-process .view-row .sub span:first-child {
+				grid-column: 1 / -1;
+			}
+			#modal-process .user-comment .bubble {
+				max-width: 75%;
+			}
+			
+		}
+		
+
+		/* ── Estadísticas ── */
+		#modal-purchases-stats .top { display: flex; justify-content: space-between; align-items: center; }
+		#modal-purchases-stats .top .title { font-weight: 700; font-size: 1.05rem; }
+		#modal-purchases-stats .kpi { display: flex; gap: 1rem; flex-wrap: wrap; }
+		#modal-purchases-stats .kpi .item { flex: 1; min-width: 8rem; display: flex; padding: 1rem; flex-direction: column; gap: 0.25rem; border-radius: 0.75rem; }
+		#modal-purchases-stats .kpi .item span { font-weight: 500; font-size: 1.4rem; color: var(--primary); }
+		#modal-purchases-stats .kpi .item p { margin: 0; display: flex; flex: 1; align-items: center; font-weight: 500; opacity: 0.7; font-size: 0.85rem; }
+		#modal-purchases-stats .charts { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 1rem; }
+		#modal-purchases-stats .charts .box { padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; min-width: 24rem; flex: 1; border-radius: 0.75rem; }
+		#modal-purchases-stats .charts .box span { font-weight: 500; }
+
+	</style>
+</div>

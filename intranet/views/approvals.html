@@ -1,0 +1,1425 @@
+<div x-data="approvals_data">
+	<div id="approvals">
+		<div class="controls">
+			<div class="toggle-collapse frost" @click="viewHistory()">
+				<div class="item">
+					<img alt="" width="18" height="18" src="/static/icons/line/history.svg">
+				</div>
+			</div>
+			
+			<div class="left mobile-hide frost">
+				<div class="item" @click="search()">
+					<img alt="" width="20" height="20" src="/static/icons/line/find.svg">
+					<span>Buscar</span>
+				</div>
+				<div class="item" @click="viewHistory()">
+					<img alt="" width="20" height="20" src="/static/icons/line/history.svg">
+					<span>Historial</span>
+				</div>
+			</div>
+
+			<div class="right frost-dark">
+				<div class="item" @click="guides()">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/book.svg">
+					<span>Manuales</span>
+				</div>
+			</div>
+		</div>
+
+		<!-- Kanban -->
+		<div class="main glass">
+			<template x-for="group in ($store.cache.getData('approval_dashboard') || [])" :key="group.status_slug">
+				<div class="group">
+					<div class="group-head">
+						<img alt="" width="18" height="18" :src="statusIcon(group.status_slug)">
+						<span class="group-name" x-text="group.status_name"></span>
+						<span class="group-count" x-text="group.requests.length"></span>
+					</div>
+
+					<template x-for="req in group.requests" :key="req.id">
+						<div class="req-card white hover-opacity" @click="openDetail(req)">
+							<div class="req-top">
+								<span class="req-id" x-text="`AP-${req.id}`"></span>
+								<span class="req-date" x-text="req.created_at"></span>
+							</div>
+							<div class="req-name" x-text="req.client_name || '—'"></div>
+							<div class="req-type" x-text="typeLabel(req)"></div>
+						</div>
+					</template>
+
+					<template x-if="group.requests.length === 0">
+						<div class="group-empty">Sin solicitudes</div>
+					</template>
+				</div>
+			</template>
+		</div>
+
+		<!-- ── Modal detalle ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('approval-detail')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap common-modal"
+			id="modal-approval-detail"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2 big" @click.stop x-show="detail">
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="title">
+					<div class="title-row">
+						<span x-text="`Solicitud AP-${detail?.id}`"></span>
+						<span class="req-badge" :class="statusClass(detail?.status)" x-text="statusLabel(detail?.status)"></span>
+					</div>
+					<p class="created">
+						<img alt="" width="14" height="14" src="/static/icons/line/calendar.svg">
+						<span x-text="detail?.created_at"></span>
+					</p>
+				</div>
+
+				<div class="modal-content dual">
+					<div class="dataview overflow percent50">
+						<div class="boxes">
+
+							<!-- Servicio -->
+							<div class="box-cont">
+								<div class="desc">Servicio</div>
+								<div class="white service-box">
+									<img alt="" width="16" height="16" src="/static/icons/filled/pin.svg">
+									<span class="service-name" x-text="typeLabel(detail)"></span>
+								</div>
+							</div>
+
+							<!-- Cliente -->
+							<div class="box-cont">
+								<div class="desc">Cliente</div>
+								<div class="white info-box">
+									<div class="info-row">
+										<img alt="" width="16" height="16" src="/static/icons/line/user.svg">
+										<span class="lbl">Nombre</span>
+										<span class="val" x-text="detail?.client_name || '—'"></span>
+									</div>
+									<div class="info-row">
+										<img alt="" width="16" height="16" src="/static/icons/line/id.svg">
+										<span class="lbl">DNI</span>
+										<span class="val" x-text="detail?.client_dni || '—'"></span>
+									</div>
+									<div class="info-row">
+										<img alt="" width="16" height="16" src="/static/icons/line/email.svg">
+										<span class="lbl">Correo</span>
+										<span class="val" x-text="detail?.client_email || '—'"></span>
+									</div>
+									<div class="info-row">
+										<img alt="" width="16" height="16" src="/static/icons/line/phone.svg">
+										<span class="lbl">Teléfono</span>
+										<span class="val" x-text="detail?.client_phone || '—'"></span>
+									</div>
+								</div>
+							</div>
+
+							<!-- Comprobante -->
+							<div class="box-cont">
+								<div class="desc">Comprobante</div>
+
+								<template x-if="detail?.invoice_number">
+									<div class="white info-box">
+										<div class="info-row">
+											<img alt="" width="16" height="16" src="/static/icons/line/document.svg">
+											<span class="lbl">N° boleta/factura</span>
+											<span class="val" x-text="detail.invoice_number"></span>
+										</div>
+									</div>
+								</template>
+
+								<!-- Detalle del pedido (Odoo) -->
+								<template x-if="detail?.invoice_number">
+									<div class="odoo-detail">
+										<template x-if="odoo_loading">
+											<div class="white odoo-state">Consultando Odoo…</div>
+										</template>
+
+										<template x-if="!odoo_loading && odoo_error">
+											<div class="white odoo-state error" x-text="odoo_error"></div>
+										</template>
+
+										<template x-if="!odoo_loading && odoo_invoice && !odoo_invoice.found">
+											<div class="white odoo-state empty">No se encontró el pedido en Odoo.</div>
+										</template>
+
+										<template x-if="!odoo_loading && odoo_invoice && odoo_invoice.found">
+											<div class="white odoo-box">
+												<div class="odoo-head">
+													<span class="odoo-name" x-text="odoo_invoice.name"></span>
+													<span class="odoo-pill" :class="odooPayClass(odoo_invoice.payment_state)" x-text="odooPayLabel(odoo_invoice.payment_state)"></span>
+												</div>
+
+												<div class="odoo-sub">
+													<span x-show="odoo_invoice.partner_name" x-text="odoo_invoice.partner_name"></span>
+													<span x-show="odoo_invoice.invoice_date"
+														:class="{ 'date-old': isInvoiceOld(odoo_invoice.invoice_date) }"
+														x-text="odoo_invoice.invoice_date"></span>
+												</div>
+
+												<div class="odoo-lines">
+													<template x-for="(ln, i) in (odoo_invoice.lines || [])" :key="i">
+														<div class="odoo-line">
+															<span class="prod" :title="ln.product" x-text="ln.product"></span>
+															<span class="qty" x-text="`x${ln.quantity}`"></span>
+															<span class="amt" x-text="formatMoney(ln.price_subtotal, odoo_invoice.currency)"></span>
+														</div>
+													</template>
+													<template x-if="!odoo_invoice.lines || odoo_invoice.lines.length === 0">
+														<div class="odoo-line empty">Sin líneas de detalle</div>
+													</template>
+												</div>
+
+												<div class="odoo-totals">
+													<div class="row">
+														<span>Subtotal</span>
+														<span x-text="formatMoney(odoo_invoice.amount_untaxed, odoo_invoice.currency)"></span>
+													</div>
+													<div class="row">
+														<span>IGV</span>
+														<span x-text="formatMoney(odoo_invoice.amount_tax, odoo_invoice.currency)"></span>
+													</div>
+													<div class="row total">
+														<span>Total</span>
+														<span x-text="formatMoney(odoo_invoice.amount_total, odoo_invoice.currency)"></span>
+													</div>
+												</div>
+											</div>
+										</template>
+									</div>
+								</template>
+
+								<template x-if="detail?.voucher_filename">
+									<div class="voucher-card white hover-opacity" @click="openVoucher()">
+										<div class="voucher-thumb">
+											<template x-if="isVoucherImage()">
+												<img :src="voucherUrl()" alt="Comprobante">
+											</template>
+											<template x-if="!isVoucherImage()">
+												<span class="ext" x-text="voucherExt().toUpperCase() || 'FILE'"></span>
+											</template>
+										</div>
+										<div class="voucher-data">
+											<span class="name">Ver comprobante</span>
+											<span class="meta" x-text="`Archivo ${voucherExt().toUpperCase() || 'adjunto'}`"></span>
+										</div>
+										<img class="arrow" alt="" width="20" height="20" src="/static/icons/line/right.svg">
+									</div>
+								</template>
+
+								<template x-if="!detail?.voucher_filename">
+									<div class="white empty-box">Sin archivo adjunto</div>
+								</template>
+							</div>
+
+							<!-- Acceso otorgado -->
+							<!-- <template x-if="detail?.access_url">
+								<div class="box-cont">
+									<div class="desc">Acceso</div>
+									<div class="white info-box">
+										<div class="info-row">
+											<img alt="" width="16" height="16" src="/static/icons/line/link.svg">
+											<span class="lbl">URL</span>
+											<a class="val link" :href="detail.access_url" target="_blank" rel="noopener" x-text="detail.access_url"></a>
+										</div>
+									</div>
+								</div>
+							</template> -->
+
+							<!-- Motivo de rechazo -->
+							<template x-if="detail?.rejection_reason">
+								<div class="box-cont">
+									<div class="desc">Motivo de rechazo</div>
+									<div class="white reason-box" x-text="detail.rejection_reason"></div>
+								</div>
+							</template>
+						</div>
+
+						<!-- Pendiente → iniciar revisión -->
+						<template x-if="detail?.status === 'pending'">
+							<div class="buttons">
+								<button class="button icon hover-opacity" @click="review()" :disabled="processing">
+									<img alt="" width="16" height="16" src="/static/icons/line/find.svg">
+									<span>Iniciar revisión</span>
+								</button>
+							</div>
+						</template>
+
+						<!-- En revisión → aprobar / rechazar -->
+						<template x-if="detail?.status === 'in_review'">
+							<div class="approval-actions">
+								<div class="buttons">
+									<button class="button icon black hover-opacity" @click="reject()" :disabled="processing">
+										<img alt="" width="16" height="16" src="/static/icons/line/dislike.svg">
+										<span>Rechazar</span>
+									</button>
+									<button class="button icon hover-opacity" @click="approve()" :disabled="processing">
+										<img alt="" width="16" height="16" src="/static/icons/line/approve.svg">
+										<span>Aprobar</span>
+									</button>
+								</div>
+							</div>
+						</template>
+					</div>
+					
+					<!-- ── Chat ── -->
+					<div class="comments-container white percent50" x-show="detail">
+						<div class="comments-box overflow" x-ref="commentsBox">
+							<template x-if="!detail?.chats || detail.chats.length === 0">
+								<div class="no-comments">Nada por aquí</div>
+							</template>
+
+							<template x-for="chat in (detail?.chats || [])" :key="chat.id">
+								<div class="user-comment" :class="{'self': chat.commenter_id == user_id}">
+									<img alt="user" :src="'/static/images/uploads/users/' + chat.commenter_image" width="24" height="24">
+									<div class="white bubble">
+										<div class="top">
+											<span x-text="chat.commenter_id == user_id ? 'Tú' : chat.commenter_name"></span>
+											<p x-text="chat.created_at"></p>
+										</div>
+										<p x-text="chat.comment"></p>
+									</div>
+								</div>
+							</template>
+						</div>
+
+						<div class="comments-input white">
+							<label>
+								<textarea type="text" x-model="chat_message" placeholder="Ingresa un mensaje..." @keydown.enter="handleEnterSend($event)"></textarea>
+							</label>
+							<div class="send hover-opacity" @click="sendChat()" :class="{'disabled': !chat_message || !chat_message.trim()}">
+								<img alt="enviar" width="16" height="16" src="/static/icons/filled/send.svg">
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- ── Modal visor de comprobante (PDF / imagen) ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('approval-attachment')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-approval-attachment"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal small glass2" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="modal-content">
+					<!-- PDF -->
+					<template x-if="isVoucherPdf()">
+						<iframe :src="voucherUrl()" style="width:100%; height:70vh; border:0; border-radius:0.75rem;"></iframe>
+					</template>
+
+					<!-- Imagen -->
+					<template x-if="isVoucherImage()">
+						<img style="border-radius:0.75rem; width:100%;" :src="voucherUrl()" alt="Comprobante">
+					</template>
+
+					<!-- Sin previsualización -->
+					<template x-if="!isVoucherPdf() && !isVoucherImage()">
+						<div class="white" style="text-align:center; padding:1rem;">
+							No se puede previsualizar este archivo.
+							<a :href="voucherUrl()" target="_blank" rel="noopener" style="color:var(--primary, #e05a00); font-weight:600; text-decoration:none;">Descargar</a>
+						</div>
+					</template>
+				</div>
+			</div>
+		</div>
+
+		<!-- ── Modal: Gestor de guías ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('guide-manager')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap common-modal"
+			id="modal-guide-manager"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2 big" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="gm-head">
+					<div class="gm-title">
+						<img width="20" height="20" src="/static/icons/line/book.svg" alt="">
+						<span x-text="gm.view === 'list' ? 'Gestor de guías' : (gm.view === 'search' ? 'Agregar guía' : (gm.machine?.name || 'Editar guía'))"></span>
+					</div>
+					<template x-if="gm.view === 'list'">
+						<button class="gm-btn primary" @click="gmNew()">+ Agregar guía</button>
+					</template>
+					<template x-if="gm.view !== 'list'">
+						<button class="gm-btn ghost" @click="gmBack()">← Volver</button>
+					</template>
+				</div>
+
+				<div class="modal-content gm-content">
+					<!-- LIST -->
+					<template x-if="gm.view === 'list'">
+						<div class="gm-list">
+							<template x-if="gm.loading"><div class="gm-empty">Cargando…</div></template>
+							<template x-if="!gm.loading && gm.guides.length === 0"><div class="gm-empty">No hay guías creadas todavía.</div></template>
+							<template x-for="g in gm.guides" :key="g.machine_id">
+								<div class="gm-card white">
+									<img class="gm-card-img" :src="'/static/images/uploads/machines/' + g.machine_image" :alt="g.machine_name">
+									<div class="gm-card-info">
+										<div class="gm-card-name" x-text="g.machine_name"></div>
+										<div class="gm-card-meta" x-text="g.item_count + ' paso(s)'"></div>
+									</div>
+									<div class="gm-card-actions">
+										<button class="gm-icon" title="Editar" @click="gmEditExisting(g)">✎</button>
+										<button class="gm-icon danger" title="Eliminar" @click="gmDelete(g)">🗑</button>
+									</div>
+								</div>
+							</template>
+						</div>
+					</template>
+
+					<!-- SEARCH -->
+					<template x-if="gm.view === 'search'">
+						<div class="gm-search">
+							<input type="text" class="gm-input" placeholder="Busca el equipo por modelo…" x-model="gm.search" @input.debounce.300ms="gmSearch()">
+							<div class="gm-results">
+								<template x-for="m in gm.results" :key="m.id">
+									<div class="gm-result" @click="gmPickMachine(m)">
+										<img :src="'/static/images/uploads/machines/' + m.image" :alt="m.name">
+										<span x-text="m.name"></span>
+									</div>
+								</template>
+								<template x-if="gm.search.length >= 2 && gm.results.length === 0"><div class="gm-empty">Sin resultados.</div></template>
+							</div>
+						</div>
+					</template>
+
+					<!-- EDITOR -->
+					<template x-if="gm.view === 'editor'">
+						<div class="gm-editor">
+							<div class="gm-machine">
+								<img :src="'/static/images/uploads/machines/' + (gm.machine?.image || '')" :alt="gm.machine?.name">
+								<div class="gm-machine-name" x-text="gm.machine?.name"></div>
+							</div>
+
+
+							<label class="gm-label">Pasos (título + link de YouTube)</label>
+							<div class="gm-steps">
+								<template x-for="(step, i) in gm.steps" :key="i">
+									<div class="gm-step">
+										<span class="gm-step-n" x-text="i + 1"></span>
+										<div class="gm-step-fields">
+											<input type="text" class="gm-input" placeholder="Título (ej: Unboxing y ensamblado)" x-model="step.title">
+											<input type="text" class="gm-input" placeholder="https://youtu.be/…" x-model="step.url">
+										</div>
+										<button class="gm-icon danger" title="Quitar" @click="gmRemoveStep(i)">✕</button>
+									</div>
+								</template>
+							</div>
+							<button class="gm-btn ghost" @click="gmAddStep()">+ Agregar paso</button>
+
+
+							<div class="gm-editor-actions">
+								<button class="gm-btn ghost" @click="gmBack()">Cancelar</button>
+								<button class="gm-btn primary" :disabled="gm.saving" @click="gmSave()" x-text="gm.saving ? 'Guardando…' : 'Guardar guía'"></button>
+							</div>
+						</div>
+					</template>
+				</div>
+			</div>
+		</div>
+
+			<!-- ── Modal: Buscar ── -->
+			<div
+				x-show="$store.cache.isVisibleModal('search')"
+				@mousedown.self="$store.cache.hideLastModal()"
+				x-transition.duration.300ms
+				class="modal-wrap"
+				id="modal-search"
+				x-cloak>
+				<div class="modal little" @click.stop>
+					<div class="bottom glass2">
+						<img alt="" class="ico" width="20" height="20" src="/static/icons/line/find.svg">
+						<input type="text"
+							x-model="find_query"
+							placeholder="Nombre o DNI"
+							@input.debounce.300ms="findRequests()">
+						<div class="hover-opacity clear" x-show="find_query" title="Limpiar búsqueda" @click="find_query = ''; found_requests = [];">
+							<img alt="" width="12" height="12" src="/static/icons/filled/x.svg">
+						</div>
+					</div>
+					<div class="orders glass2" x-show="found_requests.length > 0">
+						<template x-for="r in found_requests" :key="r.id">
+							<div class="item" @click="openDetail(r)">
+								<div class="title">
+									<span class="order-number" x-text="`AP-${r.id}`"></span>
+									<span class="req-badge" :class="statusClass(r.status)" x-text="statusLabel(r.status)"></span>
+								</div>
+								<span class="client" x-text="r.client_name || '—'"></span>
+								<span class="service" x-text="typeLabel(r)"></span>
+							</div>
+						</template>
+					</div>
+				</div>
+			</div>
+
+			<!-- ── Modal: Historial ── -->
+			<div
+				x-show="$store.cache.isVisibleModal('history')"
+				@mousedown.self="$store.cache.hideLastModal()"
+				class="modal-wrap common-modal"
+				id="modal-history"
+				x-transition:enter="modal-enter"
+				x-transition:enter-start="modal-enter-start"
+				x-transition:enter-end="modal-enter-end"
+				x-transition:leave="modal-leave"
+				x-transition:leave-start="modal-leave-start"
+				x-transition:leave-end="modal-leave-end"
+				x-cloak
+			>
+				<div class="modal big glass2" @click.stop>
+					<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+					<div class="top">
+						<span class="title">Historial</span>
+
+						<div class="pagination">
+							<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstPage()" title="Primera página">
+								<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevPage()" title="Página anterior">
+								<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextPage()" title="Siguiente página">
+								<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastPage()" title="Última página">
+								<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+							</span>
+						</div>
+					</div>
+
+					<div class="modal-content history">
+						<table class="mobile-hide">
+							<thead>
+								<tr>
+									<th>Orden</th>
+									<th>Servicio</th>
+									<th>Cliente</th>
+									<th>Estado</th>
+									<th>Fecha</th>
+								</tr>
+							</thead>
+							<tbody>
+								<template x-for="h in history_list" :key="h.id">
+									<tr class="hover-opacity" @click="openDetail(h)">
+										<td class="req-id" x-text="`AP-${h.id}`"></td>
+										<td x-text="typeLabel(h)"></td>
+										<td x-text="h.client_name || '—'"></td>
+										<td><span class="req-badge" :class="statusClass(h.status)" x-text="statusLabel(h.status)"></span></td>
+										<td x-text="h.created_at"></td>
+									</tr>
+								</template>
+								<template x-if="history_list.length === 0">
+									<tr><td colspan="5" class="empty">Sin solicitudes</td></tr>
+								</template>
+							</tbody>
+						</table>
+
+						<div class="mobile-show mobile-table">
+							<template x-for="h in history_list" :key="h.id">
+								<div class="row white hover-opacity" @click="openDetail(h)">
+									<div class="head">
+										<div class="info">
+											<span class="id" x-text="`AP-${h.id}`"></span>
+											<span class="date" x-text="h.created_at"></span>
+										</div>
+										<span class="req-badge" :class="statusClass(h.status)" x-text="statusLabel(h.status)"></span>
+									</div>
+									<div class="body">
+										<span class="label">Cliente</span>
+										<span class="name" x-text="h.client_name || '—'"></span>
+									</div>
+									<div class="body">
+										<span class="label">Servicio</span>
+										<span class="name" x-text="typeLabel(h)"></span>
+									</div>
+								</div>
+							</template>
+							<template x-if="history_list.length === 0">
+								<div class="empty">Sin solicitudes</div>
+							</template>
+						</div>
+					</div>
+				</div>
+			</div>
+
+	</div>
+
+	<script>
+	Alpine.data('approvals_data', () => ({
+		detail:     null,
+		processing: false,
+		actionForm: { request_id: null },
+		odoo_invoice: null,
+		odoo_loading: false,
+		odoo_error:   null,
+		user_id:      Alpine.store('cache').user.id,
+		chat_message: '',
+		gm: { view:'list', guides:[], loading:false, saving:false, search:'', results:[], machine:null, description:'', steps:[], drive_url:'' },
+		history_list: [],
+		current_page: 1,
+		total_pages:  null,
+		find_query: '',
+		found_requests: [],
+
+		async init() {
+			const socket = Alpine.store('cache').socket;
+			if (socket) {
+				socket.on('approval_update', async () => {
+					await Alpine.store('cache').refresh('approval_dashboard');
+				});
+			}
+			await Alpine.store('cache').fetchData([
+				{ key: 'approval_dashboard', url: '/approval/dashboard', force: true },
+			]);
+		},
+
+		async openDetail(req) {
+			this.detail = req;
+			this.actionForm = { request_id: req.id };
+			this.odoo_invoice = null;
+			this.odoo_error = null;
+			this.chat_message = '';
+			Alpine.store('cache').showModal('approval-detail');
+			if (req?.invoice_number) this.loadOdooInvoice(req.invoice_number);
+
+			// Trae el detalle fresco (incluye los mensajes del chat)
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/approval/${req.id}`, {
+					headers: { 'X-No-Toast': '1' },
+				});
+				const j = await r.json();
+				if (r.ok && j.success && j.data) {
+					this.detail = j.data;
+					this.actionForm = { request_id: j.data.id };
+				}
+			} catch (e) {
+				console.error(e);
+			}
+			this.$nextTick(() => this.scrollCommentsToBottom('auto'));
+		},
+
+		scrollCommentsToBottom(behavior = 'smooth') {
+			const box = this.$refs.commentsBox;
+			if (!box) return;
+			box.scrollTo({ top: box.scrollHeight, behavior });
+		},
+
+		handleEnterSend(e) {
+			if (e.shiftKey) return;
+			e.preventDefault();
+			this.sendChat();
+		},
+
+		async sendChat() {
+			const message = (this.chat_message || '').trim();
+			if (!message || this.processing || !this.detail) return;
+
+			this.processing = true;
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/approval/${this.detail.id}/chat`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ comment: message, user_id: cache.user.id }),
+				});
+				const j = await r.json();
+				if (!r.ok || !j.success) {
+					throw new Error(j?.data?.message || j?.data || 'Error enviando comentario');
+				}
+				const data = j.data;
+				if (!this.detail.chats) this.detail.chats = [];
+				this.detail.chats.push({
+					id: data.id,
+					comment: data.comment,
+					commenter_id: data.commenter_id,
+					commenter_name: data.commenter_name,
+					commenter_image: data.commenter_image,
+					created_at: data.created_at,
+				});
+				this.chat_message = '';
+				this.$nextTick(() => this.scrollCommentsToBottom());
+			} catch (e) {
+				console.error(e);
+			} finally {
+				this.processing = false;
+			}
+		},
+
+		voucherExt() {
+			const name = this.detail?.voucher_filename || '';
+			const i = name.lastIndexOf('.');
+			return i >= 0 ? name.slice(i + 1).toLowerCase() : '';
+		},
+
+		typeLabel(r) {
+			// Para guías mostramos también el equipo: "Manual de Equipo · <modelo>"
+			if (r?.is_guide) return r.machine_name ? `Manual de Equipo · ${r.machine_name}` : 'Manual de Equipo';
+			return r?.type || '—';
+		},
+
+		voucherUrl() {
+			if (!this.detail?.voucher_filename) return '';
+			return `${Alpine.store('cache').api}/approval/voucher/${this.detail.voucher_filename}`;
+		},
+
+		isVoucherImage() {
+			return ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(this.voucherExt());
+		},
+
+		isVoucherPdf() {
+			return this.voucherExt() === 'pdf';
+		},
+
+		openVoucher() {
+			if (!this.detail?.voucher_filename) return;
+			Alpine.store('cache').showModal('approval-attachment');
+		},
+
+		async loadOdooInvoice(invoiceNumber) {
+			this.odoo_loading = true;
+			this.odoo_error = null;
+			this.odoo_invoice = null;
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/odoo/invoice?number=${encodeURIComponent(invoiceNumber)}`, {
+					headers: { 'X-No-Toast': '1' },
+				});
+				const j = await r.json();
+				if (!r.ok) throw new Error(j?.data?.message || 'No se pudo consultar Odoo');
+				this.odoo_invoice = j.data || { found: false };
+			} catch (e) {
+				this.odoo_error = e.message || 'Error consultando Odoo';
+			} finally {
+				this.odoo_loading = false;
+			}
+		},
+
+		isInvoiceOld(dateStr) {
+			if (!dateStr) return false;
+			const d = new Date(`${String(dateStr).slice(0, 10)}T00:00:00`);
+			if (isNaN(d)) return false;
+			const cutoff = new Date();
+			cutoff.setHours(0, 0, 0, 0);
+			cutoff.setMonth(cutoff.getMonth() - 3);
+			return d < cutoff;
+		},
+
+		formatMoney(n, currency) {
+			const value = Number(n || 0).toFixed(2);
+			const symbols = { PEN: 'S/ ', USD: '$', EUR: '€' };
+			const prefix = symbols[currency] || (currency ? `${currency} ` : '');
+			return `${prefix}${value}`;
+		},
+
+		odooPayLabel(s) {
+			return {
+				not_paid: 'No pagado', in_payment: 'En proceso', paid: 'Pagado',
+				partial: 'Parcial', reversed: 'Revertido', invoicing_legacy: 'Heredado',
+			}[s] || (s || '—');
+		},
+
+		odooPayClass(s) {
+			return {
+				not_paid: 'pay-unpaid', in_payment: 'pay-process', paid: 'pay-paid',
+				partial: 'pay-partial', reversed: 'pay-reversed',
+			}[s] || 'pay-unpaid';
+		},
+
+		async review() {
+			if (this.processing) return;
+			this.processing = true;
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/approval/review`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ request_id: this.actionForm.request_id, user_id: cache.user.id }),
+				});
+				const j = await r.json();
+				if (j.success) { cache.hideLastModal(); await cache.refresh('approval_dashboard'); PineToast.flash('Solicitud en revisión', 'success'); }
+				else { PineToast.flash(this.msgOf(j, 'Error'), 'error'); }
+			} finally { this.processing = false; }
+		},
+
+		async approve() {
+			if (this.processing) return;
+			this.processing = true;
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/approval/approve`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						request_id: this.actionForm.request_id,
+						user_id:    cache.user.id,
+					}),
+				});
+				const j = await r.json();
+				if (j.success) { cache.hideLastModal(); await cache.refresh('approval_dashboard'); PineToast.flash('Solicitud aprobada', 'success'); }
+				else { PineToast.flash(this.msgOf(j, 'Error al aprobar'), 'error'); }
+			} finally { this.processing = false; }
+		},
+
+		async reject() {
+			if (this.processing) return;
+			this.processing = true;
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/approval/reject`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						request_id: this.actionForm.request_id,
+						user_id:    cache.user.id,
+					}),
+				});
+				const j = await r.json();
+				if (j.success) { cache.hideLastModal(); await cache.refresh('approval_dashboard'); PineToast.flash('Solicitud rechazada', 'success'); }
+				else { PineToast.flash(this.msgOf(j, 'Error'), 'error'); }
+			} finally { this.processing = false; }
+		},
+
+		msgOf(j, fallback) {
+			const d = j && j.data;
+			if (d && typeof d === 'object' && d.message) return d.message;
+			if (typeof d === 'string') return d;
+			return fallback || 'Ocurrió un error';
+		},
+
+		guides() {
+			Alpine.store('cache').showModal('guide-manager');
+			this.gm.view = 'list';
+			this.gmLoad();
+		},
+		async gmLoad() {
+			this.gm.loading = true;
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/guide/admin/list`, { headers: { 'X-No-Toast': '1' } });
+				const j = await r.json();
+				this.gm.guides = (j.success && j.data) ? j.data : [];
+			} catch(e) { this.gm.guides = []; }
+			finally { this.gm.loading = false; }
+		},
+		gmBack() { this.gm.view = 'list'; },
+		gmNew() { this.gm.view = 'search'; this.gm.search = ''; this.gm.results = []; },
+		async gmSearch() {
+			const q = (this.gm.search || '').trim();
+			if (q.length < 2) { this.gm.results = []; return; }
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/machine/find/${encodeURIComponent(q)}`, { headers: { 'X-No-Toast': '1' } });
+				const j = await r.json();
+				this.gm.results = (j.success && j.data) ? j.data : [];
+			} catch(e) { this.gm.results = []; }
+		},
+		gmPickMachine(m) { this.gm.machine = { id: m.id, name: m.name, image: m.image }; this.gmOpenEditor(m.id); },
+		gmEditExisting(g) { this.gm.machine = { id: g.machine_id, name: g.machine_name, image: g.machine_image }; this.gmOpenEditor(g.machine_id); },
+		async gmOpenEditor(machine_id) {
+			this.gm.description = ''; this.gm.steps = []; this.gm.drive_url = ''; this.gm.view = 'editor';
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/guide/admin/content/${machine_id}`, { headers: { 'X-No-Toast': '1' } });
+				const j = await r.json();
+				const data = (j.success && j.data) ? j.data : {};
+				this.gm.description = data.description || '';
+				const items = data.items || [];
+				this.gm.steps = items.filter(it => it.type === 'video').map(it => ({ title: it.title || '', url: it.url || '' }));
+				const drive = items.find(it => it.type === 'drive');
+				this.gm.drive_url = drive ? (drive.url || '') : '';
+			} catch(e) {}
+			if (this.gm.steps.length === 0) this.gm.steps = [{ title:'', url:'' }];
+		},
+		gmAddStep() { this.gm.steps.push({ title:'', url:'' }); },
+		gmRemoveStep(i) { this.gm.steps.splice(i, 1); },
+		async gmSave() {
+			if (this.gm.saving || !this.gm.machine) return;
+			const items = this.gm.steps
+				.filter(st => (st.title || '').trim() || (st.url || '').trim())
+				.map(st => ({ type:'video', title:(st.title||'').trim(), url:(st.url||'').trim() }));
+			const drive = (this.gm.drive_url || '').trim();
+			if (drive) items.push({ type:'drive', url: drive });
+			this.gm.saving = true;
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/guide/content/save`, {
+					method:'POST', headers:{'Content-Type':'application/json'},
+					body: JSON.stringify({ machine_id: this.gm.machine.id, description: (this.gm.description||'').trim(), items }),
+				});
+				const j = await r.json();
+				if (j.success) { this.gm.view = 'list'; await this.gmLoad(); PineToast.flash('Guía guardada', 'success'); }
+				else { PineToast.flash(this.msgOf(j, 'Error al guardar la guía'), 'error'); }
+			} finally { this.gm.saving = false; }
+		},
+		async gmDelete(g) {
+			if (!confirm(`¿Eliminar el manual de ${g.machine_name}?`)) return;
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/guide/content/${g.machine_id}`, { method:'DELETE' });
+				const j = await r.json();
+				if (j.success) { await this.gmLoad(); PineToast.flash('Guía eliminada', 'success'); }
+				else PineToast.flash(this.msgOf(j, 'Error al eliminar'), 'error');
+			} catch(e) { PineToast.flash('Error de conexión', 'error'); }
+		},
+		search() {
+			this.find_query = '';
+			this.found_requests = [];
+			Alpine.store('cache').showModal('search');
+		},
+		async findRequests() {
+			const term = (this.find_query || '').trim();
+			if (term.length < 2) { this.found_requests = []; return; }
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/approval/find/${encodeURIComponent(term)}`, { headers: { 'X-No-Toast': '1' } });
+				const j = await r.json();
+				this.found_requests = (j.success && j.data) ? j.data : [];
+			} catch (e) {
+				console.error('Error buscando solicitudes', e);
+				this.found_requests = [];
+			}
+		},
+		async viewHistory() {
+			await this.firstPage();
+			Alpine.store('cache').showModal('history');
+		},
+		async getHistory() {
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/approval/history?page=${this.current_page}`, { headers: { 'X-No-Toast': '1' } });
+				const j = await r.json();
+				const d = j.data || {};
+				this.history_list = d.list || [];
+				this.total_pages = d.pagination ? d.pagination.pages : 1;
+			} catch (e) {
+				console.error('Error fetching history', e);
+				this.history_list = [];
+			}
+		},
+		async firstPage() { this.current_page = 1; await this.getHistory(); },
+		async lastPage() { this.current_page = this.total_pages || 1; await this.getHistory(); },
+		async nextPage() { if (this.current_page + 1 > this.total_pages) return; this.current_page += 1; await this.getHistory(); },
+		async prevPage() { if (this.current_page - 1 < 1) return; this.current_page -= 1; await this.getHistory(); },
+		statusIcon(slug) {
+			const map = {
+				pending: 'pending',
+				in_review: 'in_review',
+				approved: 'approve',
+				rejected: 'rejected'
+			};
+			return `/static/icons/module/approvals/${map[slug] || 'pending'}.svg`;
+		},
+		statusLabel(s) {
+			return { pending: 'Pendiente', in_review: 'En revisión', approved: 'Aprobado', rejected: 'Rechazado' }[s] || s;
+		},
+		statusClass(s) {
+			return { pending: 'status-pending', in_review: 'status-review', approved: 'status-approved', rejected: 'status-rejected' }[s] || '';
+		},
+	}));
+	</script>
+
+	<style>
+		#approvals {
+			display: flex;
+			flex-direction: column;
+			min-height: calc(100vh - 6.5rem);
+			gap: 1rem;
+			overflow: auto;
+		}
+		#approvals .controls { min-height: 0; }
+		#approvals .main {
+			display: flex;
+			overflow-x: auto;
+			flex: 1;
+			padding: 0;
+		}
+		#approvals .group {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			border-right: 3px solid #ffffff80;
+			gap: 0.6rem;
+			padding: 0.75rem;
+			min-width: 13rem;
+		}
+		#approvals .group:last-child { border-right: none; }
+		#approvals .group-head {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.4rem;
+		}
+		#approvals .group-name { font-weight: 600; font-size: 0.85rem; }
+		#approvals .group-count {
+			font-size: 0.65rem;
+			opacity: 0.5;
+			font-weight: 600;
+			background: var(--graydark);
+			padding: 0.1rem 0.45rem;
+			border-radius: 1rem;
+			display: none;
+		}
+		#approvals .group-empty {
+			text-align: center;
+			font-size: 0.72rem;
+			opacity: 0.3;
+			padding: 1rem 0;
+			display: none;
+		}
+		#approvals .req-card {
+			padding: 0.75rem;
+			border-radius: 10px;
+			display: flex;
+			flex-direction: column;
+			gap: 0.35rem;
+			cursor: pointer;
+		}
+		#approvals .req-top {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#approvals .req-id { font-size: 0.8rem; opacity: 0.5; font-weight: 600; }
+		#approvals .req-date { font-size: 0.65rem; opacity: 0.4; }
+		#approvals .req-name { font-weight: 600; font-size: 0.9rem; }
+		#approvals .req-type {
+			font-size: 0.8rem;
+			color: var(--primary, #e05a00);
+			font-weight: 600;
+		}
+		#approvals .req-bottom {
+			display: flex;
+			justify-content: space-between;
+			font-size: 0.7rem;
+			opacity: 0.55;
+		}
+
+		.req-badge {
+			font-size: 0.72rem;
+			padding: 4px 12px;
+			border-radius: 20px;
+			font-weight: 600;
+		}
+		.status-pending  {
+			background: #538ec929;
+    		color: #538ec9;
+		}
+		.status-review   {
+			background: #a890cf30;
+    		color: #a890cf;
+		}
+		.status-approved {
+			background: #c789ac2b;
+    		color: #c789ac;
+		}
+		.status-rejected {
+			background: #e3646421;
+    		color: #e36464;
+		}
+		#modal-approval-detail {
+			z-index: 50;
+		}
+		#modal-approval-detail .modal {
+			gap: 1rem;
+		}
+		#modal-approval-detail .dataview {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+		}
+		#modal-approval-detail .title-row {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			gap: 1rem;
+		}
+		#modal-approval-detail .boxes {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+		}
+		#modal-approval-detail .box-cont {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+		#modal-approval-detail .box-cont .desc {
+			font-weight: 600;
+			text-transform: uppercase;
+			font-size: 0.7rem;
+			opacity: 0.5;
+		}
+		#modal-approval-detail .service-box {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.85rem 1rem;
+			border-radius: 0.75rem;
+		}
+		#modal-approval-detail .service-name {
+			font-weight: 600;
+			color: var(--primary, #e05a00);
+		}
+		#modal-approval-detail .info-box {
+			display: flex;
+			flex-direction: column;
+			padding: 0 1rem;
+			border-radius: 0.75rem;
+		}
+		#modal-approval-detail .info-row {
+			display: flex;
+			align-items: center;
+			gap: 0.6rem;
+			padding: 0.7rem 0;
+			border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+			font-size: 0.85rem;
+		}
+		#modal-approval-detail .info-row:last-child { border-bottom: none; }
+		#modal-approval-detail .info-row img { opacity: 0.4; }
+		#modal-approval-detail .info-row .lbl {
+			opacity: 0.5;
+			font-weight: 500;
+			min-width: 5.5rem;
+		}
+		#modal-approval-detail .info-row .val {
+			font-weight: 500;
+			margin-left: auto;
+			text-align: right;
+			word-break: break-word;
+		}
+		#modal-approval-detail .info-row .val.link {
+			color: var(--primary, #e05a00);
+			text-decoration: none;
+		}
+		#modal-approval-detail .voucher-card {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			padding: 0.6rem 0.75rem;
+			border-radius: 0.75rem;
+			cursor: pointer;
+		}
+		#modal-approval-detail .voucher-thumb {
+			width: 3rem;
+			height: 3rem;
+			min-width: 3rem;
+			border-radius: 0.6rem;
+			border: 2px solid var(--newgray, #ededed);
+			background-color: #fff;
+			overflow: hidden;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		#modal-approval-detail .voucher-thumb img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+		#modal-approval-detail .voucher-thumb .ext {
+			font-weight: 700;
+			font-size: 0.7rem;
+			opacity: 0.6;
+		}
+		#modal-approval-detail .voucher-data {
+			display: flex;
+			flex-direction: column;
+			gap: 0.15rem;
+		}
+		#modal-approval-detail .voucher-data .name {
+			font-weight: 600;
+			font-size: 0.85rem;
+		}
+		#modal-approval-detail .voucher-data .meta {
+			font-size: 0.7rem;
+			opacity: 0.45;
+		}
+		#modal-approval-detail .voucher-card .arrow {
+			margin-left: auto;
+			opacity: 0.4;
+		}
+		#modal-approval-detail .empty-box {
+			padding: 0.85rem 1rem;
+			border-radius: 0.75rem;
+			font-size: 0.8rem;
+			opacity: 0.4;
+		}
+		#modal-approval-detail .reason-box {
+			padding: 0.85rem 1rem;
+			border-radius: 0.75rem;
+			font-size: 0.85rem;
+			line-height: 1.25rem;
+		}
+		#modal-approval-detail .approval-actions {
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+		}
+		#modal-approval-detail .approval-actions .fields label {
+			border-radius: 0.75rem;
+		}
+		#modal-approval-attachment { z-index: 60; }
+		#modal-approval-attachment .modal-content { overflow: auto; }
+		#modal-approval-detail .odoo-detail { display: flex; flex-direction: column; }
+		#modal-approval-detail .odoo-state {
+			padding: 0.75rem 1rem;
+			border-radius: 0.75rem;
+			font-size: 0.8rem;
+			opacity: 0.6;
+		}
+		#modal-approval-detail .odoo-state.error { color: #842029; opacity: 1; }
+		#modal-approval-detail .odoo-state.empty { opacity: 0.4; }
+		#modal-approval-detail .odoo-box {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			padding: 0.85rem 1rem;
+			border-radius: 0.75rem;
+		}
+		#modal-approval-detail .odoo-head {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 0.75rem;
+		}
+		#modal-approval-detail .odoo-name { font-weight: 700; font-size: 0.9rem; }
+		#modal-approval-detail .odoo-pill {
+			font-size: 0.68rem;
+			font-weight: 600;
+			padding: 0.15rem 0.55rem;
+			border-radius: 1rem;
+			white-space: nowrap;
+		}
+		#modal-approval-detail .pay-paid     { background: #d1e7dd; color: #0a3622; }
+		#modal-approval-detail .pay-unpaid   { background: #f8d7da; color: #842029; }
+		#modal-approval-detail .pay-partial  { background: #fff3cd; color: #856404; }
+		#modal-approval-detail .pay-process  { background: #dff5ff; color: #0c5a73; }
+		#modal-approval-detail .pay-reversed { background: #e2e3e5; color: #41464b; }
+		#modal-approval-detail .odoo-sub {
+			display: flex;
+			justify-content: space-between;
+			gap: 0.75rem;
+			font-size: 0.72rem;
+		}
+		#modal-approval-detail .odoo-sub span { opacity: 0.5; }
+		#modal-approval-detail .odoo-sub .date-old {
+			color: #e36464;
+			font-weight: 700;
+			opacity: 1;
+		}
+		#modal-approval-detail .odoo-lines {
+			display: flex;
+			flex-direction: column;
+			border-top: 1px solid rgba(0, 0, 0, 0.06);
+		}
+		#modal-approval-detail .odoo-line {
+			display: flex;
+			align-items: center;
+			gap: 0.6rem;
+			padding: 0.45rem 0;
+			border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+			font-size: 0.8rem;
+		}
+		#modal-approval-detail .odoo-line.empty { opacity: 0.4; justify-content: center; }
+		#modal-approval-detail .odoo-line .prod {
+			flex: 1;
+			font-weight: 500;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		#modal-approval-detail .odoo-line .qty {
+			opacity: 0.55;
+			font-size: 0.75rem;
+			min-width: 2rem;
+			text-align: right;
+		}
+		#modal-approval-detail .odoo-line .amt {
+			font-weight: 600;
+			min-width: 4.5rem;
+			text-align: right;
+		}
+		#modal-approval-detail .odoo-totals {
+			display: flex;
+			flex-direction: column;
+			gap: 0.2rem;
+			padding-top: 0.4rem;
+		}
+		#modal-approval-detail .odoo-totals .row {
+			display: flex;
+			justify-content: space-between;
+			font-size: 0.78rem;
+			opacity: 0.6;
+		}
+		#modal-approval-detail .odoo-totals .row.total {
+			font-size: 0.9rem;
+			font-weight: 700;
+			opacity: 1;
+			padding-top: 0.25rem;
+		}
+
+		@media only screen and (max-width: 75rem) {
+			#modal-approval-detail .dataview {
+				overflow: visible;
+			}
+			.comments-container {
+				width: 100%;
+				min-width: initial;
+				max-height: initial !important;
+			}
+			.comments-container .comments-box {
+				overflow: visible;
+			}
+		}
+
+		@media (max-width: 48rem) {
+			#approvals .main { flex-direction: column; }
+			#approvals .group { flex: unset; min-width: 100%; }
+		}
+
+		/* ── Gestor de guías ── */
+		#modal-guide-manager .modal { display:flex; flex-direction:column; max-height:88vh; }
+		#modal-guide-manager .gm-head {
+			display:flex; align-items:center; justify-content:space-between;
+			gap:1rem; padding:0.25rem 0.25rem 1rem; border-bottom:1px solid #ffffff1a; margin-bottom:1rem;
+		}
+		#modal-guide-manager .gm-title { display:flex; align-items:center; gap:0.6rem; font-weight:700; font-size:1.05rem; }
+		#modal-guide-manager .gm-content { overflow:auto; }
+		.gm-btn {
+			border:none; border-radius:2rem; padding:0.55rem 1.1rem; font-weight:600; font-size:0.82rem;
+			cursor:pointer; font-family:inherit; transition:opacity .15s;
+		}
+		.gm-btn.primary { background:var(--primary,#e05a00); color:#fff; }
+		.gm-btn.ghost { background:transparent; color:var(--primary,#e05a00); border:1px solid var(--primary,#e05a00); }
+		.gm-btn:hover { opacity:0.88; }
+		.gm-btn:disabled { opacity:0.5; cursor:not-allowed; }
+		.gm-empty { text-align:center; opacity:0.5; font-size:0.85rem; padding:1.5rem 0; }
+
+		.gm-list { display:flex; flex-direction:column; gap:0.6rem; }
+		.gm-card { display:flex; align-items:center; gap:0.9rem; padding:0.7rem 0.9rem; border-radius:0.85rem; }
+		.gm-card-img { width:2.75rem; height:2.75rem; object-fit:contain; border-radius:0.5rem; background:#0000000a; }
+		.gm-card-info { flex:1; min-width:0; display:flex; flex-direction:column; gap:0.15rem; }
+		.gm-card-name { font-weight:600; font-size:0.9rem; }
+		.gm-card-meta { font-size:0.72rem; opacity:0.5; }
+		.gm-card-actions { display:flex; gap:0.4rem; }
+		.gm-icon {
+			border:none; background:#0000000d; width:2rem; height:2rem; border-radius:0.5rem;
+			cursor:pointer; font-size:0.95rem; display:flex; align-items:center; justify-content:center; transition:background .15s;
+		}
+		.gm-icon:hover { background:#00000018; }
+		.gm-icon.danger:hover { background:#e3646433; }
+
+		.gm-search .gm-results { display:flex; flex-direction:column; gap:0.35rem; margin-top:0.6rem; max-height:50vh; overflow:auto; }
+		.gm-result { display:flex; align-items:center; gap:0.6rem; padding:0.5rem 0.7rem; border-radius:0.6rem; cursor:pointer; transition:background .12s; }
+		.gm-result:hover { background:#e0570011; }
+		.gm-result img { width:2.25rem; height:2.25rem; object-fit:contain; border-radius:0.4rem; background:#0000000a; }
+		.gm-result span { font-size:0.88rem; font-weight:500; }
+
+		.gm-editor { display:flex; flex-direction:column; gap:0.6rem; }
+		.gm-machine { display:flex; align-items:center; gap:0.9rem; padding:0.7rem 0.9rem; border-radius:0.85rem; background:#e0570011; margin-bottom:0.3rem; }
+		.gm-machine img { width:3rem; height:3rem; object-fit:contain; }
+		.gm-machine-name { font-weight:700; font-size:1rem; }
+		.gm-label { font-size:0.78rem; font-weight:600; opacity:0.6; margin-top:0.4rem; }
+		.gm-input {
+			width:100%; box-sizing:border-box; font-family:inherit; font-size:0.88rem;
+			border:1px solid #00000022; border-radius:0.6rem; padding:0.6rem 0.75rem; background:#fff; outline:none;
+		}
+		.gm-input:focus { border-color:var(--primary,#e05a00); }
+		.gm-steps { display:flex; flex-direction:column; gap:0.5rem; }
+		.gm-step { display:flex; align-items:flex-start; gap:0.5rem; }
+		.gm-step-n {
+			flex-shrink:0; width:1.6rem; height:1.6rem; border-radius:50%; background:var(--primary,#e05a00); color:#fff;
+			display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; margin-top:0.35rem;
+		}
+		.gm-step-fields { flex:1; display:flex; flex-direction:column; gap:0.35rem; }
+		.gm-editor-actions { display:flex; justify-content:flex-end; gap:0.6rem; margin-top:0.8rem; }
+
+		/* ── Buscar ── */
+		#modal-search .modal { gap: 0.5rem; min-width: initial; }
+		#modal-search .bottom { display: flex; align-items: center; padding: 0.25rem 1rem; border-radius: 0.75rem; }
+		#modal-search .bottom .ico { opacity: 0.5; }
+		#modal-search .bottom input {
+			flex: 1; background-color: transparent; border: none; outline: none;
+			padding: 0.75rem; font-family: inherit; font-size: 1rem; font-weight: 400; min-width: 10rem;
+		}
+		#modal-search .bottom .clear { padding: 0.25rem; }
+		#modal-search .orders {
+			max-height: 18rem; overflow-y: auto; width: 100%; display: flex;
+			flex-direction: column; font-size: 1rem; border-radius: 0.75rem;
+		}
+		#modal-search .orders .item {
+			display: flex; flex-direction: column; gap: 0.35rem; padding: 0.75rem 1rem;
+			border-bottom: 2px solid #ffffff80; cursor: pointer; transition: var(--transition); background-color: transparent;
+		}
+		#modal-search .orders .item:last-child { border-bottom: none; }
+		#modal-search .orders .item:hover { background-color: #ffffff; }
+		#modal-search .orders .title {     flex-direction: row; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+		#modal-search .orders .item .order-number { font-size: 1rem; font-weight: 600; line-height: 1rem; }
+		#modal-search .orders .item .client { font-size: 0.85rem; font-weight: 500; }
+		#modal-search .orders .item .service { font-size: 0.75rem; font-weight: 600; color: var(--primary, #e05a00); }
+
+		/* ── Historial ── */
+		#modal-history .top {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#modal-history .top .title { font-weight: 700; font-size: 1.05rem; }
+		#modal-history .pagination { display: flex; gap: 0.75rem; }
+		#modal-history .pagination .disabled { opacity: 0.5; cursor: default !important; pointer-events: none; }
+		#modal-history .pagination .left img { transform: rotate(180deg); }
+		#modal-history .pagination span {
+			width: 2rem; height: 2rem; display: flex;
+			justify-content: center; align-items: center; border-radius: 2rem;
+		}
+		#modal-history .modal-content.history { overflow: auto; margin-top: 1rem; }
+		#modal-history table { width: 100%; border-collapse: collapse; }
+		#modal-history th, #modal-history td {
+			text-align: left; padding: 0.7rem 0.6rem; font-size: 0.82rem;
+			border-bottom: 1px solid rgba(0,0,0,0.06);
+		}
+		#modal-history th { font-weight: 600; opacity: 0.5; font-size: 0.72rem; text-transform: uppercase; }
+		#modal-history tbody tr { cursor: pointer; }
+		#modal-history td.req-id { font-weight: 600; opacity: 0.6; }
+		#modal-history td.empty, #modal-history .mobile-table .empty { text-align: center; opacity: 0.4; padding: 1.5rem 0; }
+		#modal-history .mobile-table { flex-direction: column; gap: 0.6rem; }
+		#modal-history .mobile-table .row { padding: 0.75rem; border-radius: 10px; display: flex; flex-direction: column; gap: 0.4rem; cursor: pointer; }
+		#modal-history .mobile-table .head { display: flex; justify-content: space-between; align-items: center; }
+		#modal-history .mobile-table .info { display: flex; flex-direction: column; }
+		#modal-history .mobile-table .info .id { font-weight: 600; font-size: 0.85rem; }
+		#modal-history .mobile-table .info .date { font-size: 0.68rem; opacity: 0.4; }
+		#modal-history .mobile-table .body { display: flex; justify-content: space-between; font-size: 0.8rem; }
+		#modal-history .mobile-table .body .label { opacity: 0.5; }
+
+	</style>
+</div>

@@ -1,0 +1,2209 @@
+<div x-data="schedule_data">
+	<div id="schedule">
+		<div class="controls">
+			<div class="left frost">
+				<div class="item" @click="prev()">
+					<img class="flip" alt="prev" src="/static/icons/line/right.svg" width="20" height="20">
+				</div>
+				<div class="item date" @click="today()" x-text="formatMonthLabel()"></div>
+				<div class="item" @click="next()">
+					<img alt="next" src="/static/icons/line/right.svg" width="20" height="20">
+				</div>
+			</div>
+
+			<div class="right frost-dark" style="margin-left: auto;">
+				<div class="item" @click="openRoomModal()">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/meeting.svg">
+					<span>Reuniones</span>
+				</div>
+			</div>
+		</div>
+
+		<div class="main card glass">
+			<div class="center">
+				<span>
+					Lunes
+				</span>
+				<span>
+					Martes
+				</span>
+				<span>
+					Miércoles
+				</span>
+				<span>
+					Jueves
+				</span>
+				<span>
+					Viernes
+				</span>
+				<span>
+					Sábado
+				</span>
+				<span>
+					Domingo
+				</span>
+			</div>
+			
+			<div class="bottom">
+				<template x-for="day in $store.cache.getData('calendar_dashboard')" :key="day.date">
+					<div
+						class="month"
+						:class="[
+							day.isCurrentMonth ? 'white' : 'glass',
+							isPastDate(day.date) ? 'past' : '',
+							day.isHoliday ? 'holiday-day' : '',
+							day.hasBirthdays ? 'birthday-day' : ''
+						]"
+						@click="addEvent(day.date)"
+					>
+						<div class="number" :class="{ today: day.isToday }">
+							<span class="name" x-text="day.dayName"></span>
+							<span x-text="String(day.dayNumber).padStart(2, '0')"></span>
+						</div>
+						<div class="body">
+							<template x-if="day.events && day.events.length">
+								<template x-for="(ev, idx) in day.events" :key="idx">
+									<div
+										class="item"
+										:class="[
+											ev.fullColor ? 'full' : 'normal',
+											Number(ev.creatorId) === Number(user_id) ? 'mine' : '',
+											ev.type === 'BIRTHDAY' ? 'birthday' : '',
+											ev.type === 'HOLIDAY' ? 'holiday' : ''
+										]"
+										@click.stop="ev.type !== 'BIRTHDAY' && ev.clickable !== false && openEvent(ev.id)"
+										:style="ev.hexColor ? `background-color: ${hexFull(ev.hexColor)}40; border-left: 3px solid ${hexFull(ev.hexColor)};` : ''"
+									>
+										<div class="row">
+											<template x-if="ev.hexColor && !ev.isRoomBooking">
+												<span class="color-dot" :style="`background-color: ${hexFull(ev.hexColor)};`"></span>
+											</template>
+											<div class="content">
+												<span class="label" x-text="ev.label"></span>
+												<span class="date" x-show="!ev.allDay && ev.time" x-text="ev.time"></span>
+												<!-- <img class="thumb" x-show="ev.creatorId == user_id" width="24" height="24" src="/static/icons/line/user.svg"> -->
+											</div>
+										</div>
+									</div>
+								</template>
+							</template>
+						</div>
+					</div>
+				</template>
+			</div>
+		</div>
+
+        <div
+			x-show="$store.cache.isVisibleModal('event')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-event"
+			x-cloak
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+		>
+
+			<div class="modal glass2 small" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+				<div class="modal-content" x-show="!edit || can_edit">
+					<!--  TÍTULO -->
+					<div class="fields">
+						<label class="white flex2-3">
+							<input 
+								class="percent100 title" 
+								type="text" 
+								placeholder="Título" 
+								x-model="event_data.title" 
+								@input="errors.title = ''">
+							<small class="error-text" x-show="errors.title" x-text="errors.title"></small>
+						</label>
+
+						<!-- COLOR DEL EVENTO -->
+						<label class="white compact-color">
+							<img alt="color" src="/static/icons/line/tag.svg" width="16" height="16">
+
+							<div class="color-select" x-data="{ open: false }" @click.outside="open = false">
+								<!-- Círculo principal -->
+								<button 
+									class="color-dot"
+									:style="`background-color: ${event_data.color || '#999'}`"
+									@click.prevent="open = !open"
+									aria-label="Seleccionar color">
+								</button>
+
+								<!-- Panel flotante con lista de colores -->
+								<div class="color-panel" x-show="open" x-transition>
+									<template x-for="(c, index) in $store.cache.getData('color_options')" :key="c.id || index">
+										<button 
+											class="color-option"
+											:title="c.name"
+											:style="`background-color: ${c.hex}`"
+											:class="{ 'selected': event_data.color === c.hex }"
+											@click.prevent="
+												event_data.color = c.hex;
+												open = false;
+											">
+										</button>
+									</template>
+								</div>
+							</div>
+						</label>
+					</div>
+
+					<!--  FECHAS DE INICIO Y FIN -->
+					<div class="fields">
+						<label class="white">
+							<span
+								style="cursor: pointer; flex: 1; line-height: 2.5rem;"
+								@click="
+									if ($refs.start_date_input.showPicker) {
+										$refs.start_date_input.showPicker();
+									} else {
+										$refs.start_date_input.focus();
+									}
+								"
+								x-text="
+									event_data.start_date_only
+										? (() => {
+											const [y, m, d] = event_data.start_date_only.split('-');
+											const months = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.'];
+											return `${parseInt(d)} ${months[parseInt(m) - 1]} ${y}`;
+										})()
+										: 'Selecciona una fecha'
+								"
+							></span>
+
+							<input
+								x-ref="start_date_input"
+								type="date"
+								x-model="event_data.start_date_only"
+								:min="todayISO"
+								@change="errors.start_date_only = ''"
+								style="
+									position:absolute;
+									inset:0;
+									opacity:0;
+									pointer-events:none;
+								"
+							>
+						</label>
+
+						<label class="white checkbox">
+							<input type="checkbox" x-model="event_data.all_day">
+							<span>Todo el día</span>
+						</label>
+
+						<label class="white" x-show="false">
+							<input type="date" x-model="event_data.end_date_only" :min="todayISO">
+						</label>
+
+						<label class="white" x-show="!event_data.all_day">
+							<input
+								type="time"
+								x-model="event_data.start_time"
+								@change="
+									if (event_data.end_time && event_data.end_time <= event_data.start_time) {
+										const [h,m] = event_data.start_time.split(':').map(Number);
+										event_data.end_time = String(Math.min(h+1,23)).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+									}
+								"
+							>
+
+							<input
+								type="time"
+								x-model="event_data.end_time"
+								:min="event_data.start_time || null"
+								@change="
+									if (event_data.start_time && event_data.end_time <= event_data.start_time) {
+										const [h,m] = event_data.start_time.split(':').map(Number);
+										event_data.end_time = String(Math.min(h+1,23)).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+									}
+								"
+							>
+						</label>
+					</div>
+
+					<!-- VISIBILIDAD + REPETIR + NOTIFICACIÓN -->
+					<div class="fields">
+						<!-- VISIBILIDAD -->
+						<label class="white flex2-3">
+							<img alt="eye" src="/static/icons/line/eye.svg" width="16" height="16">
+							<select x-model="event_data.visibility_id">
+								<option value="" disabled>Visibilidad</option>
+								<template x-for="opt in ($store.cache.getData('visibility_options') || [])" :key="opt.id">
+									<option :value="opt.id" x-text="opt.name"></option>
+								</template>
+							</select>
+						</label>
+
+						<!-- REPETIR -->
+						<label class="white">
+							<img alt="repeat" src="/static/icons/line/pending.svg" width="16" height="16">
+							<select x-model="event_data.repeat_id">
+								<option value="" disabled>Repetición</option>
+								<template x-for="opt in ($store.cache.getData('repeat_options') || [])" :key="opt.id">
+									<option :value="opt.id" x-text="opt.name"></option>
+								</template>
+							</select>
+						</label>
+
+						<label class="white flex2-3">
+							<img alt="link" src="/static/icons/line/link.svg" width="16" height="16">
+							<input type="url" placeholder="Google Meet" x-model="event_data.meet">
+						</label>
+					
+					</div>	
+					
+					<!-- USUARIOS ESPECÍFICOS -->
+					<div class="white custom-visibility" x-show="Number(event_data.visibility_id) === 4" x-data="{ open:false, q:'' }" ">
+						<div class="custom-button hover-opacity" @click.prevent="open=!open">
+							Seleccionar usuarios(<span x-text="event_data.audience_user_ids.length"></span>)
+						</div>
+
+						<div class="item-list" x-show="open" x-transition>
+							<template x-for="u in ($store.cache.getData('user_options') || []).filter(x => !q || (x.name||'').toLowerCase().includes(q.toLowerCase()))" :key="u.id">
+								<label class="item">
+									<input type="checkbox"
+										:checked="event_data.audience_user_ids.includes(u.id)"
+										@change="
+											if ($event.target.checked) {
+												if (!event_data.audience_user_ids.includes(u.id)) event_data.audience_user_ids.push(u.id)
+											} else {
+												event_data.audience_user_ids = event_data.audience_user_ids.filter(id => id !== u.id)
+											}
+										"
+									>
+									<span x-text="u.name"></span>
+								</label>
+							</template>
+						</div>
+
+						<!-- chips -->
+						<div class="chips" x-show="event_data.audience_user_ids.length > 0">
+							<template x-for="uid in event_data.audience_user_ids" :key="uid">
+								<span class="chip"
+									@click="event_data.audience_user_ids = event_data.audience_user_ids.filter(x => x !== uid)"
+									x-text="(($store.cache.getData('user_options')||[]).find(x=>x.id===uid)?.name) || `#${uid}`"
+									title="Quitar"
+								></span>
+							</template>
+						</div>
+					</div>
+
+					<!-- ÁREAS ESPECÍFICAS -->
+					<div class="white custom-visibility" x-show="Number(event_data.visibility_id) === 5" x-data="{ open:false, q:'' }" ">
+						<div class="custom-button hover-opacity" @click.prevent="open=!open">
+							Seleccionar áreas (<span x-text="event_data.audience_department_ids.length"></span>)
+						</div>
+
+						<div class="item-list" x-show="open" x-transition>
+							<template x-for="d in ($store.cache.getData('department_options') || []).filter(x => !q || (x.name||'').toLowerCase().includes(q.toLowerCase()))" :key="d.id">
+								<label class="item">
+									<input type="checkbox"
+										:checked="event_data.audience_department_ids.includes(d.id)"
+										@change="
+											if ($event.target.checked) {
+												if (!event_data.audience_department_ids.includes(d.id)) event_data.audience_department_ids.push(d.id)
+											} else {
+												event_data.audience_department_ids = event_data.audience_department_ids.filter(id => id !== d.id)
+											}
+										"
+									>
+									<span x-text="d.name"></span>
+								</label>
+							</template>
+						</div>
+
+						<!-- chips -->
+						<div class="chips" x-show="event_data.audience_department_ids.length > 0">
+							<template x-for="did in event_data.audience_department_ids" :key="did">
+								<span class="chip"
+									@click="event_data.audience_department_ids = event_data.audience_department_ids.filter(x => x !== did)"
+									x-text="(($store.cache.getData('department_options')||[]).find(x=>x.id===did)?.name) || `#${did}`"
+									title="Quitar"
+								></span>
+							</template>
+						</div>
+					</div>
+
+					<!--  DESCRIPCIÓN -->
+					<textarea placeholder="Descripción (opcional)" x-model="event_data.description" class="text-area" style="
+						max-width: 100%;
+						border: 2px solid white;
+					"></textarea>
+				</div>
+				
+				<!--  BOTONES DE ACCIÓN -->
+				<div class="buttons" x-show="!edit || can_edit">
+					<button
+						x-show="edit && can_edit && canDeleteEvent()"
+						class="button black hover-opacity"
+						@click.prevent.stop="Alpine.store('cache').showModal('confirm-delete')"
+					>
+						<span>Eliminar</span>
+					</button>
+					
+					<button 
+						x-show="!edit || can_edit"
+						class="button icon hover-opacity" 
+						@click="handlePrimaryAction()" 
+						:class="!edit ? buttons.save.class : buttons.update.class"
+					>
+						<span x-text="!edit ? buttons.save.text : 'Actualizar'"></span>
+					</button>
+				</div>
+				
+
+				<!-- ============ MODO SOLO LECTURA (no creador) ============ -->
+				<div class="readonly-view" x-show="edit && !can_edit">
+					<div class="readonly-title">
+						
+						<span x-text="event_data.title || 'Sin título'" :style="`color: ${event_data.color}`"></span>
+					</div>
+					
+					<div class="readonly-row">
+						<span class="readonly-creator" x-text="`Creado por ${event_data.creator_name}`"></span>
+					</div>
+
+					<template x-if="!event_data.is_import">
+						<div class="readonly-box white">
+							<template x-if="event_data.description">
+								<div class="readonly-row">
+									<span class="readonly-label">
+										<img alt="repeat" src="/static/icons/line/board.svg" width="16" height="16">
+										Descripción
+									</span>
+									<span class="readonly-value" x-html="event_data.description"></span>
+								</div>
+							</template>
+
+							<div class="readonly-row">
+								<span class="readonly-label">
+									<img alt="repeat" src="/static/icons/line/calendar.svg" width="16" height="16">
+									Fecha y hora
+								</span>
+								<span class="readonly-value" x-text="formattedEventRange()"></span>
+							</div>
+
+							<template x-if="event_data.meet">
+								<div class="readonly-row">
+									<span class="readonly-label">
+										<img alt="repeat" src="/static/icons/line/link.svg" width="16" height="16">
+										Google Meet
+									</span>
+									<a class="readonly-value readonly-link"
+									:href="event_data.meet"
+									target="_blank"
+									rel="noopener"
+									x-text="event_data.meet"></a>
+								</div>
+							</template>
+						</div>
+					</template>
+
+					<template x-if="event_data.is_import && event_data.import_shipment">
+						<div class="readonly-box white">
+							<div class="readonly-row">
+								<span class="readonly-label">
+									<img alt="port" src="/static/icons/line/location.svg" width="16" height="16">
+									Salida
+								</span>
+								<span
+									class="readonly-value"
+									x-text="event_data.import_shipment.custom_port_name || event_data.import_shipment.port_name || '-'"
+								></span>
+							</div>
+
+							<div class="readonly-row" x-show="event_data.import_shipment.etd_date">
+								<span class="readonly-label">
+									<img alt="etd" src="/static/icons/line/calendar.svg" width="16" height="16">
+									Salida estimada
+								</span>
+								<span class="readonly-value" x-text="event_data.import_shipment.etd_date"></span>
+							</div>
+
+							<div class="readonly-row" x-show="event_data.import_shipment.eta_date">
+								<span class="readonly-label">
+									<img alt="eta" src="/static/icons/line/calendar.svg" width="16" height="16">
+									Llegada estimada
+								</span>
+								<span class="readonly-value" x-text="event_data.import_shipment.eta_date"></span>
+							</div>
+
+							<div class="readonly-row" x-show="event_data.import_shipment.tracking_link">
+								<span class="readonly-label">
+									<img alt="tracking" src="/static/icons/line/web.svg" width="16" height="16">
+									Tracking
+								</span>
+								<a
+									class="readonly-value readonly-link"
+									:href="event_data.import_shipment.tracking_link"
+									target="_blank"
+									rel="noopener"
+									x-text="event_data.import_shipment.tracking_link"
+								></a>
+							</div>
+
+							<div x-show="event_data.import_shipment.product_list_files && event_data.import_shipment.product_list_files.length">
+								<div class="readonly-row" style="margin-bottom:.5rem;">
+									<span class="readonly-label">
+										<img alt="files" src="/static/icons/filled/clip.svg" width="16" height="16">
+										Lista de productos
+									</span>
+								</div>
+
+								<div class="modal-content bottom thumbnails-grid small-grid">
+									<template x-for="f in event_data.import_shipment.product_list_files" :key="f.id">
+										<div class="thumb-item hover-opacity" @click="openAttachment(f)">
+											<div class="thumbnail-wrapper">
+												<template x-if="isImageFile(f)">
+													<img class="hover-opacity" :src="getInlineUrl(f)" :alt="f.original_name">
+												</template>
+
+												<template x-if="!isImageFile(f)">
+													<div class="file-card">
+														<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+													</div>
+												</template>
+											</div>
+
+											<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+										</div>
+									</template>
+								</div>
+							</div>
+						</div>
+					</template>
+
+				</div>
+			</div>
+		</div>
+
+		<div 
+			x-show="$store.cache.isVisibleModal('attachment')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-attachment"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal small glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="modal-content">
+					<template x-if="viewer_payload?.kind === 'url' && isPdfFile(viewer_file)">
+						<iframe :src="viewer_payload.url" style="width:100%; height:70vh; border:0;"></iframe>
+					</template>
+
+					<template x-if="viewer_payload?.kind === 'url' && isImageFile(viewer_file)">
+						<img style="border-radius: 0.75rem;" :src="viewer_payload.url">
+					</template>
+
+					<template x-if="viewer_payload?.kind === 'text'">
+						<div class="white" style="white-space:pre-wrap; padding: 1rem;" x-text="viewer_payload.text"></div>
+					</template>
+
+					<template x-if="viewer_payload?.kind === 'html'">
+						<div style="max-height:70vh;" x-html="viewer_payload.html"></div>
+					</template>
+
+					<template x-if="viewer_payload?.kind === 'download'">
+						<div style="text-align: center;" x-text="viewer_payload.message"></div>
+					</template>
+				</div>
+			</div>
+		</div>
+
+		<!-- ======== MODAL SALA DE REUNIONES ======== -->
+		<div
+			x-show="$store.cache.isVisibleModal('room')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-room"
+			x-cloak
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+		>
+			<div class="modal glass2 small" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<!-- Solo lectura para no-creador -->
+				<div class="readonly-view" x-show="room_data.booking_id && !room_data.is_mine">
+					<div class="readonly-title">
+						<span x-text="room_data.title || 'Sin título'" :style="`color: ${room_data.hex_color}`"></span>
+					</div>
+					
+					<div class="readonly-row">
+						<span class="readonly-creator" x-text="`Reservado por ${room_data.creator_name}`"></span>
+					</div>
+
+					<div class="readonly-box white">
+						<template x-if="room_data.description">
+							<div class="readonly-row">
+								<span class="readonly-label">
+									<img alt="repeat" src="/static/icons/line/board.svg" width="16" height="16">
+									Descripción
+								</span>
+								<span class="readonly-value" x-html="room_data.description"></span>
+							</div>
+						</template>
+
+						<div class="readonly-row">
+							<span class="readonly-label">
+								<img alt="repeat" src="/static/icons/line/calendar.svg" width="16" height="16">
+								Fecha y hora
+							</span>
+							<span class="readonly-value" x-text="roomReadableRange()"></span>
+						</div>
+					</div>
+				</div>
+
+				
+				<!-- Formulario para crear/editar (creador) -->
+				<div class="title" style="display:flex; align-items:center; gap:.5rem;" x-show="!room_data.booking_id || room_data.is_mine">
+					<img alt="" width="18" height="18" src="/static/icons/line/board.svg">
+					<span x-text="room_data.booking_id ? 'Editar reserva' : 'Reservar sala'"></span>
+				</div>
+
+				<div class="modal-content" x-show="!room_data.booking_id || room_data.is_mine">
+					<div class="fields options">
+						<label class="white">
+							<img alt="" src="/static/icons/line/calendar.svg" width="16" height="16">
+							<input
+								type="date"
+								x-model="room_data.date"
+								:min="todayISO"
+								style="flex:1;"
+								@change="loadRoomBooked()"
+							>
+						</label>
+					</div>
+
+					<template x-if="room_booked.length > 0">
+						<div style="background:#37474F22; border:1.5px solid #37474F55; border-radius:8px; padding:.5rem .75rem; display:flex; flex-direction:column; gap:.25rem;">
+							<span style="font-size:.72rem; font-weight:600; color:#37474F; letter-spacing:.03em; text-transform:uppercase;">Horarios ocupados</span>
+							<template x-for="b in room_booked" :key="b.start">
+								<div style="display:flex; align-items:center; gap:.4rem; font-size:.8rem;">
+									<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#37474F; flex-shrink:0;"></span>
+									<span style="font-weight:600;" x-text="b.start + ' – ' + b.end"></span>
+									<span style="color:#555; font-size:.75rem;" x-text="'· ' + (b.label.includes('|') ? b.label.split('|')[1].trim() : b.label)"></span>
+								</div>
+							</template>
+						</div>
+					</template>
+
+					<div class="fields options">
+						<label class="white">
+							<b style="min-width: 4rem;">Inicio</b>
+							<select x-model="room_data.start_time" @change="onRoomStartChange()">
+								<option value="" disabled>--:--</option>
+								<template x-for="t in roomTimeOptions('start')" :key="t">
+									<option :value="t" :disabled="isStartConflict(t)" :style="isStartConflict(t) ? 'color:#aaa;' : ''" x-text="isStartConflict(t) ? t + ' (ocupado)' : t"></option>
+								</template>
+							</select>
+						</label>
+
+						<label class="white">
+							<b style="min-width: 4rem;">Fin</b>
+							<select x-model="room_data.end_time">
+								<option value="" disabled>--:--</option>
+								<template x-for="t in roomTimeOptions('end')" :key="t">
+									<option :value="t" :disabled="isEndConflict(t)" :style="isEndConflict(t) ? 'color:#aaa;' : ''" x-text="isEndConflict(t) ? t + ' (ocupado)' : t"></option>
+								</template>
+							</select>
+						</label>
+					</div>
+
+					<textarea
+						placeholder="Motivo o descripción (opcional)"
+						x-model="room_data.description"
+						class="text-area"
+						style="max-width:100%; border: 2px solid white;"
+					></textarea>
+				</div>
+
+				<div class="buttons" x-show="!room_data.booking_id || room_data.is_mine">
+					<template x-if="room_data.booking_id && room_data.is_mine">
+						<button class="button black hover-opacity" @click="deleteRoomBooking()">
+							<span>Eliminar</span>
+						</button>
+					</template>
+
+					<template x-if="!room_data.booking_id || room_data.is_mine">
+						<button
+							class="button hover-opacity"
+							@click="saveRoomBooking()"
+							:class="buttons.room.class"
+							x-text="buttons.room.text"
+						></button>
+					</template>
+				</div>
+			</div>
+		</div>
+
+		<div
+			x-show="$store.cache.isVisibleModal('confirm-delete')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-confirm-delete"
+			x-cloak
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+				<span class="title">¿Realmente deseas eliminar el evento?</span>
+				<div class="buttons">
+					<button class="button black hover-opacity" @click="deleteEvent()">Sí, eliminar</button>
+					<button class="button hover-opacity" @click="$store.cache.hideLastModal()">No</button>
+				</div>
+			</div>
+		</div>
+		
+	</div>
+
+	
+
+
+
+
+
+
+
+	<script>
+	Alpine.data('schedule_data', () => ({
+		token: localStorage.getItem('user_token'),
+
+		api: Alpine.store('cache').api,
+		user: Alpine.store('cache').user,
+		user_id: Alpine.store('cache').user.id,
+		offset: 0,
+		todayISO: '',
+		processing: false,
+		errors: {
+			title: '',
+			start_date_only: ''
+		},
+		edit: false,
+		can_edit: false,
+
+		buttons: {
+			save:   { text: 'Crear evento', class: '' },
+			update: { text: 'Actualizar',   class: '' },
+			room:   { text: 'Reservar',     class: '' },
+		},
+
+		room_data: {
+			booking_id: null,
+			date: '',
+			start_time: '',
+			end_time: '',
+			description: '',
+			creator_name: '',
+			is_mine: true,
+		},
+		room_booked: [],
+
+		event_data: {
+			schedule_id: null,
+			title: '',
+			description: '',
+			start_date_only: '',
+			start_time: '',
+			end_date_only: '',
+			end_time: '',
+			meet: '',
+			all_day: true,
+			color: '',
+			visibility_id: 3,
+			repeat_id: null,
+			notify_id: null,
+			start_iso: null,
+    		end_iso: null,
+			audience_user_ids: [],
+			audience_department_ids: [],
+
+			is_import: false,
+			import_shipment: null,
+		},
+		viewer_file: null,
+		viewer_payload: null,
+		currentYear: 2025,
+		currentMonth: 11,
+
+		async init() {
+			console.log('Inicializando Calendario...');
+			this.todayISO = this.formatTodayISO();
+			
+			const socket = Alpine.store('cache').socket;
+			if (socket) {
+				socket.removeAllListeners();
+				socket.on("calendar_update_dashboard", async () => {
+					await Alpine.store('cache').refresh(['calendar_dashboard']);
+				});
+			}
+
+			Alpine.store('cache').fetchData([
+				{ key: 'calendar_dashboard', url: `/schedule/month?offset=${this.offset}`, force: true },
+				{ key: 'visibility_options', url: '/schedule/options/visibility' },
+				{ key: 'repeat_options',     url: '/schedule/options/repeat' },
+				{ key: 'color_options',      url: '/schedule/options/colors' },
+				{ key: 'user_options', 		 url: '/schedule/options/users' },
+				{ key: 'department_options', url: '/schedule/options/departments' },
+			]);
+		},
+
+		composeISO(dateOnly, time) {
+			if (!dateOnly) return null;
+			const t = time && time.length ? time : '00:00';
+			return `${dateOnly}T${t}`;
+		},
+
+		addEvent(selectedDate) {
+			if (selectedDate) {
+				const today = new Date();
+				today.setHours(0, 0, 0, 0);
+				const d = new Date(`${selectedDate}T00:00:00`);
+				if (d < today) return;
+			}
+			
+			this.edit = false;
+			this.event_data.creator_id = this.user_id;
+
+			if (selectedDate) {
+				this.resetEventForm();
+				const now = new Date();
+				let startHour = now.getHours() + 1;
+				let endHour   = startHour + 1;
+
+				if (startHour >= 23) {
+					startHour = 22;
+					endHour = 23;
+				}
+
+				const startHourStr = String(startHour).padStart(2, '0');
+				const endHourStr   = String(endHour).padStart(2, '0');
+
+				this.event_data.start_date_only = selectedDate;
+				this.event_data.start_time = `${startHourStr}:00`;
+
+				this.event_data.end_date_only = selectedDate;
+				this.event_data.end_time = `${endHourStr}:00`;
+			} 
+			Alpine.store('cache').showModal('event');
+		},
+
+		hexFull(c) {
+			if (!c) return c;
+			return c.length === 4 ? '#' + c[1]+c[1] + c[2]+c[2] + c[3]+c[3] : c;
+		},
+
+		isPastDate(dateStr) {
+			try {
+				const today = new Date();
+				today.setHours(0, 0, 0, 0);
+				const d = new Date(`${dateStr}T00:00:00`);
+				return d < today;
+			} catch {
+				return false;
+			}
+		},
+
+		formattedEventRange() {
+			const dStart = this.event_data.start_date_only;
+			const dEnd   = this.event_data.end_date_only;
+			const tStart = this.event_data.start_time;
+			const tEnd   = this.event_data.end_time;
+
+			if (!dStart && !dEnd) return '';
+
+			const months = ['ene.','feb.','mar.','abr.','may.','jun.',
+							'jul.','ago.','sep.','oct.','nov.','dic.'];
+
+			const fmtDate = (iso) => {
+				if (!iso) return '';
+				const [y, m, d] = iso.split('-');
+				return `${parseInt(d, 10)} ${months[parseInt(m, 10) - 1]} ${y}`;
+			};
+
+			const startLabel = fmtDate(dStart);
+			const endLabel   = dEnd && dEnd !== dStart ? fmtDate(dEnd) : '';
+
+			let timeLabel = '';
+			if (this.event_data.all_day) {
+				timeLabel = 'Todo el día';
+			} else if (tStart || tEnd) {
+				if (tStart && tEnd) timeLabel = `${tStart} - ${tEnd}`;
+				else timeLabel = tStart || tEnd || '';
+			}
+
+			let result = startLabel;
+			if (endLabel) result += ` - ${endLabel}`;
+			if (timeLabel) result += ` · ${timeLabel}`;
+			return result;
+		},
+
+		normalizeSlug(value) {
+			if (value === null || value === undefined) return '';
+			return String(value).trim();
+		},
+
+		canDeleteEvent() {
+			const now = new Date();
+			console.log(now)
+			// 1) Si tenemos end_iso, lo usamos directamente (caso más preciso)
+			if (this.event_data.end_iso) {
+				const end = new Date(this.event_data.end_iso);
+				console.log("this.event_data.end_iso")
+				console.log(end)
+
+				console.log(now < end)
+				return now < end;   // solo mientras no haya terminado
+			}
+
+			// 2) Si hay end_date_only (y opcional end_time), calculamos fin
+			if (this.event_data.end_date_only) {
+				console.log("this.event_data.end_date_only")
+				const dateStr = this.event_data.end_date_only;
+				const timeStr = this.event_data.end_time
+					|| this.event_data.start_time
+					|| '00:00';
+
+				const [ey, em, ed] = dateStr.split('-').map(Number);
+				const [hh, mm] = timeStr.split(':').map(Number);
+				const end = new Date(ey, em - 1, ed, hh || 0, mm || 0, 0, 0);
+				console.log(now < end)
+				return now < end;
+			}
+
+			// 3) Evento TODO EL DÍA: mientras no haya pasado el día
+			if (this.event_data.all_day && this.event_data.start_date_only) {
+				console.log("this.event_data.all_day")
+
+				const [y, m, d] = this.event_data.start_date_only.split('-').map(Number);
+				const endOfDay = new Date(y, m - 1, d, 23, 59, 59, 999);
+				console.log(now < endOfDay)
+				return now < endOfDay;
+			}
+
+			// 4) Sin fin explícito: usamos la hora de inicio como límite (antes de que empiece)
+			if (this.event_data.start_iso) {
+				console.log("this.event_data.start_iso")
+				const start = new Date(this.event_data.start_iso);
+				console.log(now < start)
+
+				return now < start;
+			}
+
+			if (this.event_data.start_date_only) {
+				console.log("this.event_data.start_date_only")
+				const [y, m, d] = this.event_data.start_date_only.split('-').map(Number);
+				const [hh, mm] = (this.event_data.start_time || '00:00').split(':').map(Number);
+				const start = new Date(y, m - 1, d, hh || 0, mm || 0, 0, 0);
+				console.log(now < start)
+				return now < start;
+			}
+
+			// Si algo está raro, mejor no mostrar el botón
+			return false;
+		},
+
+		async openEvent(eventId) {
+			try {
+				const res = await fetch(`${this.api}/schedule/event/${eventId}`);
+				const json = await res.json();
+				const d = json?.data || {};
+
+				if (d.is_room_booking) {
+					return this.openRoomBooking(eventId, d);
+				}
+
+				this.event_data.schedule_id  = d.id || null;
+				this.event_data.title        = d.title || '';
+				this.event_data.description  = d.description || '';
+				this.event_data.meet         = (d.meet || '').replace(/`/g, '').trim();
+				this.event_data.all_day      = !!d.all_day;
+				this.event_data.color        = d.hex_color || '';
+				this.event_data.visibility_id = d.visibility_id;
+				this.event_data.audience_user_ids = d.audience_user_ids || [];
+				this.event_data.audience_department_ids = d.audience_department_ids || [];
+				this.event_data.repeat_id     = d.repeat_id;
+				this.event_data.notify_id     = d.notify_id;
+				this.event_data.creator_id   = d.creator_id;
+				this.event_data.creator_name = d.creator_name || 'Fabrix';
+				this.event_data.start_iso = d.start_datetime || null;
+				this.event_data.end_iso   = d.end_datetime || null;
+
+				this.event_data.is_import = !!d.is_import;
+				this.event_data.import_shipment = d.import_shipment || null;
+
+				this.edit = true;
+				this.can_edit = (this.user_id == this.event_data.creator_id);
+
+				const toDateOnly = (iso) => (iso && typeof iso === 'string') ? iso.slice(0, 10) : '';
+				const toTime     = (iso) => (iso && typeof iso === 'string') ? iso.slice(11, 16) : '';
+
+				this.event_data.start_date_only = toDateOnly(d.start_datetime);
+				this.event_data.start_time      = toTime(d.start_datetime);
+
+				this.event_data.end_date_only   = toDateOnly(d.end_datetime);
+				this.event_data.end_time        = toTime(d.end_datetime);
+
+				Alpine.store('cache').showModal('event');
+			} catch (e) {
+				console.error('No se pudieron cargar los datos del evento', e);
+			}
+		},
+
+		isImageFile(f) {
+			const ext = (f?.ext || '').toLowerCase();
+			return ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext);
+		},
+
+		isPdfFile(f) {
+			const ext = (f?.ext || '').toLowerCase();
+			return ext === 'pdf';
+		},
+
+		getInlineUrl(f) {
+			return `${this.api}${f.inline_url}`;
+		},
+
+		async openAttachment(file) {
+			this.viewer_file = file;
+			this.viewer_payload = null;
+
+			// TEMP: no está en backend todavía
+			if (file?.is_temp) {
+				if (this.isImageFile(file) && file.local_url) {
+					this.viewer_payload = { kind: "url", url: file.local_url };
+				} else {
+					this.viewer_payload = { kind: "download", message: "Archivo pendiente de guardar (se sube al actualizar estado)." };
+				}
+				Alpine.store("cache").showModal("attachment");
+				return;
+			}
+
+			// NORMAL: preview backend
+			const res = await fetch(`${this.api}${file.preview_url}`, {
+				headers: {
+				"Content-Type": "application/json",
+				"Authorization": `Bearer ${this.token}`,
+				}
+			});
+
+			const json = await res.json();
+			const payload = json?.data ?? json;
+
+			if (payload.kind === "url") payload.url = `${this.api}${payload.url}`;
+			this.viewer_file.download_url = `${this.api}${file.download_url}`;
+
+			this.viewer_payload = payload;
+			Alpine.store("cache").showModal("attachment");
+		},
+
+		async next() {
+			this.offset++;
+			await Alpine.store('cache').refresh([
+				{ key: 'calendar_dashboard', url: `/schedule/month?offset=${this.offset}` }
+			]);
+		},
+
+		async prev() {
+			this.offset--;
+			await Alpine.store('cache').refresh([
+				{ key: 'calendar_dashboard', url: `/schedule/month?offset=${this.offset}` }
+			]);
+		},
+
+		async today() {
+			this.offset = 0;
+			await Alpine.store('cache').refresh([
+				{ key: 'calendar_dashboard', url: `/schedule/month` }
+			]);
+		},
+
+		resetEventForm() {
+			this.event_data = {
+				schedule_id: null,
+				creator_id: null,
+				title: '',
+				description: '',
+				start_date_only: '',
+				start_time: '',
+				end_date_only: '',
+				end_time: '',
+				meet: '',
+				all_day: true,
+				color: '',
+				visibility_id: 3,
+				repeat_id: null,
+				notify_id: null,
+				start_iso: null,
+        		end_iso: null,
+				audience_user_ids: [],
+				audience_department_ids: [],
+
+				is_import: false,
+				import_shipment: null,
+			};
+			this.can_edit = false;
+			//this.clearErrors();
+		},
+
+		clearErrors() {
+			this.errors = { title: '', start_date_only: '' };
+		},
+
+		formatMonthLabel() {
+			const months = [
+				'Enero','Febrero','Marzo','Abril','Mayo','Junio',
+				'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'
+			];
+
+			const d = new Date();
+			d.setDate(1);
+			d.setMonth(d.getMonth() + this.offset);
+
+			const year  = d.getFullYear();
+			const monthIndex = d.getMonth();
+
+			return `${months[monthIndex]} ${year}`;
+		},
+
+		formatTodayISO() {
+			const d = new Date();
+			const y = d.getFullYear();
+			const m = String(d.getMonth() + 1).padStart(2, '0');
+			const day = String(d.getDate()).padStart(2, '0');
+			return `${y}-${m}-${day}`;
+		},
+
+		async saveEvent() {
+			if (this.processing) return;
+			this.processing = true;
+
+			const startISO = this.composeISO(this.event_data.start_date_only, this.event_data.start_time);
+			const endISO   = this.composeISO(this.event_data.end_date_only,   this.event_data.end_time);
+
+
+			const payload = {
+				event_id:       this.event_data.schedule_id || null,
+				user_id:        this.user_id,
+				title:          (this.event_data.title || '').trim(),
+				description:    (this.event_data.description || '').trim(),
+				start_datetime: startISO,
+				end_datetime:   endISO,
+				meet:           (this.event_data.meet || '').trim() || null,
+				hex_color:      this.event_data.color || '#999',
+				visibility_id:  this.event_data.visibility_id || 3,
+				repeat_id:      this.event_data.repeat_id || 1,
+				notify_id:      this.event_data.notify_id || 1,
+				all_day:        !!this.event_data.all_day,
+				audience_user_ids: (Number(this.event_data.visibility_id) === 4) ? (this.event_data.audience_user_ids || []) : [],
+				audience_department_ids: (Number(this.event_data.visibility_id) === 5) ? (this.event_data.audience_department_ids || []) : [],
+			};
+
+			try {
+				const response = await fetch(`${this.api}/schedule/process`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload)
+				});
+				const jsonData = await response.json();
+				if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+				Alpine.store('cache').hideLastModal();
+			} catch (error) {
+				if (this.edit) {
+					this.showError('update', error.message);
+				} else {
+					this.showError('save', error.message);
+				}
+			} finally {
+				this.processing = false;
+			}
+		},
+
+		async updateEvent() {
+			if (this.processing) return;
+			this.processing = true;
+
+			const startISO = this.composeISO(this.event_data.start_date_only, this.event_data.start_time);
+			const endISO   = this.composeISO(this.event_data.end_date_only,   this.event_data.end_time);
+
+			const payload = {
+				event_id:       this.event_data.schedule_id || null,
+				user_id:        this.user_id,
+				title:          (this.event_data.title || '').trim(),
+				description:    (this.event_data.description || '').trim(),
+				start_datetime: startISO,
+				end_datetime:   endISO,
+				meet:           (this.event_data.meet || '').trim() || null,
+				hex_color:      this.event_data.color || '#999',
+				visibility_id:  this.event_data.visibility_id || 3,
+				repeat_id:      this.event_data.repeat_id || 1,
+				notify_id:      this.event_data.notify_id || 1,
+				all_day:        !!this.event_data.all_day,
+				audience_user_ids: (Number(this.event_data.visibility_id) === 4) ? (this.event_data.audience_user_ids || []) : [],
+				audience_department_ids: (Number(this.event_data.visibility_id) === 5) ? (this.event_data.audience_department_ids || []) : [],
+			};
+
+			try {
+				const response = await fetch(`${this.api}/schedule/process`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload)
+				});
+				const jsonData = await response.json();
+				if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+				Alpine.store('cache').hideLastModal();
+			} catch (error) {
+				if (this.edit) {
+					this.showError('update', error.message);
+				} else {
+					this.showError('save', error.message);
+				}
+			} finally {
+				this.processing = false;
+			}
+		},
+
+		showError(btnKey, errorMsg) {
+			const originalText  = this.buttons[btnKey].text;
+			const originalClass = this.buttons[btnKey].class;
+
+			if (originalClass == 'error') {
+				return;
+			}
+			this.buttons[btnKey].text  = errorMsg;
+			this.buttons[btnKey].class = 'error';
+
+			setTimeout(() => {
+				this.buttons[btnKey].text  = originalText;
+				this.buttons[btnKey].class = originalClass;
+			}, 1000);
+		},
+
+		handlePrimaryAction() {
+			if (this.processing) return;
+			if (this.edit && this.event_data.schedule_id) {
+				return this.updateEvent();
+			}
+			return this.saveEvent();
+		},
+
+		async deleteEvent() {
+			if (this.processing) return;
+			this.processing = true;
+
+			try {
+				const eventId = this.event_data?.schedule_id;
+
+				const response = await fetch(`${this.api}/schedule/delete`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ event_id: eventId })
+				});
+				const jsonData = await response.json();
+				if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+				Alpine.store('cache').hideAllModals();
+			} catch (e) {
+				console.error('Error al eliminar el evento', e);
+			} finally {
+				this.processing = false;
+			}
+		},
+
+		openRoomModal(date = null) {
+			this.room_data = {
+				booking_id: null,
+				date: date || this.todayISO,
+				start_time: '09:00',
+				end_time: '10:00',
+				description: '',
+				creator_name: '',
+				is_mine: true,
+			};
+			this.room_booked = [];
+			this.loadRoomBooked();
+			this.buttons.room = { text: 'Reservar', class: '' };
+			Alpine.store('cache').showModal('room');
+		},
+
+		async openRoomBooking(eventId, prefetched = null) {
+			try {
+				let d = prefetched;
+				if (!d) {
+					const res = await fetch(`${this.api}/schedule/event/${eventId}`);
+					const json = await res.json();
+					d = json?.data || {};
+				}
+
+				const toDateOnly = (iso) => (iso && typeof iso === 'string') ? iso.slice(0, 10) : '';
+				const toTime     = (iso) => (iso && typeof iso === 'string') ? iso.slice(11, 16) : '';
+
+				this.room_data = {
+					booking_id: d.id,
+					date: toDateOnly(d.start_datetime),
+					start_time: toTime(d.start_datetime),
+					end_time: toTime(d.end_datetime),
+					description: d.description || '',
+					title: d.title || '',
+					creator_name: d.creator_name || '',
+					hex_color: d.hex_color || '',
+					is_mine: Number(d.creator_id) === Number(this.user_id),
+				};
+				this.room_booked = [];
+				this.loadRoomBooked();
+				this.buttons.room = { text: 'Actualizar', class: '' };
+				Alpine.store('cache').showModal('room');
+			} catch (e) {
+				console.error('Error cargando reserva', e);
+			}
+		},
+
+		loadRoomBooked() {
+			const days = Alpine.store('cache').getData('calendar_dashboard') || [];
+			const day = days.find(d => d.date === this.room_data.date);
+			const events = (day?.events || []).filter(e => e.isRoomBooking && e.roomStart && e.roomEnd);
+			this.room_booked = events
+				.filter(e => !this.room_data.booking_id || e.id !== this.room_data.booking_id)
+				.map(e => ({ start: e.roomStart, end: e.roomEnd, label: e.label }));
+		},
+
+		toMins(hhmm) {
+			const [h, m] = hhmm.split(':').map(Number);
+			return h * 60 + m;
+		},
+
+		isStartConflict(t) {
+			const tm = this.toMins(t);
+			return this.room_booked.some(b => tm >= this.toMins(b.start) && tm < this.toMins(b.end));
+		},
+
+		isEndConflict(t) {
+			if (!this.room_data.start_time) return false;
+			const sm = this.toMins(this.room_data.start_time);
+			const em = this.toMins(t);
+			return this.room_booked.some(b => sm < this.toMins(b.end) && em > this.toMins(b.start));
+		},
+
+		roomTimeOptions(type) {
+			const times = [];
+			for (let h = 9; h <= 18; h++) {
+				for (let m = 0; m < 60; m += 30) {
+					if (h === 18 && m > 0) break;
+					times.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+				}
+			}
+			if (type === 'start') return times.filter(t => t < '18:00');
+			// end: min = start+30min, max 18:00
+			if (!this.room_data.start_time) return times.filter(t => t > '09:00');
+			const [sh, sm] = this.room_data.start_time.split(':').map(Number);
+			const startMins = sh * 60 + sm;
+			return times.filter(t => {
+				const [eh, em] = t.split(':').map(Number);
+				const endMins = eh * 60 + em;
+				return endMins > startMins;
+			});
+		},
+
+		onRoomStartChange() {
+			if (!this.room_data.start_time) return;
+			const [h, m] = this.room_data.start_time.split(':').map(Number);
+			const endMins = h * 60 + m + 60;
+			const eh = Math.floor(endMins / 60);
+			const em = endMins % 60;
+			const proposed = `${String(eh).padStart(2,'0')}:${String(em).padStart(2,'0')}`;
+			this.room_data.end_time = eh <= 18 ? proposed : '18:00';
+		},
+
+		roomReadableRange() {
+			const months = ['ene.','feb.','mar.','abr.','may.','jun.',
+							 'jul.','ago.','sep.','oct.','nov.','dic.'];
+			const d = this.room_data.date;
+			if (!d) return '';
+			const [y, mo, day] = d.split('-');
+			const dateStr = `${parseInt(day)} ${months[parseInt(mo)-1]} ${y}`;
+			const s = this.room_data.start_time;
+			const e = this.room_data.end_time;
+			return `${dateStr} · ${s} - ${e}`;
+		},
+
+		async saveRoomBooking() {
+			if (this.processing) return;
+			this.processing = true;
+			try {
+				const payload = {
+					booking_id: this.room_data.booking_id || null,
+					date: this.room_data.date,
+					start_time: this.room_data.start_time,
+					end_time: this.room_data.end_time,
+					description: (this.room_data.description || '').trim(),
+				};
+				const response = await fetch(`${this.api}/schedule/room`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': `Bearer ${this.token}`,
+					},
+					body: JSON.stringify(payload),
+				});
+				const jsonData = await response.json();
+				if (!response.ok) throw new Error(jsonData?.data?.message || 'Error al guardar');
+				Alpine.store('cache').hideLastModal();
+			} catch (error) {
+				this.showError('room', error.message);
+			} finally {
+				this.processing = false;
+			}
+		},
+
+		async deleteRoomBooking() {
+			if (this.processing) return;
+			this.processing = true;
+			try {
+				const response = await fetch(`${this.api}/schedule/room/${this.room_data.booking_id}`, {
+					method: 'DELETE',
+					headers: { 'Authorization': `Bearer ${this.token}` },
+				});
+				const jsonData = await response.json();
+				if (!response.ok) throw new Error(jsonData?.data?.message || 'Error al eliminar');
+				Alpine.store('cache').hideLastModal();
+			} catch (error) {
+				this.showError('room', error.message);
+			} finally {
+				this.processing = false;
+			}
+		},
+	}));
+	</script>
+
+
+
+
+
+
+
+
+
+
+
+	<style>
+		.controls {
+			justify-content: center;
+		}
+		#modal-confirm-delete .modal {
+			gap: 1.5rem;
+			text-align: center;
+		}
+		.item.mine {
+			/* outline: 2px solid #fff;
+			box-shadow: 0 0 0 2px rgba(255,255,255,0.5); */
+		}
+		#schedule {
+			user-select: none;
+		}
+		#schedule .main {
+			display: flex;
+			min-height: calc(100vh - 6.5rem);
+			gap: 1rem;
+			padding: 0.75rem;
+    		overflow: auto;
+			flex-direction: column;
+		}
+		#schedule .main .left {
+			display: none;
+			flex-direction: column;
+			gap: 1rem;
+		}
+		#schedule .main .card {
+			padding: 0.75rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+			border-radius: 1rem;
+		}
+		#schedule .main .title {
+			font-size: 1rem;
+			font-weight: 600;
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		#modal-event .container {
+			display: flex;
+			gap: 1rem;
+			flex-direction: column;
+			overflow: auto;
+		}
+		.readonly-view {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+		}
+		.readonly-title {
+			font-size: 1.05rem;
+			font-weight: 600;
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			width: calc(100% - 1.5rem);
+		}
+		.readonly-color {
+			min-width: 0.75rem;
+			height: 0.75rem;
+			border-radius: 2rem;
+		}
+		.readonly-row {
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+		}
+		.readonly-box {
+			padding: 1.5rem;
+			display: flex;
+			gap: 1.5rem;
+			flex-direction: column;
+		}
+		.readonly-label {
+			font-size: 0.75rem;
+			opacity: 0.7;
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		.readonly-value {
+			white-space: break-spaces;
+		}
+		.readonly-creator {
+			margin-top: -0.75rem;
+			opacity: 0.6;
+    		font-size: 0.75rem;
+		}
+		.readonly-link {
+			text-decoration: underline;
+			word-break: break-all;
+			color: var(--primary);
+		}
+		
+		#modal-event .fields label.checkbox {
+			flex: 0 0 8rem;
+		}
+		#modal-event .fields label.compact-color {
+			flex: 0 0 4rem;
+		}
+		#modal-event .fields label.color-field {
+			flex: 0 0 12rem;
+			max-width: 6rem;
+			align-items: center;
+		}
+		#modal-event .fields label.flex2-3 {
+			flex: 1 1 1rem;
+		}
+
+		#modal-event label.checkbox {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		#modal-event label.checkbox input[type="checkbox"] {
+			appearance: none;
+			width: 15px; /* tamaño más pequeño */
+			height: 15px;
+			border: 2px solid #ccc;
+			border-radius: 10px; /* redondeado */
+			background: #fff;
+			transition: all 0.2s ease-in-out;
+			cursor: pointer;
+			display: inline-block;
+		}
+		#modal-event label.checkbox input[type="checkbox"]:checked {
+			background-color: var(--primary);
+			border-color: var(--primary);
+		}
+		#modal-event label.checkbox span {
+			font-size: 0.8rem; /* texto un poco más pequeño */
+		}
+
+		
+
+		/* Modal Event - selector de color compacto */
+		#modal-event .color-select {
+			position: relative;
+			display: inline-flex;
+			align-items: center;
+			gap: 1rem;
+		}
+
+		
+		#modal-event .color-dot {
+			width: 18px;
+			height: 18px;
+			border-radius: 50%;
+			border: 2px solid #fff;
+			box-shadow: 0 0 0 1px #ddd;
+			cursor: pointer;
+			background-color: #999;
+			padding: 0;
+			outline: none;
+			appearance: none;
+		}
+		#modal-event .color-panel {
+			position: absolute;
+			z-index: 10;
+			top: 120%;
+			left: -100px;
+			background: #fff;
+			border: 1px solid #eee;
+			border-radius: 0.5rem;
+			box-shadow: 0 8px 24px hsl(0deg 0% 0% / 12%);
+			padding: 0.5rem;
+			display: grid;
+			grid-template-columns: repeat(4, 1fr);
+			gap: 0.5rem;
+			min-width: 8rem;
+		}
+		#modal-event .color-option {
+			width: 20px;
+			height: 20px;
+			border-radius: 50%;
+			border: 2px solid #fff;
+			box-shadow: 0 0 0 1px #ddd;
+			cursor: pointer;
+			padding: 0;
+			outline: none;
+			appearance: none;
+			background-color: #999;
+		}
+		#modal-event .color-option.selected {
+			box-shadow: 0 0 0 2px var(--primary);
+		}
+		#modal-event .custom-visibility {
+			width: 100%;
+			flex-direction: column;
+			display: flex;
+			padding: 0 0.75rem;
+		}
+		#modal-event .custom-visibility .item-list {
+			max-height: 28dvh;
+			overflow: auto;
+			display: flex;
+			flex-direction: column;
+			background-color: var(--gray);
+			padding: 0.25rem;
+			border-radius: 0.5rem;
+			margin-bottom: 0.75rem;
+		}
+		#modal-event .custom-visibility .item-list .item {
+			padding: .5rem;
+			cursor: pointer;
+			border-radius: 0.25rem;
+			transition: var(--transition);
+		}
+		#modal-event .custom-visibility .item-list .item:hover {
+			background-color: var(--white);
+		}
+		#modal-event .custom-visibility .item-list .item input {
+			width: initial;
+			height: initial;
+			margin: 0;
+		}
+		#modal-event .custom-visibility .chips {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.5rem;
+			border-top: 2px solid #00000020;
+			padding: 0.75rem 0;
+		}
+		#modal-event .custom-visibility .chips .chip {
+			padding: 0.25rem 0.75rem;
+			border-radius: 1rem;
+			cursor: pointer;
+			font-size: 0.75rem;
+			font-weight: 500;
+			background-color: var(--graydark);
+		}
+		#modal-event .custom-button {
+			width: 100%;
+			text-align: center;
+			padding: 0.75rem;
+		}
+		#schedule .main .card {
+			flex: 1;
+		}
+		#schedule .main .top {
+			display: flex;
+    		justify-content: space-between;
+		}
+		#schedule .main .center {
+			display: grid;
+			grid-template-columns: repeat(7, 1fr);
+			gap: 0.75rem;
+			font-weight: 500;
+    		opacity: 0.5;
+			min-width: 64rem;
+		}
+		#schedule .main .center .year {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		#schedule .main .bottom {
+			display: grid;
+			grid-template-columns: repeat(7, minmax(0, 1fr));
+			gap: 0.75rem;
+			/* grid-auto-rows: minmax(0, 1fr); */
+			flex: 1;
+			min-width: 64rem;
+		}
+		#schedule .main .bottom .month {
+			padding: 0.5rem;
+			border-radius: 0.75rem;
+			display: flex;
+			flex-direction: column;
+			gap: 1.25rem;
+			position: relative;
+		}
+		#schedule .main .bottom .month .number {
+			font-size: 1rem;
+			line-height: 1rem;
+			font-weight: 500;
+			position: absolute;
+			padding: 0.5rem;
+			top: 0;
+			left: 0;
+		}
+		#schedule .main .bottom .month .number .name {
+			display: none;
+			font-size: 0.65rem;
+		opacity: 0.75;
+		text-transform: uppercase;
+		}
+		#schedule .main .bottom .month .number.today {
+			background-color: var(--primary);
+			color: white;
+			font-weight: 400;
+			border-radius: 0.5rem 0 0.5rem 0;
+		}
+		#schedule .main .bottom .month.glass .number {
+			opacity: 0.25;
+		}
+		#schedule .main .bottom .month.glass {
+			opacity: 0.5;
+		}
+		#schedule .main .bottom .month .late {
+			position: absolute;
+			right: 0.5rem;
+			top: 0.5rem;
+		}
+
+		#schedule .main .right {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			width: 24rem;
+			min-height: 8rem;
+		}
+		#schedule .main .bottom .month .body {
+			display: flex;
+			flex-direction: column;
+			margin-top: 1.75rem;
+			gap: 0.25rem;
+		}
+        #schedule .main .bottom .month .body .item {
+            display: flex;
+			flex-direction: column;
+			padding: 0.5rem;
+			border-radius: 0.25rem;
+			transition: var(--transition);
+			background-color: white;
+			filter: saturate(1.15);
+        }
+        #schedule .main .bottom .month .body .item .row {
+            display: flex;
+            gap: 0.5rem;
+        }
+        #schedule .main .bottom .month .body .item .color-dot {
+            min-width: 0.5rem;
+			height: 0.5rem;
+			border-radius: 1rem;
+			margin: 0.125rem 0;
+			display: none;
+        }
+        #schedule .main .bottom .month .body .item .content {
+			display: flex;
+			flex-direction: column;
+			gap: 0.125rem;
+			width: calc(100% - 1rem);
+        }
+
+		
+
+        /* Cursor pointer sobre elementos de grid clicables */
+        #schedule .main .bottom .month:hover {
+            cursor: pointer;
+        }
+        #schedule .main .bottom .month.past:hover {
+            cursor: default;
+        }
+        #schedule .main .bottom .month .body .item:hover {
+			background-color: var(--gray);
+            cursor: pointer;
+        }
+		#schedule .main .bottom .month .body .item.full:hover {
+			opacity: 0.8;
+        }
+        #schedule .main .bottom .month .body .item.normal .label {
+            /* opacity: 1;
+            font-weight: 600; */
+        }
+        #schedule .main .bottom .month .body .item.normal .date {
+            /* color: #555; */
+            /* font-size: 0.7rem; */
+        }
+        #schedule .main .bottom .month .body .item.full .label {
+            /* color: #fff; */
+            opacity: 1;
+        }
+        #schedule .main .bottom .month .body .item.full .date {
+            /* color: rgba(255,255,255,0.85);
+            font-size: 0.7rem; */
+        }
+		#schedule .main .bottom .month .body .item.birthday {
+			cursor: default !important;
+			background-color: #edeceb !important;
+    		margin: 0.125rem 0;
+        }
+		#schedule .main .bottom .month .body .item .label {
+			font-size: 0.7rem;
+			line-height: 0.75rem;
+			opacity: 1;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			font-weight: 600;
+		}
+		#schedule .main .bottom .month .body .item .date {
+			font-size: 0.7rem;
+			/* font-weight: 500; */
+			line-height: 0.75rem;
+			opacity: 0.5;
+			text-transform: lowercase;
+		}
+		#schedule .main .bottom .month .body .item .thumb {
+			position: absolute;
+			right: 1rem;
+			border-radius: 1rem;
+			width: 0.75rem;
+			height: 0.75rem;
+		}
+        /* Errores inline en el modal */
+        .error-text {
+            color: #d32f2f;
+            font-size: 0.75rem;
+            margin-top: 2px;
+        }
+
+        /* Botón de icono para eliminar */
+        .icon-button {
+            background: transparent;
+            border: none;
+            padding: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .icon-button img {
+            width: 1rem;
+            height: 1rem;
+        }
+        /* Posición independiente de los íconos del modal */
+        #modal-event .modal-delete {
+            position: absolute;
+            top: 1rem;
+            left: 1.5rem;
+            z-index: 2;
+        }
+        /* .modal-edit eliminado: se usa sólo botón principal para editar */
+        #modal-event .modal-close {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 2;
+        }
+        #modal-event .modal-close img {
+            width: 12px;
+            height: 12px;
+        }
+
+		/* Navegación del calendario en header: flecha - mes - flecha */
+		#schedule header .navigation.desktop {
+			display: flex;
+			align-items: center;
+			justify-content: flex-end;
+			gap: 10px;
+		}
+		#schedule header .navigation.desktop .button {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 3rem;
+			height: 3rem;
+			border-radius: 3rem;
+		}
+		#schedule header .navigation.desktop .button.middle {
+			min-width: 14rem;
+			height: 3rem;
+			padding: 0 1rem;
+			border-radius: 2rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-weight: 600;
+			margin-right: auto;
+		}
+		#schedule header .navigation.desktop .button:last-child img {
+			transform: rotate(180deg);
+		}
+
+        /* Mensaje inline de éxito bajo el botón principal */
+        .inline-success {
+            color: #2e7d32; /* verde */
+            font-size: 0.8rem;
+            line-height: 1rem;
+            margin-left: 0.5rem;
+        }
+
+		/* Mini calendario en la columna izquierda */
+		#schedule .main .left .mini-calendar .mini-nav {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+		}
+		#schedule .main .left .mini-calendar .mini-nav .button {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 1.75rem;
+			height: 1.75rem;
+			border-radius: 9999px;
+			padding: 0;
+		}
+		#schedule .main .left .mini-calendar .mini-nav .button img {
+			width: 14px;
+			height: 14px;
+		}
+		#schedule .main .left .mini-calendar .mini-nav .label {
+			font-size: 0.8rem;
+			font-weight: 600;
+		}
+		#schedule .main .left .mini-calendar .mini-weekdays {
+			display: grid;
+			grid-template-columns: repeat(7, 1fr);
+			gap: 0.25rem;
+			font-size: 0.65rem;
+			text-align: center;
+			font-weight: 800;
+		}
+		#schedule .main .left .mini-calendar .grid {
+			display: grid;
+			grid-template-columns: repeat(7, 1fr);
+			gap: 0.25rem;
+		}
+		#schedule .main .left .mini-calendar .cell {
+			height: 1.75rem;
+			width: 1.75rem;
+			border-radius: 2rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 0.75rem;
+		}
+		#schedule .main .left .mini-calendar .cell.today {
+			background-color: var(--primary);
+			color: #fff;
+		}
+		#schedule .main .left .mini-calendar .cell.outside {
+			opacity: 0.25;
+		}
+		
+		
+		
+		
+		
+		
+		/***********************************************************************************/
+		#modal-status .update {
+			display: flex;
+			justify-content: center;
+			gap: 1rem;
+			background-color: white;
+			box-shadow: 0 0 2rem hsl(0deg 0% 0% / 5%);
+			border-radius: 1rem;
+			position: relative;
+		}
+		#modal-status .update .box {
+			padding: 1rem;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 0.5rem;
+			flex: 1;
+		}
+		#modal-status .update .arrow {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+		}
+		#modal-status .update .box img {
+			margin-top: 0.5rem;
+		}
+		#modal-status .update .box span {
+			font-size: 0.8rem;
+		}
+		#modal-status .send-whatsapp {
+			display: flex;
+			gap: 0.5rem;
+			align-items: center;
+			font-size: 0.75rem;
+		}
+		#modal-status .send-whatsapp .dot {
+			width: 0.5rem;
+			height: 0.5rem;
+			background-color: var(--primary);
+			border-radius: 1rem;
+		}
+		#modal-status .send-whatsapp .box {
+			display: none;
+			position: relative;
+			width: 2.5rem;
+			height: 1.5rem;
+		}
+		#modal-status .send-whatsapp .box input {
+			opacity: 0;
+			width: 0;
+			height: 0;
+		}
+		#modal-status .send-whatsapp .box .slider {
+			border-radius: 2rem;
+			position: absolute;
+			cursor: pointer;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background-color: #ccc;
+			transition: all 0.25s ease-in-out;
+		}
+		#modal-status .send-whatsapp .box .slider:before {
+			position: absolute;
+			content: "";
+			height: 1rem;
+			width: 1rem;
+			left: 0.25rem;
+			bottom: 0.25rem;
+			background-color: white;
+			transition: all 0.25s ease-in-out;
+			border-radius: 50%;
+		}
+		#modal-status .send-whatsapp .box input:checked + .slider {
+			background-color: var(--primary);
+		}
+		#modal-status .send-whatsapp .box input:checked + .slider:before {
+			transform: translateX(1rem);
+		}
+		/***********************************************************************************/
+		#modal-process .modal {
+			min-width: 29rem;
+		}
+		#modal-process .header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#modal-process .header .left {
+			display: flex;
+			gap: 0.75rem;
+			align-items: center;
+		}
+		#modal-process .header .left .item {
+			display: flex;
+			gap: 0.25rem;
+			align-items: center;
+			background-color: var(--black);
+			color: var(--white);
+			padding: 0.35rem 1rem;
+			border-radius: 2rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#modal-process .header .left .item img {
+			filter: invert(1);
+		}
+		#modal-process .header .days {
+			font-size: 1rem;
+			font-weight: 700;
+		}
+		#modal-process .client {
+			background-color: white;
+			display: flex;
+			align-items: center;
+			padding: 1rem;
+			border-radius: 1rem;
+			box-shadow: 0 0 1rem hsl(0deg 0% 0% / 2.5%);
+			width: 100%;
+			gap: 1rem;
+		}
+		#modal-process .client .data {
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+			justify-content: center;
+		}
+		#modal-process .client .data .machine {
+			font-size: 1rem;
+    		font-weight: 500;
+		}
+		#modal-process .client .data .name {
+			font-size: 0.95rem;
+			font-weight: 400;
+			opacity: 0.75;
+		}
+		#modal-process .client .icons {
+			margin-left: auto;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 0.25rem;
+		}
+		#modal-process .client .icons a {
+			padding: 0.25rem;
+    		display: flex;
+		}
+		#modal-process .client .icons button {
+			padding: 0.25rem;
+			display: flex;
+			margin: 0;
+			background-color: transparent;
+			outline: none;
+			border: none;
+			cursor: pointer;
+		}
+		#modal-process .history {
+			display: flex;
+			flex-direction: column;
+			max-width: 28rem;
+			margin-bottom: -0.75rem;
+		}
+		#modal-process .history .row {
+			align-items: center;
+			display: flex;
+			gap: 0.75rem;
+			padding: 0.75rem 0.25rem;
+			border-top: 1px solid hsl(0deg 0% 100% / 50%);
+		}
+		#modal-process .history .row .left {
+			display: flex;
+			flex-direction: column;
+			width: calc(100% - 6.5rem);
+		}
+		#modal-process .history .row .right {
+			margin-left: auto;
+			display: flex;
+			flex-direction: column;
+		}
+		#modal-process .history .row .name {
+			font-weight: 500;
+			line-height: 1.25rem;
+		}
+		#modal-process .history .row .notes {
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			font-size: 0.75rem;
+			opacity: 0.75;
+			cursor: pointer;
+		}
+		#modal-process .history .row .notes.expanded {
+			text-overflow: unset;
+			white-space: normal;
+			overflow: auto;
+		}
+		#modal-process .history .row .date {
+			opacity: 0.75;
+		}
+		#modal-process .history .row .admin {
+			opacity: 0.75;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			font-size: 0.8rem;
+			display: none;
+		}
+		@media only screen and (max-width: 48rem) {
+			
+			#schedule .main {
+				border-radius: 0;
+			}
+			#schedule .main .center {
+				display: none;
+			}
+			#schedule .main .bottom {
+				min-width: initial;
+				display: flex;
+				flex-direction: column;
+				margin-left: 3rem;
+			}
+			#schedule .main .bottom .month {
+    			min-height: 4rem;
+			}
+			#schedule .main .bottom .month .number {
+				margin-left: -3rem;
+				border-radius: 0.5rem !important;
+			}
+			#schedule .main .bottom .month .number .name {
+				display: block;
+			}
+			#schedule .main .bottom .month .body {
+				margin: 0;
+			}
+			#modal-event .fields label.checkbox,
+			#modal-event .fields label.compact-color {
+				flex: 0 0 2.5rem;
+			}
+			#modal-event .color-panel {
+				left: 0;
+			}
+		}
+		
+	</style>
+</div>

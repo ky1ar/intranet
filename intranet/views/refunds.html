@@ -1,0 +1,1995 @@
+<div x-data="refunds_data">
+	<div id="refunds">
+		<div class="controls">
+			<div class="left mobile-hide frost">
+				<div class="item" @click="search()">
+					<img alt="" width="20" height="20" src="/static/icons/line/find.svg">
+					<span>Buscar</span>
+				</div>
+				<div class="item" @click="viewHistory()">
+					<img alt="" width="20" height="20" src="/static/icons/line/history.svg">
+					<span>Historial</span>
+				</div>
+				<div class="item" @click="viewStatistics()">
+					<img alt="" width="20" height="20" src="/static/icons/line/report.svg">
+					<span>Estadísticas</span>
+				</div>
+			</div>
+			<div class="right frost-dark" x-show="canRegister() || canLinks()">
+				<div class="item" x-show="canLinks()" @click="viewLinks()">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/link.svg">
+					<span>Enlaces</span>
+				</div>
+				<div class="item" x-show="canRegister()" @click="openCreate()">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/add.svg">
+					<span>Registrar</span>
+				</div>
+			</div>
+		</div>
+
+		<!-- Kanban -->
+		<div class="main glass">
+			<template x-for="group in $store.cache.getData('refund_dashboard')" :key="group.status_id">
+				<div class="group">
+					<div class="group-head">
+						<img alt="" width="20" height="20" :src="statusIcon(group.status_slug)">
+						<span class="group-name" x-text="group.status_name"></span>
+					</div>
+					<template x-for="req in group.requests" :key="req.id">
+						<div class="req-card white hover-opacity" @click="openDetail(req.id)">
+							<div class="req-top">
+								<template x-if="req.is_admin_register">
+									<span class="req-id pri" x-html="`EX-${String(req.id)}<img title='Caja chica' width='16' height='16' src='/static/icons/filled/admin.svg'>`"></span>
+								</template>
+
+								<template x-if="!req.is_admin_register">
+									<span class="req-id" x-text="`EX-${String(req.id)}`"></span>
+								</template>
+
+								<div class="req-date" x-text="req.assigned_to_name || ''"></div>
+
+<!-- 								
+								<span class="req-client" x-text="req.client_name || req.client_dni || '-'"></span>
+								<div class="req-top-right">
+									<span class="admin-badge" x-show="req.is_admin_register">ADM</span>
+									<span class="req-amount" x-text="`S/ ${req.net_refund.toFixed(2)}`"></span>
+								</div> -->
+							</div>
+							<div class="req-client" x-text="req.client_name"></div>
+
+							<!-- <div class="req-reason" x-text="req.reason"></div> -->
+							<div class="req-bottom">
+								<span class="req-reason" x-text="req.reason"></span>
+								<span class="req-amount" x-text="`S/ ${req.net_refund.toFixed(2)}`"></span>
+							</div>
+						</div>
+					</template>
+				</div>
+			</template>
+		</div>
+
+		<!-- ── Modal enlaces ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('refund-links')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap common-modal"
+			id="modal-refund-links"
+			x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="top">
+					<button class="create-link button hover-opacity" @click="newRefundLink()">
+						<img alt="" width="16" height="16" src="/static/icons/line/add.svg">
+						Nuevo
+					</button>
+
+					<template x-if="link_list.length !== 0">
+						<div class="pagination">
+							<span class="white hover-opacity left" :class="link_page > 1 ? '':'disabled'" @click="firstLinkPage()" title="Primera página">
+								<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity left" :class="link_page > 1 ? '':'disabled'" @click="prevLinkPage()" title="Página anterior">
+								<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity" :class="link_page < link_total_pages ? '':'disabled'" @click="nextLinkPage()" title="Siguiente página">
+								<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity" :class="link_page < link_total_pages ? '':'disabled'" @click="lastLinkPage()" title="Última página">
+								<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+							</span>
+						</div>
+					</template>
+				</div>
+
+				<div class="modal-content">
+					<template x-if="link_list.length == 0">
+						<span style="padding: 1rem;">Aún no has creado enlaces, añade uno y aparecerá aquí.</span>
+					</template>
+
+					<template x-if="link_list.length > 0">
+						<div class="history">
+							<table class="static mobile-hide">
+								<thead>
+									<tr>
+										<th>ID</th>
+										<th>Cliente</th>
+										<th>Pedido</th>
+										<th>Estado</th>
+										<th>Creado por</th>
+										<th>Fecha</th>
+										<th></th>
+									</tr>
+								</thead>
+								<tbody>
+									<template x-for="link in link_list" :key="link.id">
+										<tr>
+											<td><b class="link-id" x-text="link.id"></b></td>
+											<td x-text="link.client_name || '-'"></td>
+											<td x-text="link.order_number || '-'"></td>
+											<td>
+												<span class="link-status" :class="`status-${link.status_id}`" x-text="link.status"></span>
+											</td>
+											<td x-text="link.user_name"></td>
+											<td x-text="link.created_at"></td>
+											<td>
+												<template x-if="link.status_id <= 2">
+													<div class="controlls">
+														<div class="action hover-opacity" title="Copiar enlace" @click="navigator.clipboard.writeText(link.url)">
+															<img alt="" src="/static/icons/line/copy.svg" width="16" height="16">
+														</div>
+														<div class="action hover-opacity" title="Eliminar enlace" @click="deleteRefundLink(link.id)">
+															<img alt="" src="/static/icons/line/delete.svg" width="16" height="16">
+														</div>
+													</div>
+												</template>
+												<template x-if="link.status_id === 3">
+													<div class="controlls">
+														<div class="action hover-opacity" title="Ver extorno" @click="openDetail(link.refund_id)">
+															<img alt="" src="/static/icons/line/eye.svg" width="16" height="16">
+														</div>
+													</div>
+												</template>
+											</td>
+										</tr>
+									</template>
+								</tbody>
+							</table>
+
+							<div class="mobile-show mobile-table">
+								<template x-for="link in link_list" :key="link.id">
+									<div class="row white">
+										<div class="head">
+											<div class="info">
+												<span class="id" x-text="link.client_name || 'Pendiente'" :class="{'pending': !link.client_name}"></span>
+												<span class="date" x-text="link.created_at"></span>
+											</div>
+											<div class="status" :class="`status-${link.status_id}`" x-text="link.status"></div>
+										</div>
+										<div class="body">
+											<span class="label">Creado por</span>
+											<span class="name" x-text="link.user_name"></span>
+										</div>
+										<div class="options" x-show="link.status_id <= 2">
+											<div class="action hover-opacity" @click="navigator.clipboard.writeText(link.url)">
+												<span>Copiar enlace</span>
+												<img alt="" src="/static/icons/line/copy.svg" width="16" height="16">
+											</div>
+											<div class="action hover-opacity" @click="deleteRefundLink(link.id)">
+												<span>Eliminar</span>
+												<img alt="" src="/static/icons/line/delete.svg" width="16" height="16">
+											</div>
+										</div>
+										<div class="options" x-show="link.status_id === 3">
+											<div class="action hover-opacity" @click="openDetail(link.refund_id)">
+												<span>Ver extorno</span>
+												<img alt="" src="/static/icons/line/eye.svg" width="16" height="16">
+											</div>
+										</div>
+									</div>
+								</template>
+							</div>
+						</div>
+					</template>
+				</div>
+			</div>
+		</div>
+
+		<!-- ── Modal historial ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('refund-history')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap common-modal"
+			id="modal-refund-history"
+			x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="top">
+					<span class="history-title">Historial</span>
+
+					<template x-if="history_list.length !== 0">
+						<div class="pagination">
+							<span class="white hover-opacity left" :class="history_page > 1 ? '':'disabled'" @click="firstHistoryPage()" title="Primera página">
+								<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity left" :class="history_page > 1 ? '':'disabled'" @click="prevHistoryPage()" title="Página anterior">
+								<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity" :class="history_page < history_total_pages ? '':'disabled'" @click="nextHistoryPage()" title="Siguiente página">
+								<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity" :class="history_page < history_total_pages ? '':'disabled'" @click="lastHistoryPage()" title="Última página">
+								<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+							</span>
+						</div>
+					</template>
+				</div>
+
+				<div class="modal-content">
+					<template x-if="history_list.length == 0">
+						<span style="padding: 1rem;">Aún no hay solicitudes en el historial.</span>
+					</template>
+
+					<template x-if="history_list.length > 0">
+						<div class="history">
+							<table class="static mobile-hide">
+								<thead>
+									<tr>
+										<th>ID</th>
+										<th>Cliente</th>
+										<th>Pedido</th>
+										<th>Motivo</th>
+										<th>Estado</th>
+										<th>Monto</th>
+										<th>Fecha</th>
+									</tr>
+								</thead>
+								<tbody>
+									<template x-for="h in history_list" :key="h.id">
+										<tr class="hover-opacity" style="cursor:pointer;" @click="openDetail(h.id)">
+											<td><b class="link-id" x-text="`EX-${h.id}`"></b></td>
+											<td x-text="h.client_name || '-'"></td>
+											<td x-text="h.order_number || '-'"></td>
+											<td x-text="h.reason"></td>
+											<td><span class="detail-status" :class="h.status_slug" x-text="h.status_name"></span></td>
+											<td x-text="`S/ ${Number(h.net_refund).toFixed(2)}`"></td>
+											<td x-text="h.created_at"></td>
+										</tr>
+									</template>
+								</tbody>
+							</table>
+
+							<div class="mobile-show mobile-table">
+								<template x-for="h in history_list" :key="h.id">
+									<div class="row white hover-opacity" @click="openDetail(h.id)">
+										<div class="head">
+											<div class="info">
+												<span class="id" x-text="`EX-${h.id}`"></span>
+												<span class="date" x-text="h.created_at"></span>
+											</div>
+											<span class="detail-status" :class="h.status_slug" x-text="h.status_name"></span>
+										</div>
+										<div class="body">
+											<span class="label">Cliente</span>
+											<span class="name" x-text="h.client_name || '-'"></span>
+										</div>
+										<div class="body">
+											<span class="label">Pedido</span>
+											<span class="name" x-text="h.order_number || '-'"></span>
+										</div>
+										<div class="body">
+											<span class="label">Monto</span>
+											<span class="name" x-text="`S/ ${Number(h.net_refund).toFixed(2)}`"></span>
+										</div>
+									</div>
+								</template>
+							</div>
+						</div>
+					</template>
+				</div>
+			</div>
+		</div>
+
+		<!-- ── Modal buscar ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('refund-search')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-refund-search"
+			x-cloak
+		>
+			<div class="modal little" @click.stop>
+				<div class="bottom glass2">
+					<img alt="" class="ico" width="20" height="20" src="/static/icons/line/find.svg">
+					<input type="text"
+						x-model="find_query"
+						placeholder="Nombre, DNI o N° pedido"
+						@input.debounce.300ms="findRequests()">
+					<div class="hover-opacity clear" x-show="find_query" title="Limpiar búsqueda" @click="find_query = ''; found_requests = [];">
+						<img alt="" width="12" height="12" src="/static/icons/filled/x.svg">
+					</div>
+				</div>
+				<div class="orders glass2" x-show="found_requests.length > 0">
+					<template x-for="r in found_requests" :key="r.id">
+						<div class="item" @click="openDetail(r.id)">
+							<div class="title">
+								<span class="order-number" x-text="`EX-${r.id}`"></span>
+								<span class="detail-status" :class="r.status_slug" x-text="r.status_name"></span>
+							</div>
+							<span class="client" x-text="r.client_name || '—'"></span>
+							<span class="service" x-text="`Pedido ${r.order_number || '—'} · ${r.reason}`"></span>
+						</div>
+					</template>
+				</div>
+			</div>
+		</div>
+
+		<!-- ── Modal estadísticas ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('refund-stats')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-refund-stats"
+			x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="top">
+					<span class="title">Estadísticas</span>
+				</div>
+
+				<div class="modal-content">
+					<div class="kpi">
+						<div class="item white">
+							<p>Total</p>
+							<span x-text="$store.cache.getData('refund_statistics')?.count.total ?? 0"></span>
+						</div>
+						<div class="item white">
+							<p>Monto extornado</p>
+							<span x-text="`S/ ${Number($store.cache.getData('refund_statistics')?.count.refunded_amount || 0).toFixed(2)}`"></span>
+						</div>
+						<div class="item white">
+							<p>% con penalidad</p>
+							<span x-text="`${$store.cache.getData('refund_statistics')?.count.penalty_percent ?? 0}%`"></span>
+						</div>
+						<div class="item white">
+							<p>Penalidades</p>
+							<span x-text="`S/ ${Number($store.cache.getData('refund_statistics')?.count.penalty_amount || 0).toFixed(2)}`"></span>
+						</div>
+					</div>
+
+					<div class="charts">
+						<div class="glass2 box">
+							<span>Extornos por mes</span>
+							<canvas x-ref="refundMonthChart" width="160" height="80"></canvas>
+						</div>
+
+						<div class="glass2 box">
+							<span>Por motivo</span>
+							<canvas x-ref="refundReasonChart" width="160" height="80"></canvas>
+						</div>
+
+						<div class="glass2 box">
+							<span>Por responsable</span>
+							<canvas x-ref="refundAssigneeChart" width="160" height="80"></canvas>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- ── Modal crear ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('refund-create')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap common-modal"
+			id="modal-refund-create"
+			x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2 small" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<input class="title" type="text" placeholder="Número de pedido" x-model="form.order_number" @blur="fetchClientOrder()">
+
+				<div class="modal-content">
+					<div class="fields">
+						<label :class="form.client_order_found ? 'glass2' : 'white'">
+							<img alt="user" src="/static/icons/line/id.svg" width="16" height="16">
+							<input
+								type="text"
+								maxlength="15"
+								x-model="form.client_dni"
+								placeholder="DNI / RUC"
+								@input="form.client_dni = form.client_dni.replace(/\D/g, '')"
+								:disabled="form.client_order_found"
+								@blur="fetchClientData()">
+						</label>
+
+						<label :class="form.client_order_found || form.client_found ? 'glass2' : 'white'" style="flex: 2;">
+							<img alt="user" :src="`/static/icons/line/${form.client_order_found || form.client_found ? 'user' : 'useradd'}.svg`" width="16" height="16">
+							<input :disabled="form.client_order_found || form.client_found" type="text" placeholder="Nombre o Razón Social" x-model="form.client_name">
+						</label>
+					</div>
+
+					<div class="fields">
+						<label class="white">
+							<img alt="phone" src="/static/icons/line/phone.svg" width="16" height="16">
+							<input
+								type="tel"
+								maxlength="15"
+								x-model="form.client_phone"
+								placeholder="Celular del cliente"
+								@input="form.client_phone = form.client_phone.replace(/\D/g, '')">
+						</label>
+					</div>
+
+					<div class="fields">
+						<label class="white">
+							<select x-model="form.reason">
+								<option value="" selected disabled>Motivo</option>
+								<option value="inconforme">Atención inconforme</option>
+								<option value="opinion">Cambio de opinión</option>
+								<option value="producto">Cambio de producto</option>
+								<option value="envio">Cambio en tipo de envío</option>
+								<option value="no_envio">Envío no concretado</option>
+								<option value="stock">Falta de stock</option>
+								<option value="preventa">Preventa inconclusa</option>
+								<option value="otro">Otro</option>
+							</select>
+						</label>
+
+						<label class="white">
+							<select x-model="form.payment_method" @change="form.refund_account = ''">
+								<option value="" selected disabled>Medio de pago</option>
+								<option value="culqi_web">Culqi Web</option>
+								<option value="link_pago">Link de pago</option>
+								<option value="mercado_pago">Mercado pago</option>
+								<option value="plin_yape">Plin o Yape</option>
+								<option value="pos">POS</option>
+								<option value="bbva">Transferencia BBVA</option>
+								<option value="bcp">Transferencia BCP</option>
+								<option value="interbank">Transferencia Interbank</option>
+								<option value="scotiabank">Transferencia Scotiabank</option>
+							</select>
+						</label>
+					</div>
+
+					<div class="fields" x-show="formRequiresAccount()">
+						<label class="white">
+							<input type="text" x-model="form.refund_account" :placeholder="`N° de cuenta ${formAccountBankLabel()}`" inputmode="numeric" @input="form.refund_account = form.refund_account.replace(/\D/g, '')">
+						</label>
+					</div>
+
+					<textarea class="text-area glass2" x-model="form.detail" placeholder="Descripción del caso..." rows="2"></textarea>
+
+					<div class="fields">
+						<div class="field-group">
+							<span class="field-label">Monto a extornar</span>
+							<label class="white">
+								<input type="number" min="0" step="0.01" x-model.number="form.refund_amount" placeholder="0.00" @input="calcNet()">
+							</label>
+						</div>
+					</div>
+					
+					<div class="fields">
+						<div class="field-group">
+							<span class="field-label">Penalidad</span>
+							<label class="white penalty-row">
+								<span class="text">¿Aplicar S/ 10 de penalidad?</span>
+								<div class="toggle-label">
+									<input type="checkbox" x-model="form.applies_penalty" @change="calcNet()">
+									<span class="toggle-track"></span>
+								</div>
+							</label>
+						</div>
+
+						<div class="field-group">
+							<span class="field-label">Neto a extornar</span>
+							<label class="glass2 net-amount" x-text="`S/ ${form.net_refund.toFixed(2)}`"></label>
+						</div>
+					</div>
+
+					<div class="form-grid">
+						<div class="field-group full">
+							<label class="white upload-btn hover-opacity">
+								<span x-text="form.files.length ? `${form.files.length} archivo(s) seleccionado(s)` : '+ Agregar evidencias'"></span>
+								<input type="file" multiple style="display:none" @change="addFiles($event)">
+							</label>
+							<div class="file-chips" x-show="form.files.length > 0">
+								<template x-for="(f, i) in form.files" :key="i">
+									<div class="file-chip">
+										<img alt="" src="/static/icons/filled/clip.svg" width="14" height="14">
+										<span class="chip-name" x-text="f.name"></span>
+										<span class="chip-size" x-text="(f.size/1024).toFixed(1)+' KB'"></span>
+										<button @click="removeFile(i)" class="chip-remove">×</button>
+									</div>
+								</template>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="modal-footer buttons">
+					<!-- <button class="button ghost hover-opacity" @click="$store.cache.hideLastModal()">Cancelar</button> -->
+					<button class="button hover-opacity" @click="submitCreate()">
+						Registrar extorno
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- ── Modal detalle ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('refund-detail')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap common-modal"
+			id="modal-refund-detail"
+			x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2 extrabig" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="detail-head">
+					<div class="detail-head-left">
+						<span class="detail-title" x-text="`EX-${detail?.id || ''}`"></span>
+						<span class="admin-badge" x-show="detail?.is_admin_register">ADM</span>
+					</div>
+					<div class="detail-status" :class="detail?.status_slug" x-text="detail?.status_name"></div>
+				</div>
+
+				<div class="modal-content dual">
+					<!-- Columna izquierda -->
+					<div class="dataview overflow percent50">
+
+						<!-- Cliente & pedido -->
+						<div class="detail-section white">
+							<div class="detail-grid">
+								<div class="detail-field">
+									<span class="label">DNI / RUC</span>
+									<span x-text="detail?.client_dni || '-'"></span>
+								</div>
+								<div class="detail-field">
+									<span class="label">Cliente</span>
+									<span x-text="detail?.client_name || '-'"></span>
+								</div>
+								<div class="detail-field">
+									<span class="label">Nro. pedido</span>
+									<div class="editable-field">
+										<template x-if="!editing_order">
+											<span x-text="detail?.order_number || '-'"></span>
+										</template>
+										<template x-if="editing_order">
+											<input class="inline-order-input" type="text" x-model="edit_order_value"
+												@keydown.enter="saveOrderNumber()"
+												@keydown.escape="editing_order = false">
+										</template>
+										<template x-if="canEditOrderNumber() && !editing_order">
+											<button class="order-edit-btn hover-opacity" @click="startEditOrder()" title="Editar número">
+												<img alt="" width="12" height="12" src="/static/icons/line/pencil.svg">
+											</button>
+										</template>
+										<template x-if="editing_order">
+											<button class="order-edit-btn hover-opacity" @click="saveOrderNumber()" title="Guardar">
+												<img alt="" width="12" height="12" src="/static/icons/line/approve.svg">
+											</button>
+										</template>
+										<template x-if="editing_order">
+											<button class="order-edit-btn hover-opacity" @click="editing_order = false" title="Cancelar">
+												<img alt="" width="12" height="12" src="/static/icons/line/delete.svg">
+											</button>
+										</template>
+									</div>
+									<template x-if="detail?.original_order_number && detail?.original_order_number !== detail?.order_number">
+										<span class="original-hint">El cliente registró: <b x-text="detail.original_order_number"></b></span>
+									</template>
+								</div>
+								<div class="detail-field" x-show="detail?.assigned_to">
+									<span class="label">Responsable</span>
+									<span x-text="detail?.assigned_to_name || '-'"></span>
+								</div>
+								<div class="detail-field" x-show="detail?.scheduled_date">
+									<span class="label">Fecha programada</span>
+									<span x-text="detail?.scheduled_date || '-'"></span>
+								</div>
+							</div>
+						</div>
+
+						<!-- Motivo & detalle -->
+						<div class="detail-section white">
+							<div class="detail-grid">
+								<div class="detail-field">
+									<span class="label">Motivo</span>
+									<span x-text="detail?.reason_label || '-'"></span>
+								</div>
+								<template x-if="detail?.reason === 'otro' && detail?.reason_detail">
+									<div class="detail-field full">
+										<span class="label">Detalle motivo</span>
+										<span x-text="detail.reason_detail"></span>
+									</div>
+								</template>
+								<div class="detail-field">
+									<span class="label">Medio de pago</span>
+									<span x-text="detail?.payment_method_label || '-'"></span>
+								</div>
+								<div class="detail-field" x-show="detail?.refund_account">
+									<span class="label" x-text="`Cuenta para extorno${accountBankLabel() ? ' (' + accountBankLabel() + ')' : ''}`"></span>
+									<span x-text="detail?.refund_account"></span>
+								</div>
+								<div class="detail-field full" x-show="detail?.detail">
+									<span class="label">Detalle</span>
+									<span x-text="detail?.detail"></span>
+								</div>
+							</div>
+						</div>
+
+						<!-- Montos + penalidad -->
+						<div class="detail-section white">
+							<div class="detail-grid">
+								<div class="detail-field">
+									<span class="label">Monto extorno</span>
+									<span x-text="`S/ ${detail?.refund_amount?.toFixed(2) || '0.00'}`"></span>
+								</div>
+								<div class="detail-field" x-show="detail?.applies_penalty">
+									<span class="label">Penalidad</span>
+									<span x-text="`-S/ ${detail?.penalty_amount?.toFixed(2) || '0.00'}`"></span>
+								</div>
+								<div class="detail-field highlight">
+									<span class="label">Neto a extornar</span>
+									<span x-text="`S/ ${detail?.net_refund?.toFixed(2) || '0.00'}`"></span>
+								</div>
+							</div>
+
+							<!-- Toggle penalidad (editable según permisos) -->
+							<div class="penalty-edit" x-show="canEditPenalty()">
+								<span class="penalty-edit-label">¿Aplica penalidad? (S/ 10.00)</span>
+								<label class="toggle-label" @click.stop>
+									<input type="checkbox" :checked="detail?.applies_penalty"
+										@change="togglePenalty($event.target.checked)">
+									<span class="toggle-track"></span>
+								</label>
+							</div>
+						</div>
+
+						<!-- Adjuntos -->
+						<div class="detail-section white files">
+							<div class="section-label-row">
+								<img alt="" width="14" height="14" src="/static/icons/filled/clip.svg">
+								<span class="section-label" style="margin-bottom:0;">Adjuntos</span>
+								<span class="section-count" x-text="`(${detail?.attachments?.length || 0})`"></span>
+							</div>
+
+							<div class="thumbnails-grid small-grid" x-show="detail?.attachments?.length > 0 || canUploadAttachments()">
+								<template x-for="f in (detail?.attachments || [])" :key="f.id">
+									<div class="thumb-wrapper">
+										<div class="thumb-item hover-opacity" @click="openAttachment(f)">
+											<div class="thumbnail-wrapper">
+												<template x-if="isImageFile(f)">
+													<img :src="getInlineUrl(f)" :alt="f.original_name">
+												</template>
+												<template x-if="!isImageFile(f)">
+													<div class="file-card">
+														<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+													</div>
+												</template>
+											</div>
+											<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+										</div>
+										<button class="thumb-delete hover-opacity" x-show="canDeleteAttachment()"
+											@click.stop="deleteAttachment(f.id)" title="Eliminar">
+											<img alt="×" width="12" height="12" src="/static/icons/line/delete.svg">
+										</button>
+									</div>
+								</template>
+								<template x-if="canUploadAttachments()">
+									<div class="add-button hover-opacity" @click="$refs.refundFileInput.click()">
+										<img alt="" width="24" height="24" src="/static/icons/line/plus.svg">
+									</div>
+								</template>
+							</div>
+							<input type="file" multiple style="display:none" x-ref="refundFileInput" @change="uploadFiles($event)">
+
+							<div class="no-files" x-show="!detail?.attachments?.length && !canUploadAttachments()">
+								Sin archivos
+							</div>
+						</div>
+
+						<!-- Comprobante de pago (visible al ejecutar desde Programado) -->
+						<div x-show="detail?.status_id === 5 && _highPerm()" class="detail-section white files">
+							<div class="section-label-row">
+								<img alt="" width="14" height="14" src="/static/icons/filled/clip.svg">
+								<span class="section-label" style="margin-bottom:0;">Comprobante de pago</span>
+							</div>
+							<div class="thumbnails-grid small-grid">
+								<template x-if="comprobante">
+									<div class="thumb-wrapper">
+										<div class="thumb-item">
+											<div class="thumbnail-wrapper">
+												<div class="file-card">
+													<div class="file-ext" x-text="(comprobante.name.split('.').pop() || '').toUpperCase()"></div>
+												</div>
+											</div>
+											<div class="thumb-caption" x-text="comprobante.name"></div>
+										</div>
+										<button class="thumb-delete hover-opacity" @click="comprobante = null" title="Quitar">
+											<img alt="×" width="12" height="12" src="/static/icons/line/delete.svg">
+										</button>
+									</div>
+								</template>
+								<template x-if="!comprobante">
+									<div class="add-button hover-opacity" @click="$refs.comprobanteInput.click()">
+										<img alt="" width="24" height="24" src="/static/icons/line/plus.svg">
+									</div>
+								</template>
+							</div>
+							<input type="file" accept="image/*,application/pdf" style="display:none"
+								x-ref="comprobanteInput"
+								@change="comprobante = $event.target.files[0]; comprobante_error = false; $event.target.value = ''">
+						</div>
+
+						<!-- Acciones de estado -->
+						<div class="detail-actions" x-show="getAvailableActions().length > 0">
+							<div class="comprobante-error" x-show="comprobante_error" x-transition.opacity.duration.200ms>
+								<img alt="" width="14" height="14" src="/static/icons/filled/late.svg">
+								<span>Debes adjuntar el comprobante de pago antes de ejecutar el extorno.</span>
+							</div>
+							<div class="action-btns buttons">
+								<template x-for="action in getAvailableActions()" :key="action.status_id">
+									<button class="button icon hover-opacity" :class="action.class || ''"
+										@click="changeStatus(action.status_id)">
+										<img alt="" width="18" height="18" :src="`/static/icons/line/${action.icon}.svg`">
+										<span x-text="action.label"></span>
+									</button>
+								</template>
+							</div>
+						</div>
+					</div>
+
+					<!-- Columna derecha: chat -->
+					<div class="comments-container white percent50">
+						<div class="comments-box overflow" x-ref="commentsBox">
+							<template x-if="!detail?.chats || detail?.chats?.length === 0">
+								<div class="no-comments">Nada por aquí</div>
+							</template>
+							<template x-for="chat in detail?.chats" :key="chat.id">
+								<div class="user-comment" :class="{'self': chat.commenter_id == user.id}">
+									<img alt="user" :src="'/static/images/uploads/users/' + chat.commenter_image" width="24" height="24">
+									<div class="white bubble">
+										<div class="top">
+											<span x-text="chat.commenter_id == user.id ? 'Tú' : chat.commenter_name"></span>
+											<p x-text="chat.created_at"></p>
+										</div>
+										<p x-text="chat.comment"></p>
+									</div>
+								</div>
+							</template>
+						</div>
+						<div class="comments-input white">
+							<label>
+								<textarea x-model="message" placeholder="Ingresa un mensaje..." @keydown.enter="handleEnterSend($event)"></textarea>
+							</label>
+							<div class="send hover-opacity" @click="sendChat()" :class="{'disabled': !message}">
+								<img alt="enviar" width="16" height="16" src="/static/icons/filled/send.svg">
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Modal confirmar eliminar adjunto -->
+		<div
+			x-show="$store.cache.isVisibleModal('refund-confirm-delete')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap common-modal"
+			id="modal-refund-confirm-delete"
+			x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2 small" @click.stop style="max-width:22rem;">
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+				<div class="modal-content" style="text-align:center;">
+					<p style="font-size:0.9rem;font-weight:500;margin:0;">¿Eliminar este archivo?</p>
+				</div>
+				<div class="modal-footer buttons">
+					<button class="button ghost hover-opacity" @click="$store.cache.hideLastModal()">Cancelar</button>
+					<button class="button hover-opacity" style="background:#e36464;" @click="confirmDeleteAttachment()">Eliminar</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Modal visor adjunto -->
+		<div
+			x-show="$store.cache.isVisibleModal('refund-attachment')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-refund-attachment"
+			x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal big glass2" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+				<div class="modal-content">
+					<template x-if="viewer_payload?.kind === 'url' && isPdfFile(viewer_file)">
+						<iframe :src="viewer_payload.url" style="width:100%;height:70vh;border:0;"></iframe>
+					</template>
+					<template x-if="viewer_payload?.kind === 'url' && isImageFile(viewer_file)">
+						<img style="border-radius:0.75rem;max-width:100%;" :src="viewer_payload.url">
+					</template>
+					<template x-if="viewer_payload?.kind === 'download'">
+						<div style="text-align:center;" x-text="viewer_payload.message"></div>
+					</template>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		var chartRefundMonth = null;
+		var chartRefundReason = null;
+		var chartRefundAssignee = null;
+		var STATS_AXIS = {
+			ticks: { color: '#666', font: { size: 12, family: 'Lexend', weight: '500' } },
+			grid:  { color: 'transparent' },
+			border: { display: false },
+		};
+		var STATS_CHART_OPTS = {
+			responsive: true,
+			plugins: { legend: { display: false } },
+			scales: {
+				x: STATS_AXIS,
+				y: { beginAtZero: true, ticks: { ...STATS_AXIS.ticks, precision: 0 }, grid: { color: '#fff' }, border: { display: false } },
+			},
+		};
+
+		Alpine.data('refunds_data', () => ({
+			token: localStorage.getItem('user_token'),
+			api:   Alpine.store('cache').api,
+			user:  Alpine.store('cache').user,
+			detail: null,
+			message: '',
+			processing: false,
+			viewer_file: null,
+			viewer_payload: null,
+			comprobante: null,
+			comprobante_error: false,
+			pending_delete_attachment: null,
+			editing_order: false,
+			edit_order_value: '',
+
+			link_list: [],
+			link_page: 1,
+			link_total_pages: 1,
+			link_processing: false,
+
+			history_list: [],
+			history_page: 1,
+			history_total_pages: 1,
+			find_query: '',
+			found_requests: [],
+
+			form: {
+				client_order_id: '',
+				client_order_found: false, client_found: false,
+				client_dni: '', client_name: '', client_phone: '',
+				order_number: '', reason: '', detail: '',
+				order_amount: 0, refund_amount: 0, applies_penalty: false,
+				net_refund: 0, payment_method: '', refund_account: '', files: [],
+			},
+
+			async init() {
+				const socket = Alpine.store('cache').socket;
+				if (socket) {
+					socket.on("refund_update", async () => {
+						await Alpine.store('cache').refresh('refund_dashboard');
+					});
+					socket.on("refund_link_update", async () => {
+						if (Alpine.store('cache').isVisibleModal('refund-links')) {
+							await this.getLinkHistory();
+						}
+					});
+				}
+				await Alpine.store('cache').fetchData([
+					{ key: 'refund_dashboard', url: '/refund/dashboard', force: true },
+					{ key: 'refund_statuses',  url: '/refund/statuses' },
+				]);
+			},
+
+			// ── Permissions ──
+
+			canRegister() {
+				return Alpine.store('cache').hasPermission('refunds', 'register_admin');
+			},
+
+			canLinks() {
+				return Alpine.store('cache').hasPermission('refunds', 'links');
+			},
+
+			_highPerm() {
+				const hp = (p) => Alpine.store('cache').hasPermission('refunds', p);
+				return hp('approve_area') || hp('approve_gerencia');
+			},
+			_validatePerm() {
+				return Alpine.store('cache').hasPermission('refunds', 'validate');
+			},
+			_canRevert() {
+				return Alpine.store('cache').hasPermission('refunds', 'revert');
+			},
+
+			canEditPenalty() {
+				if (!this.detail || this.detail.status_id >= 6) return false;
+				return Alpine.store('cache').hasPermission('refunds', 'penalty');
+			},
+
+			canUploadAttachments() {
+				if (!this.detail || this.detail.status_id >= 6) return false;
+				if (this._validatePerm() && this.detail.status_id < 5) return true;
+				if (this._highPerm()) return true;
+				return false;
+			},
+
+			canDeleteAttachment() {
+				if (!this.detail || this.detail.status_id >= 6) return false;
+				return this._highPerm();
+			},
+
+			// ── Create ──
+
+			openCreate() {
+				this.form = {
+					client_order_id: '',
+					client_order_found: false, client_found: false,
+					client_dni: '', client_name: '', client_phone: '',
+					order_number: '', reason: '', detail: '',
+					order_amount: 0, refund_amount: 0, applies_penalty: false,
+					net_refund: 0, payment_method: '', refund_account: '', files: [],
+				};
+				Alpine.store('cache').showModal('refund-create');
+			},
+
+			async fetchClientOrder() {
+				const order = this.form.order_number;
+				if (!order) {
+					this.form.client_order_id = '';
+					this.form.client_dni = '';
+					this.form.client_name = '';
+					this.form.client_phone = '';
+					this.form.client_order_found = false;
+					this.form.client_found = false;
+					return;
+				}
+				try {
+					const res = await fetch(`${this.api}/client/order_number/${order}`, {
+						headers: { 'X-No-Toast': '1' },
+					});
+					if (!res.ok) {
+						this.form.client_order_id = '';
+						this.form.client_order_found = false;
+						return;
+					}
+					const json = await res.json();
+					if (json.success) {
+						const c = json.data.client;
+						this.form.client_order_id    = json.data.client_order_id;
+						this.form.client_dni         = c.document;
+						this.form.client_name        = c.name;
+						this.form.client_phone       = c.phone || '';
+						this.form.client_order_found = true;
+					}
+				} catch (e) { console.error(e); }
+			},
+
+			async fetchClientData() {
+				if (this.form.client_order_found) return;
+				const doc = this.form.client_dni;
+				if (!doc) {
+					this.form.client_name = '';
+					this.form.client_phone = '';
+					this.form.client_found = false;
+					return;
+				}
+				try {
+					const res = await fetch(`${this.api}/client/data/${doc}`, {
+						headers: { 'X-No-Toast': '1' },
+					});
+					if (!res.ok) { this.form.client_found = false; return; }
+					const json = await res.json();
+					if (json.success) {
+						this.form.client_name  = json.data.name;
+						this.form.client_phone = json.data.phone || '';
+						this.form.client_found = true;
+					}
+				} catch (e) { console.error(e); }
+			},
+
+			calcNet() {
+				const amt = parseFloat(this.form.refund_amount) || 0;
+				this.form.net_refund = Math.max(0, amt - (this.form.applies_penalty ? 10 : 0));
+			},
+
+			addFiles(e) {
+				for (const f of e.target.files) this.form.files.push(f);
+				e.target.value = '';
+			},
+
+			removeFile(i) {
+				this.form.files.splice(i, 1);
+			},
+
+			async submitCreate() {
+				if (this.formRequiresAccount()) {
+					const acc = (this.form.refund_account || '').trim();
+					if (!acc || acc.length < 8) {
+						alert(`Ingresa el número de cuenta ${this.formAccountBankLabel()} para continuar.`);
+						return;
+					}
+				}
+				const fd = new FormData();
+				fd.append('client_order_id', this.form.client_order_id || '');
+				fd.append('order_number',    this.form.order_number || '');
+				fd.append('client_dni',      this.form.client_dni || '');
+				fd.append('client_name',     this.form.client_name || '');
+				fd.append('client_phone',    this.form.client_phone || '');
+				fd.append('reason',          this.form.reason);
+				fd.append('detail',          this.form.detail || '');
+				fd.append('order_amount',    this.form.refund_amount);
+				fd.append('refund_amount',   this.form.refund_amount);
+				fd.append('applies_penalty', this.form.applies_penalty ? 'true' : 'false');
+				fd.append('payment_method',  this.form.payment_method);
+				fd.append('refund_account',  this.form.refund_account || '');
+				for (const f of this.form.files) fd.append('files[]', f);
+
+				try {
+					const res = await fetch(`${this.api}/refund/`, {
+						method: 'POST',
+						headers: { 'Authorization': `Bearer ${this.token}` },
+						body: fd,
+					});
+					const json = await res.json();
+					if (!res.ok) { alert(json?.data?.message || json?.data || 'Error'); return; }
+					Alpine.store('cache').hideLastModal();
+					await Alpine.store('cache').refresh('refund_dashboard');
+				} catch (e) { console.error(e); }
+			},
+
+			// ── Links ──
+
+			async viewLinks() {
+				await this.firstLinkPage();
+				Alpine.store('cache').showModal('refund-links');
+			},
+
+			async getLinkHistory() {
+				try {
+					const res = await fetch(`${this.api}/refund/link_history?page=${this.link_page}`, {
+						headers: { 'Authorization': `Bearer ${this.token}` },
+					});
+					const json = await res.json();
+					const data = json.data || {};
+					this.link_list = data.list || [];
+					this.link_total_pages = data.pagination?.pages || 1;
+				} catch (e) { console.error(e); }
+			},
+
+			async newRefundLink() {
+				if (this.link_processing) return;
+				this.link_processing = true;
+				try {
+					const res = await fetch(`${this.api}/refund/link`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+						body: JSON.stringify({}),
+					});
+					const json = await res.json();
+					if (!res.ok) { alert(json?.data?.message || json?.data || 'Error'); return; }
+					await navigator.clipboard.writeText(json.data.url).catch(() => {});
+					await this.getLinkHistory();
+				} catch (e) { console.error(e); }
+				finally { this.link_processing = false; }
+			},
+
+			async deleteRefundLink(link_id) {
+				if (this.link_processing) return;
+				this.link_processing = true;
+				try {
+					const res = await fetch(`${this.api}/refund/link/${link_id}`, {
+						method: 'DELETE',
+						headers: { 'Authorization': `Bearer ${this.token}` },
+					});
+					if (res.ok) await this.getLinkHistory();
+				} catch (e) { console.error(e); }
+				finally { this.link_processing = false; }
+			},
+
+			async firstLinkPage() { this.link_page = 1; await this.getLinkHistory(); },
+			async lastLinkPage()  { this.link_page = this.link_total_pages; await this.getLinkHistory(); },
+			async nextLinkPage()  {
+				if (this.link_page < this.link_total_pages) { this.link_page++; await this.getLinkHistory(); }
+			},
+			async prevLinkPage()  {
+				if (this.link_page > 1) { this.link_page--; await this.getLinkHistory(); }
+			},
+
+			// ── Buscar ──
+			async search() {
+				this.find_query = '';
+				this.found_requests = [];
+				Alpine.store('cache').showModal('refund-search');
+			},
+			async findRequests() {
+				const term = (this.find_query || '').trim();
+				if (term.length < 2) { this.found_requests = []; return; }
+				try {
+					const res = await fetch(`${this.api}/refund/find/${encodeURIComponent(term)}`, {
+						headers: { 'Authorization': `Bearer ${this.token}`, 'X-No-Toast': '1' },
+					});
+					const json = await res.json();
+					this.found_requests = (res.ok && json.data) ? json.data : [];
+				} catch (e) { console.error(e); this.found_requests = []; }
+			},
+
+			// ── Historial ──
+			async viewHistory() {
+				await this.firstHistoryPage();
+				Alpine.store('cache').showModal('refund-history');
+			},
+			async getHistory() {
+				try {
+					const res = await fetch(`${this.api}/refund/history?page=${this.history_page}`, {
+						headers: { 'Authorization': `Bearer ${this.token}`, 'X-No-Toast': '1' },
+					});
+					const json = await res.json();
+					const data = json.data || {};
+					this.history_list = data.list || [];
+					this.history_total_pages = data.pagination?.pages || 1;
+				} catch (e) { console.error(e); }
+			},
+			async firstHistoryPage() { this.history_page = 1; await this.getHistory(); },
+			async lastHistoryPage()  { this.history_page = this.history_total_pages; await this.getHistory(); },
+			async nextHistoryPage()  {
+				if (this.history_page < this.history_total_pages) { this.history_page++; await this.getHistory(); }
+			},
+			async prevHistoryPage()  {
+				if (this.history_page > 1) { this.history_page--; await this.getHistory(); }
+			},
+
+			// ── Estadísticas ──
+			async viewStatistics() {
+				await Alpine.store('cache').fetchData([
+					{ key: 'refund_statistics', url: '/refund/statistics', force: true },
+				]);
+				Alpine.store('cache').showModal('refund-stats');
+				await this.initStatsCharts();
+			},
+			async initStatsCharts() {
+				const stats = Alpine.store('cache').getData('refund_statistics');
+				if (!stats) return;
+				if (!this.$refs.refundMonthChart || !this.$refs.refundReasonChart || !this.$refs.refundAssigneeChart) return;
+				await new Promise(r => requestAnimationFrame(() => setTimeout(r, 50)));
+
+				if (chartRefundMonth)  chartRefundMonth.destroy();
+				if (chartRefundReason) chartRefundReason.destroy();
+
+				chartRefundMonth = new Chart(this.$refs.refundMonthChart, {
+					type: 'line',
+					data: {
+						labels: stats.by_month.map(r => r.period),
+						datasets: [{ label: 'Extornos', data: stats.by_month.map(r => r.count), fill: true, tension: 0.3, backgroundColor: 'rgba(234,113,52,0.5)', borderWidth: 0 }],
+					},
+					options: STATS_CHART_OPTS,
+				});
+
+				chartRefundReason = new Chart(this.$refs.refundReasonChart, {
+					type: 'bar',
+					data: {
+						labels: stats.by_reason.map(r => r.reason),
+						datasets: [{ label: 'Extornos', data: stats.by_reason.map(r => r.count), backgroundColor: 'rgba(255,160,42,0.75)', borderWidth: 0 }],
+					},
+					options: STATS_CHART_OPTS,
+				});
+
+				this.buildAssigneeChart(stats);
+			},
+			buildAssigneeChart(stats) {
+				const canvas = this.$refs.refundAssigneeChart;
+				if (!canvas) return;
+				const byA = Array.isArray(stats.by_assignee) ? stats.by_assignee : [];
+				if (chartRefundAssignee) { chartRefundAssignee.destroy(); chartRefundAssignee = null; }
+				chartRefundAssignee = new Chart(canvas, {
+					type: 'bar',
+					data: {
+						labels: byA.map(r => r.assignee),
+						datasets: [{ label: 'Extornos', data: byA.map(r => r.count), backgroundColor: 'rgba(15,32,39,0.75)', borderWidth: 0 }],
+					},
+					options: STATS_CHART_OPTS,
+				});
+			},
+
+			// ── Detail ──
+
+			async openDetail(id) {
+				try {
+					const res = await fetch(`${this.api}/refund/${id}`, {
+						headers: { 'Authorization': `Bearer ${this.token}` },
+					});
+					const json = await res.json();
+					this.detail = json.data;
+					this.message = '';
+					this.comprobante = null;
+					this.comprobante_error = false;
+					this.editing_order = false;
+					Alpine.store('cache').showModal('refund-detail');
+					this.$nextTick(() => this.scrollCommentsToBottom('instant'));
+				} catch (e) { console.error(e); }
+			},
+
+			// ── Order number edit ──
+
+			canEditOrderNumber() {
+				if (!this.detail || this.detail.status_id >= 6) return false;
+				if (this._validatePerm() && this.detail.status_id < 3) return true;
+				if (this._highPerm()) return true;
+				return false;
+			},
+
+			startEditOrder() {
+				this.edit_order_value = this.detail.order_number || '';
+				this.editing_order = true;
+				this.$nextTick(() => this.$el.querySelector('.inline-order-input')?.focus());
+			},
+
+			async saveOrderNumber() {
+				if (!this.edit_order_value.trim()) return;
+				try {
+					const res = await fetch(`${this.api}/refund/${this.detail.id}/order_number`, {
+						method: 'PATCH',
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+						body: JSON.stringify({ order_number: this.edit_order_value.trim() }),
+					});
+					const json = await res.json();
+					if (!res.ok) { alert(json?.data?.message || json?.data || 'Error'); return; }
+					this.editing_order = false;
+					await this.openDetail(this.detail.id);
+				} catch (e) { console.error(e); }
+			},
+
+			// ── Status actions ──
+
+			getAvailableActions() {
+				if (!this.detail) return [];
+				const sid = this.detail.status_id;
+				const hp  = (p) => Alpine.store('cache').hasPermission('refunds', p);
+				const actions = [];
+
+				if (sid < 6 && this._canRevert())
+					actions.push({ status_id: 7, label: 'Revertir extorno',   icon: 'dislike',  class: 'black' });
+				// 1→2
+				if (sid === 1 && this._validatePerm())
+					actions.push({ status_id: 2, label: 'Iniciar validación',   icon: 'find',     class: '' });
+				// 2→3
+				if (sid === 2 && this._validatePerm())
+					actions.push({ status_id: 3, label: 'Extorno validado',   icon: 'like',     class: '' });
+				// 3→4
+				if (sid === 3 && hp('approve_area'))
+					actions.push({ status_id: 4, label: 'Aprobado por área',    icon: 'like',     class: '' });
+				// 4→5
+				if (sid === 4 && hp('approve_gerencia'))
+					actions.push({ status_id: 5, label: 'Aprobar extorno', icon: 'like', class: '' });
+				// 5→6
+				if (sid === 5 && this._highPerm())
+					actions.push({ status_id: 6, label: 'Extorno ejecutado',  icon: 'approve',  class: '' });
+
+				return actions;
+			},
+
+			async changeStatus(statusId) {
+				if (!this.detail) return;
+				if (statusId === 6 && !this.comprobante) {
+					this.comprobante_error = true;
+					return;
+				}
+				this.comprobante_error = false;
+				try {
+					let res;
+					if (statusId === 6 && this.comprobante) {
+						const fd = new FormData();
+						fd.append('status_id', statusId);
+						fd.append('comprobante', this.comprobante);
+						res = await fetch(`${this.api}/refund/${this.detail.id}/status`, {
+							method: 'PUT',
+							headers: { 'Authorization': `Bearer ${this.token}` },
+							body: fd,
+						});
+					} else {
+						res = await fetch(`${this.api}/refund/${this.detail.id}/status`, {
+							method: 'PUT',
+							headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+							body: JSON.stringify({ status_id: statusId }),
+						});
+					}
+					const json = await res.json();
+					if (!res.ok) { alert(json?.data?.message || json?.data || 'Error'); return; }
+					this.comprobante = null;
+					Alpine.store('cache').hideLastModal();
+					await Alpine.store('cache').refresh('refund_dashboard');
+				} catch (e) { console.error(e); }
+			},
+
+			// ── Penalty ──
+
+			async togglePenalty(value) {
+				if (!this.detail) return;
+				try {
+					const res = await fetch(`${this.api}/refund/${this.detail.id}/penalty`, {
+						method: 'PATCH',
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+						body: JSON.stringify({ applies_penalty: value }),
+					});
+					const json = await res.json();
+					if (!res.ok) { alert(json?.data?.message || json?.data || 'Error'); return; }
+					await this.openDetail(this.detail.id);
+				} catch (e) { console.error(e); }
+			},
+
+			// ── Attachments ──
+
+			isImageFile(f) {
+				return ['png','jpg','jpeg','webp','gif'].includes((f?.ext || '').toLowerCase());
+			},
+			isPdfFile(f) {
+				return (f?.ext || '').toLowerCase() === 'pdf';
+			},
+			getInlineUrl(f) {
+				return `${this.api}${f.inline_url}`;
+			},
+
+			async uploadFiles(event) {
+				const files = event.target.files;
+				if (!files?.length || !this.detail) return;
+				const fd = new FormData();
+				fd.append('refund_id', this.detail.id);
+				for (const f of files) fd.append('files[]', f);
+				try {
+					const res = await fetch(`${this.api}/refund/attachments`, {
+						method: 'POST',
+						headers: { 'Authorization': `Bearer ${this.token}` },
+						body: fd,
+					});
+					const json = await res.json();
+					if (!res.ok) { alert(json?.data?.message || json?.data || 'Error'); return; }
+					await this.openDetail(this.detail.id);
+				} catch (e) { console.error(e); }
+				event.target.value = '';
+			},
+
+			deleteAttachment(attachmentId) {
+				this.pending_delete_attachment = attachmentId;
+				Alpine.store('cache').showModal('refund-confirm-delete');
+			},
+
+			async confirmDeleteAttachment() {
+				Alpine.store('cache').hideLastModal();
+				if (!this.pending_delete_attachment) return;
+				try {
+					const res = await fetch(`${this.api}/refund/attachment/${this.pending_delete_attachment}`, {
+						method: 'DELETE',
+						headers: { 'Authorization': `Bearer ${this.token}` },
+					});
+					if (res.ok) await this.openDetail(this.detail.id);
+				} catch (e) { console.error(e); }
+				finally { this.pending_delete_attachment = null; }
+			},
+
+			async openAttachment(file) {
+				this.viewer_file = file;
+				this.viewer_payload = null;
+				try {
+					const res = await fetch(`${this.api}${file.preview_url}`, {
+						headers: { 'Authorization': `Bearer ${this.token}` },
+					});
+					const json = await res.json();
+					const payload = json?.data ?? json;
+					if (payload.kind === 'url') payload.url = `${this.api}${payload.url}`;
+					this.viewer_file.download_url = `${this.api}${file.download_url}`;
+					this.viewer_payload = payload;
+					Alpine.store('cache').showModal('refund-attachment');
+				} catch (e) { console.error(e); }
+			},
+
+			// ── Chat ──
+
+			handleEnterSend(e) {
+				if (e.shiftKey) return;
+				e.preventDefault();
+				this.sendChat();
+			},
+
+			formRequiresAccount() {
+				return ['plin_yape', 'bbva', 'bcp', 'interbank', 'scotiabank']
+					.includes(this.form.payment_method);
+			},
+
+			formAccountBankLabel() {
+				const pm = this.form.payment_method;
+				if (pm === 'plin_yape') return 'BCP';
+				const labels = { bbva: 'BBVA', bcp: 'BCP', interbank: 'Interbank', scotiabank: 'Scotiabank' };
+				return labels[pm] || '';
+			},
+
+			accountBankLabel() {
+				const pm = this.detail?.payment_method;
+				if (pm === 'plin_yape') return 'BCP';
+				const labels = { bbva: 'BBVA', bcp: 'BCP', interbank: 'Interbank', scotiabank: 'Scotiabank' };
+				return labels[pm] || '';
+			},
+
+			statusIcon(slug) {
+				const map = {
+					registered:        'requested',
+					reviewing:         'reviewing',
+					area_pending:      'leader',
+					gerencia_pending:  'manager',
+					scheduled:         'time',
+					executed:          'executed',
+					reverted:          'reverted',
+				};
+				return `/static/icons/module/refunds/${map[slug]}.svg`;
+			},
+
+			scrollCommentsToBottom(behavior = 'smooth') {
+				const box = this.$refs.commentsBox;
+				if (!box) return;
+				box.scrollTo({ top: box.scrollHeight, behavior });
+			},
+
+			async sendChat() {
+				if (!this.message || this.processing || !this.detail?.id) return;
+				this.processing = true;
+				try {
+					const res = await fetch(`${this.api}/refund/chat/${this.detail.id}`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+						body: JSON.stringify({ comment: this.message }),
+					});
+					const json = await res.json();
+					if (!res.ok) throw new Error(json?.data?.message || 'Error');
+					this.detail.chats.push(json.data);
+					this.message = '';
+					this.$nextTick(() => this.scrollCommentsToBottom());
+				} catch (e) { console.error(e); }
+				finally { this.processing = false; }
+			},
+		}));
+	</script>
+
+	<style>
+		#modal-refund-links .modal , #modal-refund-history .modal  {
+			max-width: fit-content;
+		}
+		#modal-refund-links .top , #modal-refund-history .top  {
+			justify-content: space-between;
+			display: flex;
+			align-items: center;
+			gap: 1rem;
+		}
+		#modal-refund-links .pagination , #modal-refund-history .pagination  {
+			display: flex;
+			gap: 0.75rem;
+		}
+		#modal-refund-links .pagination .disabled , #modal-refund-history .pagination .disabled  {
+			opacity: 0.5;
+			cursor: default !important;
+		}
+		#modal-refund-links .pagination .left img , #modal-refund-history .pagination .left img  {
+			transform: rotate(180deg);
+		}
+		#modal-refund-links .pagination span , #modal-refund-history .pagination span  {
+			width: 2rem;
+			height: 2rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			border-radius: 2rem;
+		}
+		#modal-refund-links .create-link , #modal-refund-history .create-link  {
+			display: flex;
+			gap: 0.25rem;
+			justify-content: center;
+			align-items: center;
+			width: initial;
+			padding: 0 1rem;
+			line-height: 2rem;
+			font-size: 0.8rem;
+			font-weight: 400;
+		}
+		#modal-refund-links .create-link img , #modal-refund-history .create-link img  {
+			filter: invert(1);
+		}
+		#modal-refund-links table , #modal-refund-history table  {
+			border-collapse: collapse;
+		}
+		#modal-refund-links table th , #modal-refund-history table th  {
+			padding: 0.5rem 0.75rem;
+			text-align: left;
+			font-weight: 600;
+			font-size: 0.8rem;
+			opacity: 0.75;
+		}
+		#modal-refund-links table.static tbody tr , #modal-refund-history table.static tbody tr  {
+			transition: none;
+		}
+		#modal-refund-links table.static tbody tr:hover , #modal-refund-history table.static tbody tr:hover  {
+			background-color: transparent;
+		}
+		#modal-refund-links table.static td , #modal-refund-history table.static td  {
+			cursor: default;
+			line-height: 2rem;
+			padding: 0.5rem 0.75rem;
+			white-space: nowrap;
+		}
+		#modal-refund-links table td .controlls , #modal-refund-history table td .controlls  {
+			display: flex;
+			gap: 0.5rem;
+		}
+		#modal-refund-links table td .controlls .action , #modal-refund-history table td .controlls .action  {
+			width: 1.5rem;
+			height: 1.5rem;
+			display: flex;
+			justify-content: center;
+		}
+		#modal-refund-links table .link-id , #modal-refund-history table .link-id  {
+			background-color: var(--white);
+			width: 1.75rem;
+			height: 1.75rem;
+			border-radius: 1rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-weight: 500;
+			font-size: 0.8rem;
+			border: 1px solid var(--graydark);
+		}
+		#modal-refund-links table .link-status , #modal-refund-history table .link-status  {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#modal-refund-links table .status-1 , #modal-refund-history table .status-1  {
+			background-color: #fff0de;
+			border: 2px solid #fcdab1;
+		}
+		#modal-refund-links table .status-2 , #modal-refund-history table .status-2  {
+			background-color: #dff5ff;
+			border: 2px solid #b4e1f2;
+		}
+		#modal-refund-links table .status-3 , #modal-refund-history table .status-3  {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+		}
+		#modal-refund-links table .status-4 , #modal-refund-history table .status-4  {
+			background-color: #fee3e1;
+			border: 2px solid #ffceca;
+		}
+		#modal-refund-links .mobile-table .head .status , #modal-refund-history .mobile-table .head .status  {
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#modal-refund-links .mobile-table .head .status.status-1 , #modal-refund-history .mobile-table .head .status.status-1  {
+			background-color: #fff0de;
+			border: 2px solid #fcdab1;
+		}
+		#modal-refund-links .mobile-table .head .status.status-2 , #modal-refund-history .mobile-table .head .status.status-2  {
+			background-color: #dff5ff;
+			border: 2px solid #b4e1f2;
+		}
+		#modal-refund-links .mobile-table .head .status.status-3 , #modal-refund-history .mobile-table .head .status.status-3  {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+		}
+		#modal-refund-links .mobile-table .head .status.status-4 , #modal-refund-history .mobile-table .head .status.status-4  {
+			background-color: #fee3e1;
+			border: 2px solid #ffceca;
+		}
+		#modal-refund-links .mobile-table .options , #modal-refund-history .mobile-table .options  {
+			display: flex;
+			gap: 0.75rem;
+			margin-top: 0.5rem;
+		}
+		#modal-refund-links .mobile-table .options .action , #modal-refund-history .mobile-table .options .action  {
+			flex: 1;
+			background-color: var(--newgray);
+			padding: 0.5rem 0.75rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.5rem;
+			border-radius: 2rem;
+			box-shadow: 0 1px 0 hsl(0deg 0% 0% / 15%);
+			font-size: 0.8rem;
+			font-weight: 500;
+		}
+		#modal-refund-create .title {
+			font-family: inherit;
+			border: none;
+			border-radius: 0.75rem;
+			padding: 0 0.75rem;
+			margin: 0;
+			line-height: 2.5rem;
+			outline: none;
+			font-size: 1rem;
+		}
+		#modal-refund-create .fields input,
+		#modal-refund-create .fields select {
+			height: calc(2.5rem - 2px);
+		}
+		#modal-refund-create textarea {
+			border-radius: 0.75rem;
+			background-color: var(--white);
+		}
+		#modal-refund-create .fields .white {
+			border: 2px solid #fff;
+		}
+		#modal-refund-create .fields .glass2 {
+			border-radius: 0.75rem;
+			line-height: calc(2.5rem - 2px);
+		}
+		#modal-refund-create .upload-btn {
+			padding: 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 600;
+			border: 1px dashed #000000;
+			background-color: transparent;
+			justify-content: center;
+			opacity: 0.5;
+		}
+		#refunds {
+			display: flex;
+			min-height: calc(100vh - 6.5rem);
+			gap: 1rem;
+			overflow: auto;
+			flex-direction: column;
+		}
+		#refunds .main {
+			display: flex;
+			overflow-x: auto;
+			flex: 1;
+		}
+		#refunds .group {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			border-right: 3px solid #ffffff80;
+			gap: 0.6rem;
+			padding: 0.75rem;
+			min-width: 12rem;
+		}
+		#refunds .group:last-child {
+			border-right: none;
+		}
+		#refunds .group-head {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.4rem;
+		}
+		#refunds .group-name  {
+			font-weight: 600;
+			font-size: 0.8rem;
+		}
+		#refunds .group-count {
+			font-size: 0.65rem;
+			opacity: 0.4;
+			font-weight: 500;
+			background: var(--graydark);
+			padding: 0.1rem 0.4rem;
+			border-radius: 1rem;
+		}
+		#refunds .req-card {
+			padding: 0.75rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.35rem;
+			cursor: pointer;
+		}
+		#refunds .req-top {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		#refunds .req-top-right {
+			display: flex;
+			align-items: center;
+			gap: 0.3rem;
+			flex-shrink: 0;
+		}
+		#refunds .req-client {
+			font-weight: 600;
+			font-size: 0.8rem;
+			flex: 1;
+		}
+		#refunds .req-amount {
+			color: var(--primary);
+			font-weight: 700;
+			font-size: 0.9rem;
+			white-space: nowrap;
+		}
+		#refunds .req-reason {
+			font-size: 0.72rem;
+			opacity: 0.6;
+			font-weight: 500;
+		}
+		#refunds .req-bottom {
+			display: flex;
+			justify-content: space-between; align-items: center;
+			font-size: 0.65rem;
+			font-weight: 500;
+		}
+		#refunds .req-id { 
+			font-weight: 600;
+			font-size: 0.9rem;
+			position: relative;
+			line-height: 1rem;
+		}
+		#refunds .req-id.pri {
+			color: var(--primary);
+		}
+		#refunds .req-id img {
+			right: -1.35rem;
+			top: -0.05rem;
+			position: absolute;
+		}
+		#refunds .req-date {
+			font-size: 0.65rem;
+			line-height: 0.65rem;
+			opacity: 0.35;
+		}
+		/* Status badge */
+		.detail-status.registered       { background: #f8954d; color: white; }
+		.detail-status.reviewing        { background: #efae24; color: white; }
+		.detail-status.area_pending     { background: #88b262; color: white; }
+		.detail-status.gerencia_pending { background: #50afc3; color: white; }
+		.detail-status.scheduled        { background: #508dc3; color: white; }
+		.detail-status.executed         { background: #c490cf; color: white; }
+		.detail-status.reverted         { background: #e36464; color: white; }
+
+		.detail-head { display: flex; align-items: center; justify-content: space-between; }
+		.detail-head-left { display: flex; align-items: center; gap: 0.5rem; }
+		.detail-title { font-size: 1.1rem; font-weight: 700; }
+		.detail-status {
+			font-size: 0.65rem;
+			font-weight: 400;
+			padding: 0.5rem 1rem;
+			margin: -0.25rem 0;
+			border-radius: 1rem;
+			letter-spacing: 0.03em;
+		}
+		.admin-badge {
+			font-size: 0.6rem; font-weight: 700; padding: 0.2rem 0.5rem;
+			border-radius: 1rem; background: var(--secondary); color: white;
+		}
+
+		/* Detail sections */
+		.detail-section {
+			border-radius: 0.6rem; padding: 0.7rem 0.85rem;
+			margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 0.55rem;
+		}
+		.detail-grid {
+			display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem 1rem;
+		}
+		.detail-grid .full { grid-column: 1 / -1; }
+		.detail-field { display: flex; flex-direction: column; gap: 0.1rem; }
+		.detail-field .label {
+			font-size: 0.58rem; font-weight: 700; text-transform: uppercase;
+			letter-spacing: 0.05em; opacity: 0.38;
+		}
+		.detail-field > span:not(.label) { font-size: 0.8rem; font-weight: 500; }
+		.detail-field.highlight > span:not(.label) {
+			font-size: 1rem; font-weight: 700; color: var(--primary);
+		}
+		.section-label-row { display: flex; align-items: center; gap: 0.35rem; }
+		.section-label { font-size: 0.7rem; font-weight: 700; opacity: 0.55; }
+		.section-count { font-size: 0.68rem; opacity: 0.35; font-weight: 500; }
+
+		/* Create form */
+		.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+		.form-grid .full {
+			grid-column: 1 / -1;
+			padding: 0.5rem 0;
+		}
+		.field-group {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			flex: 1;
+		}
+		.field-label { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.45; }
+		.readonly-field { background: var(--gray) !important; }
+		.field-with-btn { display: flex; gap: 0.4rem; }
+		.field-with-btn input { flex: 1; }
+		.btn-lookup {
+			border: 1.5px solid var(--graydark); border-radius: 0.5rem;
+			padding: 0.45rem 0.6rem; background: white; cursor: pointer; display: flex; align-items: center;
+		}
+		.btn-lookup:disabled { opacity: 0.4; }
+
+		.penalty-row { flex-direction: row; align-items: center; justify-content: space-between; }
+		.penalty-row .text {
+			font-size: 0.7rem;
+			line-height: calc(2.5rem - 2px);
+		}
+
+		.toggle-label { display: flex; align-items: center; cursor: pointer; }
+		.toggle-label input[type="checkbox"] { display: none; }
+		.toggle-track {
+			width: 2.2rem; height: 1.2rem; background: var(--graydark);
+			border-radius: 1rem; position: relative; transition: background 0.2s;
+		}
+		.toggle-track::after {
+			content: ''; position: absolute; top: 0.15rem; left: 0.15rem;
+			width: 0.9rem; height: 0.9rem; background: white; border-radius: 50%; transition: left 0.2s;
+		}
+		.toggle-label input:checked + .toggle-track { background: var(--primary); }
+		.toggle-label input:checked + .toggle-track::after { left: 1.15rem; }
+
+		.net-amount { font-size: 1rem; font-weight: 600; color: var(--primary); }
+
+		/* File chips in create form */
+		.file-chips {
+			display: flex;
+			flex-direction: column;
+		}
+		.file-chip {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0 0.5rem;
+			border-radius: 0.75rem;
+			font-size: 0.7rem;
+		}
+		.file-chip .chip-name {
+			flex: 1;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			font-weight: 500;
+		}
+		.file-chip .chip-size {
+			opacity: 0.5;
+			font-size: 0.7rem;
+			white-space: nowrap;
+		}
+		.chip-remove {
+			background: none;
+			border: none;
+			cursor: pointer;
+			font-size: 1rem;
+			line-height: 1;
+			padding: 0;
+			color: var(--primary);
+			font-weight: 700;
+			padding: 0.5rem;
+		}
+
+		.no-files { font-size: 0.72rem; opacity: 0.35; padding: 0.25rem 0; }
+
+		/* Order number inline edit */
+		.editable-field { display: flex; align-items: center; gap: 0.3rem; }
+		.inline-order-input {
+			font-size: 0.8rem; font-weight: 500; font-family: inherit;
+			border: none; border-bottom: 1.5px solid var(--primary);
+			outline: none; background: transparent; width: 8rem; padding: 0;
+		}
+		.order-edit-btn {
+			display: flex; align-items: center; justify-content: center;
+			background: none; border: none; cursor: pointer; padding: 0.1rem;
+			opacity: 0.5;
+		}
+		.order-edit-btn:hover { opacity: 1; }
+		.original-hint {
+			font-size: 0.65rem; opacity: 0.45; margin-top: 0.1rem; display: block;
+		}
+
+		/* Thumb with delete button */
+		.thumb-wrapper { position: relative; }
+		.thumb-delete {
+			position: absolute; top: 0.2rem; right: 0.2rem;
+			background: #e36464; border: none; border-radius: 50%; width: 1.25rem; height: 1.25rem;
+			display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+		}
+		.thumb-delete img { filter: invert(1); }
+
+		/* Penalty edit in detail */
+		.penalty-edit {
+			display: flex; align-items: center; justify-content: space-between;
+			margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--gray);
+		}
+		.penalty-edit-label { font-size: 0.72rem; font-weight: 500; opacity: 0.6; }
+
+		/* Actions */
+		.detail-actions { border-top: 1px solid var(--gray); }
+		.action-btns { flex: 1; }
+		.comprobante-error {
+			display: flex;
+			align-items: center;
+			gap: 0.4rem;
+			padding: 0.5rem 0.75rem;
+			background: #fff0de;
+			border: 1.5px solid #fcdab1;
+			border-radius: 0.5rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+			color: #b45300;
+			margin-bottom: 0.5rem;
+		}
+
+		@media (max-width: 48rem) {
+			#refunds .main { flex-direction: column; }
+			#refunds .group { flex: unset; min-width: 100%; }
+			.form-grid { grid-template-columns: 1fr; }
+			.modal .modal-content.dual {
+				overflow: initial;
+			}
+		}
+
+		#modal-refund-history .history-title { font-weight: 700; font-size: 1.05rem; }
+
+		/* ── Buscar ── */
+		#modal-refund-search .modal { gap: 0.5rem; min-width: initial; }
+		#modal-refund-search .bottom { display: flex; align-items: center; padding: 0.25rem 1rem; border-radius: 0.75rem; }
+		#modal-refund-search .bottom .ico { opacity: 0.5; }
+		#modal-refund-search .bottom input {
+			flex: 1; background-color: transparent; border: none; outline: none;
+			padding: 0.75rem; font-family: inherit; font-size: 1rem; font-weight: 400; min-width: 10rem;
+		}
+		#modal-refund-search .bottom .clear { padding: 0.25rem; }
+		#modal-refund-search .orders {
+			max-height: 18rem; overflow-y: auto; width: 100%; display: flex;
+			flex-direction: column; border-radius: 0.75rem; margin-top: 0.5rem;
+		}
+		#modal-refund-search .orders .item {
+			display: flex; flex-direction: column; gap: 0.35rem; padding: 0.75rem 1rem;
+			border-bottom: 2px solid #ffffff80; cursor: pointer; transition: var(--transition);
+		}
+		#modal-refund-search .orders .item:last-child { border-bottom: none; }
+		#modal-refund-search .orders .item:hover { background-color: #ffffff; }
+		#modal-refund-search .orders .title {    flex-direction: row; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+		#modal-refund-search .orders .item .order-number { font-size: 1rem; font-weight: 600; }
+		#modal-refund-search .orders .item .client { font-size: 0.85rem; font-weight: 500; }
+		#modal-refund-search .orders .item .service { font-size: 0.75rem; opacity: 0.6; }
+
+
+		/* ── Estadísticas ── */
+		#modal-refund-stats .top { display: flex; justify-content: space-between; align-items: center; }
+		#modal-refund-stats .top .title { font-weight: 700; font-size: 1.05rem; }
+		#modal-refund-stats .kpi { display: flex; gap: 1rem; flex-wrap: wrap; }
+		#modal-refund-stats .kpi .item { flex: 1; min-width: 8rem; display: flex; padding: 1rem; flex-direction: column; gap: 0.25rem; border-radius: 0.75rem; }
+		#modal-refund-stats .kpi .item span { font-weight: 500; font-size: 1.4rem; color: var(--primary); }
+		#modal-refund-stats .kpi .item p { margin: 0; display: flex; flex: 1; align-items: center; font-weight: 500; opacity: 0.7; font-size: 0.85rem; }
+		#modal-refund-stats .charts { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 1rem; }
+		#modal-refund-stats .charts .box { padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; min-width: 24rem; flex: 1; border-radius: 0.75rem; }
+		#modal-refund-stats .charts .box span { font-weight: 500; }
+
+	</style>
+</div>

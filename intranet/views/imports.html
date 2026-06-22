@@ -1,0 +1,4686 @@
+<div x-data="imports_data">
+	<div id="dashboard">
+		<div class="controls">
+			<div class="toggle-collapse frost" @click="$store.cache.toogleMoreMenu()" @click.outside="$store.cache.hideMoreMenu()">
+				<div class="item">
+					<img alt="" width="24" height="24" src="/static/icons/line/more.svg">
+				</div>
+			</div>
+
+			<div class="menu-collapse frost" x-transition.duration.300ms x-show="adminPermission() && $store.cache.more_menu">
+				<div class="item" @click="pendings_open = !pendings_open">
+					<img alt="" width="22" height="22" src="/static/icons/line/pending.svg">
+				</div>
+				<div class="item" @click="toggleViewMode()">
+					<img alt="" width="22" height="22" src="/static/icons/line/eye.svg">
+				</div>
+
+				<div class="item" @click="search()">
+					<img alt="" width="22" height="22" src="/static/icons/line/find.svg">
+				</div>
+				<div class="item" @click="viewHistory()">
+					<img alt="" width="22" height="22" src="/static/icons/line/history.svg">
+				</div>
+				<div class="item" @click="viewStatistics()">
+					<img alt="" width="22" height="22" src="/static/icons/line/report.svg">
+				</div>
+			</div>
+			
+			<div class="left mobile-hide frost" x-show="adminPermission()">
+				<div class="item" @click="toggleViewMode()">
+					<img alt="" width="22" height="22" src="/static/icons/line/eye.svg">
+					<span x-text="isSimpleView() ? 'Extendida' : 'Compacta'"></span>
+				</div>
+
+				<div class="item" @click="search()">
+					<img alt="" width="20" height="20" src="/static/icons/line/find.svg">
+					<span>Buscar</span>
+				</div>
+				<div class="item" @click="viewHistory()">
+					<img alt="" width="20" height="20" src="/static/icons/line/history.svg">
+					<span>Historial</span>
+				</div>
+				<div class="item" @click="viewStatistics()">
+					<img alt="" width="20" height="20" src="/static/icons/line/report.svg">
+					<span>Estadísticas</span>
+				</div>
+			</div>
+
+			
+			
+			<div class="right frost-dark" x-show="canAdd() || canEdit()" style="margin-left: auto;">
+				<div class="mobile-hide item" @click="pendings_open = !pendings_open" x-show="canEdit()">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/pending.svg">
+					<span x-text="`Borradores ${$store.cache.getData('imports_pendings')?.length || 0}`"></span>
+				</div>
+				
+				<div class="item" @click="addOrder()" x-show="canAdd()">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/add.svg">
+					<span>Añadir</span>
+				</div>
+			</div>
+		</div>
+
+		<div class="main-container">
+			<div x-transition.duration.300ms x-cloak x-show="pendings_open" class="pending-imports">
+				<div class="container"
+					@dragover="onDragOver($event)" 
+					@dragleave="onDragLeave($event)"
+					@drop="onDrop()"
+				>
+					
+					<template x-if="$store.cache.getData('imports_pendings')?.length > 0">
+						<template x-for="item in $store.cache.getData('imports_pendings')" :key="item.id">
+							<div class="item-card white"
+								@click="viewItem(item.id)"
+							>   
+								<div class="row">
+									<template x-if="item.fcl == 0">
+										<span class="order-number" x-text="`SP-${item.id}`"></span>
+									</template>
+
+									<template x-if="item.fcl == 1">
+										<span class="order-number" style="color: var(--primary);    position: relative;" x-html="`SP-${item.id}<img width='16' height='16' style='right: -1.35rem; top: -0.1rem; width: 1rem;' src='/static/icons/filled/container.svg'>`"></span>
+									</template>
+								</div>
+								
+								<div class="row">
+									<div>
+										<div class="title multi-lines">
+											<template x-for="(pname, i) in item.provider_names" :key="`${item.id}-p-${i}`">
+												<span x-text="pname"></span>
+											</template>
+										</div>
+										<span class="sub" x-text="item.business_name"></span>
+									</div>
+								</div>
+
+								<img alt="ship" x-show="item.type_id == 1" src="/static/icons/filled/ship.svg" width="28" height="28">
+								<img alt="plane" x-show="item.type_id == 2" class="ico" src="/static/icons/filled/plane.svg" width="20" height="20">
+
+								<!-- <div class="row" style="justify-content:space-between; align-items:center;">
+									<div style="display:flex; flex-direction:column; gap:.1rem;">
+										<span class="sub" x-text="`${item.line_count || 0} línea(s)`"></span>
+										<span class="sub" x-text="`${item.port_name || '-'} · ${item.incoterms_text || '-'}`"></span>
+									</div>
+								</div> -->
+							</div>
+						</template>
+					</template>
+					<span class="empty glass" x-show="$store.cache.getData('imports_pendings')?.length == 0">No hay borradores</span>
+				</div>
+			</div>
+
+			<!-- Vista completa -->
+			<div class="board glass" x-show="!isSimpleView()">
+				<template x-for="group in $store.cache.getData('imports_dashboard')" :key="group.status_id">
+					<div class="group"
+						@dragover="onDragOver($event, group.status_id)" 
+						@dragleave="onDragLeave($event)"
+						@drop="onDrop(group.status_id)">
+						<div class="name">
+							<img alt="" width="24" height="24"
+								:src="'/static/icons/module/imports/' + ($store.cache.getById('imports_status', group.status_id)?.image || 'default.png')">
+							<span x-text="$store.cache.getById('imports_status', group.status_id)?.name || ''"></span>
+						</div>
+
+						<ul>
+							<template x-if="group.imports.length > 0">
+								<template x-for="item in group.imports" :key="item.id">
+									<li
+										:draggable="canMove()"
+										@dragstart="onDragStart(item)"
+										@click="viewItem(item.id)"
+										class="white"
+									>
+										<div class="row">
+											<template x-if="item.fcl == 0">
+												<span class="order-number" x-text="`SP-${item.id}`"></span>
+											</template>
+
+											<template x-if="item.fcl == 1">
+												<span class="order-number" style="color: var(--primary);    position: relative;" x-html="`SP-${item.id}<img width='16' height='16' style='right: -1.35rem; top: -0.1rem; width: 1rem;' src='/static/icons/filled/container.svg'>`"></span>
+											</template>
+											
+											<!-- <span class="order-number" x-text="`SP-${item.id}`"></span> -->
+
+											<template x-if="item.updated_today">
+												<div class="update-dot"></div>
+											</template>
+
+											<div class="passed-days">
+												<span class="register-day" x-text="`${item.passed_days} d.`"></span>
+											</div>
+										</div>
+
+										<div class="row">
+											<div>
+												<div class="title multi-lines">
+													<template x-for="(pname, i) in item.provider_names" :key="`${item.id}-p-${i}`">
+														<span x-text="pname"></span>
+													</template>
+												</div>
+												<span class="sub" x-text="item.business_name"></span>
+											</div>
+										</div>
+
+										<img alt="ship" x-show="item.type_id == 1" src="/static/icons/filled/ship.svg" width="28" height="28">
+										<img alt="plane" x-show="item.type_id == 2" class="ico" src="/static/icons/filled/plane.svg" width="20" height="20">
+										<span x-show="item.traffic_light" class="dot" :class="item.traffic_light"></span>
+									</li>
+								</template>
+							</template>
+						</ul>
+					</div>
+				</template>
+			</div>
+
+			<!-- Vista simple -->
+			<div class="board glass" x-show="isSimpleView()">
+				<template x-for="group in simpleDashboard()" :key="group.key">
+					<div class="group">
+						<div class="name">
+							<!-- espacio para imagen -->
+							<img
+								x-show="group.image"
+								:src="group.image"
+								alt=""
+								width="24"
+								height="24"
+							>
+							<span x-text="group.name"></span>
+						</div>
+
+						<ul>
+							<template x-if="group.imports.length > 0">
+								<template x-for="item in group.imports" :key="item.id">
+									<li
+										class="white"
+										@click="viewItem(item.id)"
+									>
+										<div class="row">
+											<template x-if="item.fcl == 0">
+												<span class="order-number" x-text="`SP-${item.id}`"></span>
+											</template>
+
+											<template x-if="item.fcl == 1">
+												<span class="order-number" style="color: var(--primary);    position: relative;" x-html="`SP-${item.id}<img width='16' height='16' style='right: -1.35rem; top: -0.1rem; width: 1rem;' src='/static/icons/filled/container.svg'>`"></span>
+											</template>
+
+											<template x-if="item.updated_today">
+												<div class="update-dot"></div>
+											</template>
+
+											<!-- <div class="passed-days">
+												<span class="register-day" x-text="`${item.passed_days} d.`"></span>
+											</div> -->
+										</div>
+
+										<div class="row">
+											<div>
+												<div class="title multi-lines">
+													<template x-for="(pname, i) in item.provider_names" :key="`${item.id}-p-${i}`">
+														<span x-text="pname"></span>
+													</template>
+												</div>
+												<span class="sub" x-text="item.business_name"></span>
+											</div>
+										</div>
+
+										<img alt="ship" x-show="item.type_id == 1" src="/static/icons/filled/ship.svg" width="28" height="28">
+										<img alt="plane" x-show="item.type_id == 2" class="ico" src="/static/icons/filled/plane.svg" width="20" height="20">
+										<span x-show="item.traffic_light" class="dot" :class="item.traffic_light"></span>
+									</li>
+								</template>
+							</template>
+
+							<template x-if="group.imports.length === 0">
+								<li class="white" style="opacity:.55; cursor:default;">
+									Sin órdenes
+								</li>
+							</template>
+						</ul>
+					</div>
+				</template>
+			</div>
+		</div>
+
+
+		<!-- ── Modal historial ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('imports-history')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap common-modal"
+			id="modal-imports-history"
+			x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2 big" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="top">
+					<span class="history-title">Historial</span>
+					<div class="pagination">
+						<span class="white hover-opacity left" :class="history_page > 1 ? '':'disabled'" @click="firstHistoryPage()" title="Primera página">
+							<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity left" :class="history_page > 1 ? '':'disabled'" @click="prevHistoryPage()" title="Página anterior">
+							<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity" :class="history_page < history_total_pages ? '':'disabled'" @click="nextHistoryPage()" title="Siguiente página">
+							<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity" :class="history_page < history_total_pages ? '':'disabled'" @click="lastHistoryPage()" title="Última página">
+							<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+						</span>
+					</div>
+				</div>
+
+				<div class="modal-content history">
+					<table class="mobile-hide">
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>Negocio</th>
+								<th>Proveedores</th>
+								<th>Ag. local</th>
+								<th>Ag. origen</th>
+								<th>Estado</th>
+								<th>Fecha</th>
+							</tr>
+						</thead>
+						<tbody>
+							<template x-for="h in history_list" :key="h.id">
+								<tr class="hover-opacity" style="cursor:pointer;" @click="viewItem(h.id)">
+									<td class="imp-id" x-text="`SP-${h.id}`"></td>
+									<td x-text="h.business_name || '-'"></td>
+									<td x-text="h.providers_full_text || '-'"></td>
+									<td x-text="h.local_agent_name || '-'"></td>
+									<td x-text="h.origin_agent_name || '-'"></td>
+									<td><span class="imp-status" x-text="h.status_name || '-'"></span></td>
+									<td x-text="h.created_at || '-'"></td>
+								</tr>
+							</template>
+							<template x-if="history_list.length === 0">
+								<tr><td colspan="7" class="empty">Sin importaciones</td></tr>
+							</template>
+						</tbody>
+					</table>
+
+					<div class="mobile-show mobile-table">
+						<template x-for="h in history_list" :key="h.id">
+							<div class="row white hover-opacity" @click="viewItem(h.id)">
+								<div class="head">
+									<div class="info">
+										<span class="id" x-text="`SP-${h.id}`"></span>
+										<span class="date" x-text="h.created_at || ''"></span>
+									</div>
+									<span class="imp-status" x-text="h.status_name"></span>
+								</div>
+								<div class="body">
+									<span class="label">Negocio</span>
+									<span class="name" x-text="h.business_name || '-'"></span>
+								</div>
+								<div class="body">
+									<span class="label">Proveedores</span>
+									<span class="name" x-text="h.providers_full_text || '-'"></span>
+								</div>
+							</div>
+						</template>
+						<template x-if="history_list.length === 0">
+							<div class="empty">Sin importaciones</div>
+						</template>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- ── Modal buscar ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('imports-search')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-imports-search"
+			x-cloak
+		>
+			<div class="modal little" @click.stop>
+				<div class="bottom glass2">
+					<img alt="" class="ico" width="20" height="20" src="/static/icons/line/find.svg">
+					<input type="text"
+						x-model="find_query"
+						placeholder="Proveedor, agente local u origen"
+						@input.debounce.300ms="findRequests()">
+					<div class="hover-opacity clear" x-show="find_query" title="Limpiar búsqueda" @click="find_query = ''; found_requests = [];">
+						<img alt="" width="12" height="12" src="/static/icons/filled/x.svg">
+					</div>
+				</div>
+				<div class="orders glass2" x-show="found_requests.length > 0">
+					<template x-for="r in found_requests" :key="r.id">
+						<div class="item" @click="viewItem(r.id)">
+							<div class="title">
+								<span class="order-number" x-text="`SP-${r.id}`"></span>
+								<span class="imp-status" x-text="r.status_name"></span>
+							</div>
+							<span class="client" x-text="r.business_name || '—'"></span>
+							<span class="service" x-text="`${r.providers_full_text || '—'}${(r.local_agent_name || r.origin_agent_name) ? ' · ' + [r.local_agent_name, r.origin_agent_name].filter(Boolean).join(' / ') : ''}`"></span>
+						</div>
+					</template>
+				</div>
+			</div>
+		</div>
+
+		<!-- ── Modal estadísticas ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('imports-stats')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-imports-stats"
+			x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="top">
+					<span class="title">Estadísticas</span>
+				</div>
+
+				<div class="modal-content">
+					<div class="kpi">
+						<div class="item white">
+							<p>Total</p>
+							<span x-text="$store.cache.getData('imports_statistics')?.count.total ?? 0"></span>
+						</div>
+						<div class="item white">
+							<p>Activas</p>
+							<span x-text="$store.cache.getData('imports_statistics')?.count.active ?? 0"></span>
+						</div>
+						<div class="item white">
+							<p>Por llegar (7d)</p>
+							<span x-text="$store.cache.getData('imports_statistics')?.count.arriving ?? 0"></span>
+						</div>
+						<div class="item white">
+							<p>Contenedores</p>
+							<span x-text="$store.cache.getData('imports_statistics')?.count.containers ?? 0"></span>
+						</div>
+					</div>
+
+					<div class="charts">
+						<div class="glass2 box">
+							<span>Llegadas por mes</span>
+							<canvas x-ref="importMonthChart" width="160" height="80"></canvas>
+						</div>
+						<div class="glass2 box">
+							<span>Por proveedor</span>
+							<canvas x-ref="importProviderChart" width="160" height="80"></canvas>
+						</div>
+						<div class="glass2 box">
+							<span>Por puerto</span>
+							<canvas x-ref="importPortChart" width="160" height="80"></canvas>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div
+			x-show="$store.cache.isVisibleModal('view')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-view"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2 extrabig" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="top">
+					<span class="title" x-text="`SP-${import_data?.id}`"></span>
+					<span class="text" x-text="import_data?.business_name || '-'" style="margin-right: auto;font-weight: 500;opacity: 0.5;margin-left: 0.5rem;"></span>
+					<div class="button extend hover-opacity" x-show="canEdit() && import_data?.status_id <= 5"
+						@click="updateBasicImport()">
+						<img alt="" width="14" height="14" src="/static/icons/line/save.svg">
+						Actualizar
+					</div>
+					<span class="days" x-text="`${import_data?.passed_days}`"></span>
+				</div>
+				
+				<div class="modal-content dual">
+					<div class="dataview overflow percent50">
+						<!-- Líneas: proveedor + incoterm -->
+						<div
+							class="box glass2"
+							x-show="import_data?.lines?.length && !(canEdit() && import_data?.status_id <= 5)"
+							style="border-radius: 0.75rem;padding: 0.75rem;">
+							<template x-for="line in (import_data?.lines || [])" :key="line.id">
+								<div class="container white" style="padding:.65rem; border-radius:.8rem;">
+									<span class="letter" x-text="line.provider_name?.charAt(0)"></span>
+
+									<div class="data">
+										<div class="head">
+											<span class="name" x-text="line.provider_name"></span>
+											<span class="line" x-show="canEdit() && line.provider_contact">|</span>
+											<span class="contact" x-show="canEdit()" x-text="line.provider_contact"></span>
+											<span class="icon" x-show="canEdit()" x-text="line.incoterm_code"></span>
+										</div>
+
+										<div class="pair-content" x-show="canEdit()">
+											<div x-show="line.provider_email" class="pair">
+												<img alt="" width="14" height="14" src="/static/icons/line/email.svg">
+												<span class="text" x-text="line.provider_email"></span>
+											</div>
+											
+											<div x-show="line.provider_phone" class="pair">
+												<img
+													alt=""
+													width="14"
+													height="14"
+													:src="(line.provider_phone || '').toLowerCase().includes('www')
+														? '/static/icons/line/web.svg'
+														: '/static/icons/line/phone.svg'"
+												>
+												<span class="text" x-text="line.provider_phone"></span>
+											</div>
+
+											<div x-show="line.provider_telephone" class="pair">
+												<img alt="" width="14" height="14" src="/static/icons/line/phone.svg">
+												<span class="text" x-text="line.provider_telephone"></span>
+											</div>
+										</div>
+
+										<div class="pair-content" style="margin-top: .35rem;"  x-show="canEdit()">
+											<div class="pair">
+												<img alt="" width="14" height="14" src="/static/icons/line/money.svg">
+												<span class="black">Adelanto:</span>
+												<span class="text" x-text="`${line.advance_payment_percent ?? 0}%`"></span>
+											</div>
+
+											<div class="pair">
+												<img alt="" width="14" height="14" src="/static/icons/line/calendar.svg">
+												<span class="black">Saldo:</span>
+												<span class="text" x-text="`${line.balance_days ?? 0} día(s)`"></span>
+											</div>
+
+											<div class="pair" x-show="line.po_number">
+												<img alt="" width="14" height="14" src="/static/icons/line/board.svg">
+												<span class="black">PO:</span>
+												<span class="text" x-text="line.po_number"></span>
+											</div>
+										</div>
+
+									</div>
+								</div>
+							</template>
+						</div>
+
+						<!-- Resumen de shipment (compartido) -->
+						<div
+							class="box white"
+							x-show="!(canEdit() && import_data?.status_id <= 5)">
+							<div class="container">
+								<div class="data">
+									<div class="pair-content">
+										<div class="pair">
+											<img alt="" width="16" height="16" src="/static/icons/line/location.svg">
+											<span class="black">Salida:</span>
+											<span class="text" x-text="import_data?.port_name || '-'"></span>
+										</div>
+
+										<div class="pair" x-show="canEdit()">
+											<img alt="" width="16" height="16" src="/static/icons/line/board.svg">
+											<span class="black">Carga:</span>
+											<span class="text" x-text="Number(import_data?.fcl) === 1 ? 'FCL' : 'LCL'"></span>
+										</div>
+
+										<!-- <div class="pair">
+											<img alt="" width="16" height="16" src="/static/icons/line/money.svg">
+											<span class="black">Adelanto:</span>
+											<span class="text" x-text="`${import_data?.advance_payment_percent ?? 0}%`"></span>
+										</div>
+
+										<div class="pair">
+											<img alt="" width="16" height="16" src="/static/icons/line/calendar.svg">
+
+											<span class="black">Saldo:</span>
+											<span class="text" x-text="`${import_data?.balance_days ?? 0} día(s)`"></span>
+										</div> -->
+									</div>
+								</div>
+
+								<div style="display:flex; align-items:center; gap:.4rem; margin-left:auto;">
+									<img alt="ship" x-show="import_data?.type_id == 1" class="type" src="/static/icons/filled/ship.svg" width="28" height="28">
+									<img alt="plane" x-show="import_data?.type_id == 2" class="type fix" src="/static/icons/filled/plane.svg" width="20" height="20">
+									<span x-show="import_data?.traffic_light" class="dot red" :class="import_data?.traffic_light"></span>
+								</div>
+							</div>
+						</div>
+						
+						<div class="flexbox" x-show="canEdit() && import_data?.status_id <= 5">
+							<div class="flexbox" style="gap: 0.5rem;">
+								<template x-for="(line, index) in (import_data?.lines || [])" :key="line._uid">
+									<div class="glass2" style="padding:.75rem; border-radius: 0.75rem;">
+										<div class="fields">
+											<label class="white">
+												<select
+													@change="
+														line.provider_id = $event.target.value;
+														loadProviderPreviewForLine(line);
+													"
+												>
+													<option value="" disabled :selected="!line.provider_id">Proveedor</option>
+
+													<template x-for="provider in providerOptions()" :key="provider.id">
+														<option
+															:value="provider.id"
+															:selected="String(line.provider_id) === String(provider.id)"
+															x-text="provider.name"
+														></option>
+													</template>
+												</select>
+											</label>
+
+											<label class="white">
+												<select
+													@change="line.incoterm_id = $event.target.value"
+												>
+													<option value="" disabled :selected="!line.incoterm_id">Incoterm</option>
+
+													<template x-for="incoterm in incotermOptions()" :key="incoterm.id">
+														<option
+															:value="incoterm.id"
+															:selected="String(line.incoterm_id) === String(incoterm.id)"
+															x-text="incoterm.code"
+														></option>
+													</template>
+												</select>
+											</label>
+
+											<label class="white" x-show="isOtherIncoterm(line.incoterm_id)">
+												<input type="text" placeholder="Incoterm" x-model="line.custom_incoterm_name">
+											</label>
+											
+											<div class="delete-provider white hover-opacity"
+												@click="removeEditableLine(index)"
+												x-show="import_data.lines.length > 1">
+												<img alt="delete" width="16" height="16" src="/static/icons/line/delete.svg">
+											</div>
+										</div>
+										
+										<div x-show="line.provider_preview" class="white provider" style="margin-top: .6rem;">
+											<span class="letter" x-text="line.provider_preview?.letter"></span>
+
+											<div class="data">
+												<div class="header">
+													<span class="name" x-text="line.provider_preview?.name"></span>
+													<span class="line" x-show="line.provider_preview?.contact">|</span>
+													<span class="contact" x-text="line.provider_preview?.contact"></span>
+												</div>
+												<div class="bottom">
+													<div x-show="line.provider_preview?.email" class="row">
+														<img alt="" width="14" height="14" src="/static/icons/line/email.svg">
+														<span x-text="line.provider_preview?.email"></span>
+													</div>
+													
+													<div x-show="line.provider_preview?.phone" class="row">
+														<img
+															alt=""
+															width="14"
+															height="14"
+															:src="(line.provider_preview?.phone || '').toLowerCase().includes('www')
+																? '/static/icons/line/web.svg'
+																: '/static/icons/line/phone.svg'"
+														>
+														<span x-text="line.provider_preview?.phone"></span>
+													</div>
+
+													<div x-show="line.provider_preview?.telephone" class="row">
+														<img alt="" width="14" height="14" src="/static/icons/line/phone.svg">
+														<span x-text="line.provider_preview?.telephone"></span>
+													</div>
+												</div>
+											</div>
+										</div>
+										
+										<div class="fields" style="margin-top: .5rem;">
+											<label class="white number">
+												<b style="min-width: 8rem;">Adelanto (%)</b>
+												<input type="number" min="0" max="100" step="0.01" x-model.number="line.advance_payment_percent">
+											</label>
+
+											<label class="white number">
+												<b style="min-width: 8rem;">Saldo (días)</b>
+												<input type="number" min="0" step="1" x-model.number="line.balance_days">
+											</label>
+
+											<label class="white">
+												<input type="text" placeholder="PO" x-model="line.po_number">
+											</label>
+										</div>
+									</div>
+								</template>
+							</div>
+
+							<div class="add-provider hover-opacity glass2" @click="addEditableLine()">
+								<img alt="" width="16" height="16" src="/static/icons/line/plus.svg">
+								<span>Agregar proveedor</span>
+							</div>
+							
+							<div class="fields options">
+								<label class="white">
+									<select x-model="import_data.business_id">
+										<option value="null" selected disabled>Empresa</option>
+										<template x-for="business in $store.cache.getData('imports_business')" :key="business.id">
+											<option :value="business.id" x-text="business.name"></option>
+										</template>
+									</select>
+								</label>
+
+								<label class="white">
+									<select x-model="import_data.type_id">
+										<option value="null" selected disabled>Tipo</option>
+										<template x-for="type in $store.cache.getData('imports_type')" :key="type.id">
+											<option :value="type.id" x-text="type.name"></option>
+										</template>
+									</select>
+								</label>
+								
+								<label class="white">
+									<select x-model="import_data.port_id">
+										<option value="null" disabled>Salida</option>
+										<template x-for="port in portOptions()" :key="port.id">
+											<option :value="port.id" x-text="port.name"></option>
+										</template>
+									</select>
+								</label>
+
+								<label class="white" x-show="isOtherPort(import_data.port_id)">
+									<input type="text" placeholder="Salida" x-model="import_data.custom_port_name">
+								</label>
+
+								<label class="white">
+									<select x-model="import_data.fcl">
+										<template x-for="mode in shipmentLoadOptions()" :key="mode.id">
+											<option :value="mode.id" x-text="mode.name"></option>
+										</template>
+									</select>
+								</label>
+							</div>
+
+							<div class="fields options">
+								<label class="white">
+									<img alt="" src="/static/icons/filled/user.svg" width="16" height="16">
+									<input type="text" placeholder="Agente local" x-model="import_data.local_agent_name">
+								</label>
+
+								<label class="white">
+									<img alt="" src="/static/icons/filled/user.svg" width="16" height="16">
+									<input type="text" placeholder="Agente de origen" x-model="import_data.origin_agent_name">
+								</label>
+							</div>
+
+							<div class="fields options">
+								<label class="white">
+									<img alt="" src="/static/icons/line/board.svg" width="16" height="16">
+									<input type="text" placeholder="Referencia" x-model="import_data.reference">
+								</label>
+							</div>
+
+							<div class="buttons" x-show="canEdit() && import_data?.status_id == 1">
+								<button class="button icon hover-opacity black"
+									@click="deleteDraft()"
+									:class="buttons.delete_draft?.class">
+									<img alt="update" width="16" height="16" src="/static/icons/line/delete.svg">
+									<span x-text="buttons.delete_draft?.text"></span>
+								</button>
+								
+								<button class="button icon hover-opacity"
+									@click="confirmImport()">
+									<img alt="update" width="16" height="16" src="/static/icons/line/approve.svg">
+									<span>Confirmar</span>
+								</button>
+							</div>
+						</div>
+
+						<div
+							class="box white"
+							x-show="canEdit() && import_data?.status_id > 5"
+						>
+							<div class="pair-content">
+								<div class="pair">
+									<img alt="" width="14" height="14" src="/static/icons/filled/user.svg">
+									<span class="black" x-text="`Agente local:`"></span>
+									<span class="text" x-text="`${import_data?.local_agent_name}`"></span>
+								</div>
+							</div>
+
+							<div class="pair-content">
+								<div class="pair">
+									<img alt="" width="14" height="14" src="/static/icons/filled/user.svg">
+									<span class="black" x-text="`Agente de origen:`"></span>
+									<span class="text" x-text="`${import_data?.origin_agent_name}`"></span>
+								</div>
+							</div>
+
+							<div class="pair-content" x-show="import_data?.reference">
+								<div class="pair">
+									<img alt="" width="14" height="14" src="/static/icons/line/board.svg">
+									<span class="black">Referencia:</span>
+									<span class="text" x-text="import_data?.reference"></span>
+								</div>
+							</div>
+						</div>
+
+
+						<div
+							class="box white"
+							x-show="
+								(adminPermission() && (!!import_data?.dates?.booking || !!import_data?.dates?.etd)) ||
+								(!canEdit() && import_data?.status_id >= 6 && (!!import_data?.dates?.etd || !!import_data?.dates?.eta))
+							"
+						>
+							<div class="pair-content" x-show="canEdit() && !!import_data?.dates?.booking">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/icons/filled/calendar.svg">
+									<span class="black" x-text="`Fecha de reserva:`"></span>
+									<span class="text" x-text="`${import_data?.dates?.booking}`"></span>
+								</div>
+							</div>
+
+							<div class="pair-content" x-show="!!import_data?.dates?.etd && (canEdit() || (!canEdit() && import_data?.status_id >= 6))">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/icons/filled/calendar.svg">
+									<span class="black" x-text="`Salida estimada:`"></span>
+									<span class="text" x-text="`${import_data?.dates?.etd}`"></span>
+								</div>
+							</div>
+
+							<div class="pair-content" x-show="!!import_data?.dates?.eta && (canEdit() || (!canEdit() && import_data?.status_id >= 6))">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/icons/filled/calendar.svg">
+									<span class="black" x-text="`Llegada estimada:`"></span>
+									<span class="text" x-text="`${import_data?.dates?.eta}`"></span>
+								</div>
+							</div>
+
+							<div class="pair-content" x-show="canEdit() && !!import_data?.dates?.deadline">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/icons/filled/calendar.svg">
+									<span class="black" x-text="`Deadline:`"></span>
+									<span class="text" x-text="`${import_data?.dates?.deadline}`"></span>
+								</div>
+							</div>
+
+							<div class="pair-content" x-show="canEdit() && !!import_data?.dates?.pay">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/icons/filled/calendar.svg">
+									<span class="black" x-text="`Pago:`"></span>
+									<span class="text" x-text="`${import_data?.dates?.pay}`"></span>
+								</div>
+							</div>
+						</div>
+
+						<div class="box white" x-show="canEdit() && (import_data?.dua_number || import_data?.tax_amount != null || import_data?.perception_amount != null)">
+							<div class="pair-content" x-show="import_data?.dua_number">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/icons/line/board.svg">
+									<span class="black">DUA:</span>
+									<span class="text" x-text="import_data?.dua_number"></span>
+								</div>
+							</div>
+							<div class="pair-content" x-show="import_data?.tax_amount != null">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/icons/line/money.svg">
+									<span class="black">Impuesto:</span>
+									<span class="text" x-text="`${import_data?.tax_currency === 'USD' ? '$' : 'S/'} ${import_data?.tax_amount}`"></span>
+								</div>
+							</div>
+							<div class="pair-content" x-show="import_data?.perception_amount != null">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/icons/line/money.svg">
+									<span class="black">Percepción:</span>
+									<span class="text" x-text="`${import_data?.perception_currency === 'USD' ? '$' : 'S/'} ${import_data?.perception_amount}`"></span>
+								</div>
+							</div>
+						</div>
+
+						<div class="box white" x-show="import_data?.tracking_link">
+							<div class="pair-content">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/icons/line/web.svg">
+									<span class="black">Tracking:</span>
+									<a class="text"
+										:href="import_data?.tracking_link"
+										target="_blank"
+										rel="noopener noreferrer"
+										x-text="import_data?.tracking_link"
+										style="color: var(--primary); opacity: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></a>
+								</div>
+							</div>
+						</div>
+
+						<div class="box white" x-show="(import_data?.cargo_details?.qty || import_data?.cargo_details?.pallets)">
+							<div class="pair-content" style="justify-content: space-between;">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/icons/module/imports/pickup.svg">
+									<span class="black" x-text="`Cantidad:`"></span>
+									<span class="text" x-text="`${import_data?.cargo_details?.qty || 0}`"></span>
+								</div>
+
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/icons/module/imports/pickup.svg">
+									<span class="black" x-text="`Pallets:`"></span>
+									<span class="text" x-text="`${import_data?.cargo_details?.pallets || 0}`"></span>
+								</div>
+
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/icons/module/imports/pickup.svg">
+									<span class="black" x-text="`Peso (kg):`"></span>
+									<span class="text" x-text="`${import_data?.cargo_details?.weight}`"></span>
+								</div>
+
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/icons/module/imports/pickup.svg">
+									<span class="black" x-text="`Vol. (m³):`"></span>
+									<span class="text" x-text="`${import_data?.cargo_details?.volume}`"></span>
+								</div>
+							</div>
+						</div>
+
+						<div class="box white"  x-show="import_data?.delivery?.date">
+							<div class="pair-content">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/icons/filled/calendar.svg">
+									<span class="black" x-text="`Fecha de entrega:`"></span>
+									<span class="text" x-text="`${import_data?.delivery?.date}`"></span>
+								</div>
+							</div>
+							<div class="pair-content">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/icons/filled/calendar.svg">
+									<span class="black" x-text="`Hora de la cita:`"></span>
+									<span class="text" x-text="`${import_data?.delivery?.time}`"></span>
+								</div>
+							</div>
+							<div class="pair-content" x-show="import_data?.delivery?.name">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/icons/filled/user.svg">
+									<span class="black" x-text="`Nombre:`"></span>
+									<span class="text" x-text="`${import_data?.delivery?.name}`"></span>
+								</div>
+							</div>
+							<div class="pair-content" x-show="import_data?.delivery?.phone">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/icons/filled/user.svg">
+									<span class="black" x-text="`Celular:`"></span>
+									<span class="text" x-text="`${import_data?.delivery?.phone}`"></span>
+								</div>
+							</div>
+							<div class="pair-content" x-show="import_data?.delivery?.code">
+								<div class="pair">
+									<img alt="" width="16" height="16" src="/static/icons/filled/user.svg">
+									<span class="black" x-text="`Placa:`"></span>
+									<span class="text" x-text="`${import_data?.delivery?.code}`"></span>
+								</div>
+							</div>
+						</div>
+						
+						<template x-for="section in (import_data?.attachment_sections || [])" :key="section.target">
+							<div
+								class="box white"
+								x-show="section.files && section.files.length && (canEdit() || section.target === 'product_list')"
+							>
+								<div class="pair-content" style="margin-bottom: .5rem;">
+									<div class="pair">
+										<img alt="" width="14" height="14" src="/static/icons/filled/clip.svg">
+										<span class="black" x-text="section.label"></span>
+										<span class="text" x-text="`(${section.files.length})`"></span>
+									</div>
+								</div>
+
+								<div class="modal-content bottom thumbnails-grid small-grid">
+									<template x-for="f in section.files" :key="f.id">
+										<div class="thumb-item hover-opacity" @click="openAttachment(f)">
+											<div class="thumbnail-wrapper">
+												<template x-if="isImageFile(f)">
+													<img class="hover-opacity" :src="getInlineUrl(f)" :alt="f.original_name">
+												</template>
+
+												<template x-if="!isImageFile(f)">
+													<div class="file-card">
+														<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+													</div>
+												</template>
+											</div>
+
+											<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+										</div>
+									</template>
+								</div>
+							</div>
+						</template>
+					</div>
+
+					
+					<div class="comments-container white percent50">
+						<div class="comments-box overflow" x-ref="commentsBox">
+							<template x-if="!import_data?.chats || import_data?.chats?.length === 0">
+								<div class="no-comments">Nada por aquí</div>
+							</template>
+							
+							<template x-for="chat in import_data?.chats" :key="chat.id">
+								<div class="user-comment" :class="{'self': chat.commenter_id == user.id}">
+									<img alt="user" :src="'/static/images/uploads/users/' + chat.commenter_image" width="24" height="24">
+									<div class="white bubble">
+										<div class="top">
+											<span x-text="chat.commenter_id == user.id ? 'Tú' :chat.commenter_name"></span>
+											<p x-text="chat.created_at"></p>
+										</div>
+										<p x-text="chat.comment"></p>
+									</div>
+								</div>
+							</template>
+						</div>
+
+						<div class="comments-input white">
+							<label>
+								<textarea type="text" x-model="message" placeholder="Ingresa un mensaje..." @keydown.enter="handleEnterSend($event)"></textarea>
+							</label>
+							<div class="send hover-opacity" @click="sendChat()" :class="{'disabled': message == '' || message === undefined}">
+								<img alt="enviar" width="16" height="16" src="/static/icons/filled/send.svg">
+							</div>
+						</div>
+					</div>
+
+				</div>
+
+				<!-- <div class="buttons" x-show="canEdit() && import_data?.status_id >= 8">
+					<button class="button hover-opacity" @click="finish(import_data)"  x-show="import_data?.status_id == 8">Finalizar</button>
+				</div> -->
+			</div>
+		</div>
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('status')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-status"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal little glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="title">
+					<span x-text="`${selected_import?.type_letter}-${selected_import?.id}`"></span>
+				</div>
+				
+				<div class="modal-content">
+					<div class="update">
+						<div class="box">
+							<img alt="" width="28" height="28"
+								:src="'/static/icons/module/imports/' + ($store.cache.getById('imports_status', selected_import?.status_id)?.image)"
+								alt="from">
+							<span x-text="($store.cache.getById('imports_status', selected_import?.status_id))?.name"></span>
+						</div>
+
+						<div class="box">
+							<img alt="" width="28" height="28"
+								:src="'/static/icons/module/imports/' + ($store.cache.getById('imports_status', selected_group_id)?.image)"
+								alt="to">
+							<span x-text="($store.cache.getById('imports_status', selected_group_id))?.name"></span>
+						</div>
+						<img alt="" class="arrow" width="16" height="16" src="/static/icons/filled/arrownext.svg">
+					</div>
+						
+					<template x-if="selected_import?.status_id == 2">
+						<div class="fields options">
+							<label class="white">
+								<img alt="repeat" src="/static/icons/line/calendar.svg" width="16" height="16">
+
+								<span
+									style="cursor: pointer; flex: 1; line-height: 2.5rem;"
+									@click="
+										if ($refs.booking_date_input.showPicker) {
+											$refs.booking_date_input.showPicker();
+										} else {
+											$refs.booking_date_input.focus();
+										}
+									"
+									x-text="dateLabel(booking_date, 'Fecha de Booking')"
+								></span>
+
+								<input
+									x-ref="booking_date_input"
+									type="date"
+									x-model="booking_date"
+									:min="minDate"
+									style="
+										position:absolute;
+										inset:0;
+										opacity:0;
+										pointer-events:none;
+									"
+								>
+							</label>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 4">
+						<div class="capture-proof">
+							<span class="name">Documentos</span>
+
+							<div class="bottom thumbnails-grid small-grid" >
+								<template x-for="(f, index) in pendingDocs('consolidated')" :key="f.id">
+									<div class="thumb-item" @click="removePendingDocById(f.id)">
+										<div class="thumbnail-wrapper">
+											<div class="delete-button">
+												<img class="delete" alt="delete" width="24" height="24"
+													src="/static/icons/line/delete.svg">
+											</div>
+
+											<template x-if="isImageFile(f)">
+												<img class="thumbnail" :src="f.preview" :alt="f.original_name">
+											</template>
+
+											<template x-if="!isImageFile(f)">
+												<div class="file-card thumbnail">
+													<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+												</div>
+											</template>
+										</div>
+
+										<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+									</div>
+								</template>
+
+								<div class="add-button hover-opacity" @click="$refs.consolidatedInput.click()">
+									<img alt="" width="24" height="24" src="/static/icons/line/plus.svg">
+								</div>
+
+								<input
+									type="file"
+									class="hidden"
+									multiple
+									x-ref="consolidatedInput"
+									data-target="consolidated"
+									accept=".pdf,.xml,.txt,.doc,.docx,.xls,.xlsx,image/*"
+									@change="queueDocs($event)"
+									/>
+							</div>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 5">
+						<div class="fields options">
+							<label class="white">
+								<img alt="repeat" src="/static/icons/line/calendar.svg" width="16" height="16">
+
+								<span
+									style="cursor: pointer; flex: 1; line-height: 2.5rem;"
+									@click="
+										if ($refs.etd_date_input.showPicker) {
+											$refs.etd_date_input.showPicker();
+										} else {
+											$refs.etd_date_input.focus();
+										}
+									"
+									x-text="dateLabel(etd_date, `ETD`)"
+								></span>
+
+								<input
+									x-ref="etd_date_input"
+									type="date"
+									x-model="etd_date"
+									:min="minDate"
+									style="
+										position:absolute;
+										inset:0;
+										opacity:0;
+										pointer-events:none;
+									"
+								>
+							</label>
+
+							<label class="white">
+								<img alt="repeat" src="/static/icons/line/calendar.svg" width="16" height="16">
+
+								<span
+									style="cursor: pointer; flex: 1; line-height: 2.5rem;"
+									@click="
+										if ($refs.eta_date_input.showPicker) {
+											$refs.eta_date_input.showPicker();
+										} else {
+											$refs.eta_date_input.focus();
+										}
+									"
+									x-text="dateLabel(eta_date, `ETA`)"
+								></span>
+
+								<input
+									x-ref="eta_date_input"
+									type="date"
+									x-model="eta_date"
+									:min="minDate"
+									style="
+										position:absolute;
+										inset:0;
+										opacity:0;
+										pointer-events:none;
+									"
+								>
+							</label>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 5">
+						<div class="capture-proof">
+							<span class="name">Datos de carga</span>
+
+							<div class="fields options">
+								<label class="white number">
+									<b>Cantidad</b>
+									<input type="number" min="0" step="1" placeholder="0.00" x-model.number="qty">
+								</label>
+
+								<label class="white number">
+									<b>Pallets</b>
+									<input type="number" min="0" step="1" placeholder="0.00" x-model.number="pallets">
+								</label>
+							</div>
+
+							<div class="fields options">
+								<label class="white number">
+									<b>Peso (kg)</b>
+									<input type="number" min="0" step="0.01" placeholder="0.00" x-model.number="weight">
+								</label>
+
+								<label class="white number">
+									<b>Vol. (m³)</b>
+									<input type="number" min="0" step="0.01" placeholder="0.00" x-model.number="volume">
+								</label>
+							</div>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 5">
+						<div class="capture-proof">
+							<span class="name">Lista de productos</span>
+
+							<div class="bottom thumbnails-grid small-grid">
+								<template x-for="(f, index) in pendingDocs('product_list')" :key="f.id">
+									<div class="thumb-item" @click="removePendingDocById(f.id)">
+										<div class="thumbnail-wrapper">
+											<div class="delete-button">
+												<img class="delete" alt="delete" width="24" height="24"
+													src="/static/icons/line/delete.svg">
+											</div>
+
+											<template x-if="isImageFile(f)">
+												<img class="thumbnail" :src="f.preview" :alt="f.original_name">
+											</template>
+
+											<template x-if="!isImageFile(f)">
+												<div class="file-card thumbnail">
+													<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+												</div>
+											</template>
+										</div>
+
+										<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+									</div>
+								</template>
+
+								<div class="add-button hover-opacity" @click="$refs.productlistInput.click()">
+									<img alt="" width="24" height="24" src="/static/icons/line/plus.svg">
+								</div>
+
+								<input
+									type="file"
+									class="hidden"
+									multiple
+									x-ref="productlistInput"
+									data-target="product_list"
+									accept=".pdf,.xml,.txt,.doc,.docx,.xls,.xlsx,image/*"
+									@change="queueDocs($event)"
+									/>
+									
+								<!-- <template x-for="f in docs" :key="f.id">
+									<div class="thumb-item" @click="openAttachment(f)">
+										<div class="thumbnail-wrapper">
+										<template x-if="isImageFile(f)">
+											<img class="thumbnail" :src="getInlineUrl(f)" :alt="f.original_name">
+										</template>
+
+										<template x-if="!isImageFile(f)">
+											<div class="file-card">
+											<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+											</div>
+										</template>
+										</div>
+
+										<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+									</div>
+								</template> -->
+							</div>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 5">
+						<div class="fields options">
+							<label class="white">
+								<img alt="" src="/static/icons/line/web.svg" width="16" height="16">
+								<input type="text" placeholder="Tracking link (opcional)" x-model="tracking_link">
+							</label>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 6">
+						<div class="capture-proof">
+							<span class="name">Invoice</span>
+
+							<div class="bottom thumbnails-grid small-grid" >
+								<template x-for="(f, index) in pendingDocs('invoice')" :key="f.id">
+									<div class="thumb-item" @click="removePendingDocById(f.id)">
+										<div class="thumbnail-wrapper">
+											<div class="delete-button">
+												<img class="delete" alt="delete" width="24" height="24"
+													src="/static/icons/line/delete.svg">
+											</div>
+
+											<template x-if="isImageFile(f)">
+												<img class="thumbnail" :src="f.preview" :alt="f.original_name">
+											</template>
+
+											<template x-if="!isImageFile(f)">
+												<div class="file-card thumbnail">
+													<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+												</div>
+											</template>
+										</div>
+
+										<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+									</div>
+								</template>
+
+								<div class="add-button hover-opacity" @click="$refs.invoiceInput.click()">
+									<img alt="" width="24" height="24" src="/static/icons/line/plus.svg">
+								</div>
+
+								<input
+									type="file"
+									class="hidden"
+									multiple
+									x-ref="invoiceInput"
+									data-target="invoice"
+									accept=".pdf,.xml,.txt,.doc,.docx,.xls,.xlsx,image/*"
+									@change="queueDocs($event)"
+									/>
+							</div>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 6">
+						<div class="capture-proof">
+							<span class="name">Packing List</span>
+
+							<div class="bottom thumbnails-grid small-grid" >
+								<template x-for="(f, index) in pendingDocs('packing_list')" :key="f.id">
+									<div class="thumb-item" @click="removePendingDocById(f.id)">
+										<div class="thumbnail-wrapper">
+											<div class="delete-button">
+												<img class="delete" alt="delete" width="24" height="24"
+													src="/static/icons/line/delete.svg">
+											</div>
+
+											<template x-if="isImageFile(f)">
+												<img class="thumbnail" :src="f.preview" :alt="f.original_name">
+											</template>
+
+											<template x-if="!isImageFile(f)">
+												<div class="file-card thumbnail">
+													<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+												</div>
+											</template>
+										</div>
+
+										<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+									</div>
+								</template>
+
+								<div class="add-button hover-opacity" @click="$refs.plInput.click()">
+									<img alt="" width="24" height="24" src="/static/icons/line/plus.svg">
+								</div>
+
+								<input
+									type="file"
+									class="hidden"
+									multiple
+									x-ref="plInput"
+									data-target="packing_list"
+									accept=".pdf,.xml,.txt,.doc,.docx,.xls,.xlsx,image/*"
+									@change="queueDocs($event)"
+									/>
+							</div>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 6">
+						<div class="capture-proof">
+							<span class="name">Constancia</span>
+
+							<div class="bottom thumbnails-grid small-grid" >
+								<template x-for="(f, index) in pendingDocs('certificate')" :key="f.id">
+									<div class="thumb-item" @click="removePendingDocById(f.id)">
+										<div class="thumbnail-wrapper">
+											<div class="delete-button">
+												<img class="delete" alt="delete" width="24" height="24"
+													src="/static/icons/line/delete.svg">
+											</div>
+
+											<template x-if="isImageFile(f)">
+												<img class="thumbnail" :src="f.preview" :alt="f.original_name">
+											</template>
+
+											<template x-if="!isImageFile(f)">
+												<div class="file-card thumbnail">
+													<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+												</div>
+											</template>
+										</div>
+
+										<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+									</div>
+								</template>
+
+								<div class="add-button hover-opacity" @click="$refs.certificateInput.click()">
+									<img alt="" width="24" height="24" src="/static/icons/line/plus.svg">
+								</div>
+
+								<input
+									type="file"
+									class="hidden"
+									multiple
+									x-ref="certificateInput"
+									data-target="certificate"
+									accept=".pdf,.xml,.txt,.doc,.docx,.xls,.xlsx,image/*"
+									@change="queueDocs($event)"
+									/>
+							</div>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 6">
+						<div class="capture-proof">
+							<span class="name">COO</span>
+
+							<div class="bottom thumbnails-grid small-grid" >
+								<template x-for="(f, index) in pendingDocs('coo')" :key="f.id">
+									<div class="thumb-item" @click="removePendingDocById(f.id)">
+										<div class="thumbnail-wrapper">
+											<div class="delete-button">
+												<img class="delete" alt="delete" width="24" height="24"
+													src="/static/icons/line/delete.svg">
+											</div>
+
+											<template x-if="isImageFile(f)">
+												<img class="thumbnail" :src="f.preview" :alt="f.original_name">
+											</template>
+
+											<template x-if="!isImageFile(f)">
+												<div class="file-card thumbnail">
+													<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+												</div>
+											</template>
+										</div>
+
+										<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+									</div>
+								</template>
+
+								<div class="add-button hover-opacity" @click="$refs.cooInput.click()">
+									<img alt="" width="24" height="24" src="/static/icons/line/plus.svg">
+								</div>
+
+								<input
+									type="file"
+									class="hidden"
+									multiple
+									x-ref="cooInput"
+									data-target="coo"
+									accept=".pdf,.xml,.txt,.doc,.docx,.xls,.xlsx,image/*"
+									@change="queueDocs($event)"
+									/>
+							</div>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 7">
+						<div class="fields options">
+							<label class="white">
+								<img alt="repeat" src="/static/icons/line/calendar.svg" width="16" height="16">
+
+								<span
+									style="cursor: pointer; flex: 1; line-height: 2.5rem;"
+									@click="
+										if ($refs.deadline_input.showPicker) {
+											$refs.deadline_input.showPicker();
+										} else {
+											$refs.deadline_input.focus();
+										}
+									"
+									x-text="dateLabel(deadline_date, 'Deadline')"
+								></span>
+
+								<input
+									x-ref="deadline_input"
+									type="date"
+									x-model="deadline_date"
+									:min="minDate"
+									style="
+										position:absolute;
+										inset:0;
+										opacity:0;
+										pointer-events:none;
+									"
+								>
+							</label>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 7">
+						<div class="capture-proof">
+							<span class="name">Documentos</span>
+
+							<div class="bottom thumbnails-grid small-grid" >
+								<template x-for="(f, index) in pendingDocs('arrive')" :key="f.id">
+									<div class="thumb-item" @click="removePendingDocById(f.id)">
+										<div class="thumbnail-wrapper">
+											<div class="delete-button">
+												<img class="delete" alt="delete" width="24" height="24"
+													src="/static/icons/line/delete.svg">
+											</div>
+
+											<template x-if="isImageFile(f)">
+												<img class="thumbnail" :src="f.preview" :alt="f.original_name">
+											</template>
+
+											<template x-if="!isImageFile(f)">
+												<div class="file-card thumbnail">
+													<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+												</div>
+											</template>
+										</div>
+
+										<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+									</div>
+								</template>
+
+								<div class="add-button hover-opacity" @click="$refs.arriveInput.click()">
+									<img alt="" width="24" height="24" src="/static/icons/line/plus.svg">
+								</div>
+
+								<input
+									type="file"
+									class="hidden"
+									multiple
+									x-ref="arriveInput"
+									data-target="arrive"
+									accept=".pdf,.xml,.txt,.doc,.docx,.xls,.xlsx,image/*"
+									@change="queueDocs($event)"
+									/>
+							</div>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 8">
+						<div class="fields options">
+							<label class="white number">
+								<b>Impuesto</b>
+								<input type="number" min="0" step="0.01" placeholder="0.00" x-model.number="tax_amount">
+								<select x-model="tax_currency" style="width: auto; min-width: 3rem;">
+									<option value="PEN">S/</option>
+									<option value="USD">$</option>
+								</select>
+							</label>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 8">
+						<div class="fields options">
+							<label class="white number">
+								<b>Percepción</b>
+								<input type="number" min="0" step="0.01" placeholder="0.00" x-model.number="perception_amount">
+								<select x-model="perception_currency" style="width: auto; min-width: 3rem;">
+									<option value="PEN">S/</option>
+									<option value="USD">$</option>
+								</select>
+							</label>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 8">
+						<div class="fields options">
+							<label class="white">
+								<img alt="" src="/static/icons/line/board.svg" width="16" height="16">
+								<input type="text" placeholder="Número de DUA" maxlength="12" x-model="dua_number">
+							</label>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 9">
+						<div class="fields options">
+							<label class="white">
+								<img alt="repeat" src="/static/icons/line/calendar.svg" width="16" height="16">
+
+								<span
+									style="cursor: pointer; flex: 1; line-height: 2.5rem;"
+									@click="
+										if ($refs.pay_date_input.showPicker) {
+											$refs.pay_date_input.showPicker();
+										} else {
+											$refs.pay_date_input.focus();
+										}
+									"
+									x-text="dateLabel(pay_date, 'Fecha de pago')"
+								></span>
+
+								<input
+									x-ref="pay_date_input"
+									type="date"
+									x-model="pay_date"
+									:min="minDate"
+									style="
+										position:absolute;
+										inset:0;
+										opacity:0;
+										pointer-events:none;
+									"
+								>
+							</label>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 9">
+						<div class="traffic-row">
+							<div
+								class="traffic-pill"
+								role="button"
+								tabindex="0"
+								@click="cyclePayLight()"
+								@keydown.enter.prevent="cyclePayLight()"
+								@keydown.space.prevent="cyclePayLight()"
+								:title="`Semáforo: ${payLightLabel(traffic_light)}`"
+							>
+								<span class="dot green" :class="{ on: traffic_light === 'green' }"></span>
+								<span class="dot amber" :class="{ on: traffic_light === 'amber' }"></span>
+								<span class="dot red"   :class="{ on: traffic_light === 'red' }"></span>
+							</div>
+
+							<span class="traffic-text">Semáforo</span>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 11">
+						<div class="fields options">
+							<label class="white">
+								<img alt="repeat" src="/static/icons/line/calendar.svg" width="16" height="16">
+
+								<span
+									style="cursor: pointer; flex: 1; line-height: 2.5rem;"
+									@click="
+										if ($refs.delivery_date_input.showPicker) {
+											$refs.delivery_date_input.showPicker();
+										} else {
+											$refs.delivery_date_input.focus();
+										}
+									"
+									x-text="dateLabel(delivery_date, `Fecha de retiro`)"
+								></span>
+
+								<input
+									x-ref="delivery_date_input"
+									type="date"
+									x-model="delivery_date"
+									:min="minDate"
+									style="
+										position:absolute;
+										inset:0;
+										opacity:0;
+										pointer-events:none;
+									"
+								>
+							</label>
+
+							<label class="white">
+								<img alt="repeat" src="/static/icons/line/calendar.svg" width="16" height="16">
+				
+								<input
+									type="time"
+									x-model="delivery_time"
+								>
+							</label>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 11">
+						<div class="capture-proof">
+							<span class="name">Datos de transportista</span>
+
+							<div class="fields options">
+								<label class="white">
+									<img alt="" src="/static/icons/line/user.svg" width="16" height="16">
+									<input type="text" placeholder="Nombre" x-model="delivery_name">
+								</label>
+							</div>
+							
+							<div class="fields options">
+								<label class="white">
+									<img alt="" src="/static/icons/line/phone.svg" width="16" height="16">
+									<input type="text" placeholder="Celular" x-model="delivery_phone">
+								</label>
+
+								<label class="white">
+									<img alt="" src="/static/icons/line/document.svg" width="16" height="16">
+									<input type="text" placeholder="Placa" x-model="delivery_code">
+								</label>
+							</div>
+						</div>
+					</template>
+
+					<template x-if="selected_import?.status_id == 12">
+						<div class="capture-proof">
+							<span class="name">Facturas</span>
+
+							<div class="bottom thumbnails-grid small-grid" >
+								<template x-for="(f, index) in pendingDocs('invoices')" :key="f.id">
+									<div class="thumb-item" @click="removePendingDocById(f.id)">
+										<div class="thumbnail-wrapper">
+											<div class="delete-button">
+												<img class="delete" alt="delete" width="24" height="24"
+													src="/static/icons/line/delete.svg">
+											</div>
+
+											<template x-if="isImageFile(f)">
+												<img class="thumbnail" :src="f.preview" :alt="f.original_name">
+											</template>
+
+											<template x-if="!isImageFile(f)">
+												<div class="file-card thumbnail">
+													<div class="file-ext" x-text="(f.ext || '').toUpperCase()"></div>
+												</div>
+											</template>
+										</div>
+
+										<div class="thumb-caption" x-text="f.original_name" :title="f.original_name"></div>
+									</div>
+								</template>
+
+								<div class="add-button hover-opacity" @click="$refs.invoicesInput.click()">
+									<img alt="" width="24" height="24" src="/static/icons/line/plus.svg">
+								</div>
+
+								<input
+									type="file"
+									class="hidden"
+									multiple
+									x-ref="invoicesInput"
+									data-target="invoices"
+									accept=".pdf,.xml,.txt,.doc,.docx,.xls,.xlsx,image/*"
+									@change="queueDocs($event)"
+									/>
+							</div>
+						</div>
+					</template>
+
+					<!-- <textarea x-model="status_notes" class="text-area glass2" placeholder="Notas"></textarea> -->
+					
+				</div>
+
+				<!-- <template x-if="selected_import?.status_id < 5"> -->
+				<div class="buttons">
+					<button class="hover-opacity button" @click="updateStatus()" :class="buttons.move_status.class" x-text="buttons.move_status.text"></button>
+				</div>
+				<!-- </template> -->
+
+			</div>
+		</div>
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('add')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-add"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal small glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="modal-content">
+					<!-- Líneas -->
+					
+					<div class="flexbox" style="gap: 0.5rem;">
+						<template x-for="(line, index) in new_import.lines" :key="line._uid">
+							<div class="glass2" style="padding:.75rem; border-radius: 0.75rem;">
+								<div class="fields">
+									<label class="white">
+										<select x-model="line.provider_id" @change="loadProviderPreviewForLine(line)">
+											<option value="null" selected disabled>Proveedor</option>
+											<template x-for="provider in providerOptions()" :key="provider.id">
+												<option :value="provider.id" x-text="provider.name"></option>
+											</template>
+										</select>
+									</label>
+
+									<label class="white">
+										<select x-model="line.incoterm_id">
+											<option value="null" disabled>Incoterm</option>
+											<template x-for="incoterm in incotermOptions()" :key="incoterm.id">
+												<option :value="incoterm.id" x-text="incoterm.code"></option>
+											</template>
+										</select>
+									</label>
+
+									<label class="white" x-show="isOtherIncoterm(line.incoterm_id)">
+										<input type="text" placeholder="Incoterm" x-model="line.custom_incoterm_name">
+									</label>
+
+									<div class="delete-provider white hover-opacity"
+										@click="removeImportLine(index)"
+										x-show="new_import.lines.length > 1">
+										<img alt="delete" width="16" height="16" src="/static/icons/line/delete.svg">
+									</div>
+								</div>
+
+								<div x-show="line.provider_preview" class="white provider" style="margin-top: .6rem;">
+									<span class="letter" x-text="line.provider_preview?.letter"></span>
+
+									<div class="data">
+										<div class="header">
+											<span class="name" x-text="line.provider_preview?.name"></span>
+											<span class="line" x-show="line.provider_preview?.contact">|</span>
+											<span class="contact" x-text="line.provider_preview?.contact"></span>
+										</div>
+										<div class="bottom">
+											<div x-show="line.provider_preview?.email" class="row">
+												<img alt="" width="14" height="14" src="/static/icons/line/email.svg">
+												<span x-text="line.provider_preview?.email"></span>
+											</div>
+											
+											<div x-show="line.provider_preview?.phone" class="row">
+												<img
+													alt=""
+													width="14"
+													height="14"
+													:src="(line.provider_preview?.phone || '').toLowerCase().includes('www')
+														? '/static/icons/line/web.svg'
+														: '/static/icons/line/phone.svg'"
+												>
+												<span x-text="line.provider_preview?.phone"></span>
+											</div>
+
+											<div x-show="line.provider_preview?.telephone" class="row">
+												<img alt="" width="14" height="14" src="/static/icons/line/phone.svg">
+												<span x-text="line.provider_preview?.telephone"></span>
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<div class="fields" style="margin-top: .5rem;">
+									<label class="white number">
+										<b style="min-width: 8rem;">Adelanto (%)</b>
+										<input type="number" min="0" max="100" step="0.01" x-model.number="line.advance_payment_percent">
+									</label>
+
+									<label class="white number">
+										<b style="min-width: 8rem;">Saldo (días)</b>
+										<input type="number" min="0" step="1" x-model.number="line.balance_days">
+									</label>
+
+									<label class="white">
+										<input type="text" placeholder="PO" x-model="line.po_number">
+									</label>
+								</div>
+							</div>
+						</template>
+					</div>
+
+					<div class="add-provider hover-opacity glass2"
+						@click="addImportLine()">
+						<img alt="" width="16" height="16" src="/static/icons/line/plus.svg">
+						<span>Agregar proveedor</span>
+					</div>
+				
+
+					<div class="fields">
+						<label class="white">
+							<select x-model="new_import.business_id">
+								<option value="null" selected disabled>Empresa</option>
+								<template x-for="business in $store.cache.getData('imports_business')" :key="business.id">
+									<option :value="business.id" x-text="business.name"></option>
+								</template>
+							</select>
+						</label>
+
+						<label class="white">
+							<select x-model="new_import.type_id">
+								<option value="null" selected disabled>Tipo</option>
+								<template x-for="type in $store.cache.getData('imports_type')" :key="type.id">
+									<option :value="type.id" x-text="type.name"></option>
+								</template>
+							</select>
+						</label>
+
+						<label class="white">
+							<select x-model="new_import.port_id">
+								<option value="null" selected disabled>Salida</option>
+								<template x-for="port in portOptions()" :key="port.id">
+									<option :value="port.id" x-text="port.name"></option>
+								</template>
+							</select>
+						</label>
+
+						<label class="white" x-show="isOtherPort(new_import.port_id)">
+							<input type="text" placeholder="Salida" x-model="new_import.custom_port_name">
+						</label>
+
+						<label class="white">
+							<select x-model="new_import.fcl">
+								<template x-for="mode in shipmentLoadOptions()" :key="mode.id">
+									<option :value="mode.id" x-text="mode.name"></option>
+								</template>
+							</select>
+						</label>
+					</div>
+
+					<div class="fields">
+						<label class="white">
+							<img alt="" src="/static/icons/line/user.svg" width="16" height="16">
+							<input type="text" placeholder="Agente local" x-model="new_import.local_agent">
+						</label>
+
+						<label class="white">
+							<img alt="" src="/static/icons/line/user.svg" width="16" height="16">
+							<input type="text" placeholder="Agente origen" x-model="new_import.origin_agent">
+						</label>
+					</div>
+
+					<div class="fields">
+						<label class="white">
+							<img alt="" src="/static/icons/line/board.svg" width="16" height="16">
+							<input type="text" placeholder="Referencia" x-model="new_import.reference">
+						</label>
+					</div>
+
+				</div>
+
+				<div class="buttons">
+					<button class="button hover-opacity" @click="newImport()" :class="buttons.add.class" x-text="buttons.add.text"></button>
+				</div>
+			</div>
+		</div>
+
+
+		<div 
+			x-show="$store.cache.isVisibleModal('attachment')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-attachment"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal small glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<!-- <div class="top" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+					<span class="title" x-text="viewer_file?.original_name || 'Archivo'"></span>
+
+					<a class="button hover-opacity"
+						x-show="viewer_file?.download_url"
+						:href="viewer_file?.download_url"
+						target="_blank"
+						rel="noopener noreferrer">
+						Descargar
+					</a>
+				</div> -->
+
+				<div class="modal-content">
+					<!-- PDF -->
+					<template x-if="viewer_payload?.kind === 'url' && isPdfFile(viewer_file)">
+						<iframe :src="viewer_payload.url" style="width:100%; height:70vh; border:0;"></iframe>
+					</template>
+
+					<!-- Imagen -->
+					<template x-if="viewer_payload?.kind === 'url' && isImageFile(viewer_file)">
+						<img style="border-radius: 0.75rem;" :src="viewer_payload.url">
+					</template>
+
+					<!-- Texto -->
+					<template x-if="viewer_payload?.kind === 'text'">
+						<div class="white" style="white-space:pre-wrap; padding: 1rem;" x-text="viewer_payload.text"></div>
+					</template>
+
+					<!-- HTML (xlsx preview) -->
+					<template x-if="viewer_payload?.kind === 'html'">
+						<div style="max-height:70vh;" x-html="viewer_payload.html"></div>
+					</template>
+
+					<!-- No preview -->
+					<template x-if="viewer_payload?.kind === 'download'">
+						<div style="text-align: center;" x-text="viewer_payload.message"></div>
+					</template>
+				</div>
+			</div>
+		</div>
+	</div>
+
+
+	<script>
+		var chartImportMonth = null;
+		var chartImportProvider = null;
+		var chartImportPort = null;
+		var ISTATS_AXIS = {
+			ticks: { color: '#666', font: { size: 12, family: 'Lexend', weight: '500' } },
+			grid:  { color: 'transparent' },
+			border: { display: false },
+		};
+		var ISTATS_OPTS = {
+			responsive: true,
+			plugins: { legend: { display: false } },
+			scales: {
+				x: ISTATS_AXIS,
+				y: { beginAtZero: true, ticks: { ...ISTATS_AXIS.ticks, precision: 0 }, grid: { color: '#fff' }, border: { display: false } },
+			},
+		};
+
+		Alpine.data('imports_data',() => ({
+			token: localStorage.getItem('user_token'),
+
+			api: Alpine.store('cache').api,
+			user: Alpine.store('cache').user,
+			docs: [],
+			history_list: [],
+			history_page: 1,
+			history_total_pages: 1,
+			find_query: '',
+			found_requests: [],
+			minDate: "",
+			status_notes: '',
+			booking_date: null,
+			etd_date: null,
+			eta_date: null,
+			deadline_date: null,
+			delivery_date: null,
+			delivery_time: null,
+			delivery_name: '',
+			delivery_phone: '',
+			delivery_code: '',
+			pay_date: null,
+			qty: null,
+			pallets: null,
+			weight: null,
+			volume: null,
+			tax_amount: null,
+			tax_currency: 'PEN',
+			perception_amount: null,
+			perception_currency: 'PEN',
+			dua_number: '',
+			selected_import: null,
+			import_data: {},
+			new_import: {
+				business_id: null,
+				type_id: null,
+				fcl: '0',
+				port_id: null,
+				custom_port_name: '',
+				local_agent: '',
+				origin_agent: '',
+				reference: '',
+				lines: []
+			},
+			provider_preview_cache: {},
+			provider_preview_loading: {},
+			pendings_open: false,
+			traffic_light: 'green',
+			message: '',
+			processing: false,
+			selected_group_id: null,
+			viewer_file: null,
+			viewer_payload: null,
+			buttons: {
+                add: { class: '', text: 'Añadir' },
+                move_status: { class: '', text: this.selected_import?.status_id == 8 ? 'Finalizar orden': 'Actualizar estado' },
+				save_draft: { class: '', text: 'Actualizar' },
+    			delete_draft: { class: '', text: 'Eliminar' },
+            },
+			docs_target: "product_list",
+			pending_docs: [],
+			tracking_link: '',
+			view_simple: false,
+
+			async init() {
+				console.log('Inicializando Imports...');
+
+				this.view_simple = !this.adminPermission();
+
+                const socket = Alpine.store('cache').socket;
+				if (socket) {
+					socket.removeAllListeners();
+					socket.on("imports_dashboard_update", async () => {
+						await Alpine.store('cache').refresh(['imports_dashboard', 'imports_pendings']);
+					});
+				}	
+
+				const current_date = new Date();
+				this.minDate = current_date.toISOString().slice(0, 10);
+				
+				await Alpine.store('cache').fetchData([
+					{ key: 'imports_dashboard', url: '/imports/dashboard', force: true },
+					{ key: 'imports_pendings', url: '/imports/pending', force: true },
+					{ key: 'imports_status', url: '/imports/status' },
+					{ key: 'imports_provider', url: '/imports/options/provider' },
+					{ key: 'imports_type', url: '/imports/options/type' },
+					{ key: 'imports_business', url: '/imports/options/business' },
+					{ key: 'imports_incoterm', url: '/imports/options/incoterm' },
+					{ key: 'imports_port', url: '/imports/options/port' },
+				]);
+
+				if (!this.new_import.lines.length) {
+					this.new_import.lines = [this.emptyImportLine()];
+				}
+				
+				// await Alpine.store('cache').verify();
+			},
+
+			toggleViewMode() {
+				if (!this.adminPermission()) return;
+
+				this.view_simple = !this.view_simple;
+
+				if (Alpine.store('cache').hideMoreMenu) {
+					Alpine.store('cache').hideMoreMenu();
+				}
+			},
+
+			isSimpleView() {
+				return !this.adminPermission() || this.view_simple;
+			},
+
+			simpleDashboard() {
+				const dashboard = Alpine.store('cache').getData('imports_dashboard') || [];
+
+				const groups = [
+					{
+						key: 'preparation',
+						name: 'En preparación',
+						image: '/static/icons/module/imports/prep.svg',
+						imports: [],
+					},
+					{
+						key: 'transit',
+						name: 'En tránsito',
+						image: '/static/icons/module/imports/trans.svg',
+						imports: [],
+					},
+					{
+						key: 'customs',
+						name: 'En aduanas',
+						image: '/static/icons/module/imports/adua.svg',
+						imports: [],
+					},
+					{
+						key: 'available',
+						name: 'Disponible',
+						image: '/static/icons/module/imports/entrega.svg',
+						imports: [],
+					},
+				];
+
+				for (const group of dashboard) {
+					for (const item of (group.imports || [])) {
+						const status = Number(item.status_id);
+
+						if (status < 6) {
+							groups[0].imports.push(item);
+						} else if (status === 6) {
+							groups[1].imports.push(item);
+						} else if (status > 6 && status <= 12) {
+							groups[2].imports.push(item);
+						} else if (status > 12) {
+							groups[3].imports.push(item);
+						}
+					}
+				}
+
+				return groups;
+			},
+
+			async updateBasicImport() {
+				if (!this.import_data?.id || this.processing) return;
+
+				const payload = {
+					local_agent: (this.import_data?.local_agent_name || '').trim(),
+					origin_agent: (this.import_data?.origin_agent_name || '').trim(),
+					reference: (this.import_data?.reference || '').trim() || null,
+					business_id: this.import_data?.business_id,
+					type_id: this.import_data?.type_id,
+					fcl: Number(this.import_data?.fcl || 0),
+
+					port_id: this.isOtherPort(this.import_data?.port_id) ? null : this.import_data?.port_id,
+					custom_port_name: this.isOtherPort(this.import_data?.port_id)
+						? (this.import_data?.custom_port_name || '').trim()
+						: null,
+
+					lines: (this.import_data?.lines || []).map((x, idx) => ({
+						provider_id: x.provider_id ? Number(x.provider_id) : null,
+						incoterm_id: this.isOtherIncoterm(x.incoterm_id)
+							? null
+							: (x.incoterm_id ? Number(x.incoterm_id) : null),
+						custom_incoterm_name: this.isOtherIncoterm(x.incoterm_id)
+							? (x.custom_incoterm_name || '').trim()
+							: null,
+						advance_payment_percent: x.advance_payment_percent,
+						balance_days: x.balance_days,
+						position: idx + 1,
+						po_number: (x.po_number || '').trim() || null,
+					})),
+				};
+
+				if (!payload.local_agent) return this.showError('save_draft', 'Ingresa agente local');
+				if (!payload.origin_agent) return this.showError('save_draft', 'Ingresa agente origen');
+				if (!payload.port_id && !payload.custom_port_name) return this.showError('save_draft', 'Ingresa puerto');
+				if (!payload.lines.length) return this.showError('save_draft', 'Agrega línea');
+
+				for (let i = 0; i < payload.lines.length; i++) {
+					const row = payload.lines[i];
+
+					if (!row.provider_id) {
+						return this.showError('save_draft', `Línea ${i + 1}: proveedor`);
+					}
+
+					if (!row.incoterm_id && !row.custom_incoterm_name) {
+						return this.showError('save_draft', `Línea ${i + 1}: incoterm`);
+					}
+
+					// if (row.advance_payment_percent === null || row.advance_payment_percent === '') {
+					// 	return this.showError('save_draft', `Línea ${i + 1}: adelanto`);
+					// }
+
+					// if (Number(row.advance_payment_percent) < 0 || Number(row.advance_payment_percent) > 100) {
+					// 	return this.showError('save_draft', `Línea ${i + 1}: adelanto 0 a 100`);
+					// }
+
+					// if (row.balance_days === null || row.balance_days === '') {
+					// 	return this.showError('save_draft', `Línea ${i + 1}: saldo`);
+					// }
+
+					// if (Number(row.balance_days) < 0) {
+					// 	return this.showError('save_draft', `Línea ${i + 1}: saldo inválido`);
+					// }
+				}
+
+				this.processing = true;
+				try {
+					const response = await fetch(`${this.api}/imports/${this.import_data.id}/basic`, {
+						method: 'PUT',
+						headers: {
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${this.token}`,
+						},
+						body: JSON.stringify(payload)
+					});
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || 'Error actualizando importación');
+					}
+
+					// await Alpine.store('cache').refresh(['imports_dashboard', 'imports_pendings']);
+					// await this.viewItem(this.import_data.id);
+					Alpine.store('cache').hideModal('view');
+
+				} catch (error) {
+					this.showError('save_draft', error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async deleteDraft() {
+				if (!this.import_data?.id) return;
+				if (this.processing) return;
+
+				this.processing = true;
+				try {
+					const response = await fetch(`${this.api}/imports/draft/${this.import_data.id}`, {
+						method: 'DELETE',
+						headers: {
+							'Authorization': `Bearer ${this.token}`,
+						}
+					});
+
+					let jsonData = {};
+					try { jsonData = await response.json(); } catch (e) {}
+
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || 'Error eliminando borrador');
+					}
+
+					Alpine.store('cache').hideModal('view');
+					this.import_data = null;
+					await Alpine.store('cache').refresh(['imports_dashboard', 'imports_pendings']);
+
+				} catch (error) {
+					this.showError('delete_draft', error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			emptyImportLine() {
+				return {
+					_uid: `line-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+					provider_id: null,
+					incoterm_id: null,
+					provider_preview: null,
+					custom_incoterm_name: '',
+					advance_payment_percent: null,
+        			balance_days: null,
+					po_number: '',
+				};
+			},
+
+			shipmentLoadOptions() {
+				return [
+					{ id: '0', name: 'LCL' },
+					{ id: '1', name: 'FCL' },
+				];
+			},
+
+			addImportLine() {
+				if (!this.new_import || typeof this.new_import !== 'object') {
+					this.new_import = {};
+				}
+
+				if (!Array.isArray(this.new_import.lines)) {
+					this.new_import.lines = [];
+				}
+
+				this.new_import.lines.push(this.emptyImportLine());
+			},
+
+			removeImportLine(index) {
+				if (this.new_import.lines.length <= 1) return;
+				this.new_import.lines.splice(index, 1);
+			},
+
+			resetOrder() {
+				this.new_import = {
+					business_id: null,
+					type_id: null,
+					port_id: null,
+					fcl: '0',
+					custom_port_name: '',
+					local_agent: '',
+					origin_agent: '',
+					reference: '',
+					lines: [this.emptyImportLine()],
+				};
+			},
+
+			portOptions() {
+				const rows = Alpine.store('cache').getData('imports_port') || [];
+				return [
+					...rows.map(x => ({ ...x, id: String(x.id) })),
+					{ id: '__other__', name: 'OTRO' }
+				];
+			},
+
+			incotermOptions() {
+				const rows = Alpine.store('cache').getData('imports_incoterm') || [];
+				return [
+					...rows.map(x => ({ ...x, id: String(x.id) })),
+					{ id: '__other__', code: 'OTRO' }
+				];
+			},
+
+			isOtherPort(value) {
+				return String(value) === '__other__';
+			},
+
+			isOtherIncoterm(value) {
+				return String(value) === '__other__';
+			},
+
+			addEditableLine() {
+				if (!Array.isArray(this.import_data?.lines)) this.import_data.lines = [];
+				this.import_data.lines.push(this.emptyImportLine());
+			},
+
+			removeEditableLine(index) {
+				if (!this.import_data?.lines || this.import_data.lines.length <= 1) return;
+				this.import_data.lines.splice(index, 1);
+			},
+
+			providerNameById(id) {
+				if (!id) return '';
+				const row = (Alpine.store('cache').getData('imports_provider') || []).find(x => Number(x.id) === Number(id));
+				return row?.name || '';
+			},
+
+			businessNameById(id) {
+				if (!id) return '';
+				const row = (Alpine.store('cache').getData('imports_business') || []).find(x => Number(x.id) === Number(id));
+				return row?.name || '';
+			},
+
+			typeNameById(id) {
+				if (!id) return '';
+				const row = (Alpine.store('cache').getData('imports_type') || []).find(x => Number(x.id) === Number(id));
+				return row?.name || '';
+			},
+
+			async confirmImport(item) {
+				if (!this.import_data?.id || this.processing) return;
+					this.processing = true;
+
+				try {
+					const response = await fetch(`${this.api}/imports/confirm`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${this.token}`,
+						},
+						body: JSON.stringify({ import_id: this.import_data.id }),
+					});
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || 'Error confirmando importación');
+					}
+
+					Alpine.store('cache').hideModal('view');
+					this.import_data = null;
+					await Alpine.store('cache').refresh(['imports_dashboard', 'imports_pendings']);
+
+				} catch (error) {
+					this.showError('save_draft', error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async loadProviderPreviewForLine(line) {
+				if (!line) return;
+
+				const providerId = Number(line.provider_id || 0);
+				if (!providerId) {
+					line.provider_preview = null;
+					return;
+				}
+
+				if (this.provider_preview_cache[providerId]) {
+					line.provider_preview = this.provider_preview_cache[providerId];
+					return;
+				}
+
+				if (this.provider_preview_loading[providerId]) return;
+				this.provider_preview_loading[providerId] = true;
+
+				try {
+					const response = await fetch(`${this.api}/imports/provider/${providerId}`, {
+						headers: { "Content-Type": "application/json" }
+					});
+
+					const payload = await response.json();
+					if (!response.ok) throw new Error(payload?.data?.message || 'No se pudo cargar proveedor');
+
+					const data = payload?.data || payload;
+					const preview = {
+						id: data.id,
+						name: data.name,
+						contact: data.contact,
+						letter: data.letter,
+						email: data.email,
+						phone: data.phone,
+						telephone: data.telephone,
+					};
+
+					this.provider_preview_cache[providerId] = preview;
+					line.provider_preview = preview;
+				} catch (error) {
+					console.error('Error cargando proveedor:', error);
+					line.provider_preview = null;
+				} finally {
+					delete this.provider_preview_loading[providerId];
+				}
+			},
+
+			queueDocs(evt) {
+				const files = evt.target.files;
+				if (!files || !files.length) return;
+
+				const target = evt.target.dataset.target || "default";
+				this.docs_target = target;
+
+				for (const file of files) {
+					const ext = (file.name.split(".").pop() || "").toLowerCase();
+
+					const item = {
+						id: `tmp-${Date.now()}-${Math.random()}`,
+						file,
+						target,
+						original_name: file.name,
+						ext,
+						preview: null, // solo imágenes
+					};
+
+					// miniatura solo para imágenes
+					if (['png','jpg','jpeg','webp','gif'].includes(ext)) {
+						item.preview = URL.createObjectURL(file);
+					}
+
+					this.pending_docs.push(item);
+				}
+
+				evt.target.value = "";
+			},
+
+			providerOptions() {
+				const rows = Alpine.store('cache').getData('imports_provider') || [];
+				return rows.map(x => ({ ...x, id: String(x.id) }));
+			},
+
+			// ── Buscar ──
+			search() {
+				this.find_query = '';
+				this.found_requests = [];
+				Alpine.store('cache').showModal('imports-search');
+			},
+			async findRequests() {
+				const term = (this.find_query || '').trim();
+				if (term.length < 2) { this.found_requests = []; return; }
+				try {
+					const res = await fetch(`${this.api}/imports/find/${encodeURIComponent(term)}`, { headers: { 'X-No-Toast': '1' } });
+					const json = await res.json();
+					this.found_requests = (res.ok && json.data) ? json.data : [];
+				} catch (e) { console.error(e); this.found_requests = []; }
+			},
+			// ── Historial ──
+			async viewHistory() {
+				await this.firstHistoryPage();
+				Alpine.store('cache').showModal('imports-history');
+			},
+			async getHistory() {
+				try {
+					const res = await fetch(`${this.api}/imports/history?page=${this.history_page}`, { headers: { 'X-No-Toast': '1' } });
+					const json = await res.json();
+					const data = json.data || {};
+					this.history_list = data.list || [];
+					this.history_total_pages = data.pagination?.pages || 1;
+				} catch (e) { console.error(e); }
+			},
+			async firstHistoryPage() { this.history_page = 1; await this.getHistory(); },
+			async lastHistoryPage()  { this.history_page = this.history_total_pages; await this.getHistory(); },
+			async nextHistoryPage()  { if (this.history_page < this.history_total_pages) { this.history_page++; await this.getHistory(); } },
+			async prevHistoryPage()  { if (this.history_page > 1) { this.history_page--; await this.getHistory(); } },
+			// ── Estadísticas ──
+			async viewStatistics() {
+				await Alpine.store('cache').fetchData([
+					{ key: 'imports_statistics', url: '/imports/statistics', force: true },
+				]);
+				Alpine.store('cache').showModal('imports-stats');
+				await this.initStatsCharts();
+			},
+			async initStatsCharts() {
+				const stats = Alpine.store('cache').getData('imports_statistics');
+				if (!stats) return;
+				if (!this.$refs.importMonthChart || !this.$refs.importProviderChart || !this.$refs.importPortChart) return;
+				await new Promise(r => requestAnimationFrame(() => setTimeout(r, 50)));
+
+				if (chartImportMonth)    chartImportMonth.destroy();
+				if (chartImportProvider) chartImportProvider.destroy();
+				if (chartImportPort)     chartImportPort.destroy();
+
+				chartImportMonth = new Chart(this.$refs.importMonthChart, {
+					type: 'line',
+					data: {
+						labels: stats.by_month.map(r => r.period),
+						datasets: [{ label: 'Llegadas', data: stats.by_month.map(r => r.count), fill: true, tension: 0.3, backgroundColor: 'rgba(234,113,52,0.5)', borderWidth: 0 }],
+					},
+					options: ISTATS_OPTS,
+				});
+
+				chartImportProvider = new Chart(this.$refs.importProviderChart, {
+					type: 'bar',
+					data: {
+						labels: stats.by_provider.map(r => r.provider),
+						datasets: [{ label: 'Importaciones', data: stats.by_provider.map(r => r.count), backgroundColor: 'rgba(15,32,39,0.75)', borderWidth: 0 }],
+					},
+					options: ISTATS_OPTS,
+				});
+
+				chartImportPort = new Chart(this.$refs.importPortChart, {
+					type: 'bar',
+					data: {
+						labels: stats.by_port.map(r => r.port),
+						datasets: [{ label: 'Importaciones', data: stats.by_port.map(r => r.count), backgroundColor: 'rgba(255,160,42,0.75)', borderWidth: 0 }],
+					},
+					options: ISTATS_OPTS,
+				});
+			},
+			async viewItem(item_id) {
+				try {
+					const response = await fetch(`${this.api}/imports/view/${item_id}`);
+					const json = await response.json();
+					const data = json.data;
+
+					const prepared = {
+						...data,
+						fcl: String(data.fcl ?? 0),
+						port_id: data.custom_port_name
+							? '__other__'
+							: (data.port_id != null ? String(data.port_id) : null),
+
+						lines: (data.lines || []).map((line, index) => ({
+							...line,
+							_uid: line.id ? `line-${line.id}` : `line-tmp-${item_id}-${index}`,
+							provider_id: line.provider_id != null ? String(line.provider_id) : null,
+							incoterm_id: line.custom_incoterm_name
+								? '__other__'
+								: (line.incoterm_id != null ? String(line.incoterm_id) : null),
+							advance_payment_percent: line.advance_payment_percent ?? null,
+							balance_days: line.balance_days ?? null,
+						}))
+					};
+
+					// console.log('prepared lines', prepared.lines);
+					// console.log('incoterm options', this.incotermOptions());
+					// console.log('provider options', this.providerOptions());
+					this.import_data = {};
+					await this.$nextTick();
+
+					this.import_data = prepared;
+					await this.$nextTick();
+
+					for (const line of this.import_data.lines || []) {
+						if (line.provider_id) {
+							this.loadProviderPreviewForLine(line);
+						}
+					}
+
+					Alpine.store('cache').showModal('view');
+				} catch (error) {
+					console.error('Error en viewItem:', error);
+				}
+			},
+
+			pendingDocs(target) {
+				return this.pending_docs.filter(p => p.target === target);
+			},
+
+			removePendingDocById(id) {
+				const idx = this.pending_docs.findIndex(p => p.id === id);
+				if (idx === -1) return;
+
+				const item = this.pending_docs[idx];
+				if (item.preview) URL.revokeObjectURL(item.preview);
+
+				this.pending_docs.splice(idx, 1);
+			},
+
+			removePendingDoc(index) {
+				const item = this.pending_docs[index];
+				if (!item) return;
+
+				if (item.preview) {
+					URL.revokeObjectURL(item.preview);
+				}
+
+				this.pending_docs.splice(index, 1);
+			},
+
+			resetStatus() {
+				this.status_notes = '';
+				this.booking_date = null;
+				this.etd_date = null;
+				this.eta_date = null;
+				this.deadline_date = null;
+				this.delivery_date = null,
+				this.delivery_time = null,
+				this.delivery_name = '';
+				this.delivery_phone = '';
+				this.delivery_code = '';
+				this.pay_date = null;
+				this.qty = null;
+				this.pallets = null;
+				this.weight = null;
+				this.volume = null;
+				this.traffic_light = 'green';
+				this.tracking_link = '';
+				this.tax_amount = null;
+				this.tax_currency = 'PEN';
+				this.perception_amount = null;
+				this.perception_currency = 'PEN';
+				this.dua_number = '';
+            },
+
+			cyclePayLight() {
+				const order = ['green', 'amber', 'red'];
+				const i = order.indexOf(this.traffic_light);
+				this.traffic_light = order[(i + 1) % order.length];
+			},
+
+			payLightLabel(color) {
+				if (color === 'green') return 'Verde';
+				if (color === 'amber') return 'Ámbar';
+				if (color === 'red') return 'Rojo';
+				return 'Verde';
+			},
+
+			async newImport() {
+				if (this.processing) return;
+
+				const payload = {
+					business_id: this.new_import.business_id,
+					type_id: this.new_import.type_id,
+					fcl: Number(this.new_import.fcl || 0),
+					port_id: this.isOtherPort(this.new_import.port_id) ? null : this.new_import.port_id,
+					custom_port_name: this.isOtherPort(this.new_import.port_id)
+						? (this.new_import.custom_port_name || '').trim()
+						: null,
+					local_agent: (this.new_import.local_agent || '').trim(),
+					origin_agent: (this.new_import.origin_agent || '').trim(),
+					reference: (this.new_import.reference || '').trim() || null,
+					lines: (this.new_import.lines || []).map((x, idx) => ({
+						provider_id: x.provider_id ? Number(x.provider_id) : null,
+						incoterm_id: this.isOtherIncoterm(x.incoterm_id)
+							? null
+							: (x.incoterm_id ? Number(x.incoterm_id) : null),
+						custom_incoterm_name: this.isOtherIncoterm(x.incoterm_id)
+							? (x.custom_incoterm_name || '').trim()
+							: null,
+						advance_payment_percent: x.advance_payment_percent,
+						balance_days: x.balance_days,
+						position: idx + 1,
+						po_number: (x.po_number || '').trim() || null,
+					}))
+				};
+
+				if (!payload.business_id) return this.showError('add', 'Selecciona empresa');
+				if (!payload.type_id) return this.showError('add', 'Selecciona tipo');
+				if (!payload.port_id && !payload.custom_port_name) {
+					return this.showError('add', 'Selecciona puerto o ingresa uno manual');
+				}
+				if (!payload.local_agent) return this.showError('add', 'Ingresa agente local');
+				if (!payload.origin_agent) return this.showError('add', 'Ingresa agente origen');
+
+
+				if (!payload.lines.length) return this.showError('add', 'Agrega línea');
+
+				for (let i = 0; i < payload.lines.length; i++) {
+					const row = payload.lines[i];
+
+					if (!row.provider_id) {
+						return this.showError('add', `Línea ${i + 1}: proveedor`);
+					}
+
+					if (!row.incoterm_id && !row.custom_incoterm_name) {
+						return this.showError('add', `Línea ${i + 1}: incoterm`);
+					}
+
+					// if (row.advance_payment_percent === null || row.advance_payment_percent === '') {
+					// 	return this.showError('add', `Línea ${i + 1}: adelanto`);
+					// }
+
+					// if (Number(row.advance_payment_percent) < 0 || Number(row.advance_payment_percent) > 100) {
+					// 	return this.showError('add', `Línea ${i + 1}: adelanto 0 a 100`);
+					// }
+
+					// if (row.balance_days === null || row.balance_days === '') {
+					// 	return this.showError('add', `Línea ${i + 1}: saldo`);
+					// }
+
+					// if (Number(row.balance_days) < 0) {
+					// 	return this.showError('add', `Línea ${i + 1}: saldo inválido`);
+					// }
+				}
+
+				this.processing = true;
+
+				try {
+					const response = await fetch(`${this.api}/imports/new`, {
+						method: 'POST',
+						headers: { 
+							"Content-Type": "application/json",
+							"Authorization": `Bearer ${this.token}`,
+						},
+						body: JSON.stringify(payload),
+					});
+					
+					const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+					
+					this.resetOrder();
+					Alpine.store('cache').hideModal('add');
+
+				} catch (error) {
+					this.showError('add', error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async updateStatus() {
+				if (!this.selected_import) return;
+				
+				const import_id = this.selected_import.id;
+				const status_id = this.selected_import.status_id;
+				const booking_date = this.booking_date == '' ? null:this.booking_date;
+				const etd_date = this.etd_date == '' ? null:this.etd_date;
+				const eta_date = this.eta_date == '' ? null:this.eta_date;
+				const deadline_date = this.deadline_date == '' ? null:this.deadline_date;
+				const delivery_date = this.delivery_date == '' ? null:this.delivery_date;
+				const delivery_time = this.delivery_time == '' ? null:this.delivery_time;
+				const delivery_name = this.delivery_name;
+				const delivery_phone = this.delivery_phone;
+				const delivery_code = this.delivery_code;
+				const pay_date = this.pay_date == '' ? null:this.pay_date;
+				const status_notes = this.status_notes;
+				const traffic_light = this.traffic_light;
+				const tax_amount = this.tax_amount;
+				const tax_currency = this.tax_currency || 'PEN';
+				const perception_amount = this.perception_amount;
+				const perception_currency = this.perception_currency || 'PEN';
+				const dua_number = (this.dua_number || '').trim();
+				const qty = this.qty;
+				const pallets = this.pallets;
+				const weight = this.weight;
+				const volume = this.volume;
+				const tracking_link = (this.tracking_link || '').trim() || null;
+
+				if (status_id == 2 && booking_date === null) {
+                    this.showError('move_status', 'Selecciona una fecha de booking');
+					return;
+				}
+
+				if (status_id == 5 && etd_date === null) {
+                    this.showError('move_status', 'Selecciona una fecha de salida');
+					return;
+				}
+
+				if (status_id == 5 && eta_date === null) {
+                    this.showError('move_status', 'Selecciona una fecha de llegada');
+					return;
+				}
+
+				if (status_id == 7 && deadline_date === null) {
+                    this.showError('move_status', 'Selecciona un deadline');
+					return;
+				}
+
+				if (status_id == 8 && !dua_number) {
+					this.showError('move_status', 'Ingresa el número DUA');
+					return;
+				}
+
+				if (status_id == 9 && pay_date === null) {
+                    this.showError('move_status', 'Selecciona una fecha de pago');
+					return;
+				}
+
+				if (status_id == 11 && delivery_date === null) {
+                    this.showError('move_status', 'Selecciona un fecha de retiro');
+					return;
+				}
+
+				if (status_id == 11 && delivery_time === null) {
+                    this.showError('move_status', 'Selecciona un hora de cita');
+					return;
+				}
+
+				const payload = {
+					import_id: import_id,
+					booking_date: booking_date,
+					etd_date: etd_date,
+					eta_date: eta_date,
+					deadline_date: deadline_date,
+					delivery_date: delivery_date,
+					delivery_time: delivery_time,
+					delivery_name: delivery_name,
+					delivery_phone: delivery_phone,
+					delivery_code: delivery_code,
+					qty: qty,
+					pallets: pallets,
+					weight: weight,
+					volume: volume,
+					notes: status_notes,
+					pay_date: pay_date,
+  					traffic_light: traffic_light,
+					tracking_link: tracking_link,
+					tax_amount: tax_amount,
+					tax_currency: tax_currency,
+					perception_amount: perception_amount,
+					perception_currency: perception_currency,
+					dua_number: dua_number,
+				};
+				
+				if (this.processing) return;
+				this.processing = true;
+
+				if ([4, 5, 6, 7].includes(status_id)) {
+					const ok = await this.uploadPendingDocs();
+					if (!ok) {
+						this.processing = false;
+						return;
+					}
+				}
+
+				try {
+					const response = await fetch(`${this.api}/imports/move`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							"Authorization": `Bearer ${this.token}`,
+						},
+						body: JSON.stringify(payload)
+					});
+
+					const jsonData = await response.json();
+                    if (!response.ok) {
+						throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+					}
+
+					Alpine.store('cache').hideModal('status');
+					this.selected_import = null;
+
+				} catch (error) {
+					this.showError('move_status', error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async downStatus() {
+				if (!this.selected_import) return;
+				
+				const import_id = this.selected_import.id;
+
+				const payload = {
+					import_id: import_id,
+				};
+				
+				if (this.processing) return;
+				this.processing = true;
+
+				try {
+					const response = await fetch(`${this.api}/imports/down`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							"Authorization": `Bearer ${this.token}`,
+						},
+						body: JSON.stringify(payload)
+					});
+
+					const jsonData = await response.json();
+                    if (!response.ok) {
+						throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+					}
+
+					this.selected_import = null;
+
+				} catch (error) {
+					this.showError('move_status', error.message);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async uploadPendingDocs() {
+				if (!this.selected_import?.id) return true;
+				if (!this.pending_docs.length) return true;
+
+				const import_id = this.selected_import.id;
+
+				const grouped = this.pending_docs.reduce((acc, p) => {
+					(acc[p.target] ||= []).push(p);
+					return acc;
+				}, {});
+
+				for (const [target, files] of Object.entries(grouped)) {
+					const form = new FormData();
+					form.append("target", target);
+					form.append("import_id", import_id);
+
+					for (const p of files) {
+					form.append("files[]", p.file);
+					}
+
+					const res = await fetch(`${this.api}/imports/attachments`, {
+					method: "POST",
+					headers: {
+						"Authorization": `Bearer ${this.token}`
+					},
+					body: form
+					});
+
+					const json = await res.json();
+					if (!res.ok) {
+					this.showError("move_status", json?.data?.message || "Upload error");
+					return false; // NO limpies nada, así el usuario no pierde su cola
+					}
+				}
+
+				for (const p of this.pending_docs) {
+					if (p.preview) URL.revokeObjectURL(p.preview);
+				}
+				this.pending_docs = [];
+
+				return true;
+			},
+
+			handleEnterSend(e) {
+				if (e.shiftKey) return;
+
+				e.preventDefault();
+				this.sendChat();
+			},
+
+			scrollCommentsToBottom(behavior = 'smooth') {
+				const box = this.$refs.commentsBox;
+				if (!box) return;
+
+				box.scrollTo({
+					top: box.scrollHeight,
+					behavior
+				});
+			},
+
+			async sendChat() {
+				if (!this.message || this.processing) return;
+				this.processing = true;
+
+				try {
+					const response = await fetch(`${this.api}/imports/chat/${this.import_data.id}`, {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+							"Authorization": `Bearer ${this.token}`,
+						},
+						body: JSON.stringify({
+							comment: this.message,
+						}),
+					});
+
+					const jsonData = await response.json();
+					if (!response.ok) {
+						throw new Error(jsonData?.data?.message || "Error enviando comentario");
+					}
+					const data = jsonData.data
+					this.import_data.chats.push({
+						id: data.id,
+						comment: data.comment,
+						commenter_id: data.commenter_id,
+						commenter_name: data.commenter_name,
+						commenter_image: data.commenter_image,
+						created_at: data.created_at,
+					});
+
+					this.message = "";
+					this.$nextTick(() => this.scrollCommentsToBottom());
+				} catch (error) {
+					console.error(error);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			clearPendingDocs() {
+				for (const p of this.pending_docs) {
+					if (p.preview) URL.revokeObjectURL(p.preview);
+				}
+				this.pending_docs = [];
+			},
+
+			formatShortDate(iso) {
+				if (!iso) return "";
+				const [y, m, d] = iso.split("-").map(Number);
+				const date = new Date(y, m - 1, d);
+				const months = ["ene.", "feb.", "mar.", "abr.", "may.", "jun.", "jul.", "ago.", "sep.", "oct.", "nov.", "dic."];
+
+				return `${d} ${months[date.getMonth()]} ${y}`;
+			},
+
+			dateLabel(iso, fallback) {
+				return iso ? this.formatShortDate(iso) : fallback;
+			},
+
+			showError(btnKey, errorMsg) {
+                const originalText = this.buttons[btnKey].text;
+                const originalClass = this.buttons[btnKey].class;
+
+                if (originalClass == 'error') {
+                    return;
+                }
+                this.buttons[btnKey].text = errorMsg;
+                this.buttons[btnKey].class = 'error';
+
+                setTimeout(() => {
+                    this.buttons[btnKey].text = originalText;
+                    this.buttons[btnKey].class = originalClass;
+                }, 1000);
+            },
+
+			onDragStart(item) {
+				this.selected_import = item;
+			},
+
+			onDragOver(event, target_status_id = 1) {
+				event.preventDefault();
+
+				if (!this.selected_import) {
+					if (event.dataTransfer) event.dataTransfer.dropEffect = 'none';
+					return;
+				}
+
+				if (
+					this.selected_import.status_id == target_status_id ||
+					this.selected_import.status_id + 1 == target_status_id ||
+					this.selected_import.status_id - 1 == 1
+				) {
+					event.currentTarget.classList.add('drag-over');
+					if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+				} else {
+					if (event.dataTransfer) event.dataTransfer.dropEffect = 'none';
+				}
+			},
+			
+			onDragLeave(event) {
+				event.currentTarget.classList.remove('drag-over');
+			},
+			
+			async onDrop(group_id = 1) {
+				document.querySelectorAll('.group').forEach(container => {
+					container.classList.remove('drag-over');
+				});
+			
+				if (!this.selected_import) {
+					return;
+				}
+				
+				if (this.selected_import.status_id == group_id) {
+					this.selected_import = null;
+					return;
+				}
+
+				this.selected_group_id = group_id;
+				this.resetStatus();
+				this.clearPendingDocs();
+				if (group_id == 1) {
+					this.downStatus();
+				} else if (group_id == 2) {
+					this.updateStatus();
+				} else {
+					Alpine.store('cache').showModal('status');
+				}
+			},
+			
+			addOrder() {
+				if (!this.new_import || typeof this.new_import !== 'object') {
+					this.resetOrder();
+				} else if (!Array.isArray(this.new_import.lines)) {
+					this.new_import.lines = [this.emptyImportLine()];
+				} else if (this.new_import.lines.length === 0) {
+					this.new_import.lines.push(this.emptyImportLine());
+				}
+
+				Alpine.store('cache').showModal('add');
+			},
+
+			canAdd() {
+				return Alpine.store('cache').hasPermission('imports', 'add');
+			},
+			canEdit() {
+				return Alpine.store('cache').hasPermission('imports', 'edit');
+			},
+			canMove() {
+				return Alpine.store('cache').hasPermission('imports', 'move');
+			},
+			adminPermission() {
+				return this.canAdd() || this.canEdit() || this.canMove();
+			},
+			
+			isImageFile(f) {
+				const ext = (f?.ext || '').toLowerCase();
+				return ['png','jpg','jpeg','webp','gif'].includes(ext);
+			},
+
+			isPdfFile(f) {
+				const ext = (f?.ext || '').toLowerCase();
+				return ext === 'pdf';
+			},
+
+			getInlineUrl(f) {
+				if (f?.is_temp) return f.local_url;   // preview local
+				return `${this.api}${f.inline_url}`;  // backend
+			},
+
+			async openAttachment(file) {
+				this.viewer_file = file;
+				this.viewer_payload = null;
+
+				// TEMP: no está en backend todavía
+				if (file?.is_temp) {
+					if (this.isImageFile(file) && file.local_url) {
+					this.viewer_payload = { kind: "url", url: file.local_url };
+					} else {
+					this.viewer_payload = { kind: "download", message: "Archivo pendiente de guardar (se sube al actualizar estado)." };
+					}
+					Alpine.store("cache").showModal("attachment");
+					return;
+				}
+
+				// NORMAL: preview backend
+				const res = await fetch(`${this.api}${file.preview_url}`, {
+					headers: {
+					"Content-Type": "application/json",
+					"Authorization": `Bearer ${this.token}`,
+					}
+				});
+
+				const json = await res.json();
+				const payload = json?.data ?? json;
+
+				if (payload.kind === "url") payload.url = `${this.api}${payload.url}`;
+				this.viewer_file.download_url = `${this.api}${file.download_url}`;
+
+				this.viewer_payload = payload;
+				Alpine.store("cache").showModal("attachment");
+			},
+
+		}));
+	</script>
+
+
+
+
+
+
+
+	<style>
+		.modal .button.extend {
+			padding: 0.5rem 1rem;
+			border-radius: 2rem;
+			display: flex;
+			gap: 0.25rem;
+			font-size: 0.75rem;
+			line-height: initial;
+			width: initial;
+		}
+		.modal .button.extend img {
+			min-width: 0.75rem;
+    		filter: invert(1);
+		}
+		.traffic-row{
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			justify-content: center;
+			flex-direction: row-reverse;
+			font-weight: 600;
+		}
+		.traffic-pill{
+		    height: 3.5rem;
+			padding: 0 1.5rem;
+			border-radius: 1rem;
+			display: flex;
+			align-items: center;
+			gap: 1rem;
+			cursor: pointer;
+			user-select: none;
+			background: rgb(255 255 255 / 85%);
+			box-shadow: 0 10px 22px rgba(0, 0, 0, .08);
+			transition: transform .12s ease, box-shadow .12s ease;
+		}
+		.traffic-pill:hover{
+			box-shadow: 0 12px 26px rgba(0,0,0,.10);
+		}
+		.traffic-pill .dot{
+			width: 1.5rem;
+			height: 1.5rem;
+			border-radius: 2rem;
+			background: #6a6a6a;
+			border: 2px solid #2f2f2f;
+			opacity: .35;
+			transform: scale(.98);
+			transition: all .15s ease;
+		}
+		.traffic-pill .dot.on{
+			opacity: 1;
+			border: 2px solid transparent;
+		}
+		.traffic-pill .dot.red.on{
+			background: #ff4d4f;
+			box-shadow: 0 0 0 6px rgba(255, 77, 79, .16), 0 0 0 6px rgba(255, 77, 79, .16);
+		}
+		.traffic-pill .dot.amber.on{
+			background: #faad14;
+			box-shadow: 0 0 0 6px rgba(250, 173, 20, .18);
+		}
+		.traffic-pill .dot.green.on{
+		    background: #7ac734;
+    		box-shadow: 0 0 0 0.5rem rgb(114 199 52 / 29%);
+		}
+		.traffic-text{
+			color: rgba(0,0,0,.75);
+		}
+		.modal label.number b {
+			min-width: 4rem;
+			font-size: 0.7rem;
+			opacity: 0.5;
+			font-weight: 700;
+			position: absolute;
+    		pointer-events: none;
+		}
+		.modal label.number input {
+			text-align: right;
+		}
+		#modal-attachment {
+			z-index: 50;
+		}
+		.file-card{
+			padding: 0.75rem;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			gap: 0.25rem;
+		}
+		.file-ext{
+			font-weight:700;
+			font-size:12px;
+			opacity:.8;
+		}
+		#modal-proof {
+			z-index: 40;
+		}
+		.mobile-table {
+			flex-direction: column;
+			gap: 0.75rem;
+		}
+		.mobile-table .row {
+			padding: 1rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+		}
+		.mobile-table .head {
+			display: flex;
+    		justify-content: space-between;
+			align-items: start;
+			margin-bottom: 0.5rem;
+		}
+		.mobile-table .head .info {
+			display: flex;
+    		flex-direction: column;
+		}
+		.mobile-table .head .info .id {
+			font-size: 1rem;
+    		font-weight: 600;
+		}
+		.mobile-table .head .info .id.pending {
+			font-size: 0.85rem;
+    		opacity: 0.5;
+		}
+		.mobile-table .head .info .date {
+			font-size: 0.75rem;
+    		opacity: 0.75;
+		}
+		.mobile-table .head .status {
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		.mobile-table .head .status.active {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		.mobile-table .head .status.finished {
+			background-color: #d0f4ea;
+    		border: 2px solid #abe9d8;
+		}
+		.mobile-table .body {
+			display: flex;
+    		justify-content: space-between;
+			align-items: center;
+		}
+		.mobile-table .body .label {
+			font-size: 0.75rem;
+			opacity: 0.5;
+		}
+		.mobile-table .body .name {
+			font-weight: 500;
+			font-size: 0.8rem;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 75%;
+		}
+		.mobile-table .options {
+			display: flex;
+			gap: 0.75rem;
+			margin-top: 0.5rem;
+		}
+		.mobile-table .options .action {
+			flex: 1;
+			background-color: var(--newgray);
+			padding: 0.5rem 0.75rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.5rem;
+			border-radius: 2rem;
+			box-shadow: 0 1px 0 hsl(0deg 0% 0% / 15%);
+		}
+		.mobile-table .options span {
+			font-weight: 500;
+    		font-size: 0.8rem;
+		}
+		.modal .fields.options {
+			flex-direction: row;
+		}
+
+		#modal-search .modal {
+			gap: 0.5rem;
+			min-width: initial;
+		}
+		#modal-search .bottom {
+			display: flex;
+			align-items: center;
+			padding: 0.25rem 1rem;
+			border-radius: 0.75rem;
+		}
+		#modal-search .bottom .ico {
+			opacity: 0.5;
+		}
+		#modal-search .bottom input {
+			flex: 1;
+			background-color: transparent;
+			border: none;
+			outline: none;
+			padding: 0.75rem;
+			font-family: inherit;
+			font-size: 1rem;
+			font-weight: 400;
+			min-width: 10rem;
+		}
+		#modal-search .bottom .clear {
+			padding: 0.25rem;
+		}
+		#modal-search .bottom .clear img {
+			min-width: 0.75rem;
+    		min-height: 0.75rem;
+		}
+		#modal-search .orders {
+			max-height: 18rem;
+			overflow-y: auto;
+			width: 100%;
+			display: flex;
+			flex-direction: column;
+			font-size: 1rem;
+			border-radius: 0.75rem;
+		}
+		#modal-search .orders .item {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			position: relative;
+			padding: 0.75rem 1rem;
+			border-bottom: 2px solid #ffffff80;
+			cursor: pointer;
+			transition: var(--transition);
+			background-color: transparent;
+		}
+		#modal-search .orders .title {
+			display: flex;
+    		justify-content: space-between;
+		}
+		#modal-search .orders .item:last-child {
+			border-bottom: none;
+		}
+		#modal-search .orders .item:hover {
+			background-color: #ffffff;
+		}
+		#modal-search .orders .item .order-number {
+			font-size: 1rem;
+			font-weight: 600;
+			line-height: 1rem;
+		}
+		#modal-search .orders .item .machine {
+			font-weight: 600;
+			font-size: 0.75rem;
+			line-height: 1rem;
+			display: none;
+		}
+		#modal-search .orders .item .client {
+			line-height: 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+			opacity: 0.75;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 12rem;
+		}
+		#modal-search .orders .item img {
+			mix-blend-mode: darken;
+			position: absolute;
+			bottom: 0.75rem;
+			right: 0.75rem;
+			width: 2rem;
+		}
+
+		.mobile-table .head .status.status-1 {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		.mobile-table .head .status.status-2 {
+			background-color: #dff5ff;
+    		border: 2px solid #b4e1f2;
+		}
+		.mobile-table .head .status.status-3 {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+		}
+		.mobile-table .head .status.status-4 {
+			background-color: #e4d4fb;
+    		border: 2px solid #d0beeb;
+		}
+		.mobile-table .head .status.status-5 {
+			background-color: #fee3e1;
+    		border: 2px solid #ffceca;
+		}
+		.common-modal .top {
+			justify-content: space-between;
+			display: flex;
+		}
+		.common-modal .button {
+			display: flex;
+			gap: 0.25rem;
+			justify-content: center;
+			align-items: center;
+			width: initial;
+			padding: 0 1rem;
+			line-height: 2rem;
+			font-size: 0.8rem;
+			font-weight: 400;
+		}
+		.common-modal .button img {
+			filter: invert(1);
+		}
+		.common-modal .pagination {
+			display: flex;
+			gap: 0.75rem;
+		}
+		.common-modal .create-link {
+			display: flex;
+			gap: 0.25rem;
+			justify-content: center;
+			align-items: center;
+			width: initial;
+			padding: 0 1rem;
+			line-height: 2rem;
+			font-size: 0.8rem;
+			font-weight: 400;
+		}
+		.common-modal .create-link img {
+			filter: invert(1);
+		}
+		.common-modal .pagination .disabled {
+			opacity: 0.5;
+    		cursor: default !important;
+		}
+		.common-modal .pagination .left img {
+			transform: rotate(180deg);
+		}
+		.common-modal .pagination span {
+			width: 2rem;
+			height: 2rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			border-radius: 2rem;
+		}
+		.common-modal table {
+			border-collapse: collapse;
+		}
+		.common-modal table th {
+			padding: 0.5rem 0.75rem;
+			text-align: left;
+			font-weight: 600;
+			font-size: 0.8rem;
+			opacity: 0.75;
+		}
+		.common-modal table tbody tr {
+			transition: var(--transition);
+		}
+		.common-modal table tbody tr:hover {
+			background-color: var(--white);
+		}
+		.common-modal table td {
+			padding: 0.5rem 0.75rem;
+			cursor: pointer;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		.common-modal table.static tbody tr {
+			transition: none;
+		}
+		.common-modal table.static tbody tr:hover {
+			background-color: transparent;
+		}
+		.common-modal table.static td {
+			cursor: default;
+			line-height: 2rem;
+		}
+		.common-modal table td.order {
+			width: 6rem;
+		}
+		.common-modal table td.machine_box {
+			width: 12rem;
+			max-width: 12rem;
+		}
+		.common-modal table td.client {
+			width: 20rem;
+			max-width: 20rem;
+		}
+		.common-modal table td .controlls {
+			display: flex;
+    		gap: 0.5rem;
+		}
+		.common-modal table td .controlls .action {
+			width: 1.5rem;
+			height: 1.5rem;
+			display: flex;
+			justify-content: center;
+		}
+		.common-modal table .machine {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		.common-modal table .link-id {
+			background-color: var(--white);
+			width: 1.75rem;
+			height: 1.75rem;
+			border-radius: 1rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-weight: 500;
+			font-size: 0.8rem;
+			border: 1px solid var(--graydark);
+		}
+		.common-modal table .link-status {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		.common-modal table .status-1 {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		.common-modal table .status-2 {
+			background-color: #dff5ff;
+    		border: 2px solid #b4e1f2;
+		}
+		.common-modal table .status-3 {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+		}
+		.common-modal table .status-4 {
+			background-color: #e4d4fb;
+    		border: 2px solid #d0beeb;
+		}
+		.common-modal table .status-5 {
+			background-color: #fee3e1;
+    		border: 2px solid #ffceca;
+		}
+		.common-modal table .finished {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		.common-modal table .finished.active {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		.common-modal table .machine b {
+			background-color: var(--white);
+			width: 1.75rem;
+			height: 1.75rem;
+			border-radius: 1rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-weight: 500;
+			font-size: 0.8rem;
+			border: 1px solid var(--graydark);
+		}
+		.common-modal table .machine img {
+			mix-blend-mode: darken;
+		}
+		.common-modal table .machine .model {
+			display: flex;
+    		flex-direction: column;
+		}
+		.common-modal table .machine .model span {
+			font-weight: 500;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 8rem;
+		}
+		.common-modal table .machine .model span + span {
+			font-weight: 400;
+			font-size: 0.75rem;
+			opacity: 0.6;
+		}
+		#dashboard {
+			display: flex;
+			min-height: calc(100vh - 6.5rem);
+			gap: 1rem;
+			overflow: auto;
+			flex-direction: column;
+		}
+		#dashboard .main-container {
+			display: flex;
+			flex: 1;
+			flex-direction: row-reverse;
+		}
+		#dashboard .pending-imports {
+			width: 10%;
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			padding-left: 1rem;
+		}
+		#dashboard .pending-imports .container {
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+			height: 100%;
+		}
+		#dashboard .pending-imports .item-card {
+			gap: 0.25rem;
+			cursor: pointer;
+			padding: 0.75rem;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			flex-direction: column;
+			position: relative;
+			transition: var(--transition);
+		}
+		#dashboard .pending-imports .item-card .row {
+			display: flex;
+			justify-content: space-between;
+			width: 100%;
+			align-items: center;
+		}
+		#dashboard .pending-imports .item-card .order-number {
+			font-size: 1rem;
+			font-weight: 600;
+			line-height: 1rem;
+		}
+		#dashboard .pending-imports .item-card .title {
+			font-weight: 600;
+			font-size: 0.75rem;
+			line-height: 1rem;
+			display: block;
+		}
+		#dashboard .pending-imports .item-card .sub {
+			opacity: 0.5;
+			font-size: 0.65rem;
+			line-height: 0.5rem;
+			margin-top: 0.25rem;
+		}
+		#dashboard .pending-imports .item-card img {
+			mix-blend-mode: darken;
+			position: absolute;
+			bottom: 0.35rem;
+			right: 0.35rem;
+			pointer-events: none;
+		}
+		#dashboard .pending-imports .empty {
+			text-align: center;
+			padding: 1rem;
+		}
+		#dashboard .board {
+			display: flex;
+			user-select: none;
+			flex: 1;
+			overflow: auto;
+		}
+		#dashboard .group {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			border-right: 3px solid #ffffff80;
+			gap: 0.25rem;
+			transition: var(--transition);
+			min-width: 10rem;
+		}
+		#dashboard .group:last-child {
+			border-right: none;
+		}
+		#dashboard .group .name {
+			display: flex;
+			justify-content: center;
+			font-size: 0.85rem;
+    		font-weight: 500;
+			margin-top: 0.75rem;
+			gap: 0.5rem;
+			align-items: center;
+		}
+		#dashboard ul {
+			margin: 0;
+			list-style: none;
+			display: flex;
+			gap: 0.75rem;
+			flex-direction: column;
+			padding: 0.75rem;
+			flex: 1;
+		}
+		#dashboard ul li {
+			gap: 0.25rem;
+			cursor: pointer;
+			padding: 0.75rem;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			flex-direction: column;
+			position: relative;
+			transition: var(--transition);
+		}
+		#dashboard ul li .dot {
+			width: 0.5rem;
+			height: 0.5rem;
+			position: absolute;
+			bottom: 0.9rem;
+			right: 2.5rem;
+			border-radius: 1rem;
+		}
+		#dashboard ul li .dot.red{
+			background: #f36567;
+			box-shadow: 0 0 0 0.25rem rgba(255, 77, 79, 0.22);
+		}
+		#dashboard ul li .dot.amber{
+			background: #faad14;
+			box-shadow: 0 0 0 0.25rem rgba(250, 173, 20, .18);
+		}
+		#dashboard ul li .dot.green{
+		    background: #7ac734;
+    		box-shadow: 0 0 0 0.25rem rgba(114, 199, 52, 0.29);
+		}
+		#dashboard .group.drag-over {
+			background-color: #ffffff80;
+		}
+		#dashboard .group.drag-over ul li {
+			box-shadow: 0 0 1rem #0000000d;
+		}
+		#dashboard ul li .row {
+			display: flex;
+			justify-content: space-between;
+			width: 100%;
+			align-items: center;
+		}
+		#dashboard ul li .order-number {
+			font-size: 1rem;
+			font-weight: 600;
+			line-height: 1rem;
+		}
+		#dashboard ul li .passed-days {
+			display: flex;
+			gap: 0.5rem;
+		}
+		#dashboard ul li .updated-days,
+		#dashboard ul li .register-day {
+			font-size: 1rem;
+			font-weight: 700;
+			letter-spacing: -0.5px;
+		}
+		#dashboard ul li .updated-days {
+			background-color: #f0f0f0;
+			color: var(--black);
+			display: none;
+		}
+		#dashboard ul li .update-dot {
+			width: 0.4rem;
+			height: 0.4rem;
+			background-color: var(--primary);
+			border-radius: 1rem;
+			position: absolute;
+			top: 0.4rem;
+			left: 0.4rem;
+		}
+		#dashboard ul li .admin-name {
+			font-size: 0.75rem;
+			opacity: 0.75;
+			display: block;
+			line-height: 0.8rem;
+			margin-top: 0.5rem;
+		}
+		#dashboard ul li .update-status {
+			border-radius: 1rem;
+			background-color: var(--newgray);
+			text-align: center;
+			padding: 0.5rem 1em;
+			font-size: 0.75rem;
+			font-weight: 600;
+			margin-top: 0.5rem;
+			display: none;
+		}
+		#dashboard ul li .title {
+			font-weight: 600;
+			font-size: 0.75rem;
+			line-height: 1rem;
+			display: block;
+		}
+		.multi-lines {
+			display: flex;
+			flex-direction: column;
+			gap: .1rem;
+		}
+
+		.multi-lines > span {
+			display: block;
+			line-height: 1.1;
+		}
+		#dashboard ul li .sub {
+			opacity: 0.5;
+			font-size: 0.6rem;
+			font-weight: 600;
+			line-height: 0.75rem;
+			margin-top: 0.5rem;
+			display: block;
+		}
+		#dashboard ul li .buttons {
+			display: flex;
+			gap: 0.5rem;
+		}
+		#dashboard ul li img {
+			mix-blend-mode: darken;
+			position: absolute;
+			bottom: 0.35rem;
+			right: 0.35rem;
+			pointer-events: none;
+		}
+		#dashboard ul li img.ico {
+			margin: 0.25rem;
+		}
+		#dashboard ul li .register-day {
+    		color: var(--secondary);
+		}
+		/***********************************************************************************/
+		.modal .text-area {
+			max-width: initial;
+			width: 100%;
+		}
+		#modal-status {
+			z-index: 40;
+		}
+		#modal-status .order-input {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		#modal-status .order-input span {
+			font-weight: 500;
+    		opacity: 0.75;
+		}
+
+
+		#modal-status .capture-proof {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			user-select: none;
+        }
+		#modal-status .capture-proof .name {
+			font-weight: 500;
+        }
+
+		#modal-status .alert {
+			font-size: 0.75rem;
+			color: var(--primary);
+			margin-bottom: -0.5rem;
+		}
+		#modal-status .update {
+			display: flex;
+			justify-content: center;
+			gap: 1rem;
+			border-radius: 1rem;
+			position: relative;
+		}
+		#modal-status .update .box {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 0.5rem;
+			flex: 1;
+			font-weight: 600;
+		}
+		#modal-status .update .arrow {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+		}
+		#modal-status .update .arrow.revert {
+			transform: translate(-50%, -50%) rotate(180deg);
+		}
+		#modal-status .update .box img {
+			margin-top: 0.25rem;
+		}
+		#modal-status .update .box span {
+			font-size: 0.8rem;
+		}
+		#modal-status .revert {
+			display: flex;
+			gap: 0.5rem;
+			justify-content: center;
+			padding: 0.5rem 0;
+			max-width: 24rem;
+		}
+		#modal-status .send-whatsapp {
+			display: flex;
+			gap: 0.5rem;
+			align-items: center;
+			font-size: 0.75rem;
+			position: absolute;
+			right: 0;
+    		top: -0.25rem;
+		}
+		#modal-status .send-whatsapp .dot {
+			width: 0.5rem;
+			height: 0.5rem;
+			background-color: var(--primary);
+			border-radius: 1rem;
+		}
+		#modal-status .send-whatsapp .box {
+			position: relative;
+			width: 2.5rem;
+			height: 1.5rem;
+			flex: initial;
+		}
+		#modal-status .send-whatsapp .box input {
+			opacity: 0;
+			width: 0;
+			height: 0;
+		}
+		#modal-status .send-whatsapp .box .slider {
+			border-radius: 2rem;
+			position: absolute;
+			cursor: pointer;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background-color: #ccc;
+			transition: all 0.25s ease-in-out;
+		}
+		#modal-status .send-whatsapp .box .slider:before {
+			position: absolute;
+			content: "";
+			height: 1rem;
+			width: 1rem;
+			left: 0.25rem;
+			bottom: 0.25rem;
+			background-color: white;
+			transition: all 0.25s ease-in-out;
+			border-radius: 50%;
+		}
+		#modal-status .send-whatsapp .box input:checked + .slider {
+			background-color: var(--primary);
+		}
+		#modal-status .send-whatsapp .box input:checked + .slider:before {
+			transform: translateX(1rem);
+		}
+		/***********************************************************************************/
+		#modal-view {
+		    z-index: 30;
+		}
+		#modal-view .header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#modal-view .header .left {
+			display: flex;
+			gap: 0.75rem;
+			align-items: center;
+		}
+		#modal-view .header .left .item {
+			display: flex;
+			gap: 0.25rem;
+			align-items: center;
+			background-color: var(--black);
+			color: var(--white);
+			padding: 0.35rem 1rem;
+			border-radius: 2rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#modal-view .header .left .item img {
+			filter: invert(1);
+		}
+		#modal-view .proof {
+			padding: 0.5rem 1rem;
+			display: flex;
+			align-items: center;
+			gap: 0.25rem;
+			font-weight: 400;
+			font-size: 0.8rem;
+			margin-left: auto;
+			background-color: var(--primary);
+			color: var(--white);
+			border-radius: 1rem;
+		}
+		#modal-view .proof img {
+			filter: brightness(4);
+		}
+		#modal-view .header .days {
+			font-size: 1rem;
+			font-weight: 700;
+		}
+		#modal-view .box {
+			display: flex;
+			flex-direction: column;
+			padding: 1rem;
+    		gap: 0.75rem;
+		}
+		#modal-view .box .container {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			position: relative;
+		}
+		#modal-view .box .container .data {
+			display: flex;
+			flex-direction: column;
+			gap: 0.125rem;
+			width: 100%;
+		}
+		#modal-view .box .container .data + .data {
+			margin-left: auto;
+			text-align: right;
+		}
+		#modal-view .box .container .data .head {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			font-weight: 500;
+		}
+		#modal-view .box .container .data .head .name {
+			font-size: 0.95rem;
+		}
+		#modal-view .box .container .data .head .line {
+			opacity: 0.25;
+		}
+		#modal-view .box .container .data .head .contact {
+			color: var(--primary);
+		}
+		#modal-view .box .container .data .head .icon {
+			margin-left: auto;
+			font-size: 0.75rem;
+			opacity: 0.5;
+			font-weight: 700;
+		}
+		#modal-view .box .pair-content {
+			font-size: 0.8rem;
+			display: flex;
+			gap: 0.75rem;
+		}
+		#modal-view .box .pair-content.lines {
+			border-top: 1px solid #00000026;
+			border-bottom: 1px solid #00000026;
+			padding: 0.5rem 0;
+		}
+		#modal-view .box .pair-content .pair {
+			display: flex;
+			align-items: center;
+			gap: 0.325rem;
+			overflow: hidden;
+		}
+		#modal-view .box .pair-content .pair .text {
+			opacity: 0.5;
+		}
+		#modal-view .box .pair-content .pair.buss {
+			margin-left: auto;
+			font-weight: 500;
+			font-size: 0.7rem;
+		}
+		#modal-view .box .container .bold {
+			font-weight: 500;
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		#modal-view .box .container .text {
+		    opacity: 0.5;
+			font-size: 0.8rem;
+		}
+		#dashboard .box .container .type {
+			mix-blend-mode: darken;
+			position: absolute;
+			top: -0.25rem;
+			right: -0.25rem;
+			pointer-events: none;
+		}
+		#dashboard .box .container .type.fix {
+			margin: 0.25rem;
+		}
+		#dashboard .box .container .dot {
+			width: 0.75rem;
+			height: 0.75rem;
+			position: absolute;
+			top: 0.25rem;
+			right: 2.25rem;
+			border-radius: 1rem;
+		}
+		#dashboard .box .container .dot.red{
+			background: #f36567;
+			box-shadow: 0 0 0 0.25rem rgba(255, 77, 79, 0.22);
+		}
+		#dashboard .box .container .dot.amber{
+			background: #faad14;
+			box-shadow: 0 0 0 0.25rem rgba(250, 173, 20, .18);
+		}
+		#dashboard .box .container .dot.green{
+		    background: #7ac734;
+    		box-shadow: 0 0 0 0.25rem rgba(114, 199, 52, 0.29);
+		}
+		#modal-view .box .letter {
+			background-color: var(--secondary);
+			color: var(--white);
+			width: 2rem;
+			min-width: 2rem;
+    		height: 2rem;
+			border-radius: 1rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+		#modal-view .client {
+			display: flex;
+			align-items: center;
+			padding: 1rem;
+			width: 100%;
+			gap: 0.75rem;
+		}
+		
+		#modal-view .client.center {
+			flex-direction: column;
+			text-align: center;
+		}
+		#modal-view .client .show-photos {
+			position: relative;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			overflow: hidden;
+    		border-radius: 0.5rem;
+		}
+		#modal-view .client .show-photos .icon {
+			opacity: 0;
+			filter: invert(1);
+			position: absolute;
+			z-index: 10;
+			transition: var(--transition);
+		}
+		#modal-view .client .show-photos .thumb {
+			transition: var(--transition);
+		}
+		#modal-view .client .show-photos:hover .icon {
+			opacity: 1;
+		}
+		#modal-view .client .show-photos:hover .thumb {
+			filter: brightness(0.65) blur(2px);
+		}
+		#modal-view .client .letter {
+			background-color: var(--secondary);
+			color: var(--white);
+			width: 1.75rem;
+			height: 1.75rem;
+			border-radius: 1rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+		#modal-view .client .data {
+			display: flex;
+			flex-direction: column;
+			gap: 0.125rem;
+			justify-content: center;
+		}
+		#modal-view .client .data .machine {
+    		font-weight: 500;
+			font-size: 0.9rem;
+		}
+		#modal-view .client .data .name {
+    		opacity: 0.5;
+		}
+		#modal-view .client .icons {
+			margin-left: auto;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 0.25rem;
+		}
+		#modal-view .client .icons a {
+			padding: 0.25rem;
+    		display: flex;
+		}
+		#modal-view .client .icons button {
+			padding: 0.25rem;
+			display: flex;
+			margin: 0;
+			background-color: transparent;
+			outline: none;
+			border: none;
+			cursor: pointer;
+		}
+		#modal-view .no-edit .glass2 {
+			flex: 1;
+			justify-content: center;
+			display: flex;
+			padding: 0.25rem;
+			font-weight: 500;
+			border-radius: 0.75rem;
+		}
+		#modal-view .top {
+			display: flex;
+			gap: 0.5rem;
+			align-items: center;
+			justify-content: space-between;
+		}
+		#modal-view .top .copy-pay {
+			padding: 0.5rem;
+			border-radius: 2rem;
+			display: flex;
+		}
+		#modal-view .top .pay {
+			align-items: center;
+			justify-content: end;
+			display: flex;
+			gap: 0.5rem;
+			margin-left: auto;
+		}
+		#modal-view .top .pay span {
+			padding: 0.5rem 0.75rem;
+			background-color: var(--graydarkest);
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			color: var(--black);
+			font-size: 0.7rem;
+			font-weight: 500;
+			border-radius: 2rem;
+		}
+		#modal-view .top .pay input {
+			border: none;
+			outline: none;
+			padding: 0;
+			margin: 0;
+			font-weight: 600;
+			font-size: 1rem;
+			text-align: right;
+			background-color: transparent;
+			font-family: inherit;
+			transition: var(--transition);
+		}
+		#modal-view .top .pay.payed span {
+			color: white;
+			background-color: #4BBC66;
+		}
+		#modal-view .top .pay.payed input {
+			color: #4BBC66;
+		}
+		#modal-view .top .days {
+			font-weight: 600;
+			padding: 0.3rem 0.75rem;
+			border-radius: 2rem;
+			font-size: 0.85rem;
+			background-color: #fddbc9;
+    		border: 2px solid #f8a87f;
+			margin: -0.5rem 0;
+		}
+		#modal-view .dataview {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+		}
+		#modal-view .hover-opacity.finish {
+			padding: 0.25rem 0;
+			border: 2px solid var(--primary);
+			background-color: var(--primary);
+			color: var(--white);
+			border-radius: 2rem;
+			text-align: center;
+			display: flex;
+			justify-content: center;
+			line-height: 1.75rem;
+		}
+		#modal-view .hover-opacity.finish.black {
+			background-color: var(--secondary);
+			border: 2px solid var(--secondary);
+		}
+		#modal-view .history {
+			display: flex;
+			flex-direction: column;
+		}
+		#modal-view .history .row {
+			align-items: start;
+			display: flex;
+			gap: 0.75rem;
+			padding: 0.75rem 0.25rem;
+			border-bottom: 1px solid var(--white);
+		}
+		#modal-view .history .row.hand {
+			cursor: pointer;
+		}
+		#modal-view .history .row:last-child {
+			border-bottom: none;
+		}
+		#modal-view .history .row .left {
+			display: flex;
+			flex-direction: column;
+			width: 100%;
+			gap: 0.125rem;
+		}
+		#modal-view .history .row .head {
+			display: flex;
+			gap: 1rem;
+			align-items: center;
+		}
+		#modal-view .history .row .name {
+			font-weight: 500;
+			line-height: 1.25rem;
+		}
+		#modal-view .history .row .user_name {
+			opacity: 0.5;
+			font-size: 0.65rem;
+			margin-left: -0.5rem;
+		}
+		#modal-view .history .row .right {
+			margin-left: auto;
+			display: flex;
+			gap: 0.5rem;
+			opacity: 0.75;
+			align-items: center;
+			font-size: 0.65rem;
+		}
+		#modal-view .history .row .admin {
+			font-size: 0.6rem;
+    		line-height: 1rem;
+		}
+		#modal-view .history .row .notes {
+			font-size: 0.8rem;
+			opacity: 0.75;
+		}
+		/***********************************************************************************/
+		#modal-add .modal {
+			max-width: 36rem;
+		}
+		#modal-add .modal .title {
+			align-items: center;
+			gap: 0.5rem;
+			display: flex;
+		}
+		#modal-add .modal .title img {
+			border-radius: 1rem;
+		}
+		.modal .delete-provider {
+			width: 2.5rem;
+			height: 2.5rem;
+			align-items: center;
+			justify-content: center;
+			display: flex;
+		}
+		.modal .add-provider {
+			padding: .5rem .75rem;
+			border-radius: .75rem;
+			display: flex;
+			align-items: center;
+			gap: .5rem;
+			justify-content: center;
+			margin-top: -0.5rem;
+			font-weight: 600;
+			color: #0000005c;
+		}
+		.modal .add-provider img {
+			opacity: 0.5;
+		}
+		.modal .provider {
+			padding: 1rem;
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		.modal .provider .letter {
+			background-color: var(--secondary);
+			color: var(--white);
+			width: 2rem;
+			height: 2rem;
+			border-radius: 1rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+		.modal .provider .data {
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+			font-weight: 500;
+		}
+		.modal .provider .header {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			font-weight: 500;
+			justify-content: start !important;
+		}
+		.modal .provider .header .name {
+			font-size: 0.95rem;
+		}
+		.modal .provider .header .line {
+			opacity: 0.25;
+		}
+		.modal .provider .header .contact {
+			color: var(--primary);
+		}
+		.modal .provider .bottom {
+			opacity: 0.5;
+			font-size: 0.8rem;
+			display: flex;
+			gap: 1rem;
+		}
+		.modal .provider .bottom .row {
+			display: flex;
+			align-items: center;
+			gap: 0.25rem;
+		}
+		#modal-add .modal .machines {
+			position: absolute;
+			max-height: 8rem;
+			overflow-y: auto;
+			top: 2.75rem;
+			left: 0;
+			width: 100%;
+			display: flex;
+			flex-direction: column;
+			line-height: 2rem;
+			z-index: 10;
+		}
+		#modal-add .modal .machines span {
+			padding: 0 0.75rem;
+			transition: var(--transition);
+			cursor: pointer;
+		}
+		#modal-add .modal .machines span:hover {
+			background-color: var(--gray);
+		}
+
+		@media only screen and (max-width: 75rem) {
+			#modal-view .dataview {
+				overflow: visible;
+			}
+		}
+
+		@media only screen and (max-width: 48rem) {
+			#dashboard {
+				min-height: calc(100dvh - 5.5rem);
+			}
+			#dashboard .board {
+				flex-direction: column;
+				border-radius: 0;
+			}
+            #dashboard .group {
+				border-right: none;
+				border-bottom: 3px solid #ffffff80;
+			}
+			#dashboard .group:last-child {
+				border-bottom: none;
+			}
+			#modal-view .modal {
+				min-width: initial;
+			}
+			#modal-view .top {
+				flex-wrap: wrap;
+			}
+			#modal-view .top .finish {
+				margin-top: -0.5rem;
+				margin-left: initial;
+				width: 100%;
+				text-align: center;
+				margin-right: 0px;
+			}
+			#dashboard .menu {
+				gap: 0.75rem;
+			}
+			#dashboard .menu .item {
+				padding: 0;
+			}
+			#dashboard .menu .item .button {
+				height: 2.5rem;
+    			width: 2.5rem;
+			}
+			#dashboard .menu .item span {
+				display: none;
+			}
+			#dashboard ul li .update-status {
+				display: block;
+			}
+			#modal-proof .thumbnails-grid {
+				width: initial;
+				justify-content: space-around;
+			}
+        }
+
+		/* ── Buscar / Historial ── */
+		#modal-imports-history .top { display: flex; justify-content: space-between; align-items: center; }
+		#modal-imports-history .history-title { font-weight: 700; font-size: 1.05rem; }
+		#modal-imports-history .pagination { display: flex; gap: 0.75rem; }
+		#modal-imports-history .pagination .disabled { opacity: 0.5; cursor: default !important; pointer-events: none; }
+		#modal-imports-history .pagination .left img { transform: rotate(180deg); }
+		#modal-imports-history .pagination span { width: 2rem; height: 2rem; display: flex; justify-content: center; align-items: center; border-radius: 2rem; }
+		#modal-imports-history .modal-content.history { overflow: auto; margin-top: 1rem; }
+		#modal-imports-history table { width: 100%; border-collapse: collapse; }
+		#modal-imports-history th, #modal-imports-history td { max-width: 6rem; text-align: left; padding: 0.7rem 0.6rem; font-size: 0.82rem; border-bottom: 1px solid rgba(0,0,0,0.06); white-space: nowrap; }
+		#modal-imports-history th { font-weight: 600; opacity: 0.5; font-size: 0.72rem; text-transform: uppercase; }
+		#modal-imports-history tbody tr { cursor: pointer; }
+		#modal-imports-history td.imp-id { font-weight: 600; opacity: 0.6; }
+		#modal-imports-history td.empty, #modal-imports-history .mobile-table .empty { text-align: center; opacity: 0.4; padding: 1.5rem 0; }
+		#modal-imports-history .mobile-table { flex-direction: column; gap: 0.6rem; }
+		#modal-imports-history .mobile-table .row { padding: 0.75rem; border-radius: 10px; display: flex; flex-direction: column; gap: 0.4rem; cursor: pointer; }
+		#modal-imports-history .mobile-table .head { display: flex; justify-content: space-between; align-items: center; }
+		#modal-imports-history .mobile-table .info { display: flex; flex-direction: column; }
+		#modal-imports-history .mobile-table .info .id { font-weight: 600; font-size: 0.85rem; }
+		#modal-imports-history .mobile-table .info .date { font-size: 0.68rem; opacity: 0.4; }
+		#modal-imports-history .mobile-table .body { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.8rem; }
+		#modal-imports-history .mobile-table .body .label { opacity: 0.5; }
+		#modal-imports-history .mobile-table .body .name { text-align: right; }
+
+		.imp-status { font-size: 0.72rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 1rem; background: #0000000d; white-space: nowrap; }
+
+		#modal-imports-search .modal { gap: 0.5rem; min-width: initial; }
+		#modal-imports-search .bottom { display: flex; align-items: center; padding: 0.25rem 1rem; border-radius: 0.75rem; }
+		#modal-imports-search .bottom .ico { opacity: 0.5; }
+		#modal-imports-search .bottom input { flex: 1; background-color: transparent; border: none; outline: none; padding: 0.75rem; font-family: inherit; font-size: 1rem; font-weight: 400; min-width: 10rem; }
+		#modal-imports-search .bottom .clear { padding: 0.25rem; }
+		#modal-imports-search .orders { max-height: 18rem; overflow-y: auto; width: 100%; display: flex; flex-direction: column; border-radius: 0.75rem; margin-top: 0.5rem; }
+		#modal-imports-search .orders .item { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.75rem 1rem; border-bottom: 2px solid #ffffff80; cursor: pointer; }
+		#modal-imports-search .orders .item:last-child { border-bottom: none; }
+		#modal-imports-search .orders .item:hover { background-color: #ffffff; }
+		#modal-imports-search .orders .title { flex-direction: row; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+		#modal-imports-search .orders .item .order-number { font-size: 1rem; font-weight: 600; }
+		#modal-imports-search .orders .item .client { font-size: 0.85rem; font-weight: 500; }
+		#modal-imports-search .orders .item .service { font-size: 0.75rem; opacity: 0.6; }
+
+
+		/* ── Estadísticas ── */
+		#modal-imports-stats .top { display: flex; justify-content: space-between; align-items: center; }
+		#modal-imports-stats .top .title { font-weight: 700; font-size: 1.05rem; }
+		#modal-imports-stats .kpi { display: flex; gap: 1rem; flex-wrap: wrap; }
+		#modal-imports-stats .kpi .item { flex: 1; min-width: 8rem; display: flex; padding: 1rem; flex-direction: column; gap: 0.25rem; border-radius: 0.75rem; }
+		#modal-imports-stats .kpi .item span { font-weight: 500; font-size: 1.4rem; color: var(--primary); }
+		#modal-imports-stats .kpi .item p { margin: 0; display: flex; flex: 1; align-items: center; font-weight: 500; opacity: 0.7; font-size: 0.85rem; }
+		#modal-imports-stats .charts { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 1rem; }
+		#modal-imports-stats .charts .box { padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; min-width: 24rem; flex: 1; border-radius: 0.75rem; }
+		#modal-imports-stats .charts .box span { font-weight: 500; }
+
+	</style>
+</div>

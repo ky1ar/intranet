@@ -1,0 +1,74 @@
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: api
+    environment:
+      - ENV=${ENV}
+      - FLASK_APP=main.py
+      - FLASK_ENV=production
+      - FLASK_DEBUG=0
+    env_file:
+      - backend/.env.${ENV}
+    networks:
+      - backend
+    volumes:
+      - ./shared_uploads:/shared_uploads
+      #- ./backend:/application
+    ports:
+      - "${API_PORT}:${API_PORT}"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:${API_PORT}/dev/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    platform: linux/amd64
+    restart: always
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    networks:
+      - backend
+    restart: always
+    command: redis-server --requirepass "150723"
+
+  intranet:
+    build:
+      context: ./intranet
+      dockerfile: Dockerfile
+    container_name: intranet
+    networks:
+      - backend
+    volumes:
+      - ./shared_uploads:/usr/share/nginx/html/static/images/uploads
+      - ./shared_uploads/pdf:/usr/share/nginx/html/static/pdf/invoices
+      #- ./intranet:/usr/share/nginx/html
+    ports:
+      - 8010:80
+      - 4010:443
+    restart: always
+
+  registro:
+    build:
+      context: ./registro
+      dockerfile: Dockerfile
+    container_name: registro
+    networks:
+      - backend
+    volumes:
+      - ./shared_uploads:/usr/share/nginx/html/static/images/uploads
+      #- ./registro:/usr/share/nginx/html
+    ports:
+      - 8011:80
+      - 4011:443
+    restart: always
+
+networks:
+  backend:
+    external: true
+
+volumes:
+  shared_uploads:
+  

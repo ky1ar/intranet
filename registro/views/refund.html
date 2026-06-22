@@ -1,0 +1,639 @@
+<div x-data="refund_data" class="fixed" id="refund-guest">
+    <div class="modal glass">
+        <div x-show="currentStep != 'start' && currentStep != 'success'" class="hover-opacity modal-back" @click="prev()">
+            <img alt="volver" src="/static/images/icons/back.svg" width="20" height="20">
+        </div>
+        <div x-show="currentStep != 'start' && currentStep != 'success'" class="hover-opacity modal-home" @click="resetForm()">
+            <img alt="inicio" src="/static/images/icons/home.svg" width="20" height="20">
+        </div>
+
+        <!-- STEP: start — DNI / RUC -->
+        <div x-show="currentStep == 'start'" class="content">
+            <div class="top">
+                <img alt="bot" :src="bot_image" width="80" height="80">
+                <h1>Solicitud de extorno</h1>
+                <p>Ingresa tu DNI o RUC para comenzar.</p>
+            </div>
+            <div class="bottom">
+                <input type="text"
+                    x-model="form.client_dni"
+                    placeholder="DNI o RUC"
+                    maxlength="11"
+                    inputmode="numeric"
+                    oninput="this.value = this.value.replace(/\D/g, '').slice(0, 11)">
+                <button class="button hover-opacity" @click="validateDni()" :class="buttons.dni.class" x-text="buttons.dni.text"></button>
+            </div>
+        </div>
+
+        <!-- STEP: confirm_name -->
+        <div x-show="currentStep == 'confirm_name'" class="content">
+            <div class="top">
+                <img alt="bot" :src="bot_image" width="80" height="80">
+                <h1>¿Cuál es tu nombre?</h1>
+                <p>Ingresa tu nombre completo o razón social.</p>
+            </div>
+            <div class="bottom">
+                <input type="text"
+                    x-model="form.client_name"
+                    placeholder="Nombre completo o Razón Social">
+                <button class="button hover-opacity" @click="validateName()" :class="buttons.name.class" x-text="buttons.name.text"></button>
+            </div>
+        </div>
+
+        <!-- STEP: phone -->
+        <div x-show="currentStep == 'phone'" class="content">
+            <div class="top">
+                <img alt="bot" :src="bot_image" width="80" height="80">
+                <h1>¿Cuál es tu número de celular?</h1>
+                <p>Te enviaremos el estado de tu solicitud por WhatsApp.</p>
+            </div>
+            <div class="bottom">
+                <input type="text"
+                    x-model="form.client_phone"
+                    placeholder="Número de celular"
+                    maxlength="9"
+                    inputmode="numeric"
+                    oninput="this.value = this.value.replace(/\D/g, '').slice(0, 9)">
+                <button class="button hover-opacity" @click="validatePhone()" :class="buttons.phone.class" x-text="buttons.phone.text"></button>
+            </div>
+        </div>
+
+        <!-- STEP: order_number -->
+        <div x-show="currentStep == 'order_number'" class="content">
+            <div class="top">
+                <img alt="bot" :src="bot_image" width="80" height="80">
+                <h1>¿Cuál es tu número de pedido?</h1>
+                <p>También puede ser el número de tu boleta o factura. Encuéntralo en tu confirmación de compra o comprobante.</p>
+            </div>
+            <div class="bottom">
+                <input type="text"
+                    x-model="form.order_number"
+                    placeholder="N° de pedido / boleta / factura">
+                <button class="button hover-opacity" @click="validateOrderNumber()" :class="buttons.order.class" x-text="buttons.order.text"></button>
+            </div>
+        </div>
+
+        <!-- STEP: reason -->
+        <div x-show="currentStep == 'reason'" class="content">
+            <div class="top">
+                <img alt="bot" :src="bot_image" width="80" height="80">
+                <h1>¿Cuál es el motivo del extorno?</h1>
+                <p>Selecciona la opción que mejor describa tu caso.</p>
+            </div>
+            <div class="bottom">
+                <select x-model="form.reason" class="select-input">
+                    <option value="" disabled selected>Selecciona un motivo</option>
+                    <option value="inconforme">Atención inconforme</option>
+                    <option value="opinion">Cambio de opinión</option>
+                    <option value="producto">Cambio de producto</option>
+                    <option value="envio">Cambio en tipo de envío</option>
+                    <option value="no_envio">Envío no concretado</option>
+                    <option value="stock">Falta de stock</option>
+                    <option value="preventa">Preventa inconclusa</option>
+                    <option value="otro">Otro</option>
+                </select>
+                <template x-if="form.reason == 'otro'">
+                    <input type="text"
+                        x-model="form.reason_detail"
+                        placeholder="Especifica el motivo"
+                        style="margin-top: 0;">
+                </template>
+                <button class="button hover-opacity" @click="validateReason()" :class="buttons.reason.class" x-text="buttons.reason.text"></button>
+            </div>
+        </div>
+
+        <!-- STEP: payment_method -->
+        <div x-show="currentStep == 'payment_method'" class="content">
+            <div class="top">
+                <img alt="bot" :src="bot_image" width="80" height="80">
+                <h1>¿Cómo realizaste el pago?</h1>
+                <p>El extorno será por el mismo medio que hiciste el pago.</p>
+            </div>
+            <div class="bottom">
+                <select x-model="form.payment_method" class="select-input" @change="form.refund_account = ''">
+                    <option value="" disabled selected>Selecciona un medio</option>
+                    <option value="culqi_web">Culqi Web</option>
+                    <option value="link_pago">Link de pago</option>
+                    <option value="mercado_pago">Mercado pago</option>
+                    <option value="plin_yape">Plin o Yape</option>
+                    <option value="pos">POS</option>
+                    <option value="bbva">Transferencia BBVA</option>
+                    <option value="bcp">Transferencia BCP</option>
+                    <option value="interbank">Transferencia Interbank</option>
+                    <option value="scotiabank">Transferencia Scotiabank</option>
+                </select>
+                <template x-if="requiresAccount()">
+                    <div class="account-block">
+                        <p class="account-notice" x-text="accountMessage()"></p>
+                        <input type="text"
+                            x-model="form.refund_account"
+                            :placeholder="`N° de cuenta ${accountBankLabel()}`"
+                            inputmode="numeric"
+                            oninput="this.value = this.value.replace(/\D/g, '').slice(0, 25)">
+                    </div>
+                </template>
+                <button class="button hover-opacity" @click="validatePayment()" :class="buttons.payment.class" x-text="buttons.payment.text"></button>
+            </div>
+        </div>
+
+        <!-- STEP: description -->
+        <div x-show="currentStep == 'description'" class="content">
+            <div class="top">
+                <img alt="bot" :src="bot_image" width="80" height="80">
+                <h1>Describe tu caso</h1>
+                <p>Cuéntanos brevemente qué ocurrió con tu pedido.</p>
+            </div>
+            <div class="bottom">
+                <textarea class="textarea"
+                    x-model="form.detail"
+                    placeholder="Descripción del caso..."></textarea>
+                <button class="button hover-opacity" @click="validateDescription()" :class="buttons.detail.class" x-text="buttons.detail.text"></button>
+            </div>
+        </div>
+
+        <!-- STEP: refund_amount -->
+        <div x-show="currentStep == 'refund_amount'" class="content">
+            <div class="top">
+                <img alt="bot" :src="bot_image" width="80" height="80">
+                <h1>Indica el monto solicitado</h1>
+                <p>Ingresa el monto exacto que deseas extornar.</p>
+            </div>
+            <div class="bottom">
+                <div class="amount-input-wrap">
+                    <span class="currency">S/</span>
+                    <input type="number"
+                        x-model="form.refund_amount"
+                        min="0.01"
+                        step="0.01"
+                        placeholder="0.00"
+                        inputmode="decimal">
+                </div>
+                <p class="penalty-notice">Ten en cuenta que podría aplicarse una penalidad de S/ 10.00 según la evaluación de tu solicitud.</p>
+                <button class="button hover-opacity" @click="validateAmount()" :class="buttons.amount.class" x-text="buttons.amount.text"></button>
+            </div>
+        </div>
+
+        <!-- STEP: review -->
+        <div x-show="currentStep == 'review'" class="content">
+            <div class="top">
+                <img alt="bot" :src="bot_image" width="80" height="80">
+                <h1>¿Todo está correcto?</h1>
+                <p>Revisa el resumen antes de enviar tu solicitud.</p>
+            </div>
+            <div class="bottom">
+                <div class="card review-card white">
+                    <div class="review-row">
+                        <span class="review-label">DNI / RUC</span>
+                        <span x-text="form.client_dni"></span>
+                    </div>
+                    <div class="review-row">
+                        <span class="review-label">Nombre</span>
+                        <span x-text="form.client_name"></span>
+                    </div>
+                    <div class="review-row">
+                        <span class="review-label">Celular</span>
+                        <span x-text="form.client_phone"></span>
+                    </div>
+                    <div class="review-row">
+                        <span class="review-label">N° pedido / comprobante</span>
+                        <span x-text="form.order_number"></span>
+                    </div>
+                    <div class="review-row">
+                        <span class="review-label">Motivo</span>
+                        <span x-text="reasonLabel()"></span>
+                    </div>
+                    <template x-if="form.reason == 'otro' && form.reason_detail">
+                        <div class="review-row">
+                            <span class="review-label">Detalle motivo</span>
+                            <span x-text="form.reason_detail"></span>
+                        </div>
+                    </template>
+                    <div class="review-row">
+                        <span class="review-label">Medio de pago</span>
+                        <span x-text="paymentLabel()"></span>
+                    </div>
+                    <template x-if="requiresAccount() && form.refund_account">
+                        <div class="review-row">
+                            <span class="review-label" x-text="`Cuenta ${accountBankLabel()}`"></span>
+                            <span x-text="form.refund_account"></span>
+                        </div>
+                    </template>
+                    <template x-if="form.detail">
+                        <div class="review-row full">
+                            <span class="review-label">Descripción</span>
+                            <span x-text="form.detail"></span>
+                        </div>
+                    </template>
+                    <div class="review-row highlight">
+                        <span class="review-label">Monto a extornar</span>
+                        <span x-text="`S/ ${parseFloat(form.refund_amount || 0).toFixed(2)}`"></span>
+                    </div>
+                </div>
+                <button class="button hover-opacity" @click="submitRefund()" :class="buttons.submit.class" x-text="buttons.submit.text"></button>
+            </div>
+        </div>
+
+        <!-- STEP: success -->
+        <div x-show="currentStep == 'success'" class="content">
+            <div class="top">
+                <img alt="bot" :src="bot_image" width="80" height="80">
+                <h1>¡Solicitud registrada!</h1>
+                <p>Recibimos tu solicitud de extorno. Te notificaremos el avance por WhatsApp en un plazo máximo de 7 días hábiles.</p>
+            </div>
+        </div>
+    </div>
+
+
+
+
+    <script>
+        Alpine.data('refund_data', () => ({
+            bot_image: '/static/images/00000000.jpg',
+            api: Alpine.store('cache').api,
+            currentStep: 'start',
+            assigned_id: null,
+
+            step_flow: {
+                start:          { next: 'confirm_name', prev: null },
+                confirm_name:   { next: 'phone',         prev: 'start' },
+                phone:          { next: 'order_number',  prev: 'confirm_name' },
+                order_number:   { next: 'reason',        prev: 'phone' },
+                reason:         { next: 'payment_method',prev: 'order_number' },
+                payment_method: { next: 'description',   prev: 'reason' },
+                description:    { next: 'refund_amount', prev: 'payment_method' },
+                refund_amount:  { next: 'review',        prev: 'description' },
+                review:         { next: 'success',       prev: 'refund_amount' },
+                success:        { next: null,            prev: null },
+            },
+
+            form: {
+                client_dni: '',
+                client_name: '',
+                client_phone: '',
+                order_number: '',
+                reason: '',
+                reason_detail: '',
+                payment_method: '',
+                refund_account: '',
+                detail: '',
+                refund_amount: '',
+            },
+
+            client_found: false,
+
+            buttons: {
+                dni:    { class: '', text: 'Siguiente' },
+                name:   { class: '', text: 'Continuar' },
+                phone:  { class: '', text: 'Siguiente' },
+                order:  { class: '', text: 'Siguiente' },
+                reason: { class: '', text: 'Siguiente' },
+                payment:{ class: '', text: 'Siguiente' },
+                detail: { class: '', text: 'Siguiente' },
+                amount: { class: '', text: 'Siguiente' },
+                submit: { class: '', text: 'Completar solicitud' },
+            },
+
+            REASON_LABELS: {
+                inconforme: 'Atención inconforme',
+                opinion:    'Cambio de opinión',
+                producto:   'Cambio de producto',
+                envio:      'Cambio en tipo de envío',
+                no_envio:   'Envío no concretado',
+                stock:      'Falta de stock',
+                preventa:   'Preventa inconclusa',
+                otro:       'Otro',
+            },
+
+            PAYMENT_LABELS: {
+                culqi_web:    'Culqi Web',
+                link_pago:    'Link de pago',
+                mercado_pago: 'Mercado pago',
+                plin_yape:    'Plin o Yape',
+                pos:          'POS',
+                bbva:         'Transferencia BBVA',
+                bcp:          'Transferencia BCP',
+                interbank:    'Transferencia Interbank',
+                scotiabank:   'Transferencia Scotiabank',
+            },
+
+            async init() {
+                console.log('Inicializando Refund Guest...');
+            },
+
+            next() {
+                const n = this.step_flow[this.currentStep]?.next;
+                if (n) this.currentStep = n;
+            },
+
+            prev() {
+                const p = this.step_flow[this.currentStep]?.prev;
+                if (p) this.currentStep = p;
+            },
+
+            resetForm() {
+                this.form = {
+                    client_dni: '', client_name: '', client_phone: '',
+                    order_number: '', reason: '', reason_detail: '',
+                    payment_method: '', refund_account: '', detail: '', refund_amount: '',
+                };
+                this.client_found = false;
+                this.currentStep = 'start';
+            },
+
+            reasonLabel() {
+                return this.REASON_LABELS[this.form.reason] || this.form.reason;
+            },
+
+            paymentLabel() {
+                return this.PAYMENT_LABELS[this.form.payment_method] || this.form.payment_method;
+            },
+
+            requiresAccount() {
+                return ['plin_yape', 'bbva', 'bcp', 'interbank', 'scotiabank']
+                    .includes(this.form.payment_method);
+            },
+
+            accountBankLabel() {
+                if (this.form.payment_method === 'plin_yape') return 'BCP';
+                return (this.PAYMENT_LABELS[this.form.payment_method] || '')
+                    .replace('Transferencia ', '');
+            },
+
+            accountMessage() {
+                if (this.form.payment_method === 'plin_yape') {
+                    return 'Por favor, para hacer efectivo el extorno indícanos una cuenta BCP. Solo podemos depositar a cuentas BCP.';
+                }
+                return `Indícanos tu número de cuenta ${this.accountBankLabel()}. El depósito se hará a una cuenta del mismo banco que seleccionaste.`;
+            },
+
+            showError(key, msg) {
+                const orig = { class: this.buttons[key].class, text: this.buttons[key].text };
+                if (orig.class === 'error') return;
+                this.buttons[key] = { class: 'error', text: msg };
+                setTimeout(() => { this.buttons[key] = orig; }, 1200);
+            },
+
+            validateDni() {
+                const doc = this.form.client_dni.trim();
+                if (!doc || !/^\d+$/.test(doc)) { this.showError('dni', 'Ingresa un documento válido'); return; }
+                this.next();
+            },
+
+            validateName() {
+                const name = this.form.client_name.trim();
+                if (!name) { this.showError('name', 'Ingresa tu nombre'); return; }
+                const words = name.split(/\s+/).filter(Boolean);
+                if (words.length < 2) { this.showError('name', 'Nombre incompleto'); return; }
+                this.next();
+            },
+
+            validatePhone() {
+                const phone = this.form.client_phone.trim();
+                if (!phone || phone.length < 9) { this.showError('phone', 'Número inválido'); return; }
+                this.next();
+            },
+
+            validateOrderNumber() {
+                const n = this.form.order_number.trim();
+                if (!n) { this.showError('order', 'Ingresa el número de pedido o comprobante'); return; }
+                this.next();
+            },
+
+            validateReason() {
+                if (!this.form.reason) { this.showError('reason', 'Selecciona un motivo'); return; }
+                if (this.form.reason === 'otro' && !this.form.reason_detail.trim()) {
+                    this.showError('reason', 'Especifica el motivo'); return;
+                }
+                this.next();
+            },
+
+            validatePayment() {
+                if (!this.form.payment_method) { this.showError('payment', 'Selecciona un medio'); return; }
+                if (this.requiresAccount()) {
+                    const acc = (this.form.refund_account || '').trim();
+                    if (!acc) { this.showError('payment', `Ingresa tu cuenta ${this.accountBankLabel()}`); return; }
+                    if (acc.length < 8) { this.showError('payment', 'Número de cuenta inválido'); return; }
+                }
+                this.next();
+            },
+
+            validateDescription() {
+                if (!this.form.detail.trim()) { this.showError('detail', 'Describe tu caso'); return; }
+                this.next();
+            },
+
+            validateAmount() {
+                const amt = parseFloat(this.form.refund_amount);
+                if (!amt || amt <= 0) { this.showError('amount', 'Ingresa un monto válido'); return; }
+                this.next();
+            },
+
+            async submitRefund() {
+                const orig = { ...this.buttons.submit };
+                if (orig.class === 'loading') return;
+                this.buttons.submit = { class: 'loading', text: 'Registrando...' };
+
+                const payload = {
+                    token:          Alpine.store('cache').refund_token,
+                    client_dni:     this.form.client_dni,
+                    client_name:    this.form.client_name,
+                    client_phone:   this.form.client_phone,
+                    order_number:   this.form.order_number,
+                    reason:         this.form.reason,
+                    reason_detail:  this.form.reason === 'otro' ? this.form.reason_detail : null,
+                    payment_method: this.form.payment_method,
+                    refund_account: this.form.refund_account || null,
+                    detail:         this.form.detail || null,
+                    refund_amount:  parseFloat(this.form.refund_amount),
+                };
+
+                NProgress.start();
+                try {
+                    const res = await fetch(`${this.api}/refund/link_process`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+                    const json = await res.json();
+                    if (!res.ok) {
+                        this.showError('submit', json?.data?.message || json?.data || 'Error');
+                        this.buttons.submit = orig;
+                        return;
+                    }
+                    this.assigned_id = json.data?.id;
+                    this.next();
+                } catch (e) {
+                    this.showError('submit', 'Error de conexión');
+                    this.buttons.submit = orig;
+                } finally {
+                    NProgress.done();
+                }
+            },
+        }));
+    </script>
+
+
+
+
+    <style>
+        #refund-guest {
+            text-align: center;
+        }
+        #refund-guest .modal {
+            padding: 4rem 5rem;
+            max-width: 42rem;
+            margin: 1.5rem 0;
+        }
+        #refund-guest .content {
+            display: flex;
+            gap: 2.5rem;
+            flex-direction: column;
+        }
+        #refund-guest .content .top {
+            align-items: center;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        #refund-guest .content .top img {
+            border-radius: 3rem;
+        }
+        #refund-guest .content .top h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        #refund-guest .content .top p {
+            margin: 0;
+            font-size: 1rem;
+            line-height: 1.5rem;
+        }
+        #refund-guest .content .top .ref-id {
+            margin: 1rem auto 0;
+            padding: 0.5rem 1.5rem;
+            font-size: 1.25rem;
+            border-radius: 2rem;
+            font-weight: 700;
+        }
+        #refund-guest .content .bottom {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-width: 16rem;
+        }
+        #refund-guest .content .bottom .button {
+            font-size: 1rem;
+        }
+        #refund-guest .content .bottom input,
+        #refund-guest .content .bottom .select-input,
+        #refund-guest .content .bottom .textarea {
+            outline: none;
+            border: 1px solid var(--white);
+            background-color: var(--white) !important;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            width: 100%;
+            font-family: var(--font);
+            font-size: 1rem;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        #refund-guest .content .bottom .textarea {
+            text-align: left;
+            resize: none;
+            min-height: 6rem;
+        }
+        #refund-guest .content .bottom .select-input {
+            appearance: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+        #refund-guest .amount-input-wrap {
+            display: flex;
+            align-items: center;
+            background-color: var(--white);
+            border-radius: 0.5rem;
+            border: 1px solid var(--white);
+            overflow: hidden;
+        }
+        #refund-guest .penalty-notice {
+            margin: 0;
+            font-size: 0.78rem;
+            color: var(--primary);
+            font-weight: 500;
+            text-align: center;
+            line-height: 1.4;
+        }
+        #refund-guest .account-block {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        #refund-guest .account-notice {
+            margin: 0;
+            font-size: 0.85rem;
+            color: var(--primary);
+            font-weight: 500;
+            line-height: 1.4;
+        }
+        #refund-guest .amount-input-wrap .currency {
+            padding: 0.75rem 0.5rem 0.75rem 1rem;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        #refund-guest .amount-input-wrap input {
+            border: none !important;
+            border-radius: 0 !important;
+            flex: 1;
+            padding: 0.75rem 1rem 0.75rem 0 !important;
+        }
+        #refund-guest .review-card {
+            padding: 1rem 1.25rem;
+            border-radius: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            text-align: left;
+        }
+        #refund-guest .review-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+        #refund-guest .review-row.full {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        #refund-guest .review-row.highlight {
+            margin-top: 0.25rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid var(--gray);
+            font-weight: 700;
+        }
+        #refund-guest .review-row.highlight span:last-child {
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+        #refund-guest .review-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            opacity: 0.4;
+            white-space: nowrap;
+        }
+        @media only screen and (max-width: 48rem) {
+            #refund-guest .modal {
+                flex: 1;
+                justify-content: center;
+                padding: 2rem;
+                width: 100%;
+                border-radius: 0;
+                max-height: initial;
+                max-width: initial;
+            }
+        }
+    </style>
+</div>

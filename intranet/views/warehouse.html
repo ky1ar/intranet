@@ -1,0 +1,3047 @@
+<div x-data="warehouse_data">
+	<div id="warehouse">
+		<div class="controls">
+			<div class="toggle-collapse frost" @click="$store.cache.toogleMoreMenu()" @click.outside="$store.cache.hideMoreMenu()">
+				<div class="item">
+					<img alt="" width="24" height="24" src="/static/icons/line/more.svg">
+				</div>
+			</div>
+
+			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
+				<div class="item" @click="openHistoryModal()">
+					<img alt="" width="18" height="18" src="/static/icons/line/history.svg">
+				</div>
+				<div class="item" @click="viewStatistics()">
+					<img alt="" width="18" height="18" src="/static/icons/line/report.svg">
+				</div>
+			</div>
+			
+			<div class="left mobile-hide frost" x-show="$store.cache.hasPermission('warehouse', 'history')">
+				<div class="item" @click="openHistoryModal()">
+					<img alt="" width="20" height="20" src="/static/icons/line/history.svg">
+					<span>Historial</span>
+				</div>
+				<div class="item hover-opacity press" @click="viewStatistics()" x-show="$store.cache.hasPermission('warehouse', 'history')">
+					<img class="" alt="" width="20" height="20" src="/static/icons/line/report.svg">
+					<span>Estadísticas</span>
+				</div>
+			</div>
+			
+			<div class="right frost-dark" style="margin-left: auto;">
+				<div class="item hover-opacity press" @click="openMapModal()">
+					<img class="invert" alt="" width="18" height="18" src="/static/icons/line/map.svg">
+					<span>Mapa</span>
+				</div>
+
+				<div class="item hover-opacity press" @click="$refs.excelInput.click()" x-show="$store.cache.hasPermission('warehouse', 'load')" :class="{ 'loading': excel_loading }">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/add.svg">
+					<span x-text="excel_loading ? 'Cargando...' : 'Cargar'"></span>
+				</div>
+				<input
+					type="file"
+					accept=".xlsx"
+					x-ref="excelInput"
+					style="display: none;"
+					@change="loadExcelFile($event)"
+				>
+			</div>
+		</div>
+		
+		<div class="main">
+			<div class="main-title" x-text="`Hola, ${$store.cache.user.name.trim().split(/\s+/)[0] || ''}. ¿Que deseas ubicar?`"></div>
+
+			<div class="searchbar glass2">
+				<img alt="" class="ico" width="20" height="20" src="/static/icons/line/find.svg">
+				<input
+					type="text"
+					x-model="product_input"
+					:placeholder="animated_placeholder"
+					@input="findProducts()"
+				>
+
+				<div
+					class="hover-opacity press clear"
+					x-show="product_input"
+					title="Limpiar búsqueda"
+					@click="product_input = ''; finded_products = []; finded_locations = [];"
+					style="display: none;"
+				>
+					<img alt="" width="12" height="12" src="/static/icons/filled/x.svg">
+				</div>
+
+				<div class="hover-opacity press" title="Lector QR" @click="readQR()">
+					<img alt="" width="20" height="20" src="/static/icons/line/qr.svg">
+				</div>
+			</div>
+
+			<div
+				x-transition.duration.300ms
+				x-cloak
+				class="finded-products glass2"
+				x-show="finded_locations.length > 0 || finded_products.length > 0"
+			>
+				<div class="section-locations" x-show="finded_locations.length > 0">
+					<template x-for="loc in finded_locations" :key="`${loc.id}`">
+						<div class="item hover-opacity" @click="openLocationModal(loc.label)">
+							<div class="location ware">
+								<span class="block">
+									<span class="label">Bloque</span>
+									<span class="number" x-text="loc.block || '0'"></span>
+								</span>
+
+								<span class="block black">
+									<span class="label">Rack</span>
+									<span class="number" x-text="loc.level || '-'"></span>
+								</span>
+
+								<span class="block black">
+									<span class="label">Nivel</span>
+									<span class="number fix" x-text="loc.position || '-'"></span>
+								</span>
+
+								<span class="stock" x-text="`${loc.products_count} items`"></span>
+							</div>
+						</div>
+					</template>
+				</div>
+
+				<template x-for="row in finded_products" :key="row.warehouse_stock_id || `${row.product_id}-${row.location?.label}`">
+					<div class="item">
+						<div class="product" :class="{ 'active': pickingAllowed()}" @click="openRemoveStockModal(row)">
+							<img class="image" alt="" width="48" height="48" :src="`/static/images/uploads/machines/${row.image}`">
+
+							<div class="text">
+								<div class="title">
+									<span class="brand" x-text="`${row.brand} ${row.model}`"></span>
+									<span class="category" x-text="row.category"></span>
+								</div>
+								<span class="stock" x-text="`${row.stock ?? 0} uds.`"></span>
+							</div>
+						</div>
+						
+						<div class="location hover-opacity" @click="openLocationModal(row.location?.label)">
+							<span class="block">
+								<span class="label">Bloque</span>
+								<span class="number" x-text="row.location?.block || '0'"></span>
+							</span>
+
+							<span class="block black">
+								<span class="label">Rack</span>
+								<span class="number" x-text="row.location?.level || '-'"></span>
+							</span>
+
+							<span class="block black">
+								<span class="label">Nivel</span>
+								<span class="number fix" x-text="row.location?.position || '-'"></span>
+							</span>
+
+							<span class="ubi">
+								<span x-text="row.location?.label || '-'"></span>
+							</span>
+						</div>
+					</div>
+				</template>
+			</div>
+		</div>
+		
+
+		<!-- Modal lector QR -->
+		<div
+			x-show="$store.cache.isVisibleModal('read')"
+			@mousedown.self="$store.cache.hideModal('read'); stopScan();"
+			class="modal-wrap"
+			id="modal-read"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2" @click.stop>
+				<div id="scannerBox">
+					<video id="cameraFrame" playsinline muted autoplay></video>
+					<div class="scannerDots"></div>
+				</div>
+
+				<!-- DEBUG OVERLAY -->
+				<div class="qr-debug-bar" x-show="scannerRunning" x-cloak>
+					<div class="qr-debug-engine" x-text="dbg_engine || '…buscando…'"></div>
+					<div class="qr-debug-raw"    x-text="dbg_raw    || '-'"></div>
+				</div>
+
+				<!-- Zoom -->
+				<div class="scanner-zoom-bar" x-show="scannerRunning" x-cloak>
+					<button class="scanner-zoom-btn hover-opacity press"
+							@click="zoomOut()" :disabled="zoom_level <= 1">−</button>
+					<span class="scanner-zoom-label" x-text="`${zoom_level}×`"></span>
+					<button class="scanner-zoom-btn hover-opacity press"
+							@click="zoomIn()" :disabled="zoom_level >= 4">+</button>
+				</div>
+			</div>
+		</div>
+
+
+		<!-- Modal detalle ubicación -->
+		<div
+			x-show="$store.cache.isVisibleModal('warehouse-location')"
+			@mousedown.self="$store.cache.hideModal('warehouse-location')"
+			class="modal-wrap"
+			id="modal-warehouse-location"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<template x-if="!location_modal_loading && selected_location">
+					<div class="modal-head">
+						<div class="location full">
+							<span class="block">
+								<span class="label">Bloque</span>
+								<span class="number" x-text="selected_location?.block || '0'"></span>
+							</span>
+							<span class="block black">
+								<span class="label">Rack</span>
+								<span class="number" x-text="selected_location?.level || '-'"></span>
+							</span>
+							<span class="block black">
+								<span class="label">Nivel</span>
+								<span class="number fix" x-text="selected_location?.position || '-'"></span>
+							</span>
+						</div>
+
+						<div class="buttons">
+							<button class="button button-add black hover-opacity" @click="openMapModal(selected_location?.label)">
+								<img alt="" width="14" height="14" src="/static/icons/line/map.svg" style="filter:invert(1)">
+								Ubicar
+							</button>
+							<button class="button button-add hover-opacity" @click="openAddStockModal()" x-show="$store.cache.hasPermission('warehouse', 'add')">
+								<img alt="" width="16" height="16" src="/static/icons/line/add.svg">
+								Añadir
+							</button>
+						</div>
+					</div>
+				</template>
+
+				<template x-if="!location_modal_loading && selected_location && selected_location.products?.length > 0">
+					<div class="modal-content bottom">
+						<div class="table-header">
+							<div>Modelo</div>
+							<div>Marca</div>
+							<div>Tipo</div>
+							<div style="text-align: right;">Cantidad</div>
+						</div>
+
+						<div class="table-box">
+							<template x-for="p in selected_location.products" :key="p.warehouse_stock_id">
+								<div class="table-parent">
+									<div class="table-row white" :class="{ 'hover-opacity': pickingAllowed()}" @click="openRemoveStockModal(p)">
+										<img alt="" width="40" height="40" :src="`/static/images/uploads/machines/${p.image}`">
+										<div class="data">
+											<span class="model" x-text="`${p.brand} ${p.model}`"></span>
+											<span class="category" x-text="p.category"></span>
+											<span class="qty" x-text="`${p.stock ?? 0} uds.`"></span>
+										</div>
+									</div>
+									
+									<div class="white hover-opacity press move-btn" @click.stop="openMoveModal(p)" x-show="$store.cache.hasPermission('warehouse', 'move')" title="Mover stock">
+										<img alt="" width="24" height="24" src="/static/icons/line/move.svg" class="invert">
+										<span>Mover</span>
+									</div>
+								</div>
+							</template>
+						</div>
+					</div>
+				</template>
+
+				<template x-if="!location_modal_loading && selected_location && !selected_location.products?.length">
+					<div class="center text" style="padding: 1rem 0; text-align: center;">
+						Esta ubicación está vacía.
+					</div>
+				</template>
+			</div>
+		</div>
+
+
+		<!-- Modal añadir stock -->
+		<div
+			x-show="$store.cache.isVisibleModal('warehouse-add-stock')"
+			@mousedown.self="$store.cache.hideModal('warehouse-add-stock')"
+			class="modal-wrap"
+			id="modal-warehouse-add-stock"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal little glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="title">
+					<span>Añadir stock</span>
+				</div>
+
+				<div class="modal-content change-box">
+					<div class="add-search-bar white">
+						<img alt="" width="16" height="16" src="/static/icons/line/find.svg" style="opacity:.5;">
+						<input
+							type="text"
+							placeholder="Buscar modelo..."
+							x-model="add_stock_query"
+							@input="searchMachinesForAdd()"
+							autocomplete="off"
+						>
+						<div
+							x-show="add_stock_query && !add_stock_selected"
+							class="hover-opacity press"
+							style="display:none; width:1.5rem; height:1.5rem; align-items:center; justify-content:center;"
+							@click="add_stock_query = ''; add_stock_results = [];"
+						>
+							<img alt="" width="10" height="10" src="/static/icons/filled/x.svg">
+						</div>
+					</div>
+
+					<div class="add-search-results white" x-show="add_stock_results.length > 0" style="display:none;">
+						<template x-for="m in add_stock_results" :key="m.id">
+							<div class="add-result-row hover-opacity press" @click="selectMachineForAdd(m)">
+								<img alt="" width="32" height="32" :src="`/static/images/uploads/machines/${m.image}`">
+								<div class="add-result-text">
+									<span class="brand" x-text="m.brand"></span>
+									<span class="model" x-text="m.model"></span>
+								</div>
+							</div>
+						</template>
+					</div>
+
+					<div class="selected white" x-show="add_stock_selected" style="display:none;">
+						<div class="item">
+							<img alt="" width="48" height="48" :src="`/static/images/uploads/machines/${add_stock_selected?.image}`">
+							<div class="data">
+								<span class="model" x-text="`${add_stock_selected?.brand} ${add_stock_selected?.model}`"></span>
+							</div>
+							<div class="hover-opacity press" style="margin-left:auto; padding:.25rem;" @click="add_stock_selected = null; add_stock_query = ''; add_stock_results = [];">
+								<img alt="" width="12" height="12" src="/static/icons/filled/x.svg">
+							</div>
+						</div>
+					</div>
+
+					<div class="remove-box" x-show="add_stock_selected" style="display:none;">
+						<div class="number">
+							<div class="action white hover-opacity" @click="if(add_stock_qty > 1) add_stock_qty--">
+								<span>-</span>
+							</div>
+							<input
+								class="white"
+								type="number"
+								min="1"
+								x-model="add_stock_qty"
+								@input="if(add_stock_qty < 1) add_stock_qty = 1"
+							>
+							<div class="action white hover-opacity" @click="add_stock_qty++">
+								<span>+</span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="buttons">
+					<button class="button black hover-opacity" @click="$store.cache.hideModal('warehouse-add-stock')">
+						Cancelar
+					</button>
+					<button
+						class="button hover-opacity"
+						@click="!add_stock_loading && confirmAddStock()"
+					>
+						<span x-text="add_stock_loading ? 'Añadiendo...' : 'Añadir stock'"></span>
+					</button>
+				</div>
+			</div>
+		</div>
+
+
+		<!-- Modal mover stock -->
+		<div
+			x-show="$store.cache.isVisibleModal('warehouse-move-stock')"
+			@mousedown.self="$store.cache.hideModal('warehouse-move-stock')"
+			class="modal-wrap"
+			id="modal-warehouse-move-stock"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal little glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="title">
+					<span>Mover stock</span>
+				</div>
+
+				<div class="modal-content change-box">
+					<div class="selected white">
+						<div class="item">
+							<img alt="" width="48" height="48" :src="`/static/images/uploads/machines/${move_product?.image}`">
+							<div class="data">
+								<span class="model" x-text="`${move_product?.brand} ${move_product?.model}`"></span>
+								<span class="category" x-text="move_product?.category || 'Impresoras 3D'"></span>
+								<span class="stock" x-text="`Stock actual: ${move_product?.stock ?? 0} uds.`"></span>
+							</div>
+						</div>
+					</div>
+
+					<div class="remove-box">
+						<div class="number">
+							<div class="action white hover-opacity" @click="decreaseMoveQty()">
+								<span>-</span>
+							</div>
+							<input
+								class="white"
+								type="number"
+								min="1"
+								:max="move_product?.stock || 1"
+								x-model="move_qty"
+								@input="sanitizeMoveQty()"
+							>
+							<div class="action white hover-opacity" @click="increaseMoveQty()">
+								<span>+</span>
+							</div>
+						</div>
+					</div>
+
+					<div class="move-destination-wrap">
+						<span class="move-dest-label">Ubicación destino</span>
+						<div class="move-dest-input white">
+							<input
+								type="text"
+								placeholder="Ej: B1-3-A"
+								x-model="move_destination"
+								@input="move_destination = move_destination.toUpperCase()"
+								autocomplete="off"
+							>
+							<div class="hover-opacity press" title="Escanear QR" @click="readQRForMove()">
+								<img alt="" width="20" height="20" src="/static/icons/line/qr.svg">
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="buttons">
+					<button class="button black hover-opacity" @click="$store.cache.hideModal('warehouse-move-stock')">
+						Cancelar
+					</button>
+					<button
+						class="button hover-opacity"
+						@click="!move_loading && confirmMoveStock()"
+					>
+						<span x-text="move_loading ? 'Moviendo...' : 'Mover stock'"></span>
+					</button>
+				</div>
+			</div>
+		</div>
+
+
+		<!-- Modal mapa del almacén -->
+		<div
+			x-show="$store.cache.isVisibleModal('warehouse-map')"
+			@mousedown.self="$store.cache.hideModal('warehouse-map')"
+			class="modal-wrap"
+			id="modal-warehouse-map"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal initial glass2 extra wmap-modal" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="title full">
+					<span class="wmap-title" x-text="`Plano Piso ${current_floor}`"></span>
+					<div class="buttons">
+						<button class="button button-add hover-opacity" @click="current_floor = current_floor === 1 ? 2 : 1">
+							<img alt="" width="14" height="14" src="/static/icons/line/floor.svg">
+							Cambiar piso
+						</button>
+					</div>
+				</div>
+
+				<div class="wmap-scroll">
+					<div x-show="current_floor === 1">
+						<div class="wmap-viewport">
+							<div class="wmap-row wmap-row-top">
+								<div class="wmap-section">
+									<div class="wmap-block-label">BLOQUE 5</div>
+									<div class="wmap-h-block vertical">
+										<template x-for="rack in getBlock(5).racks" :key="rack">
+											<div class="wmap-hrow">
+												<span class="wmap-rack-num" x-text="rack"></span>
+												<template x-for="pos in (rack >= 25 ? ['A','B','C'] : getBlock(5).positions)" :key="pos">
+													<div class="wmap-cell" :class="{'wmap-hl': isMapHighlighted(5, rack, pos),'wmap-has-stock': hasStock(5, rack, pos)}" :title="`B5-${rack}-${pos}`" @click="selectMapCell(5, rack, pos)">
+														<span class="wmap-pos-label" x-text="pos"></span>
+													</div>
+												</template>
+											</div>
+										</template>
+									</div>
+								</div>
+								<div class="wmap-divider-v"></div>
+								<template x-for="bd in warehouse_structure.filter(b=>[4,3,2,1].includes(b.block)).sort((a,b)=>b.block-a.block)" :key="bd.block">
+									<div class="wmap-section">
+										<div class="wmap-block-label" x-text="`BLOQUE ${bd.block}`"></div>
+										<div class="wmap-v-block interval">
+											<template x-for="rack in bd.racks" :key="rack">
+												<div class="wmap-hrow">
+													<span class="wmap-rack-num" x-text="rack"></span>
+													<template x-for="pos in bd.positions" :key="pos">
+														<div class="wmap-cell" :class="{'wmap-hl': isMapHighlighted(bd.block, rack, pos),'wmap-has-stock': hasStock(bd.block, rack, pos)}" :title="`B${bd.block}-${rack}-${pos}`" @click="selectMapCell(bd.block, rack, pos)">
+															<span class="wmap-pos-label" x-text="pos"></span>
+														</div>
+													</template>
+												</div>
+											</template>
+										</div>
+									</div>
+									<div class="wmap-divider-v" x-show="bd.block > 1"></div>
+								</template>
+							</div>
+
+							<div class="wmap-row b7 wmap-row-mid">
+								<div class="wmap-section">
+									<div class="wmap-block-label">BLOQUE 7</div>
+									<div class="wmap-b7-grid">
+										<div class="wmap-b7-header">
+											<span class="wmap-rack-num">35</span>
+											<span class="wmap-rack-num">36</span>
+											<span class="wmap-rack-num">37</span>
+										</div>
+										<template x-for="pos in ['A','B','C']" :key="`t7top-${pos}`">
+											<div class="wmap-b7-row">
+												<template x-for="rack in [35,36,37]" :key="`t7top-${rack}-${pos}`">
+													<div class="wmap-cell wmap-cell-h" :class="{'wmap-hl': isMapHighlighted(7, rack, pos),'wmap-has-stock': hasStock(7, rack, pos)}" :title="`B7-${rack}-${pos}`" @click="selectMapCell(7, rack, pos)">
+														<span class="wmap-pos-label" x-text="pos"></span>
+													</div>
+												</template>
+											</div>
+										</template>
+										<div class="wmap-b7-divider"></div>
+										<template x-for="pos in ['C','B','A']" :key="`t7bot-${pos}`">
+											<div class="wmap-b7-row">
+												<template x-for="rack in [34,33,32]" :key="`t7bot-${rack}-${pos}`">
+													<div class="wmap-cell wmap-cell-h" :class="{'wmap-hl': isMapHighlighted(7, rack, pos),'wmap-has-stock': hasStock(7, rack, pos)}" :title="`B7-${rack}-${pos}`" @click="selectMapCell(7, rack, pos)">
+														<span class="wmap-pos-label" x-text="pos"></span>
+													</div>
+												</template>
+											</div>
+										</template>
+										<div class="wmap-b7-header">
+											<span class="wmap-rack-num">34</span>
+											<span class="wmap-rack-num">33</span>
+											<span class="wmap-rack-num">32</span>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div class="wmap-row b6 wmap-row-bot">
+								<div class="wmap-section">
+									<div class="wmap-b6-grid">
+										<div class="wmap-b6-header">
+											<template x-for="rack in getBlock(6).racks" :key="`h6-${rack}`">
+												<span class="wmap-rack-num" x-text="rack"></span>
+											</template>
+										</div>
+										<template x-for="pos in getBlock(6).positions" :key="`p6-${pos}`">
+											<div class="wmap-b6-row">
+												<template x-for="rack in getBlock(6).racks" :key="`c6-${rack}-${pos}`">
+													<div class="wmap-cell wmap-cell-h" :class="{'wmap-hl': isMapHighlighted(6, rack, pos),'wmap-has-stock': hasStock(6, rack, pos)}" :title="`B6-${rack}-${pos}`" @click="selectMapCell(6, rack, pos)">
+														<span class="wmap-pos-label" x-text="pos"></span>
+													</div>
+												</template>
+											</div>
+										</template>
+									</div>
+									<div class="wmap-block-label">BLOQUE 6</div>
+								</div>
+							</div>
+
+							<div class="wmap-row f1">
+								<div class="wmap-section">
+									<div class="wmap-hrow">
+										<div class="wmap-cell" :class="{'wmap-hl': isMapHighlighted(0, 1, 'A'),'wmap-has-stock': hasStock(0, 1, 'A')}" title="B0-1-A" @click="selectMapCell(0, 1, 'A')">
+											<span class="wmap-pos-label">Zona Piso 1</span>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div x-show="current_floor === 2">
+						<div class="wmap-viewport">
+							<div class="wmap-row wmap-row-2">
+								<template x-for="bd in warehouse_structure.filter(b=>[8,9,10].includes(b.block)).sort((a,b)=>a.block-b.block)" :key="bd.block">
+									<div class="wmap-section">
+										<div class="wmap-block-label" x-text="`BLOQUE ${bd.block}`"></div>
+										<div class="wmap-v-block">
+											<template x-for="rack in bd.racks" :key="rack">
+												<div class="wmap-hrow">
+													<span class="wmap-rack-num" x-text="rack"></span>
+													<template x-for="pos in bd.positions" :key="pos">
+														<div class="wmap-cell" :class="{'wmap-hl': isMapHighlighted(bd.block, rack, pos),'wmap-has-stock': hasStock(bd.block, rack, pos)}" :title="`B${bd.block}-${rack}-${pos}`" @click="selectMapCell(bd.block, rack, pos)">
+															<span class="wmap-pos-label" x-text="pos"></span>
+														</div>
+													</template>
+												</div>
+											</template>
+										</div>
+									</div>
+									<div class="wmap-divider-v" x-show="bd.block < 10"></div>
+								</template>
+								<div class="wmap-row f2">
+									<div class="wmap-section">
+										<div class="wmap-hrow">
+											<div class="wmap-cell" :class="{'wmap-hl': isMapHighlighted(0, 2, 'A'),'wmap-has-stock': hasStock(0, 2, 'A')}" title="B0-2-A" @click="selectMapCell(0, 2, 'A')">
+												<span class="wmap-pos-label">Zona Piso 2</span>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="wmap-legend mobile-hide glass2">
+					<div class="wmap-legend-item"><div class="wmap-cell" style="pointer-events:none;"></div><span>Vacío</span></div>
+					<div class="wmap-legend-item"><div class="wmap-cell wmap-has-stock" style="pointer-events:none;"></div><span>Con stock</span></div>
+					<div class="wmap-legend-item"><div class="wmap-cell wmap-hl" style="pointer-events:none;"></div><span>Seleccionado</span></div>
+				</div>
+			</div>
+		</div>
+
+
+		<!-- Modal retirar stock -->
+		<div
+			x-show="$store.cache.isVisibleModal('warehouse-remove-stock')"
+			@mousedown.self="$store.cache.hideModal('warehouse-remove-stock')"
+			class="modal-wrap"
+			id="modal-warehouse-remove-stock"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal little glass2" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="title full">
+					<span>Retirar stock</span>
+					<div class="buttons">
+						<button class="button button-add black hover-opacity" @click="openMapModal(selected_product?.location?.label)">
+							<img alt="" width="14" height="14" src="/static/icons/line/map.svg" style="filter:invert(1)">
+							Ubicar
+						</button>
+					</div>
+				</div>
+
+				<div class="modal-content change-box">
+					<div class="selected white">
+						<div class="item">
+							<img alt="" width="48" height="48" :src="`/static/images/uploads/machines/${selected_product?.image}`">
+							<div class="data">
+								<span class="model" x-text="`${selected_product?.brand} ${selected_product?.model}`"></span>
+								<span class="category" x-text="selected_product?.category || 'Impresoras 3D'"></span>
+								<span class="stock" x-text="`Stock actual: ${selected_product?.stock ?? 0} uds.`"></span>
+							</div>
+						</div>
+					</div>
+
+					<div class="remove-box">
+						<div class="number">
+							<div class="action white hover-opacity" @click="decreaseRemoveQty()"><span>-</span></div>
+							<input class="white" type="number" min="1" :max="selected_product?.stock || 1" x-model="remove_qty" @input="sanitizeRemoveQty()">
+							<div class="action white hover-opacity" @click="increaseRemoveQty()"><span>+</span></div>
+						</div>
+						<div class="text">
+							<span>Stock resultante</span>
+							<span class="black" x-text="`${Math.max((selected_product?.stock || 0) - (Number(remove_qty) || 0), 0)} uds.`"></span>
+						</div>
+					</div>
+				</div>
+
+				<div class="buttons">
+					<button class="button black hover-opacity" @click="$store.cache.hideModal('warehouse-remove-stock')">Cancelar</button>
+					<button class="button hover-opacity" @click="!remove_loading && confirmRemoveStock()">
+						<span x-text="remove_loading ? 'Retirando...' : 'Retirar stock'"></span>
+					</button>
+				</div>
+			</div>
+		</div>
+		<!-- Modal estadísticas -->
+		<div
+			x-show="$store.cache.isVisibleModal('warehouse-stats')"
+			@mousedown.self="$store.cache.hideModal('warehouse-stats')"
+			class="modal-wrap"
+			id="modal-warehouse-stats"
+			x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="top">
+					<span class="title">Estadísticas</span>
+				</div>
+
+				<div class="modal-content">
+					<div class="kpi">
+						<div class="item white">
+							<p>Unidades en stock</p>
+							<span x-text="stats?.count.units ?? 0"></span>
+						</div>
+						<div class="item white">
+							<p>Ubicaciones ocupadas</p>
+							<span x-text="stats?.count.occupied ?? 0"></span>
+						</div>
+						<div class="item white">
+							<p>% Ocupación</p>
+							<span x-text="`${stats?.count.occupancy ?? 0}%`"></span>
+						</div>
+						<div class="item white">
+							<p>Salidas del mes</p>
+							<span x-text="stats?.count.out_month ?? 0"></span>
+						</div>
+					</div>
+
+					<div class="charts">
+						<div class="glass2 box">
+							<span>Top productos en stock</span>
+							<canvas x-ref="whStockChart" width="160" height="80"></canvas>
+						</div>
+						<div class="glass2 box">
+							<span>Top más retirados</span>
+							<canvas x-ref="whRemovedChart" width="160" height="80"></canvas>
+						</div>
+						<div class="glass2 box">
+							<span>Movimientos por usuario</span>
+							<canvas x-ref="whUserChart" width="160" height="80"></canvas>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Modal historial de movimientos -->
+		<div
+			x-show="$store.cache.isVisibleModal('warehouse-history')"
+			@mousedown.self="$store.cache.hideModal('warehouse-history')"
+			class="modal-wrap"
+			id="modal-warehouse-history"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal extra glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="title full">
+					<span>Historial</span>
+				</div>
+
+				<div class="modal-content bottom" style="padding: 0;">
+					<template x-if="history_loading">
+						<div style="padding: 2rem; text-align: center; opacity: .5;">Cargando…</div>
+					</template>
+
+					<template x-if="!history_loading && history_logs.length === 0">
+						<div style="padding: 2rem; text-align: center; opacity: .5;">No hay movimientos registrados.</div>
+					</template>
+
+					<template x-if="!history_loading && history_logs.length > 0">
+						<div>
+							<!-- Header desktop -->
+							<div class="wh-table-header mobile-hide">
+								<div>Usuario</div>
+								<div>Equipo</div>
+								<div>Cant.</div>
+								<div>Ubicación</div>
+								<div>Acción</div>
+								<div>Fecha</div>
+							</div>
+
+							<div class="wh-table-box">
+								<template x-for="log in history_logs" :key="log.id">
+									<div>
+										<!-- Desktop row -->
+										<div class="wh-table-row white mobile-hide">
+											<div class="wh-user-cell">
+												<img
+													alt=""
+													width="22" height="22"
+													:src="log.user_image ? `/static/images/uploads/users/${log.user_image}` : '/static/icons/filled/user.svg'"
+													class="wh-user-img"
+												>
+												<span x-text="formatShortName(log.user) || '—'"></span>
+											</div>
+
+											<div class="wh-product-cell">
+												<img
+													alt=""
+													width="32" height="32"
+													:src="log.product_image ? `/static/images/uploads/machines/${log.product_image}` : '/static/icons/line/warehouse.svg'"
+													class="wh-product-img"
+												>
+												<span class="wh-product-name" x-text="log.product || 'Carga masiva'"></span>
+											</div>
+											
+											<div class="wh-qty" x-text="log.quantity ? `${log.quantity} uds.` : '—'"></div>
+											<div class="wh-location-cell">
+												<span x-show="log.from_label" x-text="log.from_label"></span>
+												<span x-show="log.from_label && log.to_label" class="wh-arrow">→</span>
+												<span x-show="log.to_label" x-text="log.to_label"></span>
+												<span x-show="!log.from_label && !log.to_label">—</span>
+											</div>
+											<div>
+												<span class="wh-action-badge" :class="log.action" x-text="historyActionLabel(log.action)"></span>
+											</div>
+											<div class="wh-date" x-text="formatLogDate(log.created_at)"></div>
+										</div>
+
+										<!-- Mobile row -->
+										<div class="wh-mobile-row white mobile-show">
+											<div class="wh-mobile-head">
+												<div class="wh-mobile-product">
+													<img
+														alt=""
+														width="28" height="28"
+														:src="log.product_image ? `/static/images/uploads/machines/${log.product_image}` : '/static/icons/line/warehouse.svg'"
+														class="wh-product-img"
+													>
+													<span x-text="log.product || 'Carga masiva'"></span>
+												</div>
+												<span class="wh-action-badge" :class="log.action" x-text="historyActionLabel(log.action)"></span>
+											</div>
+											<div class="wh-mobile-details">
+												<span x-show="log.quantity" x-text="`${log.quantity} uds.`"></span>
+												<span x-show="log.from_label" x-text="`De: ${log.from_label}`"></span>
+												<span x-show="log.to_label" x-text="`A: ${log.to_label}`"></span>
+											</div>
+											<div class="wh-mobile-footer">
+												<div class="wh-user-cell">
+													<img
+														alt=""
+														width="20" height="20"
+														:src="log.user_image ? `/static/images/uploads/users/${log.user_image}` : '/static/icons/filled/user.svg'"
+														class="wh-user-img"
+													>
+													<span x-text="formatShortName(log.user) || '—'"></span>
+												</div>
+												<span class="wh-date" x-text="formatLogDate(log.created_at)"></span>
+											</div>
+										</div>
+									</div>
+								</template>
+							</div>
+
+							<div class="wh-pagination" x-show="history_total > history_logs.length">
+								<button class="button black hover-opacity" @click="loadMoreLogs()" :disabled="history_load_more_loading">
+									<span x-text="history_load_more_loading ? 'Cargando...' : 'Cargar más'"></span>
+								</button>
+							</div>
+						</div>
+					</template>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+
+	<script>
+		var chartWhStock = null;
+		var chartWhRemoved = null;
+		var chartWhUser = null;
+		var WSTATS_AXIS = {
+			ticks: { color: '#666', font: { size: 12, family: 'Lexend', weight: '500' } },
+			grid:  { color: 'transparent' },
+			border: { display: false },
+		};
+		var WSTATS_OPTS = {
+			responsive: true,
+			plugins: { legend: { display: false } },
+			scales: {
+				x: WSTATS_AXIS,
+				y: { beginAtZero: true, ticks: { ...WSTATS_AXIS.ticks, precision: 0 }, grid: { color: '#fff' }, border: { display: false } },
+			},
+		};
+		var WSTATS_OPTS_NOX = {
+			responsive: true,
+			plugins: { legend: { display: false } },
+			scales: {
+				x: { ...WSTATS_AXIS, ticks: { display: false } },
+				y: { beginAtZero: true, ticks: { ...WSTATS_AXIS.ticks, precision: 0 }, grid: { color: '#fff' }, border: { display: false } },
+			},
+		};
+
+		Alpine.data('warehouse_data', () => ({
+			token: localStorage.getItem('user_token'),
+
+			api: Alpine.store('cache').api,
+			user: Alpine.store('cache').user,
+			stats: null,
+
+			// ── Placeholder animado ────────────────────────────
+			animated_placeholder: '',
+			placeholder_texts: ['Busca por modelo...', 'Buscar por marca...', 'Busca por ubicación...'],
+			placeholder_index: 0,
+			placeholder_char_index: 0,
+			placeholder_deleting: false,
+			placeholder_timer: null,
+
+			// ── Búsqueda ───────────────────────────────────────
+			product_input: '',
+			finded_products: [],
+			finded_locations: [],
+			_findAbortController: null,
+
+			// ── Modal ubicación ────────────────────────────────
+			selected_location: null,
+			location_modal_loading: false,
+
+			// ── Retirar stock ──────────────────────────────────
+			selected_product: null,
+			remove_qty: 1,
+			remove_loading: false,
+
+			// ── Excel ──────────────────────────────────────────
+			excel_loading: false,
+
+			// ── Añadir stock ───────────────────────────────────
+			add_stock_query: '',
+			add_stock_results: [],
+			add_stock_selected: null,
+			add_stock_qty: 1,
+			add_stock_loading: false,
+			add_stock_search_timer: null,
+
+			// ── Mover stock ────────────────────────────────────
+			move_product: null,
+			move_qty: 1,
+			move_destination: '',
+			move_loading: false,
+
+			// ── QR Scanner ─────────────────────────────────────
+			qr_mode:          'location',
+			scannerRunning:   false,
+			_qrScanner:       null,       // nimiq instancia live
+			_QrScannerClass:  null,       // clase nimiq
+			_angleLoopId:     null,       // timer del loop de ángulos
+			_angleCanvas:     null,       // canvas reutilizable
+			_prepCanvas:      null,       // canvas para preprocesamiento
+			_scanFound:       false,      // flag para evitar doble detección
+			zoom_level:       1,
+			dbg_raw:          '',
+			dbg_engine:       '',
+
+			// ── Mapa ───────────────────────────────────────────
+			map_highlight_label: null,
+			current_floor: 1,
+			locations_with_stock: {},
+
+			// ── Historial ──────────────────────────────────────
+			history_logs: [],
+			history_total: 0,
+			history_page: 1,
+			history_loading: false,
+			history_load_more_loading: false,
+
+			warehouse_structure: [
+				{ block: 0,  label: 'Piso',      racks: [1, 2],                          positions: ['A'] },
+				{ block: 1,  label: 'Bloque 1',  racks: [4,2,3,1],                       positions: ['A','B','C','D','E','F'] },
+				{ block: 2,  label: 'Bloque 2',  racks: [8,6,7,5],                       positions: ['A','B','C','D','E','F'] },
+				{ block: 3,  label: 'Bloque 3',  racks: [12,10,11,9],                    positions: ['A','B','C','D','E','F'] },
+				{ block: 4,  label: 'Bloque 4',  racks: [20,16,19,15,18,14,17,13],       positions: ['A','B','C','D','E','F'] },
+				{ block: 5,  label: 'Bloque 5',  racks: [21,22,23,24,25,26,27],          positions: ['A','B','C','D','E','F'] },
+				{ block: 6,  label: 'Bloque 6',  racks: [28,29,30,31],                   positions: ['A','B','C'] },
+				{ block: 7,  label: 'Bloque 7',  racks: [32,33,34,35,36,37],             positions: ['A','B','C'] },
+				{ block: 8,  label: 'Bloque 8',  racks: [44,43,42,41,40,39,38],          positions: ['A','B','C','D','E'] },
+				{ block: 9,  label: 'Bloque 9',  racks: [49,48,47,46,45],                positions: ['A','B','C','D','E'] },
+				{ block: 10, label: 'Bloque 10', racks: [55,54,53,52,51,50],             positions: ['A','B','C','D','E'] },
+			],
+
+			// ══════════════════════════════════════════════════
+			//  INIT
+			// ══════════════════════════════════════════════════
+			async init() {
+				console.log('Inicializando Warehouse...');
+				this.startPlaceholderAnimation();
+				const socket = Alpine.store('cache').socket;
+				if (socket) socket.removeAllListeners();
+				await this.loadOccupiedLocations();
+				// await Alpine.store('cache').verify();
+			},
+
+			// ══════════════════════════════════════════════════
+			//  MAPA
+			// ══════════════════════════════════════════════════
+			async loadOccupiedLocations() {
+				try {
+					const res  = await fetch(`${this.api}/warehouse/locations/occupied`);
+					const json = await res.json();
+					const map  = {};
+					(json.data?.locations || []).forEach(label => { map[label] = true; });
+					this.locations_with_stock = map;
+				} catch (e) { console.error('Error cargando ubicaciones ocupadas:', e); }
+			},
+
+			hasStock(block, rack, pos) { return !!this.locations_with_stock[`B${block}-${rack}-${pos}`]; },
+
+			getBlock(blockNum) {
+				return this.warehouse_structure.find(b => b.block === blockNum) || { racks: [], positions: [] };
+			},
+
+			openMapModal(highlightLabel = null) {
+				this.map_highlight_label = highlightLabel || null;
+				if (highlightLabel) {
+					const match = highlightLabel.match(/^B(\d+)-(\d+)-/);
+					if (match) {
+						const block = parseInt(match[1]);
+						const rack  = parseInt(match[2]);
+						this.current_floor = block === 0 ? (rack === 2 ? 2 : 1) : (block >= 8 ? 2 : 1);
+					}
+				}
+				Alpine.store('cache').showModal('warehouse-map');
+			},
+
+			isMapHighlighted(block, rack, pos) { return this.map_highlight_label === `B${block}-${rack}-${pos}`; },
+
+			async selectMapCell(block, rack, pos) {
+				Alpine.store('cache').hideModal('warehouse-map');
+				await this.openLocationModal(`B${block}-${rack}-${pos}`);
+			},
+
+			// ══════════════════════════════════════════════════════════
+			//  QR SCANNER — HÍBRIDO v2
+			//
+			//  Capa 1: nimiq/qr-scanner en el stream (100% region, 25fps)
+			//  Capa 2: loop paralelo que procesa 3 transformaciones
+			//          simultáneas con preprocesamiento de imagen
+			//          (contraste adaptativo + sharpen)
+			//
+			//  Mejoras clave:
+			//  - Preprocesamiento de imagen antes de cada scan
+			//  - 3 transformaciones en paralelo por tick
+			//  - Transformaciones combinadas (perspectiva + stretch)
+			//  - Canvas de mayor resolución (1200px)
+			//  - Ciclo completo ~1s en vez de ~3s
+			// ══════════════════════════════════════════════════════════
+
+			readQR() {
+				this.qr_mode = 'location';
+				Alpine.store('cache').showModal('read');
+				this.startScan();
+			},
+
+			readQRForMove() {
+				this.qr_mode = 'move';
+				Alpine.store('cache').showModal('read');
+				this.startScan();
+			},
+
+			async startScan() {
+				try {
+					if (!this._QrScannerClass) {
+						this.dbg_engine = 'cargando scanner…';
+						const mod = await import('https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.min.js');
+						this._QrScannerClass = mod.default;
+					}
+
+					const QrScanner = this._QrScannerClass;
+					const video = document.getElementById('cameraFrame');
+
+					if (this._qrScanner) { this._qrScanner.destroy(); this._qrScanner = null; }
+
+					this.scannerRunning = true;
+					this._scanFound     = false;
+					this.dbg_engine     = 'iniciando cámara…';
+					this.dbg_raw        = '';
+					this.zoom_level     = 1;
+
+					// ── Capa 1: nimiq live stream (100% region, 25fps) ──
+					this._qrScanner = new QrScanner(
+						video,
+						(result) => {
+							if (this._scanFound) return;
+							const text = result?.data || result;
+							this._onQRDetected(text, 'nimiq-live');
+						},
+						{
+							returnDetailedScanResult: true,
+							preferredCamera: 'environment',
+							maxScansPerSecond: 25,
+							highlightScanRegion: false,
+							highlightCodeOutline: false,
+							calculateScanRegion: (v) => ({
+								x: 0,
+								y: 0,
+								width:  v.videoWidth,
+								height: v.videoHeight,
+							}),
+							onDecodeError: () => {
+								if (this.scannerRunning && !this._scanFound) {
+									this.dbg_engine = 'Buscando…';
+								}
+							},
+						}
+					);
+ 
+					await this._qrScanner.start();
+					this.dbg_engine = 'Buscando…';
+ 
+					// ── Capa 2: loop paralelo de ángulos (3 en paralelo) ──
+					if (!this._angleCanvas) this._angleCanvas = document.createElement('canvas');
+					if (!this._prepCanvas)  this._prepCanvas  = document.createElement('canvas');
+					this._startAngleLoop(video, QrScanner);
+ 
+				} catch (e) {
+					console.error('Error iniciando scanner:', e);
+					this.dbg_engine = 'ERROR: ' + e.message;
+					this.stopScan();
+					Alpine.store('cache').hideModal('read');
+				}
+			},
+ 
+			// ──────────────────────────────────────────────────────
+			//  PREPROCESAMIENTO DE IMAGEN
+			//
+			//  Aplica contraste adaptativo + sharpen al canvas.
+			//  Esto es CRÍTICO para ángulos fuertes donde el
+			//  contraste del QR cae drásticamente.
+			// ──────────────────────────────────────────────────────
+			_enhanceCanvas(canvas) {
+				const ctx = canvas.getContext('2d', { willReadFrequently: true });
+				const w = canvas.width;
+				const h = canvas.height;
+				if (w < 2 || h < 2) return;
+ 
+				const imageData = ctx.getImageData(0, 0, w, h);
+				const d = imageData.data;
+ 
+				// ── Paso 1: Auto-contrast (stretch de histograma) ──
+				// Encuentra min/max de luminancia y estira al rango completo
+				let minL = 255, maxL = 0;
+				for (let i = 0; i < d.length; i += 16) { // muestreo cada 4px para velocidad
+					const L = (d[i] * 77 + d[i+1] * 150 + d[i+2] * 29) >> 8;
+					if (L < minL) minL = L;
+					if (L > maxL) maxL = L;
+				}
+ 
+				const range = maxL - minL;
+				if (range < 30) return; // imagen casi uniforme, skip
+ 
+				// Solo aplicar si hay contraste reducido (típico de ángulos)
+				if (range < 200) {
+					const scale = 255 / range;
+					for (let i = 0; i < d.length; i += 4) {
+						d[i]   = Math.min(255, Math.max(0, ((d[i]   - minL) * scale) | 0));
+						d[i+1] = Math.min(255, Math.max(0, ((d[i+1] - minL) * scale) | 0));
+						d[i+2] = Math.min(255, Math.max(0, ((d[i+2] - minL) * scale) | 0));
+					}
+				}
+ 
+				// ── Paso 2: Binarización adaptativa simple ──
+				// Para QR codes, binarizar ayuda mucho al decoder.
+				// Usamos un threshold basado en la media local.
+				const threshold = (minL + maxL) / 2;
+				for (let i = 0; i < d.length; i += 4) {
+					const L = (d[i] * 77 + d[i+1] * 150 + d[i+2] * 29) >> 8;
+					const v = L > threshold ? 255 : 0;
+					d[i] = d[i+1] = d[i+2] = v;
+				}
+ 
+				ctx.putImageData(imageData, 0, 0);
+			},
+ 
+			// ──────────────────────────────────────────────────────
+			//  CAPA 2: Loop de ángulos v2
+			//
+			//  Cambios vs v1:
+			//  - Procesa 3 transformaciones EN PARALELO por tick
+			//  - Aplica _enhanceCanvas antes de decodificar
+			//  - Canvas hasta 1200px
+			//  - Transformaciones combinadas (perspectiva + stretch)
+			//  - Ciclo completo: ~34 transforms / 3 = ~12 ticks
+			//    × 90ms = ~1.1s (vs 3s antes)
+			// ──────────────────────────────────────────────────────
+			_startAngleLoop(video, QrScanner) {
+				let idx = 0;
+				let busy = false;
+				const MAX_PX = 1200;
+				const PARALLEL = 3; // transformaciones simultáneas por tick
+ 
+				// ── Pool de transformaciones ──────────────────────
+				const TRANSFORMS = [
+					// ═══ STRETCH HORIZONTAL FULL ═══
+					{ type:'stretchFull', sx:1.5, sy:1.0 },
+					{ type:'stretchFull', sx:2.0, sy:1.0 },
+					{ type:'stretchFull', sx:3.0, sy:1.0 },
+					{ type:'stretchFull', sx:4.0, sy:1.0 },
+					{ type:'stretchFull', sx:5.0, sy:1.0 },
+					{ type:'stretchFull', sx:6.0, sy:1.0 },
+ 
+					// ═══ STRETCH VERTICAL FULL ═══
+					{ type:'stretchFull', sx:1.0, sy:1.5 },
+					{ type:'stretchFull', sx:1.0, sy:2.0 },
+					{ type:'stretchFull', sx:1.0, sy:3.0 },
+					{ type:'stretchFull', sx:1.0, sy:4.0 },
+ 
+					// ═══ PERSPECTIVA HORIZONTAL (trapecio) ═══
+					{ type:'perspH', left:0.50, right:1.00 },
+					{ type:'perspH', left:1.00, right:0.50 },
+					{ type:'perspH', left:0.30, right:1.00 },
+					{ type:'perspH', left:1.00, right:0.30 },
+					{ type:'perspH', left:0.15, right:1.00 },
+					{ type:'perspH', left:1.00, right:0.15 },
+ 
+					// ═══ PERSPECTIVA VERTICAL ═══
+					{ type:'perspV', top:0.40, bot:1.00 },
+					{ type:'perspV', top:1.00, bot:0.40 },
+					{ type:'perspV', top:0.20, bot:1.00 },
+					{ type:'perspV', top:1.00, bot:0.20 },
+ 
+					// ═══ COMBINADAS: perspectiva H + stretch V ═══
+					// (QR visto desde abajo-lado)
+					{ type:'combo', perspAxis:'H', pNear:0.40, pFar:1.00, stretchAxis:'V', sFactor:2.0 },
+					{ type:'combo', perspAxis:'H', pNear:1.00, pFar:0.40, stretchAxis:'V', sFactor:2.0 },
+					{ type:'combo', perspAxis:'V', pNear:0.40, pFar:1.00, stretchAxis:'H', sFactor:2.0 },
+					{ type:'combo', perspAxis:'V', pNear:1.00, pFar:0.40, stretchAxis:'H', sFactor:2.0 },
+ 
+					// ═══ COMBINADAS: perspectiva fuerte + stretch ═══
+					{ type:'combo', perspAxis:'H', pNear:0.20, pFar:1.00, stretchAxis:'V', sFactor:1.5 },
+					{ type:'combo', perspAxis:'H', pNear:1.00, pFar:0.20, stretchAxis:'V', sFactor:1.5 },
+ 
+					// ═══ STRETCH CON CROP CENTRO ═══
+					{ type:'stretchCrop', sx:2.0, sy:1.0 },
+					{ type:'stretchCrop', sx:3.5, sy:1.0 },
+					{ type:'stretchCrop', sx:5.0, sy:1.0 },
+					{ type:'stretchCrop', sx:1.0, sy:2.0 },
+					{ type:'stretchCrop', sx:1.0, sy:3.5 },
+ 
+					// ═══ ROTACIONES ═══
+					{ type:'rot', deg: 25 },
+					{ type:'rot', deg:-25 },
+					{ type:'rot', deg: 45 },
+					{ type:'rot', deg:-45 },
+				];
+ 
+				const totalT = TRANSFORMS.length;
+ 
+				// Crear pool de canvas reutilizables para paralelo
+				const canvasPool = [];
+				for (let i = 0; i < PARALLEL; i++) {
+					canvasPool.push(document.createElement('canvas'));
+				}
+ 
+				// ── Aplicar una transformación a un canvas ──
+				const applyTransform = (c, t, vw, vh) => {
+					switch (t.type) {
+						case 'stretchFull': {
+							let outW = Math.floor(vw * t.sx);
+							let outH = Math.floor(vh * t.sy);
+							const max = Math.max(outW, outH);
+							if (max > MAX_PX) { const r = MAX_PX/max; outW = Math.floor(outW*r); outH = Math.floor(outH*r); }
+							c.width  = Math.max(1, outW);
+							c.height = Math.max(1, outH);
+							c.getContext('2d', {willReadFrequently:true})
+								.drawImage(video, 0, 0, vw, vh, 0, 0, c.width, c.height);
+							break;
+						}
+ 
+						case 'stretchCrop': {
+							const frac = 0.55;
+							const cw = Math.floor(vw * frac);
+							const ch = Math.floor(vh * frac);
+							const sx = Math.floor((vw - cw) / 2);
+							const sy = Math.floor((vh - ch) / 2);
+							let outW = Math.floor(cw * t.sx);
+							let outH = Math.floor(ch * t.sy);
+							const max = Math.max(outW, outH);
+							if (max > MAX_PX) { const r = MAX_PX/max; outW = Math.floor(outW*r); outH = Math.floor(outH*r); }
+							c.width  = Math.max(1, outW);
+							c.height = Math.max(1, outH);
+							c.getContext('2d', {willReadFrequently:true})
+								.drawImage(video, sx, sy, cw, ch, 0, 0, c.width, c.height);
+							break;
+						}
+ 
+						case 'perspH': {
+							const s = Math.min(1, MAX_PX / vw);
+							const cw2 = Math.floor(vw * s);
+							const ch2 = Math.floor(vh * s);
+							c.width  = cw2;
+							c.height = ch2;
+							const ctx = c.getContext('2d', {willReadFrequently:true});
+							ctx.clearRect(0, 0, cw2, ch2);
+							const N = 40;
+							const weights = [];
+							let totalW = 0;
+							for (let i = 0; i < N; i++) {
+								const pos = (i + 0.5) / N;
+								const sc  = t.left + (t.right - t.left) * pos;
+								const w   = 1 / Math.max(0.1, sc);
+								weights.push({ w, sc });
+								totalW += w;
+							}
+							let dx = 0;
+							for (let i = 0; i < N; i++) {
+								const srcX = Math.floor(vw * i / N);
+								const srcW = Math.max(1, Math.ceil(vw * (i + 1) / N) - srcX);
+								const dw = Math.max(1, Math.round(cw2 * weights[i].w / totalW));
+								const dh = Math.max(1, Math.round(ch2 * weights[i].sc));
+								const dy = Math.round((ch2 - dh) / 2);
+								ctx.drawImage(video, srcX, 0, srcW, vh, dx, dy, dw, dh);
+								dx += dw;
+							}
+							break;
+						}
+ 
+						case 'perspV': {
+							const s = Math.min(1, MAX_PX / vw);
+							c.width  = Math.floor(vw * s);
+							c.height = Math.floor(vh * s);
+							const ctx = c.getContext('2d', {willReadFrequently:true});
+							ctx.clearRect(0, 0, c.width, c.height);
+							const N = 40;
+							for (let i = 0; i < N; i++) {
+								const t1 = i/N, t2 = (i+1)/N;
+								const sc = t.top + (t.bot - t.top) * ((t1+t2)/2);
+								const sw = Math.max(1, Math.floor(vw * sc));
+								const sx = Math.floor((vw - sw) / 2);
+								const sy = Math.floor(vh * t1);
+								const sh = Math.max(1, Math.ceil(vh * t2) - sy);
+								const dy = Math.floor(c.height * t1);
+								const dh = Math.max(1, Math.ceil(c.height * t2) - dy);
+								ctx.drawImage(video, sx, sy, sw, sh, 0, dy, c.width, dh);
+							}
+							break;
+						}
+ 
+						case 'combo': {
+							// Primero: aplica perspectiva a un canvas temporal
+							const s = Math.min(1, MAX_PX / vw);
+							let cw2 = Math.floor(vw * s);
+							let ch2 = Math.floor(vh * s);
+							c.width  = cw2;
+							c.height = ch2;
+							const ctx = c.getContext('2d', {willReadFrequently:true});
+							ctx.clearRect(0, 0, cw2, ch2);
+ 
+							if (t.perspAxis === 'H') {
+								// Perspectiva horizontal
+								const N = 40;
+								const weights = [];
+								let totalW = 0;
+								for (let i = 0; i < N; i++) {
+									const pos = (i + 0.5) / N;
+									const sc  = t.pNear + (t.pFar - t.pNear) * pos;
+									const w   = 1 / Math.max(0.1, sc);
+									weights.push({ w, sc });
+									totalW += w;
+								}
+								let dx = 0;
+								for (let i = 0; i < N; i++) {
+									const srcX = Math.floor(vw * i / N);
+									const srcW = Math.max(1, Math.ceil(vw * (i + 1) / N) - srcX);
+									const dw = Math.max(1, Math.round(cw2 * weights[i].w / totalW));
+									const dh = Math.max(1, Math.round(ch2 * weights[i].sc));
+									const dy = Math.round((ch2 - dh) / 2);
+									ctx.drawImage(video, srcX, 0, srcW, vh, dx, dy, dw, dh);
+									dx += dw;
+								}
+							} else {
+								// Perspectiva vertical
+								const N = 40;
+								for (let i = 0; i < N; i++) {
+									const t1 = i/N, t2 = (i+1)/N;
+									const sc = t.pNear + (t.pFar - t.pNear) * ((t1+t2)/2);
+									const sw = Math.max(1, Math.floor(vw * sc));
+									const sx = Math.floor((vw - sw) / 2);
+									const sy = Math.floor(vh * t1);
+									const sh = Math.max(1, Math.ceil(vh * t2) - sy);
+									const dy = Math.floor(ch2 * t1);
+									const dh = Math.max(1, Math.ceil(ch2 * t2) - dy);
+									ctx.drawImage(video, sx, sy, sw, sh, 0, dy, cw2, dh);
+								}
+							}
+ 
+							// Segundo: aplicar stretch sobre el resultado
+							// Leemos el canvas actual y lo redibujamos con stretch
+							const imgData = ctx.getImageData(0, 0, cw2, ch2);
+							const sxF = t.stretchAxis === 'H' ? t.sFactor : 1.0;
+							const syF = t.stretchAxis === 'V' ? t.sFactor : 1.0;
+							let newW = Math.floor(cw2 * sxF);
+							let newH = Math.floor(ch2 * syF);
+							const max2 = Math.max(newW, newH);
+							if (max2 > MAX_PX) { const r2 = MAX_PX/max2; newW = Math.floor(newW*r2); newH = Math.floor(newH*r2); }
+ 
+							// Usar _prepCanvas como temporal
+							const tmp = this._prepCanvas;
+							tmp.width = cw2;
+							tmp.height = ch2;
+							tmp.getContext('2d').putImageData(imgData, 0, 0);
+ 
+							c.width  = Math.max(1, newW);
+							c.height = Math.max(1, newH);
+							c.getContext('2d', {willReadFrequently:true})
+								.drawImage(tmp, 0, 0, cw2, ch2, 0, 0, c.width, c.height);
+							break;
+						}
+ 
+						case 'rot': {
+							const r   = t.deg * Math.PI / 180;
+							const cos = Math.abs(Math.cos(r)), sin = Math.abs(Math.sin(r));
+							const rw  = Math.ceil(vw*cos + vh*sin);
+							const rh  = Math.ceil(vw*sin + vh*cos);
+							const s   = Math.min(1, MAX_PX / Math.max(rw, rh));
+							c.width  = Math.floor(rw * s);
+							c.height = Math.floor(rh * s);
+							const ctx = c.getContext('2d', {willReadFrequently:true});
+							ctx.clearRect(0, 0, c.width, c.height);
+							ctx.save();
+							ctx.translate(c.width/2, c.height/2);
+							ctx.rotate(r);
+							ctx.drawImage(video, -(vw*s)/2, -(vh*s)/2, vw*s, vh*s);
+							ctx.restore();
+							break;
+						}
+					}
+				};
+ 
+				// ── Procesar UNA transformación completa ──
+				const processOne = async (tIdx, canvas) => {
+					if (this._scanFound) return;
+ 
+					const t  = TRANSFORMS[tIdx % totalT];
+					const vw = video.videoWidth;
+					const vh = video.videoHeight;
+ 
+					try {
+						applyTransform(canvas, t, vw, vh);
+ 
+						// Preprocesamiento: contraste + binarización
+						this._enhanceCanvas(canvas);
+ 
+						const result = await QrScanner.scanImage(canvas, { returnDetailedScanResult: true });
+						if (result?.data && !this._scanFound) {
+							this._onQRDetected(result.data, `angle-${tIdx % totalT}`);
+						}
+					} catch(_) {
+						// No QR detectado — normal
+					}
+				};
+ 
+				// ── Loop principal: 3 en paralelo ──
+				const loop = async () => {
+					if (!this.scannerRunning || this._scanFound) return;
+					if (busy) {
+						this._angleLoopId = setTimeout(loop, 30);
+						return;
+					}
+					if (video.readyState < 2 || video.videoWidth === 0) {
+						this._angleLoopId = setTimeout(loop, 80);
+						return;
+					}
+ 
+					busy = true;
+ 
+					// Lanzar PARALLEL transformaciones simultáneas
+					const promises = [];
+					for (let p = 0; p < PARALLEL; p++) {
+						if (this._scanFound) break;
+						promises.push(processOne(idx + p, canvasPool[p]));
+					}
+					await Promise.all(promises);
+ 
+					idx += PARALLEL;
+					busy = false;
+ 
+					if (this.scannerRunning && !this._scanFound) {
+						this._angleLoopId = setTimeout(loop, 70);
+					}
+				};
+ 
+				this._angleLoopId = setTimeout(loop, 200);
+			},
+ 
+			_onQRDetected(text, engine) {
+				if (this._scanFound) return;
+				const label = this.extractWarehouseLabelFromQR(text);
+				if (!label) {
+					this.dbg_raw    = text;
+					this.dbg_engine = '⚠️ ' + engine + ' (QR inválido)';
+					return;
+				}
+ 
+				this._scanFound = true;
+				this.dbg_raw    = text;
+				this.dbg_engine = 'Código detectado'; // + engine
+				this._handleQRResult(label);
+			},
+ 
+			async _handleQRResult(label) {
+				if (this.qr_mode === 'move') {
+					this.move_destination = label;
+					this.stopScan();
+					Alpine.store('cache').hideModal('read');
+					this.qr_mode = 'location';
+					return;
+				}
+ 
+				const opened = await this.openLocationModal(label, { fromQr: true });
+				if (opened) {
+					this.stopScan();
+					Alpine.store('cache').hideModal('read');
+				} else {
+					this.dbg_engine  = '⚠️ ubicación no encontrada';
+					this._scanFound  = false;
+				}
+			},
+ 
+			stopScan() {
+				this.scannerRunning = false;
+				this._scanFound     = false;
+				this.dbg_raw        = '';
+				this.dbg_engine     = '';
+ 
+				if (this._angleLoopId) { clearTimeout(this._angleLoopId); this._angleLoopId = null; }
+				if (this._qrScanner)   { this._qrScanner.stop(); this._qrScanner.destroy(); this._qrScanner = null; }
+ 
+				const video = document.getElementById('cameraFrame');
+				if (video) { video.srcObject = null; video.style.transform = ''; }
+				this.zoom_level = 1;
+			},
+ 
+			// ── Zoom ───────────────────────────────────────────
+			zoomIn()  { this.zoom_level = Math.min(4, +(this.zoom_level + 0.5).toFixed(1)); this._applyZoom(); },
+			zoomOut() { this.zoom_level = Math.max(1, +(this.zoom_level - 0.5).toFixed(1)); this._applyZoom(); },
+			_applyZoom() {
+				const video = document.getElementById('cameraFrame');
+				if (!video?.srcObject) return;
+				const track = video.srcObject.getVideoTracks?.()?.[0];
+				const caps  = track?.getCapabilities?.() || {};
+				if (caps.zoom) {
+					const z = Math.min(caps.zoom.max, Math.max(caps.zoom.min, this.zoom_level));
+					track.applyConstraints({ advanced: [{ zoom: z }] }).catch(() => {});
+					return;
+				}
+				video.style.transform = `scale(${this.zoom_level})`;
+			},
+
+			// ══════════════════════════════════════════════════
+			//  HELPERS LABEL
+			// ══════════════════════════════════════════════════
+			normalizeWarehouseLabel(value) {
+				const clean = (value || '').toString().trim().toUpperCase().replace(/\s+/g, '');
+				const match = clean.match(/^B\d+-\d+-[A-Z0-9]$/);
+				return match ? match[0] : null;
+			},
+
+			extractWarehouseLabelFromQR(text) {
+				const raw = (text || '').toString().trim().toUpperCase();
+				if (!raw) return null;
+				const compact = raw.replace(/\s+/g, '');
+				for (const candidate of [compact, compact.slice(1)]) {
+					const match = candidate.match(/B\d+-\d+-[A-Z0-9]/);
+					if (match) return this.normalizeWarehouseLabel(match[0]);
+				}
+				return null;
+			},
+
+			// ══════════════════════════════════════════════════
+			//  BÚSQUEDA
+			// ══════════════════════════════════════════════════
+			async findProducts() {
+				const input = (this.product_input || '').trim();
+				if (this._findAbortController) this._findAbortController.abort();
+				if (input.length < 2) { this.finded_products = []; this.finded_locations = []; return; }
+				this._findAbortController = new AbortController();
+				try {
+					const response = await fetch(
+						`${this.api}/warehouse/find/${encodeURIComponent(input)}`,
+						{ method: 'GET', headers: { 'Content-Type': 'application/json' }, signal: this._findAbortController.signal }
+					);
+					const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error');
+					const data = jsonData.data || {};
+					this.finded_locations = data.locations || [];
+					this.finded_products  = (data.products || []).sort((a, b) => (Number(a.stock)||0) - (Number(b.stock)||0));
+				} catch (error) {
+					if (error.name === 'AbortError') return;
+					this.finded_products = []; this.finded_locations = [];
+				}
+			},
+
+			// ══════════════════════════════════════════════════
+			//  MODAL UBICACIÓN
+			// ══════════════════════════════════════════════════
+			async openLocationModal(label, options = {}) {
+				const normalized = this.normalizeWarehouseLabel(label);
+				if (!normalized) return false;
+				try {
+					this.location_modal_loading = true;
+					this.selected_location = null;
+					const response = await fetch(`${this.api}/warehouse/location/${encodeURIComponent(normalized)}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+					const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'No se pudo obtener la ubicación');
+					this.selected_location      = jsonData.data.location;
+					this.location_modal_loading = false;
+					Alpine.store('cache').showModal('warehouse-location');
+					return true;
+				} catch (error) { this.location_modal_loading = false; return false; }
+			},
+
+			// ══════════════════════════════════════════════════
+			//  RETIRAR STOCK
+			// ══════════════════════════════════════════════════
+			openRemoveStockModal(product) {
+				if (!product || !this.pickingAllowed()) return;
+				this.selected_product = JSON.parse(JSON.stringify(product));
+				this.remove_qty = 1;
+				Alpine.store('cache').showModal('warehouse-remove-stock');
+			},
+
+			sanitizeRemoveQty() { let q=Number(this.remove_qty)||1; const m=Number(this.selected_product?.stock)||1; if(q<1)q=1; if(q>m)q=m; this.remove_qty=q; },
+			increaseRemoveQty() { const m=Number(this.selected_product?.stock)||1; let q=Number(this.remove_qty)||1; if(q<m)q++; this.remove_qty=q; },
+			decreaseRemoveQty() { let q=Number(this.remove_qty)||1; if(q>1)q--; this.remove_qty=q; },
+
+			async confirmRemoveStock() {
+				if (!this.selected_product) return;
+				const quantity = Number(this.remove_qty) || 0;
+				if (quantity < 1) return;
+				try {
+					this.remove_loading = true;
+					const response = await fetch(`${this.api}/warehouse/stock/remove`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+						body: JSON.stringify({ warehouse_stock_id: this.selected_product.warehouse_stock_id, quantity }),
+					});
+					const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'No se pudo retirar el stock');
+					this.selected_location = jsonData.data.location;
+					Alpine.store('cache').hideModal('warehouse-remove-stock');
+					if ((this.product_input || '').trim().length >= 2) await this.findProducts();
+					await this.loadOccupiedLocations();
+				} catch (error) { console.error('Error retirando stock:', error); }
+				finally { this.remove_loading = false; }
+			},
+
+			// ══════════════════════════════════════════════════
+			//  AÑADIR STOCK
+			// ══════════════════════════════════════════════════
+			openAddStockModal() {
+				this.add_stock_query = ''; this.add_stock_results = []; this.add_stock_selected = null; this.add_stock_qty = 1;
+				Alpine.store('cache').showModal('warehouse-add-stock');
+			},
+
+			searchMachinesForAdd() {
+				clearTimeout(this.add_stock_search_timer);
+				const q = (this.add_stock_query || '').trim();
+				if (this.add_stock_selected) return;
+				if (q.length < 2) { this.add_stock_results = []; return; }
+				this.add_stock_search_timer = setTimeout(async () => {
+					try {
+						const res = await fetch(`${this.api}/warehouse/machines/search?q=${encodeURIComponent(q)}`);
+						const json = await res.json();
+						this.add_stock_results = json.data || json || [];
+					} catch (e) { this.add_stock_results = []; }
+				}, 300);
+			},
+
+			selectMachineForAdd(machine) {
+				this.add_stock_selected = machine;
+				this.add_stock_query = `${machine.brand} ${machine.model}`;
+				this.add_stock_results = [];
+			},
+
+			async confirmAddStock() {
+				if (!this.add_stock_selected || !this.selected_location) return;
+				const qty = parseInt(this.add_stock_qty);
+				if (qty < 1) return;
+				this.add_stock_loading = true;
+				try {
+					const res = await fetch(`${this.api}/warehouse/stock/add`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+						body: JSON.stringify({ product_id: this.add_stock_selected.id, location_label: this.selected_location.label, quantity: qty }),
+					});
+					const json = await res.json();
+					if (!res.ok) throw new Error(json?.data?.message || json?.message || 'Error');
+					this.selected_location = json.data?.location || json.location;
+					Alpine.store('cache').hideModal('warehouse-add-stock');
+					if ((this.product_input || '').trim().length >= 2) await this.findProducts();
+					await this.loadOccupiedLocations();
+				} catch (e) { console.error('Error añadiendo stock:', e); }
+				finally { this.add_stock_loading = false; }
+			},
+
+			// ══════════════════════════════════════════════════
+			//  MOVER STOCK
+			// ══════════════════════════════════════════════════
+			openMoveModal(product) {
+				if (!product) return;
+				this.move_product = JSON.parse(JSON.stringify(product));
+				this.move_qty = 1; this.move_destination = '';
+				Alpine.store('cache').showModal('warehouse-move-stock');
+			},
+
+			sanitizeMoveQty() { let q=Number(this.move_qty)||1; const m=Number(this.move_product?.stock)||1; if(q<1)q=1; if(q>m)q=m; this.move_qty=q; },
+			increaseMoveQty() { const m=Number(this.move_product?.stock)||1; let q=Number(this.move_qty)||1; if(q<m)q++; this.move_qty=q; },
+			decreaseMoveQty() { let q=Number(this.move_qty)||1; if(q>1)q--; this.move_qty=q; },
+
+			async confirmMoveStock() {
+				if (!this.move_product || !this.move_destination) return;
+				const qty = parseInt(this.move_qty);
+				if (qty < 1) return;
+				this.move_loading = true;
+				try {
+					const res = await fetch(`${this.api}/warehouse/stock/move`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+						body: JSON.stringify({ warehouse_stock_id: this.move_product.warehouse_stock_id, quantity: qty, destination_label: this.move_destination }),
+					});
+					const json = await res.json();
+					if (!res.ok) throw new Error(json?.data?.message || json?.message || 'Error');
+					this.selected_location = json.data?.location || json.location;
+					Alpine.store('cache').hideModal('warehouse-move-stock');
+					if ((this.product_input || '').trim().length >= 2) await this.findProducts();
+					await this.loadOccupiedLocations();
+				} catch (e) { console.error('Error moviendo stock:', e); }
+				finally { this.move_loading = false; }
+			},
+
+			// ══════════════════════════════════════════════════
+			//  EXCEL
+			// ══════════════════════════════════════════════════
+			async loadExcelFile(event) {
+				const file = event.target.files?.[0];
+				if (!file) return;
+				event.target.value = '';
+				this.excel_loading = true;
+				try {
+					const formData = new FormData();
+					formData.append('file', file);
+					const response = await fetch(`${this.api}/warehouse/load`, {
+						method: 'POST', headers: { 'Authorization': `Bearer ${this.token}` }, body: formData,
+					});
+					const json = await response.json();
+					if (!response.ok) throw new Error(json?.message || 'Error al procesar el archivo');
+				} catch (error) { console.error('Error cargando Excel:', error); }
+				finally { this.excel_loading = false; }
+			},
+
+			// ══════════════════════════════════════════════════
+			//  HISTORIAL
+			// ══════════════════════════════════════════════════
+			// ── Estadísticas ──
+			async viewStatistics() {
+				try {
+					const res = await fetch(`${this.api}/warehouse/statistics`, {
+						headers: { 'Authorization': `Bearer ${this.token}`, 'X-No-Toast': '1' },
+					});
+					const json = await res.json();
+					this.stats = (res.ok && json.data) ? json.data : null;
+				} catch (e) { console.error(e); this.stats = null; }
+				Alpine.store('cache').showModal('warehouse-stats');
+				await this.initStatsCharts();
+			},
+			async initStatsCharts() {
+				const stats = this.stats;
+				if (!stats) return;
+				if (!this.$refs.whStockChart || !this.$refs.whRemovedChart || !this.$refs.whUserChart) return;
+				await new Promise(r => requestAnimationFrame(() => setTimeout(r, 50)));
+
+				if (chartWhStock)   chartWhStock.destroy();
+				if (chartWhRemoved) chartWhRemoved.destroy();
+				if (chartWhUser)    chartWhUser.destroy();
+
+				chartWhStock = new Chart(this.$refs.whStockChart, {
+					type: 'bar',
+					data: {
+						labels: stats.by_stock.map(r => r.product),
+						datasets: [{ label: 'Unidades', data: stats.by_stock.map(r => r.stock), backgroundColor: 'rgba(255,160,42,0.75)', borderWidth: 0 }],
+					},
+					options: WSTATS_OPTS_NOX,
+				});
+
+				chartWhRemoved = new Chart(this.$refs.whRemovedChart, {
+					type: 'bar',
+					data: {
+						labels: stats.by_removed.map(r => r.product),
+						datasets: [{ label: 'Retirados', data: stats.by_removed.map(r => r.qty), backgroundColor: 'rgba(15,32,39,0.75)', borderWidth: 0 }],
+					},
+					options: WSTATS_OPTS_NOX,
+				});
+
+				chartWhUser = new Chart(this.$refs.whUserChart, {
+					type: 'bar',
+					data: {
+						labels: stats.by_user.map(r => r.user),
+						datasets: [{ label: 'Movimientos', data: stats.by_user.map(r => r.count), backgroundColor: 'rgba(234,113,52,0.6)', borderWidth: 0 }],
+					},
+					options: WSTATS_OPTS,
+				});
+			},
+			async openHistoryModal() {
+				this.history_logs  = [];
+				this.history_total = 0;
+				this.history_page  = 1;
+				this.history_loading = true;
+				Alpine.store('cache').showModal('warehouse-history');
+				await this.fetchLogs(1);
+				this.history_loading = false;
+			},
+
+			async fetchLogs(page) {
+				try {
+					const res  = await fetch(`${this.api}/warehouse/logs?page=${page}`, {
+						headers: { 'Authorization': `Bearer ${this.token}` },
+					});
+					const json = await res.json();
+					if (!res.ok) throw new Error(json?.message || 'Error');
+					const data = json.data || json;
+					if (page === 1) {
+						this.history_logs = data.logs || [];
+					} else {
+						this.history_logs = [...this.history_logs, ...(data.logs || [])];
+					}
+					this.history_total = data.total || 0;
+					this.history_page  = page;
+				} catch (e) { console.error('Error cargando historial:', e); }
+			},
+
+			async loadMoreLogs() {
+				this.history_load_more_loading = true;
+				await this.fetchLogs(this.history_page + 1);
+				this.history_load_more_loading = false;
+			},
+
+			historyActionLabel(action) {
+				const map = { pick: 'Picking', add: 'Ingreso', move: 'Mover', load: 'Carga' };
+				return map[action] || action;
+			},
+
+			formatShortName(name) {
+				if (!name) return null;
+				const parts = name.trim().split(/\s+/);
+				if (parts.length <= 2) return name;
+				return `${parts[0]} ${parts[1]}`;
+			},
+
+			formatLogDate(iso) {
+				if (!iso) return '';
+				const d = new Date(iso);
+				const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+				const day = d.getDate();
+				const mon = months[d.getMonth()];
+				const pad = n => String(n).padStart(2, '0');
+				const h = d.getHours();
+				const m = pad(d.getMinutes());
+				const ampm = h >= 12 ? 'pm' : 'am';
+				const h12 = h % 12 || 12;
+				return `${day} ${mon}, ${h12}:${m} ${ampm}`;
+			},
+
+			// ══════════════════════════════════════════════════
+			//  PERMISOS
+			// ══════════════════════════════════════════════════
+			pickingAllowed() { return Alpine.store('cache').hasPermission('warehouse', 'picking'); },
+			// adminAllowed()    { return (this.user.id == 6 || this.user.id == 23 || this.user.id == 8 || this.user.department_id == 7); },
+
+			// ══════════════════════════════════════════════════
+			//  PLACEHOLDER ANIMADO
+			// ══════════════════════════════════════════════════
+			startPlaceholderAnimation() {
+				const tick = () => {
+					const currentText = this.placeholder_texts[this.placeholder_index];
+					if (!this.placeholder_deleting) {
+						this.placeholder_char_index++;
+						this.animated_placeholder = currentText.slice(0, this.placeholder_char_index);
+						if (this.placeholder_char_index >= currentText.length) {
+							this.placeholder_deleting = true;
+							this.placeholder_timer = setTimeout(tick, 1200);
+							return;
+						}
+						this.placeholder_timer = setTimeout(tick, 90);
+					} else {
+						this.placeholder_char_index--;
+						this.animated_placeholder = currentText.slice(0, this.placeholder_char_index);
+						if (this.placeholder_char_index <= 0) {
+							this.placeholder_deleting = false;
+							this.placeholder_index = (this.placeholder_index + 1) % this.placeholder_texts.length;
+							this.placeholder_timer = setTimeout(tick, 250);
+							return;
+						}
+						this.placeholder_timer = setTimeout(tick, 45);
+					}
+				};
+				tick();
+			},
+		}));
+	</script>
+
+
+	<style>
+		#modal-warehouse-map {
+			z-index: 30;
+		}
+		.modal .title.full {
+			flex-direction: row;
+    		justify-content: space-between;
+			align-items: center;
+		}
+		.modal.initial {
+			max-width: initial;
+    		width: initial;
+		}
+		/* ── MODAL MAPA ──────────────────────────────────── */
+		.wmap-title {
+			font-size: .9rem;
+			font-weight: 600;
+			opacity: .9;
+		}
+		.wmap-badge {
+			font-size: .75rem;
+			font-weight: 700;
+			background: #f59e0b;
+			color: #000;
+			padding: .15rem .6rem;
+			border-radius: 999px;
+			letter-spacing: .05em;
+		}
+		.wmap-scroll {
+			overflow: auto;
+			flex: 1;
+		}
+		.wmap-viewport {
+			display: flex;
+			flex-direction: column;
+			position: relative;
+		}
+
+		/* Filas del mapa */
+		.wmap-row {
+			display: flex;
+			align-items: flex-start;
+			gap: 0.75rem;
+		}
+		
+		.wmap-section {
+			display: flex;
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 0.5rem;
+    		position: relative;
+		}
+		.wmap-block-label {
+			font-size: 0.7rem;
+			font-weight: 700;
+			opacity: 0.5;
+			width: 100%;
+			text-align: center;
+		}
+		/* Bloque horizontal (racks como filas) */
+		.wmap-h-block {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 0.25rem;
+		}
+		.wmap-h-block.vertical {
+			grid-template-columns: 1fr;
+		}
+		.wmap-h-block.vertical .wmap-hrow {
+			flex-direction: row-reverse;
+		}
+		.wmap-v-block {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 0.25rem;
+		}
+		.wmap-vcol-header {
+			display: flex;
+			flex-direction: row;
+			gap: 2px;
+			align-items: center;
+			margin-bottom: 2px;
+		}
+
+		.wmap-pos-header {
+			width: 18px;
+			text-align: center;
+			font-size: .55rem;
+			opacity: .4;
+			font-weight: 600;
+		}
+
+		/* Fila de rack */
+		.wmap-hrow {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+		}
+		.interval .wmap-hrow:nth-child(odd) {
+			flex-direction: row-reverse;
+		}
+		.wmap-rack-num {
+			font-size: .7rem;
+			opacity: 0.5;
+			font-weight: 600;
+			margin: 0 0.125rem;
+			width: 1rem;
+			text-align: center;
+		}
+
+		/* Celda individual */
+		.wmap-cell {
+			width: 1rem;
+    		height: 4rem;
+			background: #f0e8da;
+			border: 1px solid #e8cd95;
+			border-radius: 0.125rem;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			transition: background .1s, border-color .1s, transform .1s;
+		}
+		.wmap-cell:hover {
+			background: #ededed;
+			/* border-color: rgb(34 197 94 / 70%); */
+		}
+		.wmap-cell.wmap-has-stock {
+			background: #efdcb8;
+    		/* border: 1px solid #e8cd95; */
+		}
+		.wmap-cell.wmap-has-stock:hover {
+			background: #edc57b;
+    		/* border-color: rgb(255 194 0 / 80%); */
+			
+		}
+		.wmap-floor-btn {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 1.75rem;
+			height: 1.75rem;
+			border-radius: 0.375rem;
+			background: rgba(255,255,255,0.08);
+			flex-shrink: 0;
+		}
+
+		.wmap-floor-btn img {
+			transition: transform .2s ease;
+			pointer-events: none;
+		}
+		.wmap-pos-label {
+			font-size: .5rem;
+			opacity: .5;
+			font-weight: 600;
+			pointer-events: none;
+			line-height: 1;
+		}
+
+		/* Celda destacada */
+		.wmap-cell.wmap-hl {
+			background: #f59e0b !important;
+			border-color: #d97706 !important;
+			box-shadow: 0 0 0 2px rgba(245,158,11,.4), 0 0 10px rgba(245,158,11,.6);
+			animation: wmap-pulse 1.4s ease-in-out infinite;
+			/* transform: scale(1.2); */
+			z-index: 2;
+		}
+
+		.wmap-cell.wmap-hl .wmap-pos-label {
+			opacity: 1;
+			color: #fff;
+		}
+
+		@keyframes wmap-pulse {
+			0%, 100% { box-shadow: 0 0 0 2px rgba(245,158,11,.4), 0 0 8px rgba(245,158,11,.5); }
+			50%       { box-shadow: 0 0 0 3px rgba(245,158,11,.6), 0 0 16px rgba(245,158,11,.9); }
+		}
+
+		/* Divisores */
+		.wmap-divider-v {
+			width: 0.25rem;
+		}
+
+		.wmap-divider-h {
+			height: 1px;
+			background: rgba(255,255,255,.08);
+		}
+
+		/* Spacers para alinear con el plano */
+		.wmap-mid-spacer { width: 7rem; flex-shrink: 0; }
+
+		/* Zonas no interactivas */
+		.wmap-zone-group {
+			display: flex;
+			flex-direction: column;
+			gap: .35rem;
+			align-self: stretch;
+		}
+		.wmap-row.f1 {
+			position: absolute;
+			left: 25.75rem;
+			top: 12rem;
+		}
+		.wmap-row.f1 .wmap-cell {
+			width: 27.75rem;
+    		height: 6.25rem;
+		}
+		.wmap-row.f1 .wmap-pos-label {
+			font-size: 0.7rem;
+    		text-transform: uppercase;
+		}
+		
+		.wmap-row.f2 .wmap-pos-label {
+			font-size: 0.7rem;
+    		text-transform: uppercase;
+		}
+		.wmap-row.b6 {
+			margin-left: 7.5rem;
+    		margin-top: 0;
+		}
+		.wmap-row.b7 {
+			position: absolute;
+			bottom: 7.5rem;
+			left: 10rem;
+		}
+		.wmap-row.b7 .wmap-block-label {
+			position: absolute;
+			transform: rotate(-90deg) translate(60px, 115px);
+			bottom: 0;
+		}
+		.wmap-zone-box {
+			flex: 1;
+			min-height: 2.5rem;
+			padding: .3rem .6rem;
+			background: rgba(255,255,255,.04);
+			border: 1px dashed rgba(255,255,255,.12);
+			border-radius: 6px;
+			font-size: .65rem;
+			opacity: .5;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			text-align: center;
+			line-height: 1.3;
+		}
+
+		.wmap-zone-box.small {
+			flex: 0;
+			min-height: 1.8rem;
+		}
+
+		.wmap-special-zone {
+			display: flex;
+			flex-direction: column;
+			gap: .3rem;
+			align-self: stretch;
+			justify-content: center;
+			padding: .5rem .75rem;
+			background: rgba(255,255,255,.03);
+			border: 1px dashed rgba(255,255,255,.1);
+			border-radius: 6px;
+			font-size: .65rem;
+			opacity: .5;
+			min-width: 5rem;
+		}
+
+		.wmap-row.wmap-row-2 {
+			flex-direction: column-reverse;
+			gap: 1.5rem;
+		}
+		.wmap-row.wmap-row-2 .wmap-section {
+			flex-direction: row;
+			align-items: center;
+		}
+		.wmap-row.wmap-row-2 .wmap-section:nth-child(3),
+		.wmap-row.wmap-row-2 .wmap-section:nth-child(4) {
+			margin-left: 8.5rem;
+			margin-right: 5.25rem;
+		}
+		.wmap-row.wmap-row-2 .wmap-block-label {
+			writing-mode: sideways-lr;
+			margin-bottom: 0.75rem;
+		}
+		.wmap-row.wmap-row-2 .wmap-v-block {
+			display: flex;
+		}
+		.wmap-row.wmap-row-2 .wmap-hrow {
+			flex-direction: column-reverse;
+		}
+		.wmap-row.wmap-row-2 .wmap-cell {
+			width: 4rem;
+    		height: 1rem;
+		}
+		.wmap-row.f2 {
+			position: absolute;
+			left: 1.5rem;
+			top: 0;
+		}
+		.wmap-row.f2 .wmap-cell {
+			width: 5.75rem;
+			height: 12.5rem;
+			writing-mode: sideways-lr;
+		}
+		/* Leyenda */
+		.wmap-legend {
+			display: flex;
+			font-size: 0.7rem;
+			position: absolute;
+			right: 1.5rem;
+			bottom: 1.5rem;
+			gap: 0.75rem;
+			flex-direction: column;
+			font-weight: 500;
+			padding: 0.75rem;
+			border-radius: 1rem;
+		}
+		.wmap-legend-item {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		.wmap-legend .wmap-cell {
+			height: 1rem;
+		}
+		/* Celda horizontal (B6 y B7) */
+		.wmap-cell-h {
+			width: 4rem;
+			height: 1rem;
+		}
+
+		/* ── Bloque 6 ── */
+		.wmap-b6-grid {
+			display: flex;
+			flex-direction: column;
+		}
+		.wmap-b6-header {
+			display: flex;
+		}
+		.wmap-b6-row {
+			display: flex;
+			gap: 0.25rem;
+		}
+
+		/* ── Ajuste Bloque 7 — celdas más anchas como en el plano ── */
+		.wmap-b7-grid {
+			display: flex;
+			flex-direction: column;
+		}
+
+		.wmap-b7-row {
+			display: flex;
+			gap: 0.25rem;
+		}
+
+		.wmap-b7-header {
+			display: flex;
+			gap: 1px;
+		}
+
+		.wmap-b7-header .wmap-rack-num {
+			flex: 1;
+		}
+
+		.wmap-b7-divider {
+			height: 0.125rem;
+		}
+
+		/* Ajuste B6 para que las celdas tengan el mismo ancho */
+		.wmap-b6-header .wmap-rack-num {
+			flex: 1;
+		}
+		
+		.location {
+			display: flex;
+			margin-left: auto;
+			gap: 0.25rem;
+			align-items: center;
+			padding: 0.5rem;
+		}
+		.location.ware {
+			margin: 0;
+			width: 100%;
+		}
+		.location.full {
+			margin: 0;
+			padding: 0;
+		}
+		.location.ware .stock {
+			margin-left: auto;
+			font-weight: 500;
+		}
+		.location .block {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			color: var(--white);
+			background-color: #113474;
+			gap: 0.25rem;
+			padding: 0.35rem 0;
+			border-radius: 0.25rem;
+			width: 2.5rem;
+		}
+		.location .block.black {
+			background-color: #252c39;
+		}
+		.location .block .label {
+			font-size: 0.6rem;
+    		line-height: 0.65rem;
+		}
+		.location .block .number {
+			font-size: 1.35rem;
+			/* font-family: sans-serif; */
+			font-weight: 600;
+			line-height: 1.35rem;
+		}
+		.location .block .number.fix {
+			font-weight: 700;
+		}
+		.location .ubi {
+			font-weight: 800;
+			font-size: 1rem;
+			font-family: sans-serif;
+			color: var(--primary);
+			display: none;
+		}
+		#modal-warehouse-location .modal-head {
+			display: flex;
+    		justify-content: space-between;
+			align-items: center;
+		}
+		#modal-warehouse-location .modal-head .stock {
+			display: flex;
+			font-weight: 600;
+			padding: 0.3rem 0.75rem;
+			border-radius: 2rem;
+			font-size: 0.85rem;
+			background-color: #fddbc9;
+			border: 2px solid #f8a87f;
+			margin: -0.5rem 0;
+		}
+		.modal-wrap .button-add {
+			display: flex;
+			gap: 0.25rem;
+			justify-content: center;
+			align-items: center;
+			width: initial;
+			padding: 0 1rem;
+			line-height: 2rem;
+			font-size: 0.8rem;
+			font-weight: 400;
+		}
+		.modal-wrap .button-add img {
+				filter: invert(1);
+			}
+		#modal-warehouse-location .table-header {
+			display: grid;
+			grid-template-columns: 1.5fr 1fr 1fr 0.5fr;
+			gap: 1rem;
+			padding: 0rem 3rem 0 1rem;
+			font-weight: 600;
+			display: none;
+		}
+		#modal-warehouse-location .table-box {
+			gap: 0.5rem;
+			display: flex;
+			flex-direction: column;
+		}
+		#modal-warehouse-location .table-parent {
+			display: flex;
+			gap: 0.5rem;
+		}
+		#modal-warehouse-location .table-row {
+			display: flex;
+			gap: 0.5rem;
+			align-items: center;
+			padding: 0.5rem 0.75rem;
+			flex: 1;
+		}
+		#modal-warehouse-location .table-row img {
+			width: 2.5rem;
+			min-width: 2.5rem;
+			height: 2.5rem;
+		}
+		#modal-warehouse-location .table-row .data {
+			display: grid;
+			grid-template-columns: 1.5fr 1fr 0.5fr;
+			gap: 1rem;
+			flex: 1;
+		}
+		#modal-warehouse-location .table-row .model {
+			font-weight: 500;
+		}
+		#modal-warehouse-location .table-row .qty {
+			text-align: right;
+			font-weight: 600;
+			color: var(--primary);
+		}
+		/* Modal head add button */
+		#modal-warehouse-location .modal-head-add {
+			display: flex;
+			align-items: center;
+			gap: 0.35rem;
+			padding: 0.3rem 0.75rem;
+			border-radius: 2rem;
+			font-size: 0.85rem;
+			font-weight: 600;
+			background-color: var(--primary);
+			color: var(--white);
+			cursor: pointer;
+			margin: -0.5rem 0;
+		}
+		#modal-warehouse-location .modal-head-add img {
+			opacity: .9;
+		}
+		#modal-warehouse-location .move-btn {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 0.5rem;
+			flex-direction: column;
+			font-size: 0.65rem;
+			font-weight: 600;
+			gap: 0.125rem;
+		}
+		.add-search-wrap {
+			position: relative;
+		}
+		.add-search-bar {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.4rem 0.75rem;
+			border-radius: 0.5rem;
+		}
+		.add-search-bar input {
+			flex: 1;
+			background: transparent;
+			border: none;
+			outline: none;
+			font-family: inherit;
+			font-size: 0.9rem;
+		}
+		.add-search-results {
+			border-radius: 0.5rem;
+			z-index: 10;
+			max-height: 20rem;
+			overflow-y: auto;
+			box-shadow: 0 4px 16px rgba(0,0,0,.15);
+		}
+		.add-result-row {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.5rem 0.75rem;
+			cursor: pointer;
+			border-bottom: 1px solid rgba(0,0,0,.06);
+		}
+		.add-result-row:last-child { border-bottom: none; }
+		.add-result-text {
+			display: flex;
+			flex-direction: column;
+			font-size: 0.85rem;
+		}
+		.add-result-text .brand { font-weight: 600; }
+		.add-result-text .model { opacity: .65; font-size: .78rem; }
+		/* Modal move stock */
+		.move-destination-wrap {
+			display: flex;
+			flex-direction: column;
+			gap: 0.4rem;
+		}
+		.move-dest-label {
+			font-size: 0.8rem;
+			font-weight: 600;
+			opacity: 0.6;
+		}
+		.move-dest-input {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.4rem 0.5rem 0.4rem 0.75rem;
+			border-radius: 0.5rem;
+		}
+		.move-dest-input input {
+			flex: 1;
+			background: transparent;
+			border: none;
+			outline: none;
+			font-family: inherit;
+			font-size: 1rem;
+			font-weight: 600;
+			letter-spacing: 0.05em;
+			text-transform: uppercase;
+			padding: 0;
+		}
+		.move-dest-input .press {
+			width: 2rem;
+			height: 2rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			opacity: 0.5;
+		}
+		.change-box .selected {
+			padding: 0.75rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+		}
+		.change-box .selected .item {
+			display: flex;
+			gap: 0.5rem;
+			align-items: center;
+		}
+		.change-box .selected .item .data {
+			display: flex;
+			flex-direction: column;
+		}
+		.change-box .selected .item .model {
+			font-size: 0.9rem;
+    		font-weight: 500;
+		}
+		.change-box .selected .item .category {
+			opacity: 0.5;
+			font-weight: 500;
+			font-size: 0.8rem;
+		}
+		.change-box .selected .item .stock {
+			color: var(--primary);
+		}
+		.change-box .remove-box {
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+		}
+		.change-box .remove-box .text {
+			opacity: 0.75;
+			font-weight: 500;
+			text-align: center;
+		}
+		.change-box .remove-box .number {
+			display: flex;
+    		gap: 0.75rem;
+		}
+		.change-box .remove-box .action {
+			width: 4rem;
+			height: 3rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-weight: 800;
+			font-size: 1.4rem;
+			font-family: monospace;
+		}
+		.change-box .remove-box input {
+			flex: 1;
+			text-align: center;
+			border: none;
+			font-family: var(--font);
+			font-size: 0.9rem;
+			font-weight: 500;
+		}
+		#modal-read {
+			align-items: center;
+			z-index: 100;
+		}
+		#modal-read .modal {
+			align-items: center;
+			padding: 0;
+			overflow: hidden;
+			border: none;
+			width: initial;
+			border-radius: 1.5rem;
+		}
+		/************************************************************************/
+		#scannerBox {
+			position: relative;
+			width: 20rem;
+			height: 20rem;
+		}
+		#scannerBox .scannerDots {
+			position: absolute;
+			top: 20%;
+			left: 20%;
+			width: 60%;
+			height: 60%;
+			border: 2px dashed var(--primary);
+			border-radius: 0.75rem;
+		}
+		#cameraFrame {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+		#scanning {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			background-color: rgba(0, 0, 0, 0.5);
+			color: white;
+			padding: 0.5rem 1rem;
+			border-radius: 1rem;
+			display: none;
+			font-size: 0.85rem;
+			opacity: 0.5;
+			font-family: monospace;
+		}
+		/* ── QR Debug bar ───────────────────────────────── */
+		.qr-debug-bar {
+			padding: 1rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+			position: absolute;
+		}
+		.qr-debug-engine {
+			font-size: .65rem;
+			color: #fff;
+			font-weight: 600;
+			text-transform: uppercase;
+			letter-spacing: .04em;
+		}
+		.qr-debug-raw {
+			font-size: .7rem;
+			color: #fff;
+			word-break: break-all;
+			opacity: .85;
+			text-align: center;
+			min-height: 1rem;
+		}
+		/* ── Zoom bar ───────────────────────────────────── */
+		.scanner-zoom-bar {
+			display: flex; align-items: center;
+			justify-content: center;
+			gap: .75rem; padding: .5rem 1rem;
+			position: absolute;
+    		bottom: 0;
+		}
+		.scanner-zoom-btn {
+			width: 2.4rem;
+			height: 2.4rem;
+			border-radius: 50%;
+			background: rgba(255, 255, 255, .25);
+			border: 2px solid rgba(255, 255, 255, .5);
+			color: #fff;
+			font-size: 1.4rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+		}
+		.scanner-zoom-btn:disabled { opacity: .3; pointer-events: none; }
+		.scanner-zoom-label {
+			color: #fff; font-size: .9rem;
+			min-width: 2.4rem; text-align: center;
+			font-variant-numeric: tabular-nums;
+		}
+		#scannerBox video { transform-origin: center center; transition: transform .2s; }
+
+		.location-products{
+		width: 100%;
+		margin-top: .5rem;
+		padding: .5rem;
+		border-radius: .75rem;
+		background: rgba(255,255,255,.06);
+		}
+
+		.location-product-row{
+		display:flex;
+		justify-content:space-between;
+		gap: 1rem;
+		padding: .35rem .25rem;
+		border-bottom: 1px solid rgba(255,255,255,.08);
+		}
+		.location-product-row:last-child{ border-bottom: none; }
+
+		.lp-name{ font-weight: 600; }
+		.lp-cat{ opacity: .8; font-size: .85rem; }
+
+		#warehouse {
+			display: flex;
+			min-height: calc(100dvh - 11rem);
+			align-items: center;
+			justify-content: center;
+		}
+		#warehouse .main {
+			display: flex;
+			justify-content: center;
+			flex-direction: column;
+			gap: 1.5rem;
+			max-height: calc(100dvh - 6.5rem);
+			padding: 1rem;
+		}
+		#warehouse .main-title {
+			font-size: 1.75rem;
+			font-weight: 500;
+			text-align: center;
+		}
+		#warehouse .searchbar {
+			display: flex;
+			align-items: center;
+			padding: 0.25rem 0.5rem 0.25rem 0.75rem;
+			border-radius: 0.75rem;
+			position: relative;
+		}
+		#warehouse .searchbar input {
+			flex: 1;
+			background-color: transparent;
+			border: none;
+			outline: none;
+			padding: 0.75rem;
+			font-family: inherit;
+			font-size: 1rem;
+			font-weight: 400;
+		}
+		#warehouse .searchbar .press {
+			display: flex;
+			width: 2rem;
+			height: 2rem;
+			align-items: center;
+			justify-content: center;
+		}
+		#warehouse .searchbar .clear {
+			position: absolute;
+			right: 3rem;
+		}
+		#warehouse .finded-products {
+			overflow: auto;
+			width: 100%;
+			margin-top: -1rem;
+			border-radius: 0.75rem;
+		}
+		#warehouse .finded-products .item {
+			display: flex;
+			align-items: center;
+			border-bottom: 2px solid #ffffffba;
+		}
+		#warehouse .finded-products .item:last-child {
+			border-bottom: none;
+		}
+		#warehouse .finded-products .item .product {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			flex: 1;
+    		padding: 0.5rem;
+		}
+		#warehouse .finded-products .item .product.active {
+			transition: var(--transition);
+			cursor: pointer;
+		}
+		#warehouse .finded-products .item .product.active:hover {
+			background-color: #ffffffba;
+		}
+		#warehouse .finded-products .item .product .image {
+			mix-blend-mode: darken;
+		}
+		#warehouse .finded-products .thumb {
+			padding: 0.5rem;
+    		border-radius: 0.5rem;
+		}
+		#warehouse .finded-products .thumb img {
+			width: 2rem;
+			height: 2rem;
+			min-width: 2rem;
+		}
+		#warehouse .finded-products .text {
+			display: flex;
+			flex: 1;
+			gap: 0.75rem;
+    		justify-content: space-between;
+		}
+		#warehouse .finded-products .title {
+			display: flex;
+			flex-direction: column;
+		}
+		#warehouse .finded-products .title .brand {
+			font-size: 0.9rem;
+    		font-weight: 500;
+			max-width: 24rem;
+    		line-height: 1rem;
+		}
+		#warehouse .finded-products .title .category {
+			font-size: 0.75rem;
+    		opacity: 0.5;
+		}
+		#warehouse .finded-products .text .stock {
+			font-weight: 500;
+			font-size: 0.9rem;
+			margin: 0 0.5rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+		
+		
+		@media only screen and (max-width: 75rem) {
+			
+		}
+		
+		@media only screen and (max-width: 48rem) {
+			#content.sidebar {
+				padding-bottom: 0;
+				position: fixed;
+				width: 100%;
+			}
+			#warehouse .main-title {
+				font-size: 1.25rem;
+			}
+			#warehouse .main {
+				gap: 1rem;
+				width: 100%;
+				padding-top: 0;
+				max-height: calc(100dvh - 5.5rem);
+			}
+			#warehouse .finded-products {
+				margin-top: 0;
+			}
+			#warehouse .finded-products .thumb img {
+				width: 1.75rem;
+				height: 1.75rem;
+				min-width: 1.75rem;
+			}
+			#warehouse .finded-products .title .brand {
+				font-size: 0.8rem;
+    			font-weight: 600;
+				line-height: 0.9rem;
+			}
+			#warehouse .finded-products .text {
+				flex-direction: column;
+				gap: 0.5rem;
+			}
+			#warehouse .finded-products .text .stock {
+				justify-content: start;
+				font-size: 0.8rem;
+				color: var(--primary);
+				font-weight: 600;
+				margin: 0;
+			}
+			/* .location .block {
+				width: 2.25rem;
+			} */
+			#modal-warehouse-location .table-row .data {
+				display: flex;
+				flex-direction: column;
+				gap: 0;
+			}
+			#modal-warehouse-location .table-row .model {
+				font-weight: 600;
+			}
+			#modal-warehouse-location .table-row .data .brand {
+				font-size: 0.75rem;
+			}
+			#modal-warehouse-location .table-row .data .category {
+				opacity: 0.5;
+    			font-size: 0.75rem;
+			}
+			#modal-warehouse-location .table-row .data .qty {
+				text-align: initial;
+				margin-top: 0.25rem;
+			}
+		}
+
+		/* ── MODAL HISTORIAL ──────────────────────────────── */
+		#modal-warehouse-history .wh-table-header {
+			display: grid;
+			grid-template-columns: 1fr 1.5fr 0.5fr 1fr 0.6fr 0.8fr;
+			gap: 0.75rem;
+			padding: 0 1.25rem 0.75rem ;
+			font-weight: 600;
+			font-size: 0.8rem;
+		}
+		#modal-warehouse-history .wh-table-box {
+			gap: 0.35rem;
+			display: flex;
+			flex-direction: column;
+		}
+		#modal-warehouse-history .wh-table-row {
+			display: grid;
+			grid-template-columns: 1fr 1.5fr 0.5fr 1fr 0.6fr 0.8fr;
+			gap: 0.75rem;
+			align-items: center;
+			padding: 0.6rem 0.75rem;
+			font-size: 0.85rem;
+		}
+		.wh-product-cell {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			min-width: 0;
+		}
+		.wh-product-img {
+			border-radius: 0.35rem;
+			object-fit: cover;
+			mix-blend-mode: darken;
+			flex-shrink: 0;
+		}
+		.wh-product-name {
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			font-weight: 500;
+		}
+		.wh-action-badge {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			padding: 0.25rem 1rem;
+			border-radius: 2rem;
+			font-size: 0.75rem;
+			font-weight: 600;
+		}
+		.wh-action-badge.pick  {
+			background-color: #fee3e1;
+    		border: 2px solid #ffceca;
+		}
+		.wh-action-badge.add   { 
+			background-color: #d0f4ea;
+    		border: 2px solid #abe9d8;
+		}
+		.wh-action-badge.move  {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		.wh-action-badge.load  {
+			background-color: #f0ffde;
+    		border: 2px solid #c0dba0;
+		}
+		.wh-qty {
+			font-weight: 500;
+			font-size: 0.85rem;
+		}
+		.wh-location-cell {
+			display: flex;
+			align-items: center;
+			gap: 0.3rem;
+			font-size: 0.8rem;
+			font-weight: 500;
+		}
+		.wh-arrow {
+			opacity: 0.4;
+		}
+		.wh-user-cell {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			min-width: 0;
+		}
+		.wh-user-cell span {
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			font-size: 0.8rem;
+		}
+		.wh-user-img {
+			border-radius: 50%;
+			object-fit: cover;
+			flex-shrink: 0;
+		}
+		.wh-date {
+			font-size: 0.75rem;
+			opacity: 0.65;
+		}
+		.wh-pagination {
+			display: flex;
+			justify-content: center;
+			padding: 1rem;
+		}
+
+		/* ── Mobile history ─────────────────────────────── */
+		.wh-mobile-row {
+			flex-direction: column;
+			gap: 0.35rem;
+			padding: 0.75rem;
+		}
+		.wh-mobile-head {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 0.5rem;
+		}
+		.wh-mobile-product {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			font-weight: 500;
+			font-size: 0.9rem;
+			min-width: 0;
+		}
+		.wh-mobile-product span {
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		.wh-mobile-details {
+			display: flex;
+			gap: 0.75rem;
+			font-size: 0.8rem;
+			opacity: 0.7;
+			padding-left: 2.4rem;
+		}
+		.wh-mobile-footer {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding-left: 2.4rem;
+		}
+		
+
+		/* ── Estadísticas ── */
+		#modal-warehouse-stats .top { display: flex; justify-content: space-between; align-items: center; }
+		#modal-warehouse-stats .top .title { font-weight: 700; font-size: 1.05rem; }
+		#modal-warehouse-stats .kpi { display: flex; gap: 1rem; flex-wrap: wrap; }
+		#modal-warehouse-stats .kpi .item { flex: 1; min-width: 8rem; display: flex; padding: 1rem; flex-direction: column; gap: 0.25rem; border-radius: 0.75rem; }
+		#modal-warehouse-stats .kpi .item span { font-weight: 500; font-size: 1.4rem; color: var(--primary); }
+		#modal-warehouse-stats .kpi .item p { margin: 0; display: flex; flex: 1; align-items: center; font-weight: 500; opacity: 0.7; font-size: 0.85rem; }
+		#modal-warehouse-stats .charts { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 1rem; }
+		#modal-warehouse-stats .charts .box { padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; min-width: 24rem; flex: 1; border-radius: 0.75rem; }
+		#modal-warehouse-stats .charts .box span { font-weight: 500; }
+
+	</style>
+</div>

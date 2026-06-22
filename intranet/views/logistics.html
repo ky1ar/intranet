@@ -1,0 +1,2587 @@
+<div x-data="logistics_data">
+	<div id="logistics">
+		<div class="controls">
+			<div class="toggle-collapse frost" @click="$store.cache.toogleMoreMenu()" @click.outside="$store.cache.hideMoreMenu()">
+				<div class="item">
+					<img alt="" width="24" height="24" src="/static/icons/line/more.svg">
+				</div>
+			</div>
+
+			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
+				<div class="item" @click="openQrModal()" x-show="$store.cache.hasPermission('logistics', 'qr')">
+					<img alt="" width="20" height="20" src="/static/icons/line/qr.svg">
+				</div>
+				<div class="item" @click="pdfProcess()">
+					<img alt="" width="22" height="22" src="/static/icons/line/pdf.svg">
+				</div>
+				<div class="item" @click="pendings_open = !pendings_open" x-show="$store.cache.hasPermission('logistics', 'pendings')">
+					<img alt="" width="22" height="22" src="/static/icons/line/pending.svg">
+				</div>
+				<div class="item" @click="search()">
+					<img alt="" width="18" height="18" src="/static/icons/line/find.svg">
+				</div>
+				<div class="item" @click="viewHistory()">
+					<img alt="" width="18" height="18" src="/static/icons/line/history.svg">
+				</div>
+				<div class="item" @click="viewStatistics()">
+					<img alt="" width="18" height="18" src="/static/icons/line/report.svg">
+				</div>
+			</div>
+			
+			<div class="left mobile-hide frost">
+				<div class="item" @click="search()">
+					<img alt="" width="20" height="20" src="/static/icons/line/find.svg">
+					<span>Buscar</span>
+				</div>
+				<div class="item" @click="viewHistory()">
+					<img alt="" width="20" height="20" src="/static/icons/line/history.svg">
+					<span>Historial</span>
+				</div>
+				<div class="item" @click="viewStatistics()">
+					<img alt="" width="20" height="20" src="/static/icons/line/report.svg">
+					<span>Estadísticas</span>
+				</div>
+			</div>
+				
+			<div class="left frost">
+				<div class="item" @click="prev()">
+					<img class="flip" alt="prev" src="/static/icons/line/right.svg" width="20" height="20">
+				</div>
+				<div class="item date" @click="today()" x-text="getDateRange($store.cache.getData('logistics_dashboard'))">
+					Semana actual
+				</div>
+				<div class="item" @click="next()">
+					<img alt="next" src="/static/icons/line/right.svg" width="20" height="20">
+				</div>
+			</div>
+
+			<div class="right frost-dark">
+				<div class="item" @click="openQrModal()" x-show="$store.cache.hasPermission('logistics', 'qr')">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/qr.svg">
+					<span>QR</span>
+				</div>
+
+				<div class="mobile-hide item" @click="pdfProcess()">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/pdf.svg">
+					<span x-text="pdf_loading ? 'Generando...' : 'Rótulo'"></span>
+					<input
+						type="file"
+						x-ref="file"
+						class="hidden"
+						accept="application/pdf"
+						@change="onSelected"
+					/>
+				</div>
+
+				<div class="mobile-hide item" x-show="$store.cache.hasPermission('logistics', 'pendings')" @click="pendings_open = !pendings_open">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/pending.svg">
+					<span x-text="`Pendientes ${$store.cache.getData('logistics_pendings')?.length || 0}`"></span>
+				</div>
+
+				<div class="item" @click="processShippingModal()" x-show="$store.cache.hasPermission('logistics', 'add')">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/add.svg">
+					<span>Añadir</span>
+				</div>
+			</div>
+		</div>
+		
+		
+		<div class="schedule-container">
+			<div x-transition.duration.300ms x-cloak x-show="pendings_open" class="pending-shippings">
+				<div class="container"
+					@dragover="onDragOver($event)" 
+					@dragleave="onDragLeave($event)"
+					@drop="onDropPending()"
+				>
+					
+					<template x-if="$store.cache.getData('logistics_pendings')?.length > 0">
+						<template x-for="shipping in $store.cache.getData('logistics_pendings')" :key="shipping.order_number">
+							<div class="item-card"
+								:style="`background-color: ${shipping.method_background}; border: 2px solid ${shipping.method_border}`"
+								:class="shipping.method_slug"
+								:draggable="true"
+								@dragstart="onDragStart(shipping)"
+								@click="processShippingModal(shipping.shipping_order_id)"
+							>   
+								<span class="number" x-text="shipping.order_number"></span>
+								<span class="district" x-text="shipping.district_name"></span>
+								<div class="data">
+									<span class="name" x-text="shipping.client_name"></span>
+									<span class="address" x-text="shipping.address"></span>
+								</div>
+								<span class="date" x-text="new Date(shipping.register_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })"></span>
+							</div>
+						</template>
+					</template>
+					<span class="empty glass" x-show="!Array.isArray($store.cache.getData('logistics_pendings'))">No hay pendientes</span>
+				</div>
+			</div>
+
+			<div class="schedule glass">
+				<template x-for="day in $store.cache.getData('logistics_dashboard')" :key="day.date">
+					<div class="day-container">
+						<div class="day-name">
+							<div class="day-cont">
+								<span x-text="day.day_name"></span>
+								<template x-if="isToday(day.date)">
+									<span class="today-dot"></span>
+								</template>
+							</div>
+						</div>
+
+						<template x-for="schedule_index in [1, 2]" :key="schedule_index">
+							<div class="order-container"
+								@dragover="onDragOver($event, day)" 
+								@dragleave="onDragLeave($event)" 
+								@drop="onDrop(day, schedule_index)">
+								<template x-if="day.orders['schedule_' + schedule_index]?.length > 0">
+									<template x-for="shipping in day.orders['schedule_' + schedule_index]" :key="shipping.order_number">
+										<div class="item-card"
+											:style="`background-color: ${shipping.method_background}; border: 2px solid ${shipping.method_border}`"
+											:class="[shipping.method_slug, isFutureOrToday(day.date) ? '' : 'past-date']"
+											:draggable="($store.cache.hasPermission('logistics', 'move') && shipping.status_id != 3 && shipping.status_id != 4)"
+											@dragstart="onDragStart(shipping)"
+											@click="processShippingModal(shipping.shipping_order_id)"
+										>
+											<span class="number" x-text="shipping.order_number"></span>
+											<span class="district" x-text="shipping.district_name"></span>
+											<div class="data">
+												<span class="name" x-text="shipping.client_name"></span>
+												<span class="address" x-text="shipping.address"></span>
+											</div>
+											<a class="phone" @click.stop :href="'https://api.whatsapp.com/send?phone=' + shipping.client_phone" target="_blank" rel="nofollow">
+												<img alt="" src="/static/icons/line/whatsapp.svg" width="16" height="16" alt="phone">
+											</a>
+											<template x-if="shipping.status_id > 2">
+												<span class="status" 
+													:style="`border: 2px solid ${shipping.method_border}; 
+															background-color: ${shipping.status_id > 3 ? shipping.method_background : 'white'}`"
+													x-text="shipping.status_name"></span>
+											</template>
+										</div>
+									</template>
+								</template>
+						
+							</div>
+						</template>
+						
+					</div>
+				</template>
+			</div>
+		</div>
+
+		<div
+			x-show="$store.cache.isVisibleModal('qr')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-qr"
+			x-cloak
+			>
+			<div class="modal glass2" @click.stop style="max-width: 20rem">
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="top">
+					<span class="title">Generar QR</span>
+					
+				</div>
+
+				<div class="modal-content">
+					<div class="container">
+						<label class="white">
+							<input
+								x-ref="qrInput"
+								type="text"
+								maxlength="3"
+								x-model="qr_value1"
+								@input="qr_value1 = sanitizeQr(qr_value1); onQrChange()"
+								@keydown.enter.prevent="generateQr()"
+								style="text-transform:uppercase;"
+								autocomplete="off"
+							>
+						</label>
+
+						<label class="white">
+							<input
+								type="text"
+								maxlength="2"
+								x-model="qr_value2"
+								@input="qr_value2 = sanitizeQr(qr_value2); onQrChange()"
+								@keydown.enter.prevent="generateQr()"
+								style="text-transform:uppercase;"
+								autocomplete="off"
+							>
+						</label>
+
+						<label class="white" style="flex: 0.5;">
+							<input
+								type="text"
+								maxlength="1"
+								x-model="qr_value3"
+								@input="qr_value3 = sanitizeQr(qr_value3); onQrChange()"
+								@keydown.enter.prevent="generateQr()"
+								style="text-transform:uppercase;"
+								autocomplete="off"
+							>
+						</label>
+						<button class="button hover-opacity" @click="generateQr()" :class="buttons.generate.class" x-text="buttons.generate.text"></button>
+					</div>
+					
+					<div class="container">
+						<label class="white" style="padding: 0.75rem;">
+							<input type="radio" x-model="qr_orientation" value="vertical" style="width: 1rem;height: 1rem;margin: 0;">
+							<span>Vertical</span>
+						</label>
+
+						<label class="white" style="padding: 0.75rem;">
+							<input type="radio" x-model="qr_orientation" value="horizontal" style="width: 1rem;height: 1rem;margin: 0;">
+							<span>Horizontal</span>
+						</label>
+					</div>
+
+					<div class="container" x-show="qr_orientation === 'vertical'" x-transition>
+						<label class="white" style="flex:1;">
+							<select x-model="qr_arrow_side">
+								<option value="right">Flecha derecha</option>
+								<option value="left">Flecha izquierda</option>
+							</select>
+						</label>
+					</div>
+
+					<div class="white" style="display:flex; justify-content:center; position: relative;">
+						<div id="logistics_qr_dummy" x-show="!qr_svg">El QR aparecerá aquí</div>
+						<div id="logistics_qr_result"></div>
+					</div>
+				</div>
+
+				<div class="buttons">
+					<button class="button black hover-opacity" @click="downloadQr()" x-show="qr_svg">
+						Descargar
+					</button>
+				</div>
+			</div>
+		</div>
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('process')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-process"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal small glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<input class="title" type="text" placeholder="Número de pedido" x-model="process_shipping.order_number" :disabled="edit" @blur="fetchClientOrder()">
+
+				<div class="modal-content">
+					<div class="fields">
+						<label class="white">
+							<select x-model="process_shipping.method_id">
+								<template x-if="$store.cache.getData('shipping_method')?.length !== 1">
+									<option value="">Tipo de envío</option>
+								</template>
+
+								<template x-for="type in $store.cache.getData('shipping_method')" :key="type.id">
+									<option :value="type.id" x-text="type.name"></option>
+								</template>
+							</select>
+						</label>
+
+						<label class="white">
+							<input type="date" x-model="process_shipping.register_date_format">
+						</label>
+
+						<label :class="client_order_found || edit ? 'glass2' : 'white'">
+							<img alt="user" src="/static/icons/line/id.svg" width="16" height="16">
+							<input
+								type="text"
+								maxlength="11"
+								:disabled="client_order_found || edit"
+								@input="process_shipping.client_document = process_shipping.client_document.replace(/\D/g, '')"
+								placeholder="DNI / RUC"
+								x-model="process_shipping.client_document"
+								@blur="fetchClientData()">
+							<input type="hidden" x-model="process_shipping.client_id">
+						</label>
+					</div>
+
+					<div class="fields">
+						<label :class="client_order_found || client_found || edit ? 'glass2' : 'white'">
+							<img alt="user" src="/static/icons/line/user.svg" width="16" height="16">
+							<input :disabled="client_order_found || client_found || edit" type="text" placeholder="Nombre o Razón Social" x-model="process_shipping.client_name">
+						</label>
+					</div>
+
+					<div class="fields">
+						<label class="white">
+							<img alt="phone" src="/static/icons/line/phone.svg" width="16" height="16">
+							<input type="text" maxlength="9" @input="process_shipping.client_phone = process_shipping.client_phone.replace(/\D/g, '')" placeholder="Celular" x-model="process_shipping.client_phone">
+						</label>
+
+						<label class="white flex2-3">
+							<img alt="location" src="/static/icons/line/tracking.svg" width="16" height="16">
+							<input type="text" placeholder="Dirección" x-model="process_shipping.address">
+						</label>
+						
+					</div>
+
+					<div class="fields">
+						<label class="white flex2-3">
+							<img alt="Referencia" src="/static/icons/line/tag.svg" width="16" height="16">
+							<input type="text" placeholder="Referencia" x-model="process_shipping.reference">
+						</label>
+
+						<label class="white">
+							<img alt="maps" src="/static/icons/line/maps.svg" width="16" height="16">
+							<input type="text" placeholder="Google Maps" x-model="process_shipping.maps">
+						</label>
+					</div>
+
+					<div class="fields">
+						<label class="white">
+							<select x-model="process_shipping.district_id">
+								<template x-if="$store.cache.getData('districts')?.length !== 1">
+									<option value="">Distrito</option>
+								</template>
+								
+								<template x-for="district in $store.cache.getData('districts')" :key="district.id">
+									<option :value="district.id" x-text="district.name"></option>
+								</template>
+							</select>
+						</label>
+
+						<label class="white">
+							<select x-model="process_shipping.assigned_id">
+								<template x-if="$store.cache.getData('shipping_method')?.length !== 1">
+									<option value=null>Responsable</option>
+								</template>
+
+								<template x-for="vendor in $store.cache.getData('vendors')" :key="vendor.id">
+									<option :value="vendor.id" x-text="vendor.name"></option>
+								</template>
+							</select>   
+						</label>
+
+						<label class="white">
+							<select x-model="process_shipping.driver_id">
+								<template x-for="driver in $store.cache.getData('drivers')" :key="driver.id">
+									<option :value="driver.id" x-text="driver.name"></option>
+								</template>
+							</select>
+						</label>
+					</div>
+				</div>
+
+				<div class="buttons">
+					<template x-if="process_shipping.client_order_id && edit && process_shipping.status_id != 3 && process_shipping.status_id != 4">
+						<button class="button hover-opacity black" @click="deleteShipping()" :class="buttons.delete.class" x-text="buttons.delete.text"></button>
+					</template>
+					<button x-show="!edit" class="button hover-opacity" @click="processShipping()" :class="buttons.process.class" x-text="buttons.process.text"></button>
+					<button x-show="edit" class="button hover-opacity" @click="processShipping()" :class="buttons.update.class" x-text="buttons.update.text"></button>
+				</div>
+				
+			</div>
+		</div>
+
+		
+
+		<div
+			x-show="$store.cache.isVisibleModal('finish')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-finish"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal small glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="top">
+					<span class="order" x-text="process_shipping.order_number"></span>
+					<span
+						class="type"
+						:style="`background-color: ${process_shipping.method_background}; border: 2px solid ${process_shipping.method_border}`"
+						x-text="process_shipping.method_name">
+					</span>
+					<div class="driver glass2">
+						<img width="16" height="16" alt="" src="/static/icons/line/logistics.svg">
+						<span x-text="process_shipping.driver_name"></span>
+					</div>
+				</div>
+
+				<div class="modal-content">
+					<div class="left">
+						<div class="white user">
+							<span class="letter" x-text="process_shipping.client_name?.charAt(0)"></span>
+
+							<div class="data">
+								<span x-text="process_shipping.client_name"></span>
+								<span x-text="process_shipping.client_document"></span>
+							</div>
+
+							<a class="message hover-opacity" :href="'https://api.whatsapp.com/send?phone=' + process_shipping.client_phone" target="_blank" rel="nofollow">
+								<img alt="" width="16" height="16" alt="client_phone" src="/static/icons/line/whatsapp.svg">
+							</a>
+						</div>
+						
+						<div class="white user">
+							<img alt="" width="16" height="16" alt="client_phone" src="/static/icons/line/location.svg">
+
+							<div class="data">
+								<span x-text="process_shipping.address"></span>
+								<span x-text="process_shipping.district_name"></span>
+							</div>
+
+							<template x-if="process_shipping.maps">
+								<a class="message hover-opacity" 
+									:href="process_shipping.maps" 
+									target="_blank" rel="nofollow">
+									<img alt="" width="16" height="16" alt="notification" src="/static/icons/line/maps.svg">
+								</a>
+							</template>
+						</div>
+
+						<div x-show="process_shipping.status_id > 1" class="review glass2">
+							<div class="row">
+								<span class="detail">Registrado</span>
+								<span class="date" x-text="new Date(process_shipping.register_date).toLocaleString('es-ES', { 
+									weekday: 'long', 
+									day: 'numeric', 
+									month: 'long', 
+								})"></span>
+							</div>
+
+							<div class="row" x-show="process_shipping.on_the_way_date">
+								<span class="detail">En camino</span>
+								<span class="date" x-text="new Date(process_shipping.on_the_way_date).toLocaleString('es-ES', { 
+									weekday: 'long', 
+									day: 'numeric', 
+									month: 'long', 
+									hour: '2-digit', 
+									minute: '2-digit', 
+								})"></span>
+							</div>
+							
+							<div class="row" x-show="process_shipping.status_id === 4 ? process_shipping.delivered_date : process_shipping.not_delivered_date">
+								<span x-text="process_shipping.status_id === 4 ? 'Entregado' : 'No entregado'"></span>
+								<span class="date" x-text="new Date(process_shipping.status_id === 4 ? process_shipping.delivered_date : process_shipping.not_delivered_date).toLocaleString('es-ES', { 
+									weekday: 'long', 
+									day: 'numeric', 
+									month: 'long', 
+									hour: '2-digit', 
+									minute: '2-digit', 
+								})"></span>
+							</div>
+						</div>
+					</div>
+
+					<div class="thumbnails-grid" x-show="process_shipping.proof_photos?.length > 0">
+						<template x-for="(photo, index) in process_shipping.proof_photos" :key="index">
+							<div class="thumbnail-wrapper">
+								<img
+									class="thumbnail hover-opacity"
+									:src="'/static/images/uploads/' + photo"
+									alt="preview"
+									@click="viewing_photo = photo; $store.cache.showModal('image');"
+									style="cursor: pointer;"
+								>
+							</div>
+						</template>
+					</div>
+					
+				</div>
+			</div>
+		</div>
+
+
+
+		<div 
+			x-show="$store.cache.isVisibleModal('image')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-image"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal small glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<img
+					:src="'/static/images/uploads/' + viewing_photo"
+					alt="preview"
+					style="border-radius: 0.75rem;">
+			</div>
+			
+		</div>
+		
+
+		<div
+			x-show="$store.cache.isVisibleModal('history')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-history"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="top">
+					<span class="title">Historial</span>
+
+					<div class="pagination">
+						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstPage()">
+							<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevPage()">
+							<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextPage()">
+							<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastPage()">
+							<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+						</span>
+					</div>
+
+				</div>
+
+				<div class="modal-content history">
+					<table class="mobile-hide">
+						<thead>
+							<tr>
+								<th>Orden</th>
+								<th>Cliente</th>
+								<th>Estado</th>
+								<th>Fecha de registro</th>
+							</tr>
+						</thead>
+						<tbody>
+							<template x-for="history in history_list" :key="history.id">
+								<tr @click="processShippingModal(history.id)">
+									<td class="order">
+										<div class="machine">
+											<b x-text="history.order_number"></b>
+										</div>
+									</td>
+									<td class="client" x-text="history.client_name"></td>
+									
+									<td class="order">
+										<span class="finished" :class="!history.finished ? 'active' : ''" x-text="history.finished ? 'Finalizado':'Activo'"></span>
+									</td>
+									<td x-text="history.register_date"></td>
+								</tr>
+							</template>
+						</tbody>
+					</table>
+
+					<div class="mobile-show mobile-table">
+						<template x-for="history in history_list" :key="history.id">
+							<div class="row white" @click="processShippingModal(history.id)">
+								<div class="head">
+									<div class="info">
+										<span class="id" x-text="history.order_number"></span>
+										<span class="date" x-text="history.register_date"></span>
+									</div>
+									<div class="status" :class="!history.finished ? 'active' : 'finished'" x-text="history.finished ? 'Finalizado':'Activo'"></div>
+								</div>
+								<div class="body">
+									<span class="label">Cliente</span>
+									<span class="name" x-text="history.client_name"></span>
+								</div>
+							</div>
+						</template>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div
+			x-show="$store.cache.isVisibleModal('statistics')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-statistics"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+			>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+				
+				<div class="top">
+					<span class="title">Estadísticas</span>
+				</div>
+
+				<div class="modal-content">
+					<div class="kpi">
+						<div class="item white">
+							<p>Envíos totales</p>
+							<span x-text="$store.cache.getData('logistic_statistics')?.count.total"></span>
+						</div>
+						<div class="item white">
+							<p>Envíos el día de hoy</p>
+							<span x-text="$store.cache.getData('logistic_statistics')?.count.today"></span>
+						</div>
+						<div class="item white">
+							<p>Envíos en la semana</p>
+							<span x-text="$store.cache.getData('logistic_statistics')?.count.week"></span>
+						</div>
+						<div class="item white">
+							<p>Envíos del mes</p>
+							<span x-text="$store.cache.getData('logistic_statistics')?.count.month"></span>
+						</div>
+					</div>
+
+					<div class="charts">
+						<div class="glass2 box">
+							<span>Envíos por tipo</span>
+							<canvas x-ref="ordersByStatusChart" width="160" height="80"></canvas>
+						</div>
+
+						<div class="glass2 box">
+							<span>Envíos por Mes</span>
+							<canvas x-ref="ordersByMonthChart" width="160" height="80"></canvas>
+						</div>
+
+						<div class="glass2 box">
+							<span>Distritos más visitados</span>
+							<canvas x-ref="ordersByTechChart" width="160" height="80"></canvas>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('search')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-search"
+			x-cloak>
+			<div class="modal small" @click.stop>
+				<div class="bottom glass2">
+					<img alt="" class="ico" width="20" height="20" src="/static/icons/line/find.svg">
+					<input type="text"
+						x-model="find_order_number"
+						placeholder="Orden, nombre, dni/ruc"
+						@input="findOrders()">
+					<div class="hover-opacity clear" x-show="find_order_number" @click="find_order_number = ''; finded_orders = [];">
+						<img alt="" class="" width="12" height="12" src="/static/icons/filled/x.svg">
+					</div>
+				</div>
+				<div class="orders glass2" x-show="finded_orders.length > 0">
+					<template x-for="order in finded_orders" :key="order.id">
+						<div :style="`background-color: ${order.method_background}; border: 2px solid ${order.method_border}`" class="item" @click="processShippingModal(order.id)">
+							<div class="title">
+								<span class="order-number" x-text="order.order_number"></span>
+								<span class="machine" x-text="order.district_name"></span>
+							</div>
+							<span class="client" x-text="order.client_name"></span>
+						</div>
+						
+					</template>
+				</div>
+			</div>
+		</div>
+
+
+	</div>
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+	<script>
+		Alpine.data('logistics_data',() => ({
+            api: Alpine.store('cache').api,
+			find_order_number: '',
+			finded_orders: [],
+			pending: [],
+			pendings_total: 0,
+			pendings_open: false,
+			schedule: [],
+			schedule_range: '',
+			offset: 0,
+			process_shipping: {},
+			selected_shipping: {},
+			viewing_photo: null,
+			edit: false,
+			buttons: {
+                process: { class: '', text: 'Añadir' },
+                update: { class: '', text: 'Actualizar' },
+                delete: { class: '', text: 'Eliminar' },
+				generate: { class: '', text: 'Generar' },
+            },
+			client_order_found: false,
+			client_found: false,
+			current_page: 1,
+			total_pages: null,
+			history_list: [],
+			chartStatus: null,
+			chartMonth: null,
+			chartTech: null,
+			pdf_loading: false,
+			pdf_error: '',
+			qr_value1: '',
+			qr_value2: '',
+			qr_value3: '',
+			qr_error: '',
+			qr_writer: null,
+			qr_generated_value: '',
+			qr_svg: null,
+			qr_orientation: 'vertical',
+			qr_arrow_side: 'right',
+
+			async init() {
+				console.log('Inicializando Logistics...');
+
+				// Socket
+                const socket = Alpine.store('cache').socket;
+				if (socket) {
+					socket.removeAllListeners();
+					socket.on("logistics_update_dashboard", async () => {
+						await Alpine.store('cache').refresh(['logistics_dashboard', 'logistics_pendings']);
+					});
+				}
+
+				await Alpine.store('cache').fetchData([
+					{ key: 'logistics_dashboard', url: `/logistic/dashboard/week?offset=${this.offset}`, force: true },
+					{ key: 'logistics_pendings', url: '/logistic/pending', force: true },
+					{ key: 'drivers', url: '/general/drivers' },
+					{ key: 'vendors', url: '/general/vendors' },
+					{ key: 'districts', url: '/general/districts' },
+					{ key: 'shipping_method', url: '/general/shipping_types' },
+				]);
+				
+				const external_view_id = Alpine.store('cache').client_order_id;
+				console.log(external_view_id);
+				if (external_view_id) {
+					this.processShippingModal(external_view_id);
+					Alpine.store('cache').client_order_id = null;
+				}
+				
+				// await Alpine.store('cache').verify();
+			},
+
+			onQrChange() {
+				if (`${this.qr_value1}-${this.qr_value2}-${this.qr_value3}` !== this.qr_generated_value) {
+					const cont = document.getElementById('logistics_qr_result');
+					if (cont) cont.innerHTML = '';
+					this.qr_svg = null;
+				}
+			},
+
+			generateQr() {
+				const clean1 = this.sanitizeQr(this.qr_value1);
+				const clean2 = this.sanitizeQr(this.qr_value2);
+				const clean3 = this.sanitizeQr(this.qr_value3);
+
+				this.qr_value1 = clean1;
+				this.qr_value2 = clean2;
+				this.qr_value3 = clean3;
+
+				if (!clean1 || !clean2 || !clean3) {
+					this.showError('generate', 'Incompleto');
+					return;
+				}
+				
+				const qr = `${clean1}-${clean2}-${clean3}`;
+				this.qr_generated_value = qr;
+				this.renderQr(qr);
+			},
+
+			openQrModal() {
+				this.qr_value1 = '';
+				this.qr_value2 = '';
+				this.qr_value3 = '';
+				this.qr_orientation = 'vertical';
+				this.qr_arrow_side = 'right';
+
+				Alpine.store('cache').showModal('qr');
+
+				this.$nextTick(() => {
+					const cont = document.getElementById('logistics_qr_result');
+					if (cont) cont.innerHTML = '';
+					this.qr_svg = null;
+
+					setTimeout(() => this.$refs.qrInput?.focus(), 50);
+				});
+			},
+
+			sanitizeLetters(value) {
+				return (value || '')
+					.toUpperCase()
+					.replace(/[^A-Z]/g, '')
+					.slice(0, 10);
+			},
+
+			sanitizeNumbers(value) {
+				return (value || '')
+					.toUpperCase()
+					.replace(/[^0-9]/g, '')
+					.slice(0, 10);
+			},
+
+			sanitizeQr(value) {
+				return (value || '')
+					.toUpperCase()
+					.replace(/[^A-Z0-9]/g, '')
+					.slice(0, 10);
+			},
+
+			renderQr(code) {
+				const cont = document.getElementById('logistics_qr_result');
+				if (!cont) return;
+
+				cont.innerHTML = '';
+
+				if (!code) return;
+
+				const ZX = window.ZXingBrowser || window.ZXing;
+				if (!ZX || !ZX.BrowserQRCodeSvgWriter) return;
+
+				try {
+					const writer = new ZX.BrowserQRCodeSvgWriter();
+					const svg = writer.write(code, 240, 240); 
+					this.qr_svg = svg;    
+					cont.appendChild(svg);
+				} catch (e) {
+					console.error(e);
+				}
+			},
+
+			async downloadQr() {
+				if (!this.qr_generated_value) {
+					this.qr_error = 'Primero genera el QR.';
+					return;
+				}
+
+				this.qr_error = '';
+
+				try {
+					const payload = {
+						code: this.qr_generated_value,
+						orientation: this.qr_orientation,
+						arrow_side: this.qr_orientation === 'vertical' ? this.qr_arrow_side : null
+					};
+					
+					const res = await fetch(`${this.api}/logistic/qr/pdf`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(payload)
+					});
+
+					if (!res.ok) {
+						const err = await res.json().catch(() => ({}));
+						throw new Error(err?.error || 'No se pudo generar el PDF');
+					}
+
+					const blob = await res.blob();
+					const url = window.URL.createObjectURL(blob);
+
+					const a = document.createElement('a');
+					a.href = url;
+					a.download = `qr_${this.qr_generated_value}.pdf`;
+					document.body.appendChild(a);
+					a.click();
+					a.remove();
+
+					window.URL.revokeObjectURL(url);
+				} catch (e) {
+					console.error(e);
+					this.qr_error = e.message || 'No se pudo descargar el PDF.';
+				}
+			},
+
+			async search() {
+				this.find_order_number = '';
+				this.finded_orders = []
+
+				Alpine.store('cache').showModal('search');
+			},
+
+			async findOrders() {
+                const order_number = this.find_order_number;
+                try {
+                    if (order_number.length < 2) {
+                        this.finded_orders = [];
+                        return;
+                    }
+                    
+                    const response = await fetch(`${this.api}/logistic/find/${order_number}`, {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+                    this.finded_orders = jsonData.data;
+                } catch (error) {
+					console.log('Error al buscar órdenes:', error);
+                    this.finded_orders = [];
+                    return;
+                }
+            },
+
+			onDragStart(shipping) {
+				console.log('dragging');
+				this.selected_shipping = shipping;
+			},
+
+			onDragOver(event, day=null) {
+				event.preventDefault();
+				if (day) {
+					if (this.isFutureOrToday(day.date)) {
+						event.currentTarget.classList.add('drag-over');
+						event.dataTransfer.dropEffect = 'move';
+					} else {
+						event.dataTransfer.dropEffect = 'none';
+					}
+				}
+			},
+			
+			onDragLeave(event) {
+				event.currentTarget.classList.remove('drag-over');
+			},
+			
+			async onDrop(day, schedule) {
+				document.querySelectorAll('.order-container').forEach(container => {
+					container.classList.remove('drag-over');
+				});
+			
+				if (!this.selected_shipping) {
+					console.error('No hay orden seleccionada.');
+					return;
+				}
+			
+				if (!this.isFutureOrToday(day.date)) {
+					console.warn('No se puede soltar en fechas pasadas.');
+					return;
+				}
+			
+				if (this.selected_shipping.delivery_date == day.date && this.selected_shipping.schedule_id == schedule) {
+					return;
+				}
+
+				const payload = {
+					shipping_order_id: this.selected_shipping.shipping_order_id,
+					delivery_date: day.date,
+					status_id: 2,
+					schedule_id: schedule,
+					user_id: Alpine.store('cache').user.id
+				};
+				try {
+					const response = await fetch(`${this.api}/logistic/set`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(payload)
+					});
+			
+					if (!response.ok) {
+						throw new Error('Error al asignar la orden.');
+					}
+					
+				} catch (error) {
+					console.error('Error en la asignación:', error);
+                } 
+			},
+
+			async onDropPending() {
+				if (!this.selected_shipping) {
+					console.error('No hay orden seleccionada.');
+					return;
+				}
+				if (this.selected_shipping.status_id == 1) {
+					return;
+				}
+
+				const payload = {
+					shipping_order_id: this.selected_shipping.shipping_order_id,
+					delivery_date: null,
+					status_id: 1,
+					schedule_id: null,
+					user_id: Alpine.store('cache').user.id
+				};
+				try {
+					const response = await fetch(`${this.api}/logistic/set`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(payload)
+					});
+
+					if (!response.ok) {
+						throw new Error('Error al asignar la orden.');
+					}
+
+				} catch (error) {
+					console.error('Error en la asignación:', error);
+                } 
+			},
+
+
+			async fetchClientData() {
+				if (this.client_order_found) {
+					return;
+				}
+				const document = this.process_shipping.client_document;
+
+				if (!document) {
+					this.process_shipping.client_id = '';
+					this.process_shipping.client_name = '';
+					this.process_shipping.client_phone = '';
+					this.client_found = false;
+					return;
+				}
+
+				try {
+					const response = await fetch(`${this.api}/client/data/${document}`);
+					if (!response.ok) {
+						this.process_shipping.client_id = '';
+						this.process_shipping.client_name = '';
+						this.process_shipping.client_phone = '';
+						this.client_found = false;
+						return;
+					}
+
+					const data = await response.json();
+					if (data.success) {
+						this.process_shipping.client_id = data.data.id;
+						this.process_shipping.client_name = data.data.name;
+						this.process_shipping.client_phone = data.data.phone;
+						this.client_found = true;
+					} else {
+						console.warn('Respuesta de API no exitosa.');
+					}
+				} catch (error) {
+					console.error('Error fetching schedule', error);
+				} 
+			},
+
+			async fetchClientOrder() {
+				const order_number = this.process_shipping.order_number;
+				if (!order_number) {
+					this.process_shipping.client_order_id = '';
+					this.process_shipping.client_id = '';
+					this.process_shipping.client_document = '';
+					this.process_shipping.client_name = '';
+					this.process_shipping.client_phone = '';
+					this.client_order_found = false;
+					this.client_found = false;
+					return;
+				}
+
+				try {
+					const response = await fetch(`${this.api}/client/order_number/${order_number}`);
+					if (!response.ok) {
+						this.process_shipping.client_order_id = '';
+						this.process_shipping.client_id = '';
+						this.process_shipping.client_document = '';
+						this.process_shipping.client_name = '';
+						this.process_shipping.client_phone = '';
+						this.client_order_found = false;
+						this.client_found = false;
+						return;
+					}
+
+					const data = await response.json();
+					if (data.success) {
+						const client = data.data.client;
+
+						this.process_shipping.client_order_id = data.data.client_order_id;
+						this.process_shipping.client_id = client.id;
+						this.process_shipping.client_document = client.document;
+						this.process_shipping.client_name = client.name;
+						this.process_shipping.client_phone = client.phone;
+						this.client_order_found = true;
+					} else {
+						console.warn('Respuesta de API no exitosa.');
+					}
+				} catch (error) {
+					console.error('Error fetching schedule', error);
+				} 
+			},
+
+			async processShipping() {
+				
+				const payload = {
+					shipping_order_id: this.process_shipping.shipping_order_id,
+					client_order_id: this.process_shipping.client_order_id,
+					order_number: this.process_shipping.order_number,
+					method_id: this.process_shipping.method_id,
+					driver_id: this.process_shipping.driver_id || 4,
+					assigned_id: this.process_shipping.assigned_id,
+					user_id: Alpine.store('cache').user.id,
+					address: this.process_shipping.address,
+					reference: this.process_shipping.reference,
+					district_id: this.process_shipping.district_id,
+					maps: this.process_shipping.maps,
+					register_date: this.process_shipping.register_date_format,
+					client_id: this.process_shipping.client_id,
+					client: {
+						document: this.process_shipping.client_document,
+						name: this.process_shipping.client_name,
+						phone: this.process_shipping.client_phone,
+					},
+					comments: ""
+				};
+
+				try {
+					const response = await fetch(`${this.api}/logistic/process`, {
+						method: 'POST',
+						headers: {'Content-Type': 'application/json'},
+						body: JSON.stringify(payload),
+					});
+
+                    const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+					
+					Alpine.store('cache').hideModal('process');
+					this.resetOrder();
+					
+				} catch (error) {
+					if (this.edit) {
+                    	this.showError('update', error.message);
+					} else {
+                    	this.showError('process', error.message);
+					}
+                } 
+			},
+
+			async deleteShipping() {
+
+				const payload = {
+					shipping_order_id: this.process_shipping.shipping_order_id,
+					user_id: Alpine.store('cache').user.id,
+				};
+				
+				try {
+					const response = await fetch(`${this.api}/logistic/delete`, {
+						method: 'POST',
+						headers: {'Content-Type': 'application/json'},
+						body: JSON.stringify(payload)
+					});
+				
+					const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+					
+					Alpine.store('cache').hideModal('process');
+					this.resetOrder();
+					
+				} catch (error) {
+                    this.showError('delete', error.message);
+                } 
+			},
+			
+			resetOrder() {
+                this.process_shipping = {};
+				this.viewing_photo = null;
+				this.edit = false;
+            },
+
+			showError(btnKey, errorMsg) {
+                const originalText = this.buttons[btnKey].text;
+                const originalClass = this.buttons[btnKey].class;
+
+                if (originalClass == 'error') {
+                    return;
+                }
+                this.buttons[btnKey].text = errorMsg;
+                this.buttons[btnKey].class = 'error';
+
+                setTimeout(() => {
+                    this.buttons[btnKey].text = originalText;
+                    this.buttons[btnKey].class = originalClass;
+                }, 1000);
+            },
+			
+			getDateRange(data) {
+				if (!data) return;
+				const dates = data.map(item => new Date(item.date));
+				const startDate = dates[0];
+				const endDate = dates[dates.length - 1];
+
+				const getNames = (date) => {
+					const months = [
+						"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+						"Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+					];
+					return months[date.getMonth()];
+				};
+
+				const startMonth = getNames(startDate);
+				const startYear = startDate.getFullYear();
+				const endMonth = getNames(endDate);
+				const endYear = endDate.getFullYear();
+
+				if (startMonth === endMonth && startYear === endYear) {
+					return `${startMonth}`;
+				} else {
+					return `${startMonth}`;
+				}
+			},
+
+			async processShippingModal(shipping_order_id){
+				this.client_order_found = false;
+
+				if (shipping_order_id){
+					const found = await this.getShipping(shipping_order_id);
+					if (!found) return;
+
+					if (this.process_shipping.status_id > 3 || !Alpine.store('cache').hasPermission('logistics', 'edit')){
+						Alpine.store('cache').showModal('finish');
+					} else {
+						Alpine.store('cache').showModal('process');
+					}
+				} else {
+					this.resetOrder();
+					Alpine.store('cache').showModal('process');
+				}
+			},
+			
+			async viewStatistics() {
+				await Alpine.store('cache').fetchData([
+					{ key: 'logistic_statistics', url: `/logistic/statistics`, force: true },
+				]);
+				Alpine.store('cache').showModal('statistics');
+				await this.initCharts();
+			},
+
+			async initCharts() {
+				const statistics = Alpine.store('cache').getData('logistic_statistics');
+				await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)));
+
+				if (this.chartStatus) {
+					this.chartStatus.destroy();
+				}
+				if (this.chartMonth) {
+					this.chartMonth.destroy();
+				}
+				if (this.chartTech) {
+					this.chartTech.destroy();
+				}
+				
+				this.chartStatus = new Chart(this.$refs.ordersByStatusChart, {
+					type: 'bar',
+					data: {
+						labels: statistics.by_status.map(r => r.status),
+						datasets: [{
+							label: 'Órdenes',
+							data: statistics.by_status.map(r => r.count),
+							backgroundColor: 'rgba(255,160,42, 0.75)',
+							borderWidth: 0,
+						}]
+					},
+					options: {
+						responsive: true,
+						plugins: {
+							legend: { display: false }
+						},
+						scales: {
+							x: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: 'transparent',
+								},
+								border: {
+									display: false
+								}
+							},
+							y: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: '#fff',
+								},
+								border: {
+									display: false
+								}
+							}
+						}
+					},
+					
+				});
+
+				this.chartMonth = new Chart(this.$refs.ordersByMonthChart, {
+					type: 'line',
+					data: {
+						labels: statistics.by_month.map(r => r.period),
+						datasets: [{
+							label: 'Órdenes por Mes',
+							data: statistics.by_month.map(r => r.count),
+							fill: true,
+							tension: 0.3,
+							backgroundColor: 'rgba(234,113,52,0.5)',
+							borderWidth: 0
+						}]
+					},
+					options: {
+						responsive: true,
+						plugins: {
+							legend: { display: false }
+						},
+						scales: {
+							x: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: 'transparent',
+								},
+								border: {
+									display: false
+								}
+							},
+							y: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: '#fff',
+								},
+								border: {
+									display: false
+								}
+							}
+						}
+					},
+				});
+
+				this.chartTech =new Chart(this.$refs.ordersByTechChart, {
+					type: 'bar',
+					data: {
+						labels: statistics.by_tech.map(r => r.technician),
+						datasets: [{
+							label: 'Órdenes',
+							data: statistics.by_tech.map(r => r.count),
+							backgroundColor: 'rgba(15, 32, 39, 0.75)',
+							borderWidth: 0
+						}]
+					},
+					options: {
+						responsive: true,
+						plugins: {
+							legend: { display: false }
+						},
+						scales: {
+							x: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: 'transparent',
+								},
+								border: {
+									display: false
+								}
+							},
+							y: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: '#fff',
+								},
+								border: {
+									display: false
+								}
+							}
+						}
+					},
+				});
+			},
+
+			async getShipping(shipping_order_id) {
+
+				try {
+					const response = await fetch(`${this.api}/logistic/shipping_order_id/${shipping_order_id}`
+					).then(res => res.json());
+
+					if (!response || !response.success || !response.data) {
+						console.warn('No se encontró el pedido.');
+						return false;
+					}
+					
+					this.process_shipping = response.data;
+					this.edit = true;
+					return true;
+
+				} catch (error) {
+					console.error('Error fetching order:', error);
+					return false;
+                } 
+			},
+
+			async next() {
+				this.offset++;
+				await Alpine.store('cache').refresh([
+					{ key: 'logistics_dashboard', url: `/logistic/dashboard/week?offset=${this.offset}` }
+				]);
+			},
+
+			async prev() {
+				this.offset--;
+				await Alpine.store('cache').refresh([
+					{ key: 'logistics_dashboard', url: `/logistic/dashboard/week?offset=${this.offset}` }
+				]);
+			},
+
+			async today() {
+				this.offset = 0;
+				await Alpine.store('cache').refresh([
+					{ key: 'logistics_dashboard', url: `/logistic/dashboard/week` }
+				]);
+			},
+			
+			isFutureOrToday(dateString) {
+				if (!dateString) return false;
+				const today = new Date();
+				today.setHours(0, 0, 0, 0);
+			
+				const dateParts = dateString.split('-');
+				const targetDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+			
+				return targetDate >= today;
+			},
+
+			isToday(dateString) {
+				if (!dateString) return false;
+				const today = new Date();
+				today.setHours(0, 0, 0, 0);
+
+				const dateParts = dateString.split('-');
+				const targetDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+
+				return targetDate.getTime() === today.getTime();
+			},
+
+			async viewHistory() {
+				await this.firstPage();
+				Alpine.store('cache').showModal('history');
+			},
+
+			async firstPage() {
+				this.current_page = 1;
+				await this.getHistory();
+			},
+
+			async lastPage() {
+				this.current_page = this.total_pages;
+				await this.getHistory();
+			},
+
+			async nextPage() {
+				const new_page = this.current_page + 1;
+				if (new_page > this.total_pages)
+					return;
+				this.current_page = new_page;
+				await this.getHistory();
+			},
+
+			async prevPage() {
+				const new_page = this.current_page - 1;
+				if (new_page < 1)
+					return;
+				this.current_page = new_page;
+				await this.getHistory();
+			},
+
+			async getHistory() {
+				try {
+					const response = await fetch(`${this.api}/logistic/history?page=${this.current_page}`);
+					const data = await response.json();
+					const jsonData = data.data || [];
+
+					this.history_list = jsonData.list;
+					this.total_pages = jsonData.pagination.pages;
+				} catch (error) {
+					console.error('Error fetching history', error);
+				} 
+			},
+
+			pdfProcess() {
+				this.$refs.file.value = "";
+				this.$refs.file.click();
+			},
+			
+			withA5Suffix(originalName) {
+				const name = (originalName || "rotulo.pdf").trim();
+
+				// si no es pdf, igual le ponemos .pdf al final
+				const isPdf = /\.pdf$/i.test(name);
+
+				if (isPdf) {
+					// evita duplicar si ya viene con _A5
+					if (/_a5\.pdf$/i.test(name)) return name;
+
+					return name.replace(/\.pdf$/i, "_A5.pdf");
+				}
+
+				// si viene sin .pdf
+				if (/_a5$/i.test(name)) return name + ".pdf";
+				return name + "_A5.pdf";
+			},
+
+			async onSelected(e) {
+				const file = e.target.files?.[0];
+				if (!file) return;
+
+				this.pdf_loading = true;
+				this.pdf_error = "";
+
+				// ✅ nombre deseado basado en el archivo subido
+				const desiredName = this.withA5Suffix(file.name);
+
+				try {
+					const form_data = new FormData();
+					form_data.append("file", file);
+
+					const res = await fetch(`${this.api}/logistic/pdf`, {
+					method: "POST",
+					body: form_data,
+					});
+
+					if (!res.ok) {
+					const err = await res.json().catch(() => ({}));
+					this.pdf_error = err?.error || "No se pudo generar el rótulo";
+					return;
+					}
+
+					const blob = await res.blob();
+
+					const url = window.URL.createObjectURL(blob);
+					const a = document.createElement("a");
+					a.href = url;
+					a.download = desiredName; // ✅ aquí ya no dependes de headers
+					document.body.appendChild(a);
+					a.click();
+					a.remove();
+					window.URL.revokeObjectURL(url);
+
+				} finally {
+					this.pdf_loading = false;
+					this.$refs.file.value = "";
+				}
+			}
+		}));
+	</script>
+	
+
+
+
+
+
+
+
+	<style>
+		#modal-qr .container {
+			display: flex;
+    		gap: 0.5rem;
+		}
+		#modal-qr .container .button {
+			width: 6rem;
+		}
+		#logistics_qr_result {
+			width: 15rem;
+    		height: 15rem;
+		}
+		#logistics_qr_dummy {
+			display: flex;
+			width: 100%;
+			height: 100%;
+			justify-content: center;
+			align-items: center;
+			position: absolute;
+			font-weight: 500;
+			opacity: 0.5;
+		}
+		.mobile-table {
+			flex-direction: column;
+			gap: 0.75rem;
+		}
+		.mobile-table .row {
+			padding: 1rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+		}
+		.mobile-table .head {
+			display: flex;
+    		justify-content: space-between;
+			align-items: start;
+		}
+		.mobile-table .head .info {
+			display: flex;
+    		flex-direction: column;
+		}
+		.mobile-table .head .info .id {
+			font-size: 1rem;
+    		font-weight: 600;
+		}
+		.mobile-table .head .info .date {
+			font-size: 0.75rem;
+    		opacity: 0.75;
+		}
+		.mobile-table .head .status {
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		.mobile-table .head .status.active {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		.mobile-table .head .status.finished {
+			background-color: #d0f4ea;
+    		border: 2px solid #abe9d8;
+		}
+		.mobile-table .body {
+			display: flex;
+    		justify-content: space-between;
+			align-items: center;
+		}
+		.mobile-table .body .label {
+			font-size: 0.75rem;
+			opacity: 0.5;
+			font-weight: 600;
+		}
+		.mobile-table .body .name {
+			font-weight: 500;
+			font-size: 0.8rem;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 75%;
+		}
+		#modal-search .modal {
+			gap: 0.5rem;
+			min-width: initial;
+		}
+		#modal-search .bottom {
+			display: flex;
+			align-items: center;
+			padding: 0.25rem 1rem;
+			border-radius: 0.75rem;
+		}
+		#modal-search .bottom .ico {
+			opacity: 0.5;
+		}
+		#modal-search .bottom input {
+			flex: 1;
+			background-color: transparent;
+			border: none;
+			outline: none;
+			padding: 0.75rem;
+			font-family: inherit;
+			font-size: 1rem;
+			font-weight: 400;
+			min-width: 10rem;
+		}
+		#modal-search .bottom .clear {
+			padding: 0.25rem;
+		}
+		#modal-search .bottom .clear img {
+			min-width: 0.75rem;
+    		min-height: 0.75rem;
+		}
+		#modal-search .orders {
+			max-height: 18.25rem;
+			overflow-y: auto;
+			width: 100%;
+			display: flex;
+			flex-direction: column;
+			font-size: 1rem;
+			border-radius: 0.75rem;
+			gap: 0.5rem;
+    		padding: 0.25rem;
+		}
+		#modal-search .orders .item {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			position: relative;
+			padding: 0.75rem 1rem;
+			border-bottom: 2px solid #ffffff80;
+			cursor: pointer;
+			transition: var(--transition);
+			background-color: transparent;
+			border-radius: 0.75rem;
+		}
+		#modal-search .orders .title {
+			display: flex;
+    		justify-content: space-between;
+		}
+		#modal-search .orders .item:last-child {
+			border-bottom: none;
+		}
+		#modal-search .orders .item:hover {
+			opacity: 0.75;
+		}
+		#modal-search .orders .item .order-number {
+			font-size: 1rem;
+			font-weight: 600;
+			line-height: 1rem;
+		}
+		#modal-search .orders .item .machine {
+			font-weight: 600;
+			font-size: 0.75rem;
+			line-height: 1rem;
+		}
+		#modal-search .orders .item .client {
+			line-height: 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+			opacity: 0.75;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 16rem;
+		}
+		#modal-search .orders .item img {
+			mix-blend-mode: darken;
+			position: absolute;
+			bottom: 0.75rem;
+			right: 0.75rem;
+			width: 2rem;
+		}
+		#modal-statistics .kpi {
+			display: flex;
+    		gap: 1rem;
+		}
+		#modal-statistics .kpi .item {
+			flex: 1;
+			width: 8rem;
+			display: flex;
+			padding: 1rem;
+			flex-direction: column;
+			gap: 0.25rem;
+		}
+	
+		#modal-statistics .kpi .item span {
+			font-weight: 500;
+    		font-size: 1.5rem;
+			color: var(--primary);
+		}
+		#modal-statistics .kpi .item p {
+			margin: 0;
+			display: flex;
+			flex: 1;
+			align-items: center;
+			font-weight: 500;
+		}
+		#modal-statistics .charts {
+			display: flex;
+			gap: 1rem;
+			flex-wrap: wrap;
+			justify-content: center;
+		}
+		#modal-statistics .charts .box {
+			padding: 1.5rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+			min-width: 28rem;
+		}
+		#modal-statistics .charts .box span {
+			font-weight: 500;
+    		font-size: 1rem;
+		}
+		#logistics {
+			display: flex;
+			min-height: calc(100vh - 6.5rem);
+			gap: 1rem;
+			overflow: auto;
+			flex-direction: column;
+		}
+		#logistics .main {
+			padding: 1.5rem;
+			display: flex;
+			min-height: calc(100vh - 2rem);
+			flex-direction: column;
+			gap: 1rem;
+		}
+		#logistics .header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#logistics .menu {
+			display: flex;
+			background-color: var(--white);
+			border-radius: 2rem;
+			padding: 0.5rem 0.75rem;
+			gap: 0.25rem;
+		}
+		#logistics .menu .item {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			border-radius: 2rem;
+			padding: 0 0.75rem;
+			gap: 0.5rem;
+			cursor: pointer;
+			transition: var(--transition);
+		}
+		#logistics .menu .item:hover {
+			background-color: var(--gray);
+		}
+		#logistics .menu .item .button {
+			border-radius: 2rem;
+			transition: var(--transition);
+			height: 2rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		#logistics .menu .item span {
+			font-size: 0.75rem;
+    		font-weight: 600;
+		}
+		#logistics .menu.primary {
+			background-color: var(--secondary);
+			color: var(--white);
+		}
+		#logistics .menu.primary .item:hover {
+			background-color: hsl(0deg 0% 100% / 20%);
+		}
+		#logistics .menu.primary img {
+			filter: invert(1);
+		}
+		#logistics .main {
+			padding: 1.5rem;
+			display: flex;
+			min-height: calc(100vh - 2rem);
+			flex-direction: column;
+			gap: 1rem;
+		}
+		#logistics .main h3 {
+			margin: 0;
+			font-size: 1.25rem;
+			line-height: 1rem;
+		}
+		#logistics .main .top {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#logistics .main .pendings {
+			line-height: 2.5rem;
+			background-color: var(--primary);
+			color: var(--white);
+			padding: 0 1.5rem;
+			border-radius: 1.75rem;
+		}
+		#logistics .main .top .range {
+			font-size: 1rem;
+			font-weight: 500;
+		}
+		#logistics .navigation.mobile {
+			display: none;
+		}
+		#logistics .navigation {
+			display: flex;
+			gap: 0.75rem;
+			font-weight: 500;
+		}
+		#logistics .navigation .button {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			width: 3rem;
+			height: 3rem;
+			line-height: 3rem;
+			border-radius: 3rem;
+		}
+		#logistics .navigation .button.middle {
+			width: initial;
+			min-width: 16rem;
+		}
+		#logistics .navigation .button:last-child img{
+			transform: rotate(180deg);
+		}
+		#logistics .schedule-container {
+			display: flex;
+			flex: 1;
+			flex-direction: row-reverse;
+		}
+		/*********************************************************************************/
+		#logistics .pending-shippings {
+			width: 15%;
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			padding-left: 1rem;
+		}
+		#logistics .pending-shippings .title {
+			line-height: 2.75rem;
+			border-radius: 0.75rem;
+			border: 2px dotted #c5c5c5;
+			font-weight: 600;
+			color: #494949;
+			font-size: 0.8rem;
+			text-align: center;
+			cursor: pointer;
+		}
+		#logistics .pending-shippings .container {
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+			height: 100%;
+		}
+		#logistics .pending-shippings .empty {
+			text-align: center;
+			padding: 1rem;
+		}
+		/*********************************************************************************/
+		#logistics .schedule {
+			display: flex;
+			flex: 1;
+			user-select: none;
+		}
+		#logistics .schedule .day-container {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			border-right: 3px solid #ffffff80;
+		}
+		#logistics .schedule .day-container:last-child {
+			border-right: none;
+		}
+		#logistics .schedule .day-container .day-name {
+			display: flex;
+			justify-content: center;
+			font-size: 0.9rem;
+			font-weight: 500;
+			/* border-bottom: 3px solid #ffffff80; */
+			padding: 0.75rem 0;
+		}
+		#logistics .schedule .day-container .day-cont {
+			position: relative;
+		}
+		#logistics .schedule .day-container .today-dot {
+			right: 0;
+			height: 0.25rem;
+			position: absolute;
+			background-color: var(--primary);
+			border-radius: 1rem;
+			bottom: -0.35rem;
+			left: 0;
+		}
+		/***********************************************************************************/
+		#logistics .main.driver {
+			width: 100%;
+			min-height: calc(100vh - 6.5rem);
+		}
+		#logistics .main.driver .navigation {
+			flex: 1;
+		}
+		#logistics .main.driver .navigation .button.middle {
+			flex: 1;
+		}
+		#logistics .main.driver .schedule {
+			border: none;
+		}
+		#logistics .main.driver .order-container {
+			padding: 0;
+			padding-bottom: 2rem;
+		}
+		#logistics .main.driver .order-container + .order-container {
+			padding: 0;
+			padding-top: 2rem;
+		}
+		#logistics .main.driver .order-container .empty {
+			text-align: center;
+			border: 3px solid #ffffff80;
+			padding: 1rem;
+			border-radius: 0.5rem;
+			font-weight: 500;
+			color: #888;
+		}
+		#logistics .order-container {
+			display: flex;
+			gap: 0.75rem;
+			flex-direction: column;
+			padding: 0.75rem;
+			flex: 1;
+			border-bottom: 3px solid #ffffff80;
+			background-color: transparent;
+			transition: var(--transition);
+		}
+		#logistics .order-container .turn {
+			text-align: center;
+			opacity: 0.5;
+			font-size: 0.75rem;
+			font-weight: 600;
+		}
+		#logistics .order-container.drag-over {
+			background-color: hsl(0deg 0% 100% / 60%);
+		}
+		#logistics .order-container + .order-container {
+			border-bottom: none;
+		}
+		#logistics .item-card {
+			border-radius: 0.75rem;
+			padding: 0.75rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			cursor: pointer;
+			position: relative;
+			transition: var(--transition);
+			align-items: start;
+		}
+		#logistics .item-card .data {
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+		}
+		#logistics .item-card:active {
+			transform: scale(0.95);
+		}
+		#logistics .item-card .district {
+			font-size: 0.75rem;
+			font-weight: 600;
+			opacity: 0.6;
+			position: absolute;
+			right: 10px;
+			top: 10px;
+			width: 50%;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			overflow: hidden;
+			text-align: right;
+			line-height: 1rem;
+		}
+		#logistics .item-card .address {
+			font-size: 0.75rem;
+			font-weight: 400;
+			line-height: 0.9rem;
+		}
+		#logistics .item-card .name {
+			font-size: 0.75rem;
+			font-weight: 600;
+			line-height: 1rem;
+		}
+		#logistics .item-card .status {
+			font-size: 0.65rem;
+			font-weight: 600;
+			line-height: 1rem;
+			position: absolute;
+			bottom: -2px;
+			right: -2px;
+			/*background-color: var(--white);*/
+			padding: 0.25rem 0.75rem;
+			border-radius: 0.75rem 0;
+		}
+		#logistics .item-card .phone {
+			font-size: 0.75rem;
+			font-weight: 600;
+			line-height: 0.9rem;
+			color: var(--black);
+			display: flex;
+			align-items: center;
+			gap: 0.25rem;
+		}
+		#main .item-card .number {
+			font-size: 0.85rem;
+			opacity: 0.6;
+			font-weight: 700;
+			line-height: 1rem;
+		}
+		#main .item-card .shipping {
+			display: none;
+		}
+		#main .item-card .date {
+			font-size: 0.75rem;
+			font-weight: 500;
+			opacity: 0.75;
+		}
+		#main .right {
+			width: 85%;
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+		}
+		#modal-process {
+			z-index: 30;
+		}
+		#modal-process .title {
+			font-family: inherit;
+			border: none;
+			border-radius: 0.75rem;
+			padding: 0 0.75rem;
+			margin: 0;
+			line-height: 2.5rem;
+			outline: none;
+		}
+		#modal-process .fields .glass2 {
+			border-radius: 0.75rem;
+		}
+		#modal-image {
+			z-index: 40;
+		}
+		/***********************************************************************************/
+		#modal-finish {
+			z-index: 30;
+		}
+		#modal-finish .top {
+			display: flex;
+			align-items: center;
+			gap: 1rem;
+			font-weight: 500;
+		}
+		#modal-finish .top .type {
+			padding: 0.25rem 1rem;
+			border-radius: 2rem;
+			font-size: 0.8rem;
+		}
+		#modal-finish .top .order {
+			font-size: 1.125rem;
+			line-height: 1rem;
+		}
+		#modal-finish .top .driver {
+			margin-left: auto;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			gap: 0.25rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.7rem;
+		}
+		#modal-finish .content {
+			display: flex;
+			gap: 1rem;
+		}
+		#modal-finish .left {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+		}
+		#modal-finish .left .user {
+			width: 100%;
+			display: flex;
+			gap: 0.75rem;
+			padding: 1rem;
+			align-items: center;
+		}
+		#modal-finish .left .user .letter {
+			background-color: var(--secondary);
+			color: var(--white);
+			width: 1.75rem;
+			height: 1.75rem;
+			border-radius: 1rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+		#modal-finish .left .user .data {
+			display: flex;
+			flex-direction: column;
+			gap: 0.125rem;
+		}
+		#modal-finish .left .user .data span + span {
+			opacity: 0.5;
+		}
+		#modal-finish .left .user .message {
+			margin-left: auto;
+			padding: 0.5rem;
+		}
+		#modal-finish .left .user .message img {
+			min-width: 1rem;
+		}
+		#modal-finish .left .contact {
+			width: 100%;
+			display: flex;
+			padding: 1rem 0.5rem;
+			gap: 0.75rem;
+			flex-direction: column;
+		}
+		#modal-finish .left .contact .data {
+			display: flex;
+			flex-wrap: wrap;
+		}
+		#modal-finish .review {
+			display: flex;
+			flex: 1;
+			flex-direction: column;
+			gap: 1rem;
+			position: relative;
+			padding: 1rem;
+			border-radius: 0.75rem;
+		}
+		#modal-finish .review::after {
+			content: "";
+			position: absolute;
+			width: 4px;
+			background-color: var(--primary);
+			left: 21px;
+			top: 1.25rem;
+			bottom: 2.5rem;
+			opacity: 0.25;
+		}
+		#modal-finish .review .row {
+			display: flex;
+			flex-direction: column;
+			position: relative;
+			padding-left: 2rem;
+		}
+		#modal-finish .review .row::after {
+			content: "";
+			position: absolute;
+			top: 0.125rem;
+			left: 0;
+			width: 14px;
+			height: 14px;
+			background-color: var(--primary);
+			border-radius: 1rem;
+		}
+		#modal-finish .review .row .detail {
+			font-weight: 500;
+		}
+		#modal-finish .review .row .date {
+			opacity: 0.6;
+		}
+		#modal-finish .right {
+			flex: 1;
+		}
+		#modal-finish .right .thumbnail {
+			object-fit: cover;
+			height: 100%;
+			border-radius: 0.75rem;
+		}
+		#modal-history .top {
+    		justify-content: space-between;
+			display: flex;
+		}
+		#modal-history .pagination {
+			display: flex;
+			gap: 0.75rem;
+		}
+		#modal-history .create-link {
+			display: flex;
+			gap: 0.25rem;
+			justify-content: center;
+			align-items: center;
+			width: initial;
+			padding: 0 1rem;
+			line-height: 2rem;
+			font-size: 0.8rem;
+			font-weight: 400;
+		}
+		#modal-history .create-link img {
+			filter: invert(1);
+		}
+		#modal-history .pagination .disabled {
+			opacity: 0.5;
+    		cursor: default !important;
+		}
+		#modal-history .pagination .left img {
+			transform: rotate(180deg);
+		}
+		#modal-history .pagination span {
+			width: 2rem;
+			height: 2rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			border-radius: 2rem;
+		}
+		#modal-history table {
+			border-collapse: collapse;
+		}
+		#modal-history table th {
+			padding: 0.5rem 0.75rem;
+			text-align: left;
+			font-weight: 600;
+			font-size: 0.8rem;
+			opacity: 0.75;
+		}
+		#modal-history table tbody tr {
+			transition: var(--transition);
+			border-top: 2px solid #ffffff80;
+		}
+		#modal-history table tbody tr:hover {
+			background-color: var(--white);
+		}
+		#modal-history table td {
+			padding: 0.5rem 0.75rem;
+			cursor: pointer;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			height: 3.5rem;
+		}
+		#modal-history table.static tbody tr {
+			transition: none;
+		}
+		#modal-history table.static tbody tr:hover {
+			background-color: transparent;
+		}
+		#modal-history table.static td {
+			cursor: default;
+			line-height: 2rem;
+		}
+		#modal-history table td.order {
+			width: 8rem;
+		}
+		#modal-history table td.machine_box {
+			width: 12rem;
+			max-width: 12rem;
+		}
+		#modal-history table td.client {
+			width: 20rem;
+			max-width: 20rem;
+		}
+		#modal-history table td .controlls {
+			display: flex;
+    		gap: 0.5rem;
+		}
+		#modal-history table td .controlls .action {
+			width: 1.5rem;
+			height: 1.5rem;
+			display: flex;
+			justify-content: center;
+		}
+		#modal-history table .machine {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		#modal-history table .link-id {
+			background-color: var(--white);
+			width: 1.75rem;
+			height: 1.75rem;
+			border-radius: 1rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-weight: 500;
+			font-size: 0.8rem;
+			border: 1px solid var(--graydark);
+		}
+		#modal-history table .link-status {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#modal-history table .link-status.status-1 {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		#modal-history table .link-status.status-2 {
+			background-color: #dff5ff;
+    		border: 2px solid #b4e1f2;
+		}
+		#modal-history table .link-status.status-3 {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+		}
+		#modal-history table .link-status.status-4 {
+			background-color: #e4d4fb;
+    		border: 2px solid #d0beeb;
+		}
+		#modal-history table .link-status.status-5 {
+			background-color: #fee3e1;
+    		border: 2px solid #ffceca;
+		}
+		#modal-history table .finished {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#modal-history table .finished.active {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		#modal-history table .machine img {
+			mix-blend-mode: darken;
+		}
+		#modal-history table .machine .model {
+			display: flex;
+    		flex-direction: column;
+		}
+		#modal-history table .machine .model span {
+			font-weight: 500;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 8rem;
+		}
+		#modal-history table .machine .model span + span {
+			font-weight: 400;
+			font-size: 0.75rem;
+			opacity: 0.6;
+		}
+		@media only screen and (max-width: 75rem) {
+			#logistics .menu .item span {
+				display: none;
+			}
+		}
+		
+		@media only screen and (max-width: 48rem) {
+			#logistics .pending-shippings .container {
+				padding: 0 1rem;
+			}
+			#logistics .schedule {
+				flex-direction: column;
+				border-radius: 0;
+			}
+			#logistics .menu {
+				gap: 0.75rem;
+			}
+			#logistics .menu .item {
+				padding: 0;
+			}
+			#logistics .menu .item .button {
+				height: 2.5rem;
+    			width: 2.5rem;
+			}
+			#logistics .main .top {
+				flex-direction: column-reverse;
+    			gap: 1rem;
+			}
+			#logistics .main .top .range {
+				display: none;
+			}
+			#logistics .navigation {
+				width: 100%;
+				justify-content: space-between;
+			}
+			#logistics .navigation .button.middle {
+				flex: 1;
+			}
+			#logistics .navigation.desktop {
+				display: none;
+			}
+			#logistics .navigation.mobile {
+				display: flex;
+			}
+			#logistics .schedule-container {
+				flex-direction: column;
+    			gap: 1rem;
+			}
+			#logistics .pending-shippings {
+				width: initial;
+				padding: 0;
+			}
+			#modal-finish .left {
+				width: initial;
+			}
+			#modal-finish .content {
+				flex-direction: column;
+				align-items: center;
+			}
+			#modal-statistics .charts {
+				flex-direction: column;
+			}
+			#modal-statistics .charts .box {
+				min-width: initial;
+			}
+			#logistics .schedule .day-container {
+				border-right: none;
+				border-bottom: 3px solid #ffffff80;
+			}
+			#logistics .order-container {
+				border-bottom: none;
+			}
+		}
+	</style>
+</div>

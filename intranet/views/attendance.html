@@ -1,0 +1,4528 @@
+<div x-data="attendance_data">
+	<div id="attendance">
+        <div class="controls">
+			<div class="left frost">
+				<div class="item" @click="viewLeaves()">
+					<img alt="" width="20" height="20" src="/static/icons/line/leave.svg">
+					<span>Licencias</span>
+				</div>
+
+				<div class="item" @click="openSalaryModal()" x-show="$store.cache.hasPermission('attendance', 'salary_admin')">
+					<img alt="" width="20" height="20" src="/static/icons/line/salary.svg">
+					<span>Salarios</span>
+				</div>
+			</div>
+
+			<div class="left frost">
+				<div class="item" @click="prev()" x-show="offset >= -4">
+					<img class="flip" alt="prev" src="/static/icons/line/right.svg" width="20" height="20">
+				</div>
+
+				<div class="item date" @click="today()" x-text="$store.cache.getData('attendance_period')?.period?.name"></div>
+				<div class="item" @click="next()" x-show="offset < 0">
+					<img alt="next" src="/static/icons/line/right.svg" width="20" height="20">
+				</div>
+			</div>
+
+			<div class="right frost-dark" x-show="canLoadMarks()">
+				<div class="item" @click="xlsProcess()">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/add.svg">
+					<span>Cargar</span>
+					<input
+						type="file"
+						x-ref="file"
+						class="hidden"
+						accept=".xls,.xlsx"
+						@change="onSelected"
+					/>
+				</div>
+			</div>
+		</div>
+
+
+		<div class="main">
+			<div class="middle">
+				<div class="card glass summary">
+					<div class="center">
+						<span>
+							Lunes
+						</span>
+						<span>
+							Martes
+						</span>
+						<span>
+							Miércoles
+						</span>
+						<span>
+							Jueves
+						</span>
+						<span>
+							Viernes
+						</span>
+						<span>
+							Sábado
+						</span>
+						<span>
+							Horas acumuladas
+						</span>
+					</div>
+					
+					<div class="bottom">
+						<template x-for="(day, idx) in gridDays" :key="idx">
+							<div
+								class="month"
+								:class="dayClass(day)"
+								@click="canEditMarks() && hasIncomplete(day) && showEdit(day)"
+								:style="(canEditMarks() && hasIncomplete(day)) ? 'cursor:pointer' : ''"
+							>
+								<img x-show="showLate(day)" class="late" alt="" width="16" height="16" src="/static/icons/filled/late.svg" x-transition.opacity.duration.150ms>
+
+								<span class="number"
+									:class="isToday(day) ? 'today' : ''"
+									x-text="day.is_summary ? 'Σ' : day.label"></span>
+
+								<template x-if="!day.is_summary">
+									<div class="body">
+										<template x-for="(item, i) in dayItems(day)" :key="i">
+										<div
+											class="item"
+											:class="`${item.class || ''} ${item.incomplete ? 'incomplete' : ''} ${item.extra ? 'extra' : ''} ${item.holiday ? 'holiday' : ''} ${item.adjustment ? 'adjustment' : ''} ${item.vacation ? 'vacations' : ''}`"
+											@click="item.leave_id && openLeave(item.leave_id)"
+											:style="item.leave_id ? 'cursor:pointer' : ''"
+										>
+											<span class="label" x-text="item.label"></span>
+											<span class="date" x-text="item.value" :class="item.extra ? (String(item.value).includes('+') ? 'green' : 'red') : ''"></span>
+										</div>
+										</template>
+									</div>
+								</template>
+
+								<!-- BODY RESUMEN (Σ) -->
+								<template x-if="day.is_summary">
+									<div class="body week_summary">
+										<div class="week_summary_box">
+											<div class="row">
+												<span class="k">Meta</span>
+												<b class="v" x-text="minutesToText(day.summary?.target_min ?? 0)"></b>
+											</div>
+											<div class="row">
+												<span class="k">Trabajado</span>
+												<b class="v" x-text="minutesToText((day.summary?.worked_min ?? 0) - (day.summary?.sunday_min ?? 0))"></b>
+											</div>
+
+											<template x-if="(day.summary?.sunday_min ?? 0) > 0">
+												<div class="wk-gap"></div>
+											</template>
+											<template x-if="(day.summary?.sunday_min ?? 0) === 0">
+												<div class="wk-sep"></div>
+											</template>
+
+											<div class="row">
+												<span class="k">Saldo</span>
+												<b class="v"
+													:class="((day.summary?.worked_min ?? 0) - (day.summary?.sunday_min ?? 0) - (day.summary?.target_min ?? 0)) < 0 ? 'neg' : 'pos'"
+													x-text="minutesToText((day.summary?.worked_min ?? 0) - (day.summary?.sunday_min ?? 0) - (day.summary?.target_min ?? 0), true)">
+												</b>
+											</div>
+
+											<template x-if="(day.summary?.sunday_min ?? 0) > 0">
+												<div class="wk-sunday-section">
+													<div class="row">
+														<span class="k">Domingo</span>
+														<b class="v pos" x-text="`+${minutesToText(day.summary.sunday_min)}`"></b>
+													</div>
+												</div>
+											</template>
+
+											<template x-if="(day.summary?.sunday_min ?? 0) > 0">
+												<div>
+													<div class="wk-sep"></div>
+													<div class="row">
+														<span class="k">Saldo final</span>
+														<b class="v"
+															:class="(day.summary?.delta_min ?? 0) < 0 ? 'neg' : 'pos'"
+															x-text="minutesToText(day.summary?.delta_min ?? 0, true)">
+														</b>
+													</div>
+												</div>
+											</template>
+										</div>
+									</div>
+								</template>
+							</div>
+						</template>
+					</div>
+
+					<!-- Vista mobile: semanas apiladas -->
+					<div class="mobile-weeks">
+						<template x-for="(week, wi) in gridWeeks" :key="wi">
+							<div class="wk-card" x-show="weekDays(week).some(d => d?.in_period)">
+
+								<div class="wk-header">
+									<span class="wk-range" x-text="weekDateRange(week)"></span>
+									<template x-if="weekSigma(week)?.is_summary && weekSigma(week)?.summary">
+										<span class="wk-delta"
+											:class="(weekSigma(week).summary.delta_min ?? 0) < 0 ? 'neg' : 'pos'"
+											x-text="minutesToText(weekSigma(week).summary.delta_min ?? 0, true)"
+										></span>
+									</template>
+								</div>
+
+								<template x-for="(day, di) in weekDays(week)" :key="di">
+									<div class="wk-day"
+										x-show="day?.in_period"
+										:class="{
+											'wk-day--incomplete': hasIncomplete(day),
+											'wk-day--holiday':    day?.is_holiday,
+											'wk-day--vacation':   day?.is_vacation,
+											'wk-day--permit':     day?.is_permit
+										}"
+										@click="canEditMarks() && hasIncomplete(day) && showEdit(day)"
+									>
+										<div class="wk-day-label">
+											<span class="wk-day-abbr" x-text="['Lu','Ma','Mi','Ju','Vi','Sa'][di]"></span>
+											<span class="wk-day-num" :class="isToday(day) ? 'today' : ''" x-text="day.label"></span>
+											<img x-show="showLate(day)" alt="" width="12" height="12" src="/static/icons/filled/late.svg">
+										</div>
+										<div class="wk-day-items">
+											<template x-if="dayItems(day).length === 0">
+												<span class="wk-no-data">—</span>
+											</template>
+											<template x-for="(item, ii) in dayItems(day).filter(i => !i.extra)" :key="ii">
+												<div class="wk-item" :class="item.class || ''">
+													<span class="wk-item-lbl" x-text="item.label"></span>
+													<span class="wk-item-val"
+														:class="item.extra ? (String(item.value).includes('+') ? 'green' : 'red') : ''"
+														x-text="item.value"
+													></span>
+												</div>
+											</template>
+										</div>
+									</div>
+								</template>
+
+							</div>
+						</template>
+					</div>
+
+				</div>
+
+			</div>
+
+			<div class="right">
+				<div class="card glass user" x-show="canViewOthers()">
+					<span class="litle">
+						<img alt="" width="16" height="16" src="/static/icons/filled/user.svg">
+						Usuario
+					</span>
+
+					<div class="custom_select white">
+						<div class="selectors" @click.stop="prevUser()" title="Anterior">
+							<img class="flip" alt="prev" src="/static/icons/line/right.svg" width="20" height="20">
+						</div>
+						
+						<div class="data" @click="toogleUserOption()">
+							<img width="28" height="28" :src="`/static/images/uploads/users/${option_user?.image}`" alt="user">
+							<div class="text">
+								<b x-text="option_user?.name"></b>
+								<span x-text="option_user?.department_name"></span>
+							</div>
+						</div>
+
+						<div class="selectors" @click.stop="nextUser()" title="Siguiente">
+							<img alt="prev" src="/static/icons/line/right.svg" width="20" height="20">
+						</div>
+						
+						<div x-show="option_user_active" x-transition.duration.300ms @click.outside="hideUserOption()" class="select_options">
+							<template x-for="user in getTeam()" :key="user.id">
+                                <div 
+                                    class="option" 
+                                    :class="{ 'pick': option_user?.id === user.id }" 
+									@click="
+										option_user = user;
+										hideUserOption();
+										load();
+									"
+								>
+									<img width="28" height="28" :src="`/static/images/uploads/users/${user.image}`" alt="user">
+									<div class="text">
+										<b x-text="user.name"></b>
+										<!-- <span x-text="user.department_name"></span> -->
+									</div>
+								</div>
+							</template>
+						</div>
+					</div>
+			
+				</div>
+
+				<div class="card glass salary" x-show="$store.cache.hasPermission('attendance', 'view_salary') && salary_data?.status === 'approved' && ((option_user?.id ?? user.id) === user.id || $store.cache.hasPermission('attendance', 'salary_admin'))">
+					<span class="litle">
+						<img alt="" width="16" height="16" src="/static/icons/filled/wallet.svg">
+						Sueldo del mes
+					</span>
+					
+					<div class="sub white">
+						<span class="amount" x-show="show_salary" x-text="`S/ ${salary_data?.final_salary?.toFixed(2) || '0.00'}`"></span>
+						<span class="amount" x-show="!show_salary">S/ ••••••••</span>
+						<div class="eye hover-opacity" @click="show_salary = !show_salary">
+							<img alt="" width="16" height="16" src="/static/icons/line/eye.svg">
+						</div>
+
+						<div class="final" x-show="show_salary">
+							<!-- <div>
+								<span>Empresa</span>
+								<span x-text="salary_data?.business_name || '-'"></span>
+							</div> -->
+							<div>
+								<span>Sueldo base</span>
+								<span x-text="`S/ ${salary_data?.base_salary?.toFixed(2) || '0.00'}`"></span>
+							</div>
+							<!-- <div>
+								<span>Cumplimiento</span>
+								<span x-text="`${salary_data?.compliance_pct?.toFixed(2) || '0'}%`"></span>
+							</div> -->
+							<div>
+								<span x-html="`Cumplimiento <small>(${salary_data?.compliance_pct?.toFixed(2) || '0'}%)</small>`"></span>
+								<span 
+									:class="{
+										'salary-high': salary_data?.factor >= 0.95,
+										'salary-medium': salary_data?.factor >= 0.85 && salary_data?.factor < 0.95,
+										'salary-low': salary_data?.factor < 0.85
+									}"
+									x-text="`x ${salary_data?.factor?.toFixed(2) || '0'}`"></span>
+							</div>
+							<template x-if="salary_data?.adjustment && salary_data.adjustment != 0">
+								<div>
+									<span>Ajuste</span>
+									<span :class="{'salary-low': salary_data.adjustment < 0, 'salary-high': salary_data?.adjustment > 0}" x-text="`${salary_data.adjustment > 0 ? '+' : ''}S/ ${salary_data.adjustment.toFixed(2)}`"></span>
+								</div>
+							</template>
+							<div class="spacer"></div>
+							<div>
+								<span>Sueldo final</span>
+								<span x-text="`S/ ${salary_data?.final_salary?.toFixed(2) || '0.00'}`"></span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card glass stats">
+					<span class="litle">
+						<img alt="" width="18" height="18" src="/static/icons/filled/tag.svg">
+						Resumen del mes
+					</span>
+
+					<div class="sub white">
+						<div class="target">
+							
+							<span>Periodo</span>
+						</div>
+
+						<div class="item">
+							<div class="label">Horas base</div>
+							<div class="data" x-text="minutesToText(stats.target_min)"></div>
+						</div>
+						
+					</div>
+					
+
+					<div class="sub white">
+						<div class="target">
+							
+							<span>Tardanzas y tolerancia</span>
+						</div>
+						<div class="item">
+							<div class="label">Tardanzas</div>
+							<div class="data" x-text="stats.tardiness_count"></div>
+						</div>
+						<div class="item">
+							<div class="label">Tolerancia <small>(1% de la base)</small></div>
+							<div class="data" x-text="minutesToText(stats.tolerance_planned_min)"></div>
+						</div>
+						<div class="item">
+							<div class="label">Tardanza acumulada</div>
+							<div class="data tolerance" :class="{ 'red': red_flag }" x-text="minutesToText(stats.tolerance_accum_min)"></div>
+						</div>
+						<div class="item" style="margin-top: 0.5rem;">
+							<div class="label">Exceso sobre tolerancia</div>
+							<div class="data" x-text="minutesToText(stats.base_excess_min)"></div>
+						</div>
+
+						<div class="item">
+							<div class="label">Penalización <small>(exceso x 1.5)</small></div>
+							<div class="data" x-text="minutesToText(stats.calc_excess_min)"></div>
+						</div>
+<!-- 
+						<div class="item">
+							<div class="label">Total penalización</div>
+							<div class="data" x-text="minutesToText(stats.penalty_min)"></div>
+						</div> -->
+					</div>
+
+					<div class="sub white">
+						<div class="target">
+							
+							<span>Objetivo</span>
+						</div>
+						
+						<div class="item">
+							<div class="label">Base + Penalización</div>
+							<div class="data" x-text="stats.calc_final_obj"></div>
+						</div>
+						<div class="item">
+							<div class="label">Horas trabajadas</div>
+							<div class="data" x-text="minutesToText(stats.worked_min)"></div>
+						</div>
+					</div>
+
+				<div class="sub white">
+					<div class="target">
+						
+						<span>Licencias</span>
+						<template x-if="$store.cache.hasPermission('attendance', 'leave_balance')">
+							<div class="leave-adj-toggle hover-opacity" @click="leave_adj_open = !leave_adj_open"
+								title="Ajustar saldo de vacaciones">
+								<img alt="" width="12" height="12" src="/static/icons/line/pencil.svg" style="opacity:0.4">
+							</div>
+						</template>
+					</div>
+					
+					<div class="item">
+						<div class="label">Vacaciones tomadas</div>
+						<div class="data" x-text="stats.vacation_days">0</div>
+					</div>
+					
+					<div class="item">
+						<div class="label">Vacaciones disponibles</div>
+						<div class="data" :class="{'red': available_leave < 0}" x-text="available_leave"></div>
+					</div>
+
+					<div class="item">
+						<div class="label">Fecha de liquidación</div>
+						<div class="data" x-text="finish_date" style="font-size: 0.85rem;">No aplica</div>
+					</div>
+
+					<template x-if="leave_adj_open && $store.cache.hasPermission('attendance', 'leave_balance')">
+						<div class="leave-adj-panel">
+							<div class="leave-adj-row">
+								<span class="leave-adj-label">Ajuste manual</span>
+								<input type="number" step="0.5" class="leave-adj-input"
+									x-model.number="leave_adj_value"
+									placeholder="ej: 6 o -3">
+							</div>
+							<button class="leave-adj-save hover-opacity"
+								@click="saveLeaveAdjustment()"
+								:disabled="leave_adj_saving">
+								<span x-text="leave_adj_saving ? 'Guardando...' : 'Aplicar ajuste'"></span>
+							</button>
+							<div class="leave-adj-hint">
+								Positivo = agregar días, Negativo = restar días.
+								Se aplica al periodo actual.
+							</div>
+						</div>
+					</template>
+				</div>
+
+					<div class="sub white">
+						<div class="target">
+							
+							<span>Cumplimiento final</span>
+						</div>
+						<div class="item">
+							<div class="label">Trabajado / Objetivo</div>
+							<div class="data tolerance" :class="{ 'red': stats.compliance_pct < 100 }" x-text="`${truncateDecimals(stats.compliance_pct)} %`"></div>
+						</div>
+					</div>
+
+				</div>
+
+				<div class="card glass performance">
+					<div class="litle">Desempeño</div>
+					<div class="reviews">
+						<div class="user">
+							<img class="circle" alt="user" src="/static/images/uploads/users/45471238.jpg" width="24" height="24">
+							<div class="text">
+								<span class="name">Antonio Moll</span>
+								<span class="department">Gerencia</span>
+							</div>
+							<img class="like" alt="" width="16" height="16" src="/static/icons/filled/like.svg">
+						</div>
+
+						<div class="user">
+							<img class="circle" alt="user" src="/static/images/uploads/users/75261878.jpg" width="24" height="24">
+							<div class="text">
+								<span class="name">Leslie Gallegos</span>
+								<span class="department">Administración</span>
+							</div>
+							<img class="like" alt="" width="16" height="16" src="/static/icons/line/like.svg">
+						</div>
+						
+						<div class="user">
+							<img class="circle" alt="user" src="/static/images/uploads/users/73705094.jpg" width="24" height="24">
+							<div class="text">
+								<span class="name">Silvia Tejeda</span>
+								<span class="department">Marketing</span>
+							</div>
+							<img class="like" alt="" width="16" height="16" src="/static/icons/line/like.svg">
+						</div>
+
+						<div class="user">
+							<img class="circle" alt="user" src="/static/images/uploads/users/76520775.jpg" width="24" height="24">
+							<div class="text">
+								<span class="name">Lucy Chapoñan</span>
+								<span class="department">Soporte</span>
+							</div>
+							<img class="like" alt="" width="16" height="16" src="/static/icons/line/dislike.svg">
+						</div>
+
+						<div class="user">
+							<img class="circle" alt="user" src="/static/images/uploads/users/47293035.jpg" width="24" height="24">
+							<div class="text">
+								<span class="name">Kevin Trejo</span>
+								<span class="department">Logistica</span>
+							</div>
+							<img class="like" alt="" width="16" height="16" src="/static/icons/filled/like.svg">
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div
+				x-show="$store.cache.isVisibleModal('leaves')"
+				@mousedown.self="$store.cache.hideLastModal()"
+				class="modal-wrap common-modal"
+				id="modal-leaves"
+				x-transition:enter="modal-enter"
+				x-transition:enter-start="modal-enter-start"
+				x-transition:enter-end="modal-enter-end"
+				x-transition:leave="modal-leave"
+				x-transition:leave-start="modal-leave-start"
+				x-transition:leave-end="modal-leave-end"
+				x-cloak
+			>
+				<div class="modal small glass2" @click.stop>
+					<div class="modal-grabber">
+						<div class="modal-grabber-bar"></div>
+					</div>
+
+					<div class="top">
+						<span class="title">Licencias</span>
+
+						<div class="buttons">
+							<button class="button  hardblue hover-opacity" @click="medicalModal()">
+								<img alt="" width="16" height="16" src="/static/icons/line/medical.svg">
+								D. Médico
+							</button>
+
+							<button class="button black hover-opacity" @click="permitModal()">
+								<img alt="" width="16" height="16" src="/static/icons/line/leave.svg">
+								Permiso
+							</button>
+
+							<button class="button hover-opacity" @click="vacationModal()">
+								<img alt="" width="16" height="16" src="/static/icons/line/vacation.svg">
+								Vacaciones
+							</button>
+						</div>
+					</div>
+
+					<div class="modal-content">
+						<template x-if="leave_requests?.length == 0">
+							<span style=" text-align: center; padding: 2rem 0 1rem 0;">El historial de licencias aparecerá aquí</span>
+						</template>
+
+						<div class="table-box" x-ref="leaves_box">
+							<template x-for="leave in leave_requests" :key="leave.id">
+								<div :id="`leave-row-${leave.id}`">
+									<div
+										class="table-row white hover-opacity"
+										:class="{'row-open': expanded_leave_id === leave.id}"
+										@click="toggleLeaveExpand(leave)"
+									>
+										<div class="id" x-text="`LI-${leave.id}`"></div>
+										<div class="user">
+											<img alt="user" class="image" :src="`/static/images/uploads/users/${leave.requester_image}`" width="28" height="28">
+											<div class="data">
+												<span class="name" x-text="leave.requester_name"></span>
+												<span class="department" x-text="leave.requester_department"></span>
+											</div>
+										</div>
+										<div class="type">
+											<img
+												:src="`/static/icons/line/${
+													leave.request_type === 'Vacaciones' ? 'vacation' :
+													leave.request_type === 'Permiso'    ? 'leave' :
+													'medical'
+												}.svg`"
+												width="14" height="14" alt=""
+											>
+											<span x-text="leave.request_type === 'Descanso Médico' ? 'D. Médico' : leave.request_type"></span>
+										</div>
+										<div class="statuses">
+											<div :class="leave.status_slug" x-text="leave.status_name"></div>
+										</div>
+									</div>
+
+									<!-- Panel expandible inline -->
+									<div
+										class="leave-expand-panel"
+										x-show="!expanded_leave_loading && expanded_leave_id === leave.id && attendance_form.id === leave.id"
+										x-transition:enter.duration.200ms
+										x-transition:leave.duration.150ms
+									>
+										<!-- VIEW / APPROVE -->
+
+										<!-- Permiso -->
+										<div class="view-leave" x-show="['approve','view'].includes(attendance_form.modal) && attendance_form.type == 'permit'">
+											<div class="row"><div class="label"><img alt="" src="/static/icons/filled/calendar.svg" width="16" height="16"><span>Fecha</span></div><div class="value" x-text="attendance_form.start_date_text"></div></div>
+											<div class="row"><div class="label"><img alt="" src="/static/icons/filled/clock.svg" width="16" height="16"><span>Duración</span></div><div class="value" x-text="attendance_form.duration_name"></div></div>
+											<div class="row" x-show="attendance_form.leave_type && attendance_form.leave_type != 'Otro'"><div class="label"><img alt="" src="/static/icons/filled/tag.svg" width="16" height="16"><span>Motivo</span></div><div class="value" x-text="attendance_form.leave_type"></div></div>
+											<div class="row" x-show="attendance_form.leave_type == 'Otro'"><div class="label"><img alt="" src="/static/icons/filled/tag.svg" width="16" height="16"><span>Motivo</span></div><div class="value" x-text="attendance_form.leave_type_detail"></div></div>
+											<div class="row" x-show="attendance_form.motive"><div class="label"><img alt="" src="/static/icons/filled/notes.svg" width="16" height="16"><span>Detalle</span></div><div class="value" x-text="attendance_form.motive"></div></div>
+											<div class="row" x-show="attendance_form.recovery_plan"><div class="label"><img alt="" src="/static/icons/filled/notes.svg" width="16" height="16"><span>Plan de recuperación</span></div><div class="value" x-text="attendance_form.recovery_plan"></div></div>
+										</div>
+
+										<!-- Vacaciones -->
+										<div class="view-leave" x-show="['approve','view'].includes(attendance_form.modal) && attendance_form.type == 'vacation'">
+											<div class="row"><div class="label"><img alt="" src="/static/icons/filled/calendar.svg" width="16" height="16"><span>Inicio</span></div><div class="value" x-text="attendance_form.start_date_text"></div></div>
+											<div class="row"><div class="label"><img alt="" src="/static/icons/filled/calendar.svg" width="16" height="16"><span>Fin</span></div><div class="value" x-text="attendance_form.end_date_text"></div></div>
+											<div class="row" x-show="attendance_form.assigned_name"><div class="label"><img alt="" src="/static/icons/filled/user.svg" width="16" height="16"><span>Responsable</span></div><div class="value" x-text="attendance_form.assigned_name"></div></div>
+											<div class="row" x-show="attendance_form.description"><div class="label"><img alt="" src="/static/icons/filled/notes.svg" width="16" height="16"><span>Notas</span></div><div class="value" x-text="attendance_form.description"></div></div>
+										</div>
+
+										<!-- Descanso Médico -->
+										<div class="view-leave" x-show="['approve','view'].includes(attendance_form.modal) && attendance_form.type == 'medical'">
+											<div class="row"><div class="label"><img alt="" src="/static/icons/filled/calendar.svg" width="16" height="16"><span>Inicio</span></div><div class="value" x-text="attendance_form.start_date_text"></div></div>
+											<div class="row"><div class="label"><img alt="" src="/static/icons/filled/calendar.svg" width="16" height="16"><span>Fin</span></div><div class="value" x-text="attendance_form.end_date_text"></div></div>
+											<div class="row" x-show="attendance_form.description"><div class="label"><img alt="" src="/static/icons/filled/notes.svg" width="16" height="16"><span>Detalle</span></div><div class="value" x-text="attendance_form.description"></div></div>
+											<div class="row" x-show="medical_attachments.length > 0">
+												<div class="pair-content" style="margin-bottom:.5rem;">
+													<div class="pair">
+														<img alt="" width="14" height="14" src="/static/icons/filled/clip.svg">
+														<span class="black">Certificados</span>
+														<span class="text" x-text="`(${medical_attachments.length})`"></span>
+													</div>
+												</div>
+												<div class="modal-content bottom thumbnails-grid small-grid">
+													<template x-for="att in medical_attachments" :key="att.id">
+														<div class="thumb-item hover-opacity" @click="openAttachment(att)">
+															<div class="thumbnail-wrapper">
+																<template x-if="isImageFile(att)">
+																	<img class="hover-opacity" :src="getInlineUrl(att)" :alt="att.original_name">
+																</template>
+																<template x-if="!isImageFile(att)">
+																	<div class="file-card">
+																		<div class="file-ext" x-text="(att.ext || '').toUpperCase()"></div>
+																	</div>
+																</template>
+															</div>
+															<div class="thumb-caption" x-text="att.original_name" :title="att.original_name"></div>
+														</div>
+													</template>
+												</div>
+											</div>
+											<div class="row" x-show="medical_attachments.length === 0"><div class="label"><span style="opacity:0.4">Sin archivos adjuntos</span></div></div>
+										</div>
+
+
+										<!-- EDIT -->
+										<!-- Vacaciones edit -->
+										<div class="edit-content" x-show="attendance_form.modal === 'edit' && attendance_form.type == 'vacation'">
+											<div class="field-row">
+												<label class=""><img alt="" src="/static/icons/line/calendar.svg" width="16" height="16"><span style="white-space:nowrap">Inicio</span><input type="date" x-model="attendance_form.start_date" :min="minVacationDate" style="flex:1;background:none;border:none;outline:none;"></label>
+												<label class=""><img alt="" src="/static/icons/line/calendar.svg" width="16" height="16"><span style="white-space:nowrap">Fin</span><input type="date" x-model="attendance_form.end_date" :min="endDateMin()" :max="endDateMax()" style="flex:1;background:none;border:none;outline:none;"></label>
+											</div>
+											<div class="field-row">
+												<label class="flex2-3">
+													<select x-model="attendance_form.assigned_id">
+														<option value="null" disabled>Responsable durante ausencia</option>
+														<template x-for="team in getOptionsTeam()" key="team.id">
+															<template x-if="team.id != user.id"><option :value="team.id" x-text="team.name"></option></template>
+														</template>
+													</select>
+												</label>
+											</div>
+											<textarea placeholder="Notas (opcional)" x-model="attendance_form.description" class="text-area"></textarea>
+										</div>
+
+										<!-- Permiso edit -->
+										<div class="edit-content" x-show="attendance_form.modal === 'edit' && attendance_form.type == 'permit'">
+											<div class="field-row">
+												<label class="">
+													<img alt="" src="/static/icons/line/calendar.svg" width="16" height="16">
+													<span style="white-space:nowrap">Fecha</span>
+													<input type="date" x-model="attendance_form.start_date" :min="minLeaveDate" style="flex:1;background:none;border:none;outline:none;">
+												</label>
+
+												<label class="">
+													<img alt="" src="/static/icons/line/clock.svg" width="14" height="14">
+													<select x-model="attendance_form.duration_id">
+														<option value="null" disabled>Duración</option>
+														<template x-for="duration in $store.cache.getData('attendance_duration')" :key="duration.id"><option :value="duration.id" x-text="duration.name"></option></template>
+													</select>
+												</label>
+											</div>
+											<div class="field-row">
+												<label class=" flex2-3">
+													<select x-model="attendance_form.leave_type_id">
+														<option value="null" disabled>Motivo del permiso</option>
+														<template x-for="lv in $store.cache.getData('attendance_leave')" :key="lv.id"><option :value="lv.id" x-text="lv.name"></option></template>
+													</select>
+												</label>
+												<template x-if="attendance_form.leave_type_id == '5'">
+													<label class=" flex2-3"><input type="text" class="input" placeholder="Especifica el tipo" x-model="attendance_form.leave_type_detail"></label>
+												</template>
+											</div>
+											<textarea placeholder="Motivo o detalle" x-model="attendance_form.motive" class="text-area" style="max-width:100%;border:2px solid white;"></textarea>
+											<textarea placeholder="Plan de recuperación" x-model="attendance_form.recovery_plan" class="text-area" style="max-width:100%;border:2px solid white;"></textarea>
+										</div>
+
+										<!-- Médico edit -->
+										<div class="edit-content" x-show="attendance_form.modal === 'edit' && attendance_form.type == 'medical'">
+											<div class="field-row">
+												<label class=""><img alt="" src="/static/icons/line/calendar.svg" width="16" height="16"><span style="white-space:nowrap">Inicio</span><input type="date" x-model="attendance_form.start_date" style="flex:1;background:none;border:none;outline:none;"></label>
+												<label class=""><img alt="" src="/static/icons/line/calendar.svg" width="16" height="16"><span style="white-space:nowrap">Fin</span><input type="date" x-model="attendance_form.end_date" :min="attendance_form.start_date" style="flex:1;background:none;border:none;outline:none;"></label>
+											</div>
+											<textarea placeholder="Notas (opcional)" x-model="attendance_form.description" class="text-area"></textarea>
+											<div class="medical-attachments">
+												<label class="medical-upload-btn white hover-opacity">
+													<img alt="" src="/static/icons/line/add.svg" width="14" height="14">
+													<span>Adjuntar certificado médico (PDF, imágenes)</span>
+													<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.gif" @change="medical_files=[...medical_files,...Array.from($event.target.files)];$event.target.value=''" style="display:none;">
+												</label>
+												<div class="medical-files-list" x-show="medical_attachments.length > 0 || medical_files.length > 0">
+													<template x-for="att in medical_attachments" :key="`existing-${att.id}`">
+														<div class="medical-file-item glass2">
+															<img alt="" src="/static/icons/filled/clip.svg" width="14" height="14" onerror="this.style.display='none'">
+															<span class="medical-file-name" x-text="att.original_name"></span>
+															<span class="medical-file-size" x-text="(att.size_bytes/1024).toFixed(1)+' KB'"></span>
+															<span class="medical-file-remove hover-opacity" @click="deleteLeaveAttachment(att.id)">✕</span>
+														</div>
+													</template>
+													<template x-for="(f, idx) in medical_files" :key="`new-${idx}`">
+														<div class="medical-file-item glass2">
+															<img alt="" src="/static/icons/filled/clip.svg" width="14" height="14" onerror="this.style.display='none'">
+															<span class="medical-file-name" x-text="f.name"></span>
+															<span class="medical-file-size" x-text="(f.size/1024).toFixed(1)+' KB'"></span>
+															<span class="medical-file-remove hover-opacity" @click="medical_files=medical_files.filter((_,i)=>i!==idx)">✕</span>
+														</div>
+													</template>
+												</div>
+											</div>
+										</div>
+
+
+										<!-- Botones -->
+										<div class="buttons" x-show="attendance_form.modal === 'approve'">
+											<button class="button icon red hover-opacity" @click="rejectRequest()" :class="buttons.reject.class">
+												<img alt="" width="18" height="18" src="/static/icons/line/dislike.svg">
+												<span x-text="buttons.reject.text"></span>
+											</button>
+											<button class="button icon green hover-opacity" @click="approveRequest()" :class="buttons.approve.class">
+												<img alt="" width="18" height="18" src="/static/icons/line/like.svg">
+												<span x-text="buttons.approve.text"></span>
+											</button>
+										</div>
+
+										<div class="buttons" x-show="attendance_form.modal === 'edit'">
+											<button class="button red icon hover-opacity" @click="deleteRequest()" :class="buttons.remove.class" x-text="buttons.remove.text"></button>
+											<button class="button green icon hover-opacity" @click="updateRequest()" :class="buttons.update.class" x-text="buttons.update.text"></button>
+										</div>
+
+									</div>
+
+								</div>
+							</template>
+						</div>
+					</div>
+				</div>
+			</div>
+            
+
+			<div
+				x-show="$store.cache.isVisibleModal('attachment')"
+				@mousedown.self="$store.cache.hideLastModal()"
+				class="modal-wrap"
+				id="modal-attachment"
+				x-transition:enter="modal-enter"
+				x-transition:enter-start="modal-enter-start"
+				x-transition:enter-end="modal-enter-end"
+				x-transition:leave="modal-leave"
+				x-transition:leave-start="modal-leave-start"
+				x-transition:leave-end="modal-leave-end"
+				x-cloak
+			>
+				<div class="modal small glass2" @click.stop>
+					<div class="modal-grabber">
+						<div class="modal-grabber-bar"></div>
+					</div>
+
+					<div class="modal-content">
+						<template x-if="viewer_payload?.kind === 'url' && isPdfFile(viewer_file)">
+							<iframe :src="viewer_payload.url" style="width:100%;height:70vh;border:0;"></iframe>
+						</template>
+						<template x-if="viewer_payload?.kind === 'url' && isImageFile(viewer_file)">
+							<img style="border-radius:.75rem;" :src="viewer_payload.url">
+						</template>
+						<template x-if="viewer_payload?.kind === 'text'">
+							<div class="white" style="white-space:pre-wrap;padding:1rem;" x-text="viewer_payload.text"></div>
+						</template>
+						<template x-if="viewer_payload?.kind === 'download'">
+							<div style="text-align:center;" x-text="viewer_payload.message"></div>
+						</template>
+					</div>
+				</div>
+			</div>
+
+
+			<div
+				x-show="$store.cache.isVisibleModal('process')"
+				@mousedown.self="$store.cache.hideLastModal()"
+				class="modal-wrap"
+				id="modal-process"
+				x-cloak
+				x-transition:enter="modal-enter"
+				x-transition:enter-start="modal-enter-start"
+				x-transition:enter-end="modal-enter-end"
+				x-transition:leave="modal-leave"
+				x-transition:leave-start="modal-leave-start"
+				x-transition:leave-end="modal-leave-end"
+			>
+				<div class="modal small glass2" @click.stop>
+					<div class="modal-grabber">
+						<div class="modal-grabber-bar"></div>
+					</div>
+
+					<!-- VACATION add -->
+					<div class="modal-content" x-show="attendance_form.type == 'vacation'">
+						<div class="fields">
+							<label class="white">
+								<img alt="repeat" src="/static/icons/line/calendar.svg" width="16" height="16">
+								<span style="cursor:pointer;flex:1;line-height:2.5rem;" @click="if($refs.start_date.showPicker){$refs.start_date.showPicker()}else{$refs.start_date.focus()}" x-text="dateLabel(attendance_form.start_date, 'Inicio de vacaciones')"></span>
+								<input x-ref="start_date" type="date" x-model="attendance_form.start_date" :min="minVacationDate" @change="attendance_form.end_date='';$nextTick(()=>{if($refs.end_date?.showPicker){$refs.end_date.showPicker()}else{$refs.end_date?.focus()}})" style="position:absolute;inset:0;opacity:0;pointer-events:none;">
+							</label>
+							<label class="white">
+								<img alt="repeat" src="/static/icons/line/calendar.svg" width="16" height="16">
+								<span style="cursor:pointer;flex:1;line-height:2.5rem;" @click="if($refs.end_date.showPicker){$refs.end_date.showPicker()}else{$refs.end_date.focus()}" x-text="dateLabel(attendance_form.end_date, 'Fin de vacaciones')"></span>
+								<input x-ref="end_date" type="date" x-model="attendance_form.end_date" :min="endDateMin()" :max="endDateMax()" style="position:absolute;inset:0;opacity:0;pointer-events:none;">
+							</label>
+						</div>
+						<div class="fields">
+							<label class="white flex2-3">
+								<select x-model="attendance_form.assigned_id">
+									<option value="null" disabled selected>Responsable durante ausencia</option>
+									<template x-for="team in getOptionsTeam()" :key="team.id">
+										<template x-if="team.id != user.id"><option :value="team.id" x-text="team.name"></option></template>
+									</template>
+								</select>
+							</label>
+						</div>
+						<textarea placeholder="Notas (opcional)" x-model="attendance_form.description" class="text-area" style="max-width: 100%;border: 2px solid white;"></textarea>
+					</div>
+
+					<!-- PERMIT add -->
+					<div class="modal-content" x-show="attendance_form.type == 'permit'">
+						<div class="fields">
+							<label class="white">
+								<img alt="repeat" src="/static/icons/line/calendar.svg" width="16" height="16">
+								<span style="cursor:pointer;flex:1;line-height:2.5rem;" @click="if($refs.start_date_input.showPicker){$refs.start_date_input.showPicker()}else{$refs.start_date_input.focus()}" x-text="dateLabel(attendance_form.start_date, 'Fecha del permiso')"></span>
+								<input x-ref="start_date_input" type="date" x-model="attendance_form.start_date" :min="minLeaveDate" style="position:absolute;inset:0;opacity:0;pointer-events:none;">
+							</label>
+							<label class="white">
+								<img alt="repeat" src="/static/icons/line/clock.svg" width="14" height="14">
+								<select x-model="attendance_form.duration_id">
+									<option value="null" disabled selected>Duración</option>
+									<template x-for="duration in $store.cache.getData('attendance_duration')" :key="duration.id"><option :value="duration.id" x-text="duration.name"></option></template>
+								</select>
+							</label>
+						</div>
+						<div class="fields">
+							<label class="white flex2-3">
+								<select x-model="attendance_form.leave_type_id">
+									<option value="null" disabled selected>Motivo del permiso</option>
+									<template x-for="leave in $store.cache.getData('attendance_leave')" :key="leave.id"><option :value="leave.id" x-text="leave.name"></option></template>
+								</select>
+							</label>
+							<template x-if="attendance_form.leave_type_id == '5'">
+								<label class="white flex2-3"><input type="text" class="input" placeholder="Especifica el tipo" x-model="attendance_form.leave_type_detail"/></label>
+							</template>
+						</div>
+						<textarea placeholder="Motivo o detalle" x-model="attendance_form.motive" class="text-area" style="max-width:100%;border:2px solid white;"></textarea>
+						<textarea placeholder="Plan de recuperación de horas (cómo y cuándo)" x-model="attendance_form.recovery_plan" class="text-area" style="max-width:100%;border:2px solid white;"></textarea>
+					</div>
+
+					<!-- MEDICAL add -->
+					<div class="modal-content" x-show="attendance_form.type == 'medical'">
+						<div class="fields">
+							<label class="white">
+								<img alt="" src="/static/icons/line/calendar.svg" width="16" height="16">
+								<span style="cursor:pointer;flex:1;line-height:2.5rem;" @click="if($refs.med_start_date.showPicker){$refs.med_start_date.showPicker()}else{$refs.med_start_date.focus()}" x-text="dateLabel(attendance_form.start_date, 'Inicio del descanso')"></span>
+								<input x-ref="med_start_date" type="date" x-model="attendance_form.start_date" @change="if(attendance_form.end_date&&attendance_form.end_date<attendance_form.start_date)attendance_form.end_date=attendance_form.start_date" style="position:absolute;inset:0;opacity:0;pointer-events:none;">
+							</label>
+							<label class="white">
+								<img alt="" src="/static/icons/line/calendar.svg" width="16" height="16">
+								<span style="cursor:pointer;flex:1;line-height:2.5rem;" @click="if($refs.med_end_date.showPicker){$refs.med_end_date.showPicker()}else{$refs.med_end_date.focus()}" x-text="dateLabel(attendance_form.end_date, 'Fin del descanso')"></span>
+								<input x-ref="med_end_date" type="date" x-model="attendance_form.end_date" :min="attendance_form.start_date" style="position:absolute;inset:0;opacity:0;pointer-events:none;">
+							</label>
+						</div>
+						<textarea placeholder="Notas (opcional)" x-model="attendance_form.description" class="text-area" style="max-width:100%;border:2px solid white;"></textarea>
+						<div class="medical-attachments">
+							<label class="medical-upload-btn white hover-opacity">
+								<img alt="" src="/static/icons/line/add.svg" width="14" height="14">
+								<span>Adjuntar certificado médico (PDF, imágenes)</span>
+								<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.gif" @change="medical_files=[...medical_files,...Array.from($event.target.files)];$event.target.value=''" style="display:none;">
+							</label>
+							<div class="medical-files-list" x-show="medical_files.length > 0">
+								<template x-for="(f, idx) in medical_files" :key="idx">
+									<div class="medical-file-item">
+										<img alt="" src="/static/icons/filled/clip.svg" width="14" height="14" onerror="this.style.display='none'">
+										<span class="medical-file-name" x-text="f.name"></span>
+										<span class="medical-file-size" x-text="(f.size/1024).toFixed(1)+' KB'"></span>
+										<span class="medical-file-remove hover-opacity" @click="medical_files=medical_files.filter((_,i)=>i!==idx)">✕</span>
+									</div>
+								</template>
+							</div>
+							<!-- <div class="medical-hint" x-show="medical_files.length === 0">Debes adjuntar al menos 1 archivo</div> -->
+						</div>
+					</div>
+
+					<div class="buttons">
+						<button class="button icon hover-opacity" @click="leaveProcess()" :class="buttons.save.class" x-text="buttons.save.text"></button>
+					</div>
+
+				</div>
+			</div>
+
+
+			<div
+				x-show="$store.cache.isVisibleModal('edit')"
+				@mousedown.self="$store.cache.hideLastModal()"
+				class="modal-wrap"
+				id="modal-edit"
+				x-transition:enter="modal-enter"
+				x-transition:enter-start="modal-enter-start"
+				x-transition:enter-end="modal-enter-end"
+				x-transition:leave="modal-leave"
+				x-transition:leave-start="modal-leave-start"
+				x-transition:leave-end="modal-leave-end"
+				x-cloak
+			>
+				<div class="modal little glass2" @click.stop>
+					<div class="modal-grabber">
+						<div class="modal-grabber-bar"></div>
+					</div>
+
+					<div class="top">
+						<span class="title" x-text="formatLongDate(selected_day?.date)"></span>
+						<span x-text="`Marcaciones: ${draft_marks.length}/${expected_marks}`"></span>
+					</div>
+
+					<div class="modal-content edit-timeline">
+						<template x-for="(node, i) in nodesForDraft()" :key="`${node.type}-${node.index}-${i}`">
+							<div>
+								<!-- SLOT ADD -->
+								<template x-if="node.type === 'add'">
+									<div
+										class="glass add-slot hover-opacity"
+										:disabled="!canAddMore()"
+										@click="openInlineAdd(node.index)"
+									>
+										+ Añadir
+									</div>
+								</template>
+
+								<!-- ITEM -->
+								<template x-if="node.type === 'item'">
+									<div class="white mark-pill" :class="draft_marks[node.index]?.type === 'locked' ? 'locked' : 'new'">
+										<template x-if="draft_marks[node.index]?.type === 'locked'">
+											<div class="box">
+												<img alt="" width="14" height="14" src="/static/icons/filled/lock.svg">
+												<b x-text="draft_marks[node.index]?.time"></b>
+											</div>
+										</template>
+
+										<template x-if="draft_marks[node.index]?.type === 'new'">
+											<div class="box">
+												<input
+													type="time"
+													class="time-inline"
+													x-model="draft_marks[node.index].time"
+												>
+
+												<button
+													class="remove-new hover-opacity"
+													title="Quitar"
+													@click="removeNewAt(node.index)"
+													>
+													<img alt="eliminar" width="16" height="16" src="/static/icons/line/delete.svg">
+												</button>
+											</div>
+										</template>
+									</div>
+								</template>
+							</div>
+						</template>
+					</div>
+
+					<div class="buttons">
+						<button
+							class="button icon hover-opacity"
+							@click="updateMarks()"
+							:class="buttons.update.class"
+							x-text="buttons.update.text"
+						>
+						</button>
+					</div>
+				</div>
+			</div>
+
+			<div
+				x-show="$store.cache.isVisibleModal('salary')"
+				@mousedown.self="$store.cache.hideLastModal()"
+				class="modal-wrap common-modal"
+				id="modal-salary"
+				x-transition:enter="modal-enter"
+				x-transition:enter-start="modal-enter-start"
+				x-transition:enter-end="modal-enter-end"
+				x-transition:leave="modal-leave"
+				x-transition:leave-start="modal-leave-start"
+				x-transition:leave-end="modal-leave-end"
+				x-cloak
+			>
+				<div class="modal glass2 extrabig" @click.stop>
+					<div class="modal-grabber">
+						<div class="modal-grabber-bar"></div>
+					</div>
+
+				<div class="salary-modal-head">
+					<div class="salary-modal-title">
+						<span>Salarios</span>
+					</div>
+
+					<div class="salary-period-nav white">
+						<div class="hover-opacity" @click="salaryPrevPeriod()">
+							<img class="flip" alt="" src="/static/icons/line/right.svg" width="16" height="16">
+						</div>
+						<span class="salary-period-name" x-text="salary_period_name || 'Seleccionar periodo'"></span>
+						<div class="hover-opacity" @click="salaryNextPeriod()">
+							<img alt="" src="/static/icons/line/right.svg" width="16" height="16">
+						</div>
+					</div>
+
+					<div class="buttons">
+						<button class="button black hover-opacity"
+							@click="salaryGenerateFile(1)"
+							title="Generar TXT de Telecrédito para FADIPESA">
+							<img src="/static/icons/line/txt.svg" width="16" height="16" alt="">
+							Fadipesa
+						</button>
+
+						<button class="button black hover-opacity"
+							@click="salaryGenerateFileBbva(2)"
+							title="Generar TXT BBVA Cash para KREAR3D">
+							<img src="/static/icons/line/txt.svg" width="16" height="16" alt="">
+							Krear3D
+						</button>
+
+						<button class="button ico hover-opacity" 
+							@click="salaryCalculateAll()"
+							:disabled="salary_calculating">
+							<img alt="" src="/static/icons/line/calc.svg" width="16" height="16">
+							<span x-text="salary_calculating ? 'Calculando...' : 'Calcular'"></span>
+						</button>
+					</div>
+				</div>
+
+				<div class="salary-modal-content modal-content overflow">
+					<template x-if="salary_list.length === 0">
+						<div class="salary-empty">
+							No hay datos. Selecciona un periodo y presiona "Calcular".
+						</div>
+					</template>
+
+					<template x-if="salary_list.length > 0">
+						<div class="salary-table">
+							<div class="salary-table-head salary-cols">
+								<span>Usuario</span>
+								<span>Sueldo base</span>
+								<span>Factor</span>
+								<span>Ajuste</span>
+								<span>Sueldo final</span>
+								<span>Estado</span>
+								<span>Acciones</span>
+							</div>
+
+							<template x-for="row in salary_list" :key="row.id">
+								<div class="salary-table-row salary-cols white">
+									<div class="salary-user" :title="`${row.compliance_pct.toFixed(2)}%`">
+										<img :src="'/static/images/uploads/users/' + row.user_image" width="28" height="28" alt="">
+										<div  class="name-dept">
+											<span class="name" x-text="row.user_name"></span>
+											<span class="dept" x-text="row.business_name"></span>
+										</div>
+									</div>
+									<span class="salary-basic" x-text="`S/ ${row.base_salary.toFixed(2)}`"></span>
+									<!-- Factor: editable si draft y tiene permiso rrhh -->
+									<template x-if="row.status !== 'approved' && $store.cache.hasPermission('attendance', 'salary_rrhh')">
+										<input type="number" step="0.01" min="0" class="salary-adj-input"
+											:class="{
+												'salary-high': row.factor >= 0.95,
+												'salary-medium': row.factor >= 0.85 && row.factor < 0.95,
+												'salary-low': row.factor < 0.85
+											}"
+											:value="(+row.factor).toFixed(2)"
+											@change="salarySetFactor(row.id, $event.target.value)"
+											:title="`Cumplimiento: ${row.compliance_pct.toFixed(2)}%`">
+									</template>
+									<template x-if="row.status === 'approved' || !$store.cache.hasPermission('attendance', 'salary_rrhh')">
+										<span :class="{
+											'salary-high': row.factor >= 0.95,
+											'salary-medium': row.factor >= 0.85 && row.factor < 0.95,
+											'salary-low': row.factor < 0.85
+										}" x-text="(+row.factor).toFixed(2)"></span>
+									</template>
+
+									<!-- Ajuste: editable si tiene permiso rrhh o mgr y no está approved -->
+									<div class="salary-adj-cell">
+										<template x-if="row.status !== 'approved' && ($store.cache.hasPermission('attendance', 'salary_rrhh') || $store.cache.hasPermission('attendance', 'salary_mgr'))">
+											<div class="salary-adj-input-wrap">
+												<input type="number" step="0.01" class="salary-adj-input"
+													:value="row.adjustment || 0"
+													@change="salarySetAdjustment(row.id, $event.target.value)"
+													title="Ajuste positivo o negativo">
+											</div>
+										</template>
+										<template x-if="row.status === 'approved' || (!$store.cache.hasPermission('attendance', 'salary_rrhh') && !$store.cache.hasPermission('attendance', 'salary_mgr'))">
+											<span :class="{'salary-low': row.adjustment < 0, 'salary-adj-positive': row.adjustment > 0}" x-text="row.adjustment ? `${row.adjustment > 0 ? '+' : ''}${row.adjustment.toFixed(2)}` : '-'"></span>
+										</template>
+									</div>
+
+									<span class="salary-final" x-text="`S/ ${row.final_salary.toFixed(2)}`"></span>
+
+									<!-- Estado -->
+									<div class="salary-status-cell">
+										<template x-if="row.status === 'draft'">
+											<span class="salary-draft-badge">Borrador</span>
+										</template>
+										<template x-if="row.status === 'rrhh_approved'">
+											<span class="salary-rrhh-badge">✓ RRHH</span>
+										</template>
+										<template x-if="row.status === 'approved'">
+											<span class="salary-approved-badge">Aprobado</span>
+										</template>
+									</div>
+
+									<!-- Aprobar + Recalcular -->
+									<div class="salary-actions-cell">
+										<template x-if="row.status === 'draft' && $store.cache.hasPermission('attendance', 'salary_rrhh')">
+											<button class="salary-approve-btn hover-opacity" @click="salaryApproveRrhh(row.id)" title="Aprobar RRHH">
+												<img src="/static/icons/line/approve_user.svg" width="16" height="16" alt="">
+											</button>
+										</template>
+										<template x-if="row.status === 'rrhh_approved' && $store.cache.hasPermission('attendance', 'salary_mgr')">
+											<button class="salary-approve-btn hover-opacity" @click="salaryApproveMgr(row.id)" title="Aprobar Gerencia">
+												<img src="/static/icons/line/approve_user.svg" width="16" height="16" alt="">
+											</button>
+										</template>
+										<button class="salary-recalc-btn hover-opacity"
+											@click="salaryRecalculateSingle(row.id)"
+											title="Recalcular (resetea a borrador)">
+												<img src="/static/icons/line/reset.svg" width="16" height="16" alt="">
+										</button>
+									</div>
+								</div>
+							</template>
+						</div>
+					</template>
+				</div>
+			</div>
+
+		</div>
+	</div>
+
+
+
+
+	<script>
+	Alpine.data('attendance_data',() => ({
+		token: localStorage.getItem('user_token'),
+
+		api: Alpine.store('cache').api,
+		user: Alpine.store('cache').user,
+		buttons: {
+			remove:   { text: 'Eliminar', class: '' },
+			approve:   { text: 'Aprobar', class: '' },
+			reject:   { text: 'Rechazar', class: '' },
+			update: { class: '', text: 'Actualizar' },
+			save: { class: '', text: 'Solicitar' },
+		},
+		offset: 0,
+		show_salary: false,
+		loading: false,
+		gridDays: [],
+
+		get gridWeeks() {
+			const weeks = [];
+			for (let i = 0; i < this.gridDays.length; i += 7)
+				weeks.push(this.gridDays.slice(i, i + 7));
+			return weeks;
+		},
+		attendance_form: {
+			modal: "add",
+			type: "",
+			start_date: null,
+			end_date: null,
+			leave_type_id: null,
+			leave_type_detail: "",
+			duration_id: null,
+			description: "",
+			motive: "",
+			recovery_plan: "",
+			assigned_id: null
+		},
+		minLeaveDate: "",
+		minVacationDate: "",
+		option_user: null,
+		option_user_active: false,
+		selected_day: null,
+		expected_marks: 4,
+		draft_marks: [],
+		processing: false,
+		expanded_leave_id: null,
+		expanded_leave_loading: false,
+		leave_requests: [],
+		stats: {
+			target_min: 0,
+			worked_min: 0,
+			tolerance_planned_min: 0,
+			tolerance_accum_min: 0,
+			penalty_min: 0,        // para después
+			tardiness_count: 0,
+			vacation_days: 0,
+			bonus_count: 0,        // para después
+			compliance_pct: 0,
+		},
+		available_leave: 0,
+		_vacation_used_backend: null,
+		finish_date: '-',
+		leave_adj_open: false,
+		leave_adj_value: 0,
+		leave_adj_saving: false,
+		medical_files: [],
+		medical_attachments: [],
+		viewer_file: null,
+		viewer_payload: null,
+		red_flag: false,
+		salary_data: null,
+		salary_list: [],
+		salary_period_id: null,
+		salary_period_name: '',
+		salary_period_offset: 0,
+		salary_calculating: false,
+
+		async init() {
+			console.log('Inicializando attendance...');
+
+			const socket = Alpine.store('cache').socket;
+			if (socket) {
+				socket.removeAllListeners();
+				socket.on("attendance_update_leaves", async () => {
+					await this.getLeaveRequests();
+				});
+			}
+			
+			const leave_date = new Date();
+			const vacation_date = new Date();
+
+			leave_date.setDate(leave_date.getDate() + 7);
+			vacation_date.setDate(vacation_date.getDate() + 21);
+			this.minLeaveDate = leave_date.toISOString().slice(0, 10);
+			this.minVacationDate = vacation_date.toISOString().slice(0, 10);
+
+			await Alpine.store('cache').fetchData([
+				{ key: 'attendance_team', url: `/user/attendance_team/${this.user.id}`, force: true },
+				{ key: 'attendance_duration', url: `/attendance/options/duration` },
+				{ key: 'attendance_leave', url: `/attendance/options/leave` },
+				{ key: 'attendance_department_team', url: `/attendance/options/department_team/${this.user.id}` },
+			]);
+			
+			const team = this.getTeam();
+
+			const selfInTeam = team.some(u => u.id === this.user.id);
+			if (team.length > 0 && (this.canEditMarks() || !selfInTeam)) {
+				this.option_user = team[0];
+			} else {
+				this.option_user = {
+					name: this.user.name,
+					image: this.user.image,
+					id: this.user.id,
+					department_name: this.user.department_name
+				};
+			}
+
+			await this.load();
+			// await Alpine.store('cache').verify();
+		},
+		
+		openSalaryModal() {
+			this.salary_period_offset = this.offset;
+			this.loadSalaryPeriod();
+			Alpine.store('cache').showModal('salary');
+		},
+
+		async loadSalaryPeriod() {
+			const period = Alpine.store('cache').getData('attendance_period');
+			if (!period?.period?.id) return;
+
+			// Usar el periodo actual del attendance
+			this.salary_period_id = period.period.id;
+			this.salary_period_name = period.period.name;
+
+			await this.loadSalaryList();
+		},
+
+		async salaryPrevPeriod() {
+			this.salary_period_offset--;
+			// Fetch period info for the new offset
+			try {
+				const token = localStorage.getItem('user_token');
+				const tempUserId = this.user.id;
+				const res = await fetch(
+					`${this.api}/attendance/period?user_id=${tempUserId}&offset=${this.salary_period_offset}`,
+					{ headers: { 'Authorization': `Bearer ${token}` } }
+				);
+				const data = await res.json();
+				const p = data.data?.period;
+				if (p) {
+					this.salary_period_id = p.id;
+					this.salary_period_name = p.name;
+					await this.loadSalaryList();
+				}
+			} catch (e) {
+				console.error(e);
+			}
+		},
+
+		async salaryNextPeriod() {
+			if (this.salary_period_offset >= 0) return;
+			this.salary_period_offset++;
+			try {
+				const token = localStorage.getItem('user_token');
+				const tempUserId = this.user.id;
+				const res = await fetch(
+					`${this.api}/attendance/period?user_id=${tempUserId}&offset=${this.salary_period_offset}`,
+					{ headers: { 'Authorization': `Bearer ${token}` } }
+				);
+				const data = await res.json();
+				const p = data.data?.period;
+				if (p) {
+					this.salary_period_id = p.id;
+					this.salary_period_name = p.name;
+					await this.loadSalaryList();
+				}
+			} catch (e) {
+				console.error(e);
+			}
+		},
+
+		async loadSalaryList() {
+			if (!this.salary_period_id) return;
+			try {
+				const token = localStorage.getItem('user_token');
+				const res = await fetch(
+					`${this.api}/attendance/salary/period/${this.salary_period_id}`,
+					{ headers: { 'Authorization': `Bearer ${token}` } }
+				);
+				const data = await res.json();
+				this.salary_list = data.data || [];
+			} catch (e) {
+				this.salary_list = [];
+			}
+		},
+
+		async salaryCalculateAll() {
+			if (this.salary_calculating || !this.salary_period_id) return;
+			this.salary_calculating = true;
+			try {
+				const token = localStorage.getItem('user_token');
+
+				// Paso 1: calcular stats
+				await fetch(`${this.api}/attendance/salary/stats/calculate`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+					body: JSON.stringify({ period_id: this.salary_period_id }),
+				});
+
+				// Paso 2: calcular salaries
+				await fetch(`${this.api}/attendance/salary/calculate`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+					body: JSON.stringify({ period_id: this.salary_period_id }),
+				});
+
+				// Paso 3: recargar tabla
+				await this.loadSalaryList();
+			} catch (e) {
+				console.error('Error calculando:', e);
+			} finally {
+				this.salary_calculating = false;
+			}
+		},
+
+	async salaryApproveRrhh(salaryId) {
+		try {
+			const token = localStorage.getItem('user_token');
+			await fetch(`${this.api}/attendance/salary/approve/rrhh`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+				body: JSON.stringify({ salary_id: salaryId }),
+			});
+			await this.loadSalaryList();
+		} catch (e) {
+			console.error('Error aprobando RRHH:', e);
+		}
+	},
+
+	async salaryApproveMgr(salaryId) {
+		try {
+			const token = localStorage.getItem('user_token');
+			await fetch(`${this.api}/attendance/salary/approve/mgr`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+				body: JSON.stringify({ salary_id: salaryId }),
+			});
+			await this.loadSalaryList();
+		} catch (e) {
+			console.error('Error aprobando gerencia:', e);
+		}
+	},
+
+	async salarySetFactor(salaryId, value) {
+		try {
+			const token = localStorage.getItem('user_token');
+			await fetch(`${this.api}/attendance/salary/factor`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+				body: JSON.stringify({ salary_id: salaryId, factor: parseFloat(value) || 1 }),
+			});
+			await this.loadSalaryList();
+		} catch (e) {
+			console.error('Error cambiando factor:', e);
+		}
+	},
+
+	async salarySetAdjustment(salaryId, value) {
+		try {
+			const token = localStorage.getItem('user_token');
+			await fetch(`${this.api}/attendance/salary/adjustment`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+				body: JSON.stringify({ salary_id: salaryId, adjustment: parseFloat(value) || 0 }),
+			});
+			await this.loadSalaryList();
+		} catch (e) {
+			console.error('Error ajustando:', e);
+		}
+	},
+
+	async salaryRecalculateSingle(salaryId) {
+		if (!confirm('¿Recalcular este salario? Se reseteará a borrador.')) return;
+		try {
+			const token = localStorage.getItem('user_token');
+			await fetch(`${this.api}/attendance/salary/recalculate/${salaryId}`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+			});
+			await this.loadSalaryList();
+		} catch (e) {
+			console.error('Error recalculando:', e);
+		}
+	},
+
+
+
+	async saveLeaveAdjustment() {
+		if (this.leave_adj_saving) return;
+		const period = Alpine.store('cache').getData('attendance_period');
+		if (!period?.period?.id) return;
+
+		const uid = this.option_user?.id ?? this.user.id;
+		this.leave_adj_saving = true;
+		try {
+			const token = localStorage.getItem('user_token');
+			await fetch(`${this.api}/attendance/leave/balance/adjust`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+				body: JSON.stringify({
+					user_id: uid,
+					period_id: period.period.id,
+					manual_adj: this.leave_adj_value || 0,
+				}),
+			});
+			await this.loadLeaveBalance();
+			this.leave_adj_open = false;
+		} catch (e) {
+			console.error('Error ajustando vacaciones:', e);
+		} finally {
+			this.leave_adj_saving = false;
+		}
+	},
+
+	async loadLeaveBalance() {
+		const uid = this.option_user?.id ?? this.user.id;
+		const period = Alpine.store('cache').getData('attendance_period');
+		if (!period?.period?.id) return;
+
+		try {
+			const token = localStorage.getItem('user_token');
+			const res = await fetch(
+				`${this.api}/attendance/leave/balance/${uid}/period/${period.period.id}`,
+				{ headers: { 'Authorization': `Bearer ${token}` } }
+			);
+			const json = await res.json();
+			if (json.data) {
+				this.leave_adj_value = json.data.manual_adj ?? 0;
+			}
+		} catch (e) {
+			console.error('Error cargando leave balance:', e);
+		}
+	},
+
+		truncateDecimals(value, decimals = 2) {
+			const n = Number(value || 0);
+			const factor = 10 ** decimals;
+			const truncated = Math.trunc(n * factor) / factor;
+			return truncated.toFixed(decimals);
+		},
+
+		async load() {
+			const user_id = this.option_user?.id ?? this.user.id;
+			this.salary_data = null;
+
+			await Alpine.store('cache').fetchData([
+				{ key: 'attendance_period', url: `/attendance/period?user_id=${user_id}&offset=${this.offset}`, force: true },
+			]);
+			this.buildGrid();
+			const isSelf = (this.option_user?.id ?? this.user.id) === this.user.id;
+			const canSeeSalary = Alpine.store('cache').hasPermission('attendance', 'view_salary') && (isSelf || Alpine.store('cache').hasPermission('attendance', 'salary_admin'));
+			if (canSeeSalary) {
+				await this.loadSalary();
+			} else {
+				this.salary_data = null;
+			}
+			await this.loadLeaveBalance();
+		},
+
+		async loadSalary() {
+			const uid = this.option_user?.id ?? this.user.id;
+			const period = Alpine.store('cache').getData('attendance_period');
+			if (!period?.period?.id) { this.salary_data = null; return; }
+
+			try {
+				const token = localStorage.getItem('user_token');
+				const res = await fetch(
+					`${this.api}/attendance/salary/user/${uid}/period/${period.period.id}`,
+					{ headers: { 'Authorization': `Bearer ${token}` } }
+				);
+				const json = await res.json();
+				this.salary_data = json.data || null;
+			} catch (e) {
+				this.salary_data = null;
+			}
+		},
+
+		hhmmToMin(hhmm) {
+			if (!hhmm || typeof hhmm !== "string") return null;
+			const [h, m] = hhmm.split(":").map(Number);
+			if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+			return h * 60 + m;
+		},
+
+		lateMinutes(day) {
+			const first = (day?.intervals || [])[0];
+			const start = (first?.start || "").trim();
+			const expected = (day?.expected_start || "").trim();
+			if (!start || !expected) return 0;
+
+			const s = this.hhmmToMin(start);
+			const e = this.hhmmToMin(expected);
+			if (s === null || e === null) return 0;
+
+			return Math.max(0, s - e);
+		},
+
+		canViewOthers() {
+			return this.getTeam().length > 0;
+		},
+
+		canEditMarks() {
+			return Alpine.store('cache').hasPermission('attendance', 'edit_marks');
+		},
+
+		canLoadMarks() {
+			return Alpine.store('cache').hasPermission('attendance', 'load_marks');
+		},
+
+		isLateDay(day) {
+			if (!day?.in_period) return false;
+			if (day?.is_summary) return false;
+			if (day?.is_holiday) return false;
+			if (day?.is_vacation) return false;
+			if (day?.is_permit && !day?.expected_start) return false;
+
+			const permitDid = day?.permit?.duration_id ?? day?.permit_duration_id ?? null;
+			if (day?.is_permit && (permitDid === 1 || permitDid === 3)) return false;
+
+			const first = (day?.intervals || [])[0];
+			const start = (first?.start || "").trim();
+			const expected = (day?.expected_start || "").trim();
+			if (!start || !expected) return false;
+
+			return this.lateMinutes(day) > 0;
+		},
+
+		async getLeaveRequests() {
+			try {
+				const response = await fetch(`${this.api}/attendance/leave/requests`, {
+					headers: { 
+						"Content-Type": "application/json",
+						"Authorization": `Bearer ${this.token}`,
+					}
+				});
+				const data = await response.json();
+				const jsonData = data.data || [];
+
+				this.leave_requests = jsonData.requests;
+			} catch (error) {
+				console.error('Error fetching link', error);
+			}
+		},
+
+
+		toogleUserOption() { 
+			this.option_user_active = !this.option_user_active;
+		},
+
+		hideUserOption() { 
+			this.option_user_active = false;
+		},
+
+		getTeam() {
+			return Alpine.store('cache').getData('attendance_team') || [];
+		},
+
+		getOptionsTeam() {
+			return Alpine.store('cache').getData('attendance_department_team') || [];
+		},
+
+		currentUserIndex() {
+			const team = this.getTeam();
+			const id = this.option_user?.id;
+			const idx = team.findIndex(u => u.id === id);
+			return idx;
+		},
+
+		async prevUser() {
+			const team = this.getTeam();
+			const n = team.length;
+			if (n === 0) return;
+
+			const idx = this.currentUserIndex();
+			const prevIdx = (idx <= 0 ? n - 1 : idx - 1); 
+
+			this.option_user = team[prevIdx];
+			this.option_user_active = false;
+			//this.offset = 0;
+			await this.load();
+		},
+
+		async nextUser() {
+			const team = this.getTeam();
+			const n = team.length;
+			if (n === 0) return;
+
+			const idx = this.currentUserIndex();
+			const nextIdx = (idx < 0 ? 0 : (idx + 1) % n); 
+
+			this.option_user = team[nextIdx];
+			this.option_user_active = false;
+			//this.offset = 0;
+			await this.load();
+		},
+
+		buildGrid() {
+			const data = Alpine.store('cache').getData('attendance_period') || {};
+			const weeks = data.weeks || [];
+			this.available_leave = data.available_leave ?? 0;
+			this.finish_date = data.finish_date || '-';
+			this._vacation_used_backend = data.vacation_used ?? null;
+
+			const days = [];
+
+			const todayISO = this.todayLocalISO();
+
+			const hasValidIntervals = (d) => {
+				if (!d?.in_period) return false;
+				if (!d?.date || d.date > todayISO) return false;
+
+				if (d?.is_holiday || d?.is_vacation) {
+					if (this.isDayIncomplete(d)) return false;
+					return true;
+				}
+				
+				const intervals = d?.intervals || [];
+				const hasAnyStart = intervals.some(it => (it?.start || "").trim());
+				if (!hasAnyStart) return false;
+
+				if (this.isDayIncomplete(d)) return false;
+
+				return true;
+			};
+
+			let cumWorked = 0;
+			let cumTarget = 0;
+			let cumIncomplete = 0;
+
+			for (const w of weeks) {
+				const wdays = (w.days || []);
+				const week_has_past_or_today = wdays.some(d => d?.in_period && d?.date && d.date <= todayISO);
+				const week_has_data = wdays.some(d => hasValidIntervals(d));
+				const shouldShowSummary = week_has_past_or_today && week_has_data;
+
+				const weekSummary = w?.summary || wdays?.[6]?.summary || null;
+				const sundayWorkedMin = shouldShowSummary ? Number(weekSummary?.sunday_min || 0) : 0;
+
+				if (shouldShowSummary && weekSummary) {
+					cumWorked += Number(weekSummary.worked_min || 0);
+					cumTarget += Number(weekSummary.target_min || 0);
+					cumIncomplete += Number(weekSummary.incomplete || 0);
+				}
+
+				for (let i = 0; i < wdays.length; i++) {
+					const d = wdays[i];
+
+					if (i === 6) {
+					d.is_summary = shouldShowSummary;
+
+					d.summary = shouldShowSummary ? {
+							worked_min: cumWorked,
+							target_min: cumTarget,
+							delta_min: cumWorked - cumTarget,
+							incomplete: cumIncomplete,
+							sunday_min: sundayWorkedMin,
+						} : null;
+					} else {
+						d.is_summary = false;
+					}
+
+					days.push(d);
+				}
+			}
+
+			this.gridDays = days;
+			this.buildMonthStats(data);
+		},
+		
+		todayLocalISO() {
+			const d = new Date();
+			d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+			return d.toISOString().slice(0, 10);
+		},
+
+		buildMonthStats(data) {
+			const weeks = data?.weeks || [];
+			const todayISO = this.todayLocalISO();
+
+			let target = 0;          // ✅ todo el periodo (incluye futuro)
+			let worked = 0;          // ✅ solo hasta hoy
+			let toleranceAccum = 0;  // ✅ solo hasta hoy
+			let tardies = 0;         // ✅ solo hasta hoy
+
+			for (const w of weeks) {
+				for (const day of (w.days || [])) {
+					if (!day?.in_period) continue;
+					if (day?.is_summary) continue;
+
+					target += Number(day?.target_min || 0);
+
+					if (!day?.date || day.date > todayISO) continue;
+
+					worked += Number(day?.worked_min || 0);
+
+					if (this.isLateDay(day)) {
+						tardies += 1;
+						toleranceAccum += this.lateMinutes(day);
+					}
+				}
+				// Sunday is folded into the week summary by the backend as sunday_min
+				const wSummary = w.summary || w.days?.[6]?.summary;
+				const wkSunday = Number(wSummary?.sunday_min || 0);
+				if (wkSunday > 0) {
+					const sundayDay = w.days?.[6];
+					if (sundayDay?.date && sundayDay.date <= todayISO) {
+						worked += wkSunday;
+					}
+				}
+			}
+
+			const tolerancePlanned = Math.round(target * 0.01);
+			const baseExcess = Math.max(0, toleranceAccum - tolerancePlanned);
+			const calcExcess = Math.round(baseExcess * 1.5);
+			const calcObjMin = target + calcExcess;
+
+			const compliance = calcObjMin > 0 ? (worked * 100) / calcObjMin : 0;
+
+			// vacation_days viene del backend (campo vacation_used en el periodo)
+			const vacations = this._vacation_used_backend ?? 0;
+
+			this.stats = {
+				...this.stats,
+				target_min: target,
+				worked_min: worked,
+				tolerance_planned_min: tolerancePlanned,
+				tolerance_accum_min: toleranceAccum,
+				tardiness_count: tardies,
+				vacation_days: vacations,
+				base_excess_min: baseExcess,
+				calc_excess_min: calcExcess,
+				calc_final_obj: this.minutesToText(calcObjMin),
+				compliance_pct: compliance,
+			};
+			this.red_flag = toleranceAccum > tolerancePlanned;
+		},
+
+		weekDays(week) { return week.slice(0, 6); },
+		weekSigma(week) { return week[6]; },
+		weekDateRange(week) {
+			const MON = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+			const days = week.slice(0, 6).filter(d => d?.date);
+			if (!days.length) return '';
+			const [, fm, fd] = days[0].date.split('-');
+			const [, lm, ld] = days[days.length - 1].date.split('-');
+			if (fm === lm) return `${+fd} - ${+ld} ${MON[+lm - 1]}`;
+			return `${+fd} ${MON[+fm - 1]} - ${+ld} ${MON[+lm - 1]}`;
+		},
+
+		dayClass(day) {
+			if (!day?.in_period) return 'glass';
+
+			let cls = 'white';
+			if (day?.is_holiday) cls += ' holidays';
+			if (day?.is_vacation) cls += ' vacation';
+			if (day?.is_permit) cls += ' permit';
+			return cls;
+		},
+
+		showLate(day) {
+			return this.isLateDay(day);
+		},
+
+		hasIncomplete(day) {
+			return this.isDayIncomplete(day) || this.isRecoveryIncomplete(day);
+		},
+
+		getPermitDurationId(day) {
+			const id =
+				day?.permit?.duration_id ??
+				day?.permit_duration_id ??
+				day?.duration_id;
+
+			const n = Number(id);
+			return Number.isFinite(n) ? n : null;
+		},
+
+		permitSlots(day) {
+			const did = this.getPermitDurationId(day);
+
+			const part =
+				did === 1 ? "Mañana" :
+				did === 2 ? "Tarde"  :
+				did === 3 ? "Día"    : "";
+
+			return {
+				duration_id: did,
+				partial: did === 1 || did === 2,
+				morning: did === 1 || did === 3,
+				afternoon: did === 2 || did === 3,
+				part, // "Mañana" | "Tarde" | "Día" | ""
+			};
+		},
+
+		hasTwoIntervalsProfile(day) {
+			// ✅ Lo ideal: backend envía permit_expected_reduction (covered_marks)
+			// originalExpected = expected_marks + permit_expected_reduction
+			const expected = Number(day?.expected_marks ?? 0);
+			const red = Number(day?.permit_expected_reduction ?? 0);
+			const originalExpected = expected + (Number.isFinite(red) ? red : 0);
+
+			if (originalExpected > 0) return originalExpected >= 4;
+
+			// fallback (si no llega permit_expected_reduction):
+			// si hay permiso parcial y expected quedó en 2, asumimos perfil de 4 reducido.
+			const did = this.getPermitDurationId(day);
+			if ((did === 1 || did === 2) && expected === 2) return true;
+
+			return expected >= 4;
+		},
+
+		dayItems(day) {
+			if (!day?.in_period) return [];
+
+			if (day?.is_vacation) {
+				return [{
+				label: "Licencia",
+				value: "Vacaciones",
+				incomplete: false,
+				extra: false,
+				vacation: true,
+				class: "vacations",
+				leave_id: day.vacation?.id || null,
+				}];
+			}
+
+			if (day?.is_holiday) {
+				const name = (day?.holiday?.name || "Feriado").trim();
+				return [{ label: "Feriado", value: name, incomplete: false, extra: false, holiday: true }];
+			}
+
+			const intervalsRaw = (day?.intervals || []);
+			const intervals = intervalsRaw.filter(x => (x?.start || "").trim());
+			const dayIncomplete = this.isDayIncomplete(day) || this.isRecoveryIncomplete(day);
+
+			const expectedTotal = this.getExpectedMarks(day);
+			const eff = this.getEffectiveMarks(day);
+
+			const permitInfo = day?.is_permit ? this.permitSlots(day) : null;
+
+			const makeTimeItem = (label, it) => {
+				if (!it || !(it?.start || "").trim()) return null;
+				const hasEnd = !!(it?.end || "").trim();
+				return {
+				label,
+				value: hasEnd ? `${it.start} - ${it.end}` : `${it.start}`,
+				incomplete: dayIncomplete,
+				extra: false,
+				};
+			};
+
+			const makePermitItem = (part) => ({
+				label: "Licencia",
+				value: `Permiso${part ? ` (${part})` : ""}`,
+				incomplete: false,
+				extra: false,
+				permit: true,
+				class: `permit-item permit-${(part || "na").toLowerCase()}`,
+				leave_id: day.permit?.id || null,
+			});
+
+			const items = [];
+
+			const did = permitInfo?.duration_id || null;
+
+			if (did === 1) {
+				// ===== PERMISO MAÑANA: primer intervalo = Mañana (sin estilo alt), segundo = Tarde =====
+				if (permitInfo?.morning) items.push(makePermitItem("Mañana"));
+				const int0 = makeTimeItem("Mañana", intervalsRaw[0] || null);
+				if (int0) { int0.class = 'no-alt-bg'; items.push(int0); }
+				const int1 = makeTimeItem("Tarde", intervalsRaw[1] || null);
+				if (int1) items.push(int1);
+			} else {
+				// ===== SLOT MAÑANA (sin permiso de mañana) =====
+				const morningInterval = makeTimeItem("Mañana", intervalsRaw[0] || null);
+				if (morningInterval) items.push(morningInterval);
+				// did=3 (día completo) lo renderizamos después en bloque único
+				// ===== SLOT TARDE =====
+				const afternoonInterval = makeTimeItem("Tarde", intervalsRaw[1] || null);
+
+				if (did === 2) {                // permiso en la tarde: intervalo primero
+					if (afternoonInterval) items.push(afternoonInterval);
+					if (permitInfo?.afternoon) items.push(makePermitItem("Tarde"));
+				} else {
+					if (afternoonInterval) items.push(afternoonInterval);
+					// did=3 lo renderizamos después en bloque único
+				}
+			}
+
+			// ===== PERMISO DÍA COMPLETO (una sola vez) =====
+			if (did === 3) {
+				items.push(makePermitItem("Día"));
+			}
+
+			// Ajustes (igual)
+			const adjItems = (day?.adjustment_items || []);
+			for (const a of adjItems) {
+				const label = (a?.label || "").trim() || "Ajuste";
+				const value = (a?.value || "").trim();
+				if (!value) continue;
+
+				items.push({
+				label,
+				value,
+				incomplete: false,
+				extra: false,
+				adjustment: true,
+				leave_id: a.leave_id || null,
+				});
+			}
+
+			// Pendiente:
+			// - Con permiso: si incompleto, mostrar (según tu regla de perfil 2 intervalos si parcial)
+			// - Sin permiso: solo si NO hay marcas/intervalos (0/x)
+			const shouldShowPending =
+				dayIncomplete &&
+				expectedTotal > 0 &&
+				(
+				(day?.is_permit && (!permitInfo?.partial || this.hasTwoIntervalsProfile(day)))
+				||
+				(!day?.is_permit && intervals.length === 0)
+				);
+
+			if (shouldShowPending) {
+				items.push({
+				label: "Pendiente",
+				value: `Registros (${eff}/${expectedTotal})`,
+				incomplete: true,
+				extra: false,
+				class: "pending-item",
+				});
+				return items;
+			}
+
+			if (items.length === 0 && !dayIncomplete) return [];
+
+			if (!dayIncomplete && typeof day?.delta_min === "number") {
+				items.push({
+				label: "Saldo del día",
+				value: this.minutesToDeltaText(day.delta_min),
+				incomplete: false,
+				extra: true,
+				});
+			}
+
+			return items;
+		},
+
+		minutesToDeltaText(min) {
+			const sign = min < 0 ? "-" : "+";
+			const abs = Math.abs(min);
+			const hh = Math.floor(abs / 60);
+			const mm = abs % 60;
+			return `${sign}${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`;
+		},
+
+		isToday(day) {
+			if (!day?.date) return false;
+			return day.date === this.todayLocalISO() && this.offset === 0;
+		},
+
+		async next() {
+			this.offset++;
+			await this.load();
+		},
+
+		async prev() {
+			this.offset--;
+			await this.load();
+		},
+
+		async today() {
+			this.offset = 0;
+			await this.load();
+		},
+
+		xlsProcess() {
+			this.$refs.file.value = "";
+			this.$refs.file.click();
+		},
+
+		async onSelected(e) {
+			const file = e.target.files?.[0];
+			if (!file) return;
+
+			this.loading = true;
+
+			try {
+				const form_data = new FormData();
+				form_data.append("file", file);
+
+				const res = await fetch(`${this.api}/attendance/xls`, {
+					method: "POST",
+					body: form_data,
+				});
+
+				const data = await res.json().catch(() => ({}));
+				if (!res.ok) return;
+
+				await this.load();
+
+			} finally {
+				this.loading = false;
+			}
+		},
+
+		async viewLeaves() {
+			await this.getLeaveRequests();
+			Alpine.store('cache').showModal('leaves');
+		},
+
+		async openLeave(leaveId) {
+			await this.getLeaveRequests();
+			this.expanded_leave_id = null;
+			Alpine.store('cache').showModal('leaves');
+			await this.$nextTick();
+			const leave = (this.leave_requests || []).find(l => l.id === leaveId);
+			if (leave) {
+				await this.toggleLeaveExpand(leave);
+				await this.$nextTick();
+				const el = document.getElementById(`leave-row-${leaveId}`);
+				if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			}
+		},
+
+		removeNewAt(index) {
+			const it = this.draft_marks[index];
+			if (!it || it.type !== "new") return;
+			this.draft_marks.splice(index, 1);
+		},
+
+		formatLongDate(iso) {
+			if (!iso) return "";
+			const [y,m,d] = iso.split("-").map(Number);
+			const dt = new Date(y, m - 1, d);
+			const months = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+			return `${d} de ${months[dt.getMonth()]} de ${y}`;
+		},
+
+		extractMarks(day) {
+			const marks = [];
+			const intervals = (day?.intervals || []);
+
+			for (const it of intervals) {
+				const s = (it?.start || "").trim();
+				const e = (it?.end || "").trim();
+				if (s) marks.push(s);
+				if (e) marks.push(e);
+			}
+
+			return marks;
+		},
+
+		getExpectedMarks(day) {
+			if (typeof day?.expected_marks === "number") return day.expected_marks;
+
+			return 0;
+		},
+
+		showEdit(day) {
+			if (!(this.isDayIncomplete(day) || this.isRecoveryIncomplete(day))) return;
+
+			this.selected_day = day;
+
+			const marks = this.extractMarks(day);
+			const expectedForEdit = this.getExpectedMarksForEditConsideringAdjustment(day);
+			if (expectedForEdit <= 0) return;
+			this.expected_marks = expectedForEdit;
+
+			this.draft_marks = marks.map(t => ({ type: "locked", time: t }));
+
+			Alpine.store('cache').showModal('edit');
+		},
+
+		canAddMore() {
+			return (this.draft_marks?.length || 0) < this.expected_marks;
+		},
+
+		isCompleteDraft() {
+			if ((this.draft_marks?.length || 0) !== this.expected_marks) return false;
+			return this.draft_marks.every(x => (x.time || "").trim().length === 5);
+		},
+
+		nodesForDraft() {
+			const nodes = [];
+			const n = this.draft_marks.length;
+			const canAdd = this.canAddMore();
+
+			if (canAdd) nodes.push({ type: "add", index: 0 });
+
+			for (let i = 0; i < n; i++) {
+				nodes.push({ type: "item", index: i });
+				if (canAdd) nodes.push({ type: "add", index: i + 1 });
+			}
+			return nodes;
+		},
+
+		openInlineAdd(slotIndex) {
+			if (!this.canAddMore()) return;
+			this.draft_marks.splice(slotIndex, 0, { type: "new", time: "" });
+		},
+
+		async updateMarks() {
+			if (!this.isCompleteDraft()) {
+				this.showError('update', 'Marcaciones incompletas');
+				return;
+			} 
+
+			const day = this.selected_day;
+			const user_id = this.option_user?.id ?? this.user.id;
+
+			const additions = [];
+			for (let i = 0; i < this.draft_marks.length; i++) {
+				const it = this.draft_marks[i];
+				if (it.type === "new") {
+					additions.push({ time: it.time, position: i });
+				}
+			}
+
+			try {
+				const response = await fetch(`${this.api}/attendance/marks/complete`, {
+					method: "POST",
+					headers: { 
+						"Content-Type": "application/json",
+						"Authorization": `Bearer ${this.token}`,
+					},
+					body: JSON.stringify({
+						user_id,
+						date: day.date,
+						expected_marks: this.expected_marks,
+						additions
+					})
+				});
+
+				const jsonData = await response.json();
+				if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+				await this.load();
+				Alpine.store('cache').hideLastModal();
+			} catch (error) {
+				this.showError('update', error.message);
+			}
+		},
+
+		showError(btnKey, errorMsg) {
+			const originalText = this.buttons[btnKey].text;
+			const originalClass = this.buttons[btnKey].class;
+
+			if (originalClass == 'error') {
+				return;
+			}
+			this.buttons[btnKey].text = errorMsg;
+			this.buttons[btnKey].class = 'error';
+
+			setTimeout(() => {
+				this.buttons[btnKey].text = originalText;
+				this.buttons[btnKey].class = originalClass;
+			}, 2000);
+		},
+
+		permitModal() {
+			this.resetForms();
+			this.attendance_form.type = "permit";
+			Alpine.store('cache').showModal('process');
+		},
+
+		vacationModal() {
+			this.resetForms();
+			this.attendance_form.type = "vacation";
+			Alpine.store('cache').showModal('process');
+		},
+
+		medicalModal() {
+			this.resetForms();
+			this.attendance_form.type = "medical";
+			this.medical_files = [];
+			Alpine.store('cache').showModal('process');
+		},
+
+		formatShortDate(iso) {
+			if (!iso) return "";
+			const [y, m, d] = iso.split("-").map(Number);
+			const date = new Date(y, m - 1, d);
+			const months = ["ene.", "feb.", "mar.", "abr.", "may.", "jun.", "jul.", "ago.", "sep.", "oct.", "nov.", "dic."];
+
+			return `${d} ${months[date.getMonth()]} ${y}`;
+		},
+
+		dateLabel(iso, fallback) {
+			return iso ? this.formatShortDate(iso) : fallback;
+		},
+
+		addDaysISO(iso, days) {
+			if (!iso) return "";
+			const [y, m, d] = iso.split("-").map(Number);
+			const dt = new Date(y, m - 1, d);
+			dt.setDate(dt.getDate() + days);
+			return dt.toISOString().slice(0, 10);
+		},
+
+		endDateMin() {
+			return this.attendance_form.start_date || this.minVacationDate;
+		},
+
+		endDateMax() {
+			return this.attendance_form.start_date ? this.addDaysISO(this.attendance_form.start_date, 15) : "";
+		},
+
+		minutesToText(mins, withSign = false) {
+			const abs = Math.abs(Number(mins) || 0);
+			const hh = String(Math.floor(abs / 60)).padStart(2, "0");
+			const mm = String(abs % 60).padStart(2, "0");
+
+			const sign = (withSign && (Number(mins) || 0) !== 0)
+				? ((Number(mins) || 0) < 0 ? "-" : "+")
+				: "";
+
+			return `${sign}${hh}:${mm}`;
+		},
+
+		isDayIncomplete(day) {
+			if (!day?.in_period) return false;
+			if (day?.is_summary) return false;
+			if (day?.is_holiday) return false;
+			if (day?.is_vacation) return false;
+
+			const todayISO = this.todayLocalISO();
+			if (!day?.date || day.date > todayISO) return false;
+
+			const expected = this.getExpectedMarks(day);
+			if (!expected || expected <= 0) return false;
+
+			const eff = this.getEffectiveMarks(day);
+			return eff < expected;
+		},
+
+		isRecoveryIncomplete(day) {
+			if (!day?.in_period) return false;
+			if (day?.is_summary) return false;
+			if (day?.is_holiday) return false;
+			if (day?.is_vacation) return false;
+
+			const todayISO = this.todayLocalISO();
+			if (!day?.date || day.date > todayISO) return false;
+
+			const expected = this.getExpectedMarks(day);
+			if (expected && expected > 0) return false;
+
+			const marksCount = this.extractMarks(day).length;
+			return marksCount > 0 && (marksCount % 2 === 1);
+		},
+
+		getExpectedMarksForEdit(day) {
+			const expected = this.getExpectedMarks(day);
+			if (expected && expected > 0) return expected;
+
+			const marksCount = this.extractMarks(day).length;
+			if (marksCount > 0 && (marksCount % 2 === 1)) {
+				const nextEven = marksCount + 1;
+				return Math.min(nextEven, 4); 
+			}
+
+			return 0;
+		},
+
+		resetForms() {
+			this.attendance_form = {
+				modal: "add",
+				type: "",
+				start_date: null,
+				end_date: null,
+				leave_type_id: null,
+				leave_type_detail: "",
+				duration_id: null,
+				description: "",
+				motive: "",
+				recovery_plan: "",
+				assigned_id: null
+			};
+		},
+
+		async leaveProcess() {
+			if (this.processing) return;
+
+			const user_id = this.user.id;
+
+			// ── MEDICAL LEAVE (multipart form data con archivos) ──────────
+			if (this.attendance_form.type === 'medical') {
+				if (!this.attendance_form.start_date) return this.showError('save', 'Fecha inicio requerida');
+				if (!this.medical_files || this.medical_files.length === 0) return this.showError('save', 'Adjunta al menos 1 archivo');
+
+				this.processing = true;
+				try {
+					const fd = new FormData();
+					fd.append('user_id', user_id);
+					fd.append('start_date', this.attendance_form.start_date);
+					fd.append('end_date', this.attendance_form.end_date || this.attendance_form.start_date);
+					fd.append('description', this.attendance_form.description || '');
+					this.medical_files.forEach(f => fd.append('attachments[]', f));
+
+					const res = await fetch(`${this.api}/attendance/leave/medical`, {
+						method: 'POST',
+						headers: { 'Authorization': `Bearer ${this.token}` },
+						body: fd,
+					});
+					const data = await res.json().catch(() => ({}));
+					if (!res.ok) throw new Error(data?.data?.message || data?.message || 'Error al solicitar');
+
+					this.resetForms();
+					this.medical_files = [];
+					Alpine.store('cache').hideLastModal();
+				} catch (e) {
+					this.showError('save', e.message);
+				} finally {
+					this.processing = false;
+				}
+				return;
+			}
+
+			if (this.attendance_form.type == 'permit'){
+				if (!this.attendance_form.start_date) return this.showError('save', 'Fecha requerida');
+				if (!this.attendance_form.duration_id) return this.showError('save', 'Duración requerida');
+				if (!this.attendance_form.leave_type_id) return this.showError('save', 'Tipo requerido');
+				if (String(this.attendance_form.leave_type_id) === "5" && !(this.attendance_form.leave_type_detail || "").trim()) {
+					return this.showError('save', 'Especifica el tipo');
+				}
+			} else {
+				if (!this.attendance_form.start_date) return this.showError('save', 'Inicio requerido');
+				if (!this.attendance_form.end_date) return this.showError('save', 'Fin requerido');
+				if (!this.attendance_form.assigned_id) return this.showError('save', 'Responsable requerido');
+			}
+
+			this.processing = true;
+			try {
+				const res = await fetch(`${this.api}/attendance/leave/request`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						"Authorization": `Bearer ${this.token}`,
+					},
+					body: JSON.stringify({
+						user_id,
+						type: this.attendance_form.type,
+						start_date: this.attendance_form.start_date,
+						end_date: this.attendance_form.end_date,
+						duration_id: this.attendance_form.duration_id,
+						leave_type_id: this.attendance_form.leave_type_id,
+						leave_type_detail: this.attendance_form.leave_type_detail,
+						motive: this.attendance_form.motive,
+						recovery_plan: this.attendance_form.recovery_plan,
+						assigned_user_id: this.attendance_form.assigned_id,
+						description: this.attendance_form.description,
+					})
+				});
+
+				const data = await res.json().catch(() => ({}));
+				if (!res.ok) throw new Error(data?.message || data?.data?.message || 'Error al solicitar');
+
+				this.resetForms();
+				Alpine.store('cache').hideLastModal();
+			} catch (e) {
+				this.showError('save', e.message);
+			} finally {
+				this.processing = false;
+			}
+		},
+
+		async updateRequest() {
+			if (this.processing) return;
+
+			const payload = {
+				start_date: this.attendance_form.start_date,
+				end_date: this.attendance_form.end_date,
+				duration_id: this.attendance_form.duration_id,
+				leave_type_id: this.attendance_form.leave_type_id,
+				leave_type_detail: this.attendance_form.leave_type_detail,
+				motive: this.attendance_form.motive,
+				recovery_plan: this.attendance_form.recovery_plan,
+				assigned_user_id: this.attendance_form.assigned_id,
+				description: this.attendance_form.description,
+			};
+
+			this.processing = true;
+
+			try {
+				const response = await fetch(
+					`${this.api}/attendance/leave/${this.attendance_form.id}`,
+					{
+						method: "PUT",
+						headers: {
+							"Content-Type": "application/json",
+							"Authorization": `Bearer ${this.token}`,
+						},
+						body: JSON.stringify(payload),
+					}
+				);
+
+				const json = await response.json();
+				if (!response.ok) {
+					throw new Error(json?.message || "Error al actualizar");
+				}
+
+				if (this.medical_files.length > 0) {
+					const fd = new FormData();
+					this.medical_files.forEach(f => fd.append('attachments[]', f));
+					await fetch(`${this.api}/attendance/leave/${this.attendance_form.id}/attachments`, {
+						method: 'POST',
+						headers: { 'Authorization': `Bearer ${this.token}` },
+						body: fd,
+					});
+					this.medical_files = [];
+				}
+
+				this.expanded_leave_id = null;
+				this.resetForms();
+				await this.getLeaveRequests();
+
+			} catch (e) {
+				this.showError("update", e.message);
+			} finally {
+				this.processing = false;
+			}
+		},
+
+		async deleteRequest() {
+			if (this.processing) return;
+			this.processing = true;
+
+			try {
+				const response = await fetch(
+					`${this.api}/attendance/leave/${this.attendance_form.id}`,
+					{
+						method: "PUT",
+						headers: {
+							"Content-Type": "application/json",
+							"Authorization": `Bearer ${this.token}`,
+						},
+						body: JSON.stringify({ delete: true }),
+					}
+				);
+
+				const jsonData = await response.json();
+				if (!response.ok) {
+					throw new Error(jsonData?.data?.message || "Error al eliminar");
+				}
+
+				this.expanded_leave_id = null;
+				this.resetForms();
+
+			} catch (error) {
+				this.showError("remove", error.message);
+			} finally {
+				this.processing = false;
+			}
+		},
+
+		async approveRequest() {
+			if (this.processing) return;
+			this.processing = true;
+
+			try {
+				const res = await fetch(`${this.api}/attendance/leave/${this.attendance_form.id}`, {
+					method: "PUT",
+					headers: {
+						"Content-Type": "application/json",
+						"Authorization": `Bearer ${this.token}`,
+					},
+					body: JSON.stringify({ action: "approve" }),
+				});
+				const data = await res.json().catch(() => ({}));
+				if (!res.ok) throw new Error(data?.data?.message || data?.message || 'Error al aprobar');
+
+				this.expanded_leave_id = null;
+				this.resetForms();
+				await this.getLeaveRequests();
+			} catch (error) {
+				this.showError("approve", error.message);
+			} finally {
+				this.processing = false;
+			}
+		},
+
+		async rejectRequest() {
+			if (this.processing) return;
+			this.processing = true;
+
+			try {
+				const res = await fetch(`${this.api}/attendance/leave/${this.attendance_form.id}`, {
+					method: "PUT",
+					headers: {
+						"Content-Type": "application/json",
+						"Authorization": `Bearer ${this.token}`,
+					},
+					body: JSON.stringify({ action: "reject" }),
+				});
+				const data = await res.json().catch(() => ({}));
+				if (!res.ok) throw new Error(data?.data?.message || data?.message || 'Error al rechazar');
+
+				this.expanded_leave_id = null;
+				this.resetForms();
+				await this.getLeaveRequests();
+
+			} catch (error) {
+				this.showError("reject", error.message);
+			} finally {
+				this.processing = false;
+			}
+		},
+		
+		async toggleLeaveExpand(leave) {
+			if (this.expanded_leave_id === leave.id) {
+				this.expanded_leave_id = null;
+				return;
+			}
+			await this.getLeave(leave);
+			this.expanded_leave_id = leave.id;
+
+		},
+
+		async getLeave(leave) {
+			this.expanded_leave_loading = true;
+			try {
+				const response = await fetch(`${this.api}/attendance/leave/${leave.id}`, {
+					headers: {
+						"Content-Type": "application/json",
+						"Authorization": `Bearer ${this.token}`,
+					},
+				});
+				const dataJson = await response.json();
+				const data = dataJson.data;
+
+				if (!response.ok) {
+					throw new Error(data?.message || "Error al obtener la solicitud");
+				}
+
+				this.attendance_form = data;
+
+				if (data.type === 'medical') {
+					try {
+						const attRes = await fetch(
+							`${this.api}/attendance/leave/${leave.id}/attachments`,
+							{ headers: { 'Authorization': `Bearer ${this.token}` } }
+						);
+						const attJson = await attRes.json();
+						this.medical_attachments = attJson.data || [];
+					} catch (e) {
+						this.medical_attachments = [];
+					}
+				} else {
+					this.medical_attachments = [];
+				}
+			} catch (error) {
+				console.error(error);
+				this.expanded_leave_id = null;
+			} finally {
+				this.expanded_leave_loading = false;
+			}
+		},
+
+		isImageFile(f) {
+			const ext = (f?.ext || '').toLowerCase();
+			return ['png','jpg','jpeg','webp','gif'].includes(ext);
+		},
+
+		isPdfFile(f) {
+			return (f?.ext || '').toLowerCase() === 'pdf';
+		},
+
+		getInlineUrl(f) {
+			return `${this.api}${f.inline_url}`;
+		},
+
+		async openAttachment(file) {
+			this.viewer_file = file;
+			this.viewer_payload = null;
+			const res = await fetch(`${this.api}${file.preview_url}`, {
+				headers: { 'Authorization': `Bearer ${this.token}` },
+			});
+			const json = await res.json();
+			const payload = json?.data ?? json;
+			if (payload.kind === 'url') {
+				payload.url = `${this.api}${payload.url}`;
+			}
+			this.viewer_file.download_url = `${this.api}${file.download_url}`;
+			this.viewer_payload = payload;
+			Alpine.store('cache').showModal('attachment');
+		},
+
+		async deleteLeaveAttachment(id) {
+			const res = await fetch(`${this.api}/attendance/leave/attachment/${id}`, {
+				method: 'DELETE',
+				headers: { 'Authorization': `Bearer ${this.token}` },
+			});
+			if (res.ok) {
+				this.medical_attachments = this.medical_attachments.filter(a => a.id !== id);
+			}
+		},
+
+		getAdjustmentMarks(day) {
+			const m = Number(day?.adjustment_marks ?? 0);
+			return Number.isFinite(m) ? Math.max(0, m) : 0;
+		},
+
+		getEffectiveMarks(day) {
+			const expected = this.getExpectedMarks(day);
+			if (!expected || expected <= 0) return 0;
+
+			const real = this.extractMarks(day).length;
+			const adj = this.getAdjustmentMarks(day);
+
+			return Math.min(expected, real + adj);
+		},
+
+		getExpectedMarksForEditConsideringAdjustment(day) {
+			const expected = this.getExpectedMarks(day);
+			if (!expected || expected <= 0) return 0;
+
+			const adj = this.getAdjustmentMarks(day);
+			const real = this.extractMarks(day).length;
+
+			const needed = Math.max(0, expected - adj);
+
+			return Math.max(needed, real);
+		},
+
+		async salaryGenerateFile(businessId) {
+			if (!this.salary_period_id) return;
+
+			try {
+				const token = localStorage.getItem('user_token');
+				const res = await fetch(`${this.api}/attendance/salary/generate`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': `Bearer ${token}`,
+					},
+					body: JSON.stringify({
+						period_id: this.salary_period_id,
+						business_id: businessId,
+					}),
+				});
+
+				const json = await res.json();
+				if (!res.ok) throw new Error(json?.data?.message || 'Error generando archivo');
+
+				const data = json.data;
+
+				const blob = new Blob([data.content], { type: 'text/plain' });
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = data.filename;
+				a.click();
+				URL.revokeObjectURL(url);
+
+			} catch (e) {
+				console.error('Error generando archivo:', e);
+			}
+		},
+
+		async salaryGenerateFileBbva(businessId) {
+			if (!this.salary_period_id) return;
+
+			try {
+				const token = localStorage.getItem('user_token');
+				const res = await fetch(`${this.api}/attendance/salary/generate/bbva`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': `Bearer ${token}`,
+					},
+					body: JSON.stringify({
+						period_id: this.salary_period_id,
+						business_id: businessId,
+					}),
+				});
+
+				const json = await res.json();
+				if (!res.ok) throw new Error(json?.data?.message || 'Error generando archivo BBVA');
+
+				const data = json.data;
+
+				const blob = new Blob([data.content], { type: 'text/plain' });
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = data.filename;
+				a.click();
+				URL.revokeObjectURL(url);
+
+			} catch (e) {
+				console.error('Error generando archivo BBVA:', e);
+			}
+		},
+
+	}));
+</script>
+
+
+
+
+
+
+
+
+
+	<style>
+		/* Salary modal */
+		.salary-modal-head {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 1rem;
+			flex-wrap: wrap;
+		}
+		.salary-modal-title {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			font-weight: 600;
+			font-size: 1.125rem;
+		}
+		.salary-modal-controls {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		.salary-period-nav {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			font-size: 0.8rem;
+			font-weight: 500;
+			margin-right: auto;
+			border-radius: 2.5rem;
+		}
+		.salary-period-nav div {
+			padding: 0.5rem;
+		}
+		.salary-period-name {
+			min-width: 8rem;
+			text-align: center;
+		}
+		.salary-calc-btn {
+			background: var(--primary);
+			color: white;
+			border: none;
+			border-radius: 2rem;
+			padding: 0.45rem 1rem;
+			font-family: var(--font);
+			font-size: 0.75rem;
+			font-weight: 600;
+			cursor: pointer;
+		}
+		.salary-calc-btn:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+		.salary-empty {
+			padding: 3rem;
+			text-align: center;
+			opacity: 0.4;
+			font-size: 0.85rem;
+		}
+
+		/* Table */
+		.salary-table {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+		.salary-cols {
+			grid-template-columns: 1.35fr 0.75fr 0.6fr 0.6fr 0.75fr 0.75fr auto;
+		}
+		.salary-table-head {
+			display: grid;
+			gap: 0.75rem;
+			padding: 0 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 600;
+			opacity: 0.35;
+		}
+		.salary-table-row {
+			display: grid;
+			gap: 0.75rem;
+			align-items: center;
+			padding: 0.5rem 0.75rem;
+			font-size: 0.8rem;
+			border-radius: 0.5rem;
+		}
+		.salary-user {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			min-width: 0;
+		}
+		.salary-user img {
+			border-radius: 50%;
+			object-fit: cover;
+			flex-shrink: 0;
+			width: 32px;
+			height: 32px;
+		}
+		.salary-user .name-dept {
+			display: flex;
+    		flex-direction: column;
+		}
+		.salary-user .name {
+			font-weight: 600;
+			font-size: 0.8rem;
+			display: block;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		.salary-user .dept {
+			font-size: 0.75rem;
+			opacity: 0.5;
+			font-weight: 500;
+		}
+		.salary-basic {
+			font-weight: 500;
+		}
+		.salary-final {
+			font-weight: 600;
+		}
+		.salary-high {
+			color: #6eb579;
+			}
+
+		.salary-medium {
+			color: #f1ae3d;
+		}
+
+		.salary-low {
+			color: #ed6969;
+		}
+		.salary-approve-btn {
+			background-color: #fff;
+			border: 1.5px solid var(--graydark);
+			border-radius: 0.5rem;
+			width: 2rem;
+			height: 2rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			padding: 0;
+		}
+		.salary-approve-btn:hover {
+			background-color: var(--gray);
+		}
+		.salary-approved-badge {
+			background: #bce9dc;
+			color: #0F6E56;
+			border: 1.5px solid #99dac8;
+			border-radius: 2rem;
+			padding: 0.35rem 0;
+			font-size: 0.65rem;
+			font-weight: 700;
+			white-space: nowrap;
+			width: 5rem;
+			text-align: center;
+		}
+		.salary-draft-badge {
+			background: #efefef;
+			color: #888;
+			border-radius: 2rem;
+			padding: 0.35rem 0;
+			width: 5rem;
+			text-align: center;
+			font-size: 0.65rem;
+			font-weight: 600;
+			white-space: nowrap;
+			border: 1.5px solid var(--graydark);
+		}
+		.salary-rrhh-badge {
+			background: #E6F1FB;
+			color: #185FA5;
+			border-radius: 2rem;
+			padding: 0.35rem 0;
+			width: 5rem;
+			text-align: center;
+			font-size: 0.65rem;
+			font-weight: 700;
+			white-space: nowrap;
+			border: 1.5px solid #9abbdc;
+		}
+		.salary-status-cell {
+			display: flex;
+			align-items: center;
+		}
+		.salary-actions-cell {
+			display: flex;
+			align-items: center;
+			gap: 0.4rem;
+			justify-content: flex-end;
+			width: calc(2 * 2rem + 0.4rem);
+		}
+		.salary-adj-cell {
+			display: flex;
+			align-items: center;
+		}
+		.salary-adj-input-wrap {
+			display: flex;
+			align-items: center;
+		}
+		.salary-adj-input {
+			width: 100%;
+			max-width: 5.5rem;
+			border: 1.5px solid var(--graydark);
+			border-radius: 0.5rem;
+			padding: 0.35rem;
+			font-family: var(--font);
+			font-size: 0.75rem;
+			text-align: right;
+			outline: none;
+			background: transparent;
+			font-weight: 500;
+		}
+		.salary-adj-input:focus {
+			border-color: var(--graydarkest);
+		}
+		.salary-adj-positive {
+			color: #0F6E56;
+		}
+		.salary-recalc-btn {
+			background: none;
+			border: 1.5px solid var(--graydark);
+			border-radius: 0.5rem;
+			width: 2rem;
+			height: 2rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 1rem;
+			cursor: pointer;
+			padding: 0;
+		}
+
+		/* Leave balance adjustment */
+		.leave-adj-toggle {
+			margin-left: auto;
+			cursor: pointer;
+			padding: 0.2rem;
+		}
+		.leave-adj-panel {
+			padding: 0.75rem 0 0.25rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			border-top: 1px solid var(--gray);
+		}
+		.leave-adj-row {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 0.5rem;
+		}
+		.leave-adj-label {
+			font-size: 0.75rem;
+			font-weight: 500;
+			opacity: 0.6;
+		}
+		.leave-adj-panel .leave-adj-input {
+			width: 5rem;
+			border: 1.5px solid var(--graydark);
+			border-radius: 0.4rem;
+			padding: 0.35rem 0.5rem;
+			font-family: var(--font);
+			font-size: 0.8rem;
+			text-align: right;
+			outline: none;
+			background: transparent;
+		}
+		.leave-adj-panel .leave-adj-input:focus {
+			border-color: var(--primary);
+		}
+		.leave-adj-save {
+			background: var(--secondary);
+			color: white;
+			border: none;
+			border-radius: 0.75rem;
+			padding: 0.5rem;
+			font-family: var(--font);
+			font-size: 0.75rem;
+			cursor: pointer;
+		}
+		.leave-adj-save:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+		.leave-adj-hint {
+			font-size: 0.65rem;
+			opacity: 0.4;
+			line-height: 1.3;
+		}
+
+		.salary-gen-btn {
+			background: var(--secondary);
+			color: white;
+			border: none;
+			border-radius: 2rem;
+			padding: 0.45rem 0.75rem;
+			font-family: var(--font);
+			font-size: 0.7rem;
+			font-weight: 600;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			gap: 0.35rem;
+		}
+		.salary-gen-btn:disabled {
+			opacity: 0.3;
+			cursor: not-allowed;
+		}
+		.salary-gen-btn img {
+			filter: invert(1);
+		}
+
+		#modal-process .view-leave {
+			padding: 1.5rem;
+			display: flex;
+			gap: 1.5rem;
+			flex-direction: column;
+		}
+		#modal-process .view-leave .label {
+			font-size: 0.75rem;
+			opacity: 0.7;
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		#modal-process .view-leave .value {
+			margin-left: 1.5rem;
+			white-space: break-spaces;
+		}
+		
+		/* Medical leave modal */
+		#modal-process .medical-attachments {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+		#modal-process .medical-upload-btn {
+			padding: 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#modal-process .medical-files-list {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+		#modal-process .medical-file-item {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.15rem 0.75rem;
+			border-radius: 0.75rem;
+			font-size: 0.7rem;
+		}
+		#modal-process .medical-file-name {
+			flex: 1;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			font-weight: 500;
+		}
+		#modal-process .medical-file-size {
+			opacity: 0.5;
+			font-size: 0.7rem;
+			white-space: nowrap;
+		}
+		#modal-process .medical-file-remove {
+			color: var(--primary);
+			font-weight: 700;
+			padding: 0.5rem;
+		}
+		#modal-process .medical-hint {
+			font-size: 0.7rem;
+			color: #A32D2D;
+			opacity: 0.8;
+			text-align: center;
+			padding: 0.5rem;
+		}
+		#modal-process .medical-att-link {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.5rem 0.75rem;
+			background: var(--gray);
+			border-radius: 0.5rem;
+			text-decoration: none;
+			color: inherit;
+			font-size: 0.75rem;
+			cursor: pointer;
+		}
+		#modal-process .medical-att-link:hover {
+			background: var(--graydark);
+		}
+		#modal-edit .top {
+			display: flex;
+    		justify-content: space-between;
+		}
+		#modal-edit .edit-timeline {
+			gap:0.5rem;
+			align-items:center;
+		}
+		#modal-edit .mark-pill {
+			padding: 0.5rem 1rem;
+		}
+		#modal-edit .mark-pill .box {
+			display: flex;
+			align-items: center;
+			gap: 0.25rem;
+		}
+		#modal-edit .mark-pill.new {
+			padding: 0.5rem;
+		}
+		#modal-edit .add-slot {
+			padding:0.5rem 1rem;
+			cursor:pointer;
+			border-radius: 0.75rem;
+		}
+		#modal-edit .add-slot:disabled {
+			opacity:0.4;
+			cursor:not-allowed;
+		}
+		#modal-edit .time-inline {
+			background: transparent;
+			border: 0;
+			outline: none;
+			font-weight: 700;
+		}
+		#modal-edit .remove-new {
+			margin-left: .5rem;
+			border: 0;
+			background: rgba(255, 255, 255, .12);
+			padding: 0 0.5rem;
+			cursor: pointer;
+		}
+		#modal-edit .disabled { 
+			opacity: .45 !important;
+			pointer-events: none;
+			font-size: 0.85rem;
+		}
+
+		.week_summary_box {
+			padding: 0.5rem;
+			border-radius: 0.5rem;
+			display: flex;
+			flex-direction: column;
+		}
+		.week_summary_box .row {
+			display: flex;
+			justify-content: space-between;
+			font-size: 0.8rem;
+		}
+		.week_summary_box .wk-gap {
+			margin-top: 0.5rem;
+		}
+		.week_summary_box .wk-sep {
+			border-top: 2px solid #eee;
+			margin: 0.5rem 0;
+		}
+		.week_summary_box .wk-sunday-section {
+			display: flex;
+			flex-direction: column;
+		}
+		.week_summary_box .k {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			font-size: 0.65rem;
+			font-weight: 600;
+			color: #767676;
+		}
+		.week_summary_box .v {
+    		font-weight: 500;
+		}
+		.week_summary_box .v.pos {
+			color: #76b85d;
+    		font-weight: 600;
+		}
+		.week_summary_box .v.neg {
+			color: #f05c46;
+    		font-weight: 600;
+		}
+		.custom_select {
+			position: relative;
+			cursor: pointer;
+			display: flex;
+			gap: 0.25rem;
+			padding: 0.75rem 0;
+		}
+		.custom_select .selectors {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			width: 2rem;
+			cursor: pointer;
+			height: 2rem;
+		}
+		.custom_select .select_options {
+			border-radius: 0.25rem 0.25rem 0.75rem 0.75rem;
+			flex-direction: column;
+			position: absolute;
+			overflow: hidden auto;
+			z-index: 10;
+			max-height: 27.25rem;
+			top: 3.25rem;
+			left: 1.5rem;
+			right: 1.5rem;
+			display: flex;
+			border: 2px solid #eeeeee;
+			box-shadow: 0 0.5rem 1rem hsl(0deg 0% 0% / 20%);
+			background-color: var(--white);
+			gap: 0.25rem;
+		}
+		.custom_select .select_options .option {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			transition: var(--transition);
+			padding: 0.5rem 0.75rem;
+			font-size: 0.8rem;
+		}
+		.custom_select .select_options .option img {
+			border-radius: 2rem;
+		}
+		.custom_select .select_options .option b {
+			font-weight: 500;
+		}
+		.custom_select .select_options .option:hover {
+			background-color: var(--gray);
+		}
+        .custom_select .select_options .option.pick {
+			background-color: var(--graydark);
+		}
+		.pending {
+			background: var(--newgray);
+			border: 1px solid #cecdcd;
+		}
+		.area_approved {
+			background-color: #fff0de;
+			border: 1px solid #fcdab1;
+		}
+		.rrhh_approved {
+			background-color: #dff5ff;
+			border: 1px solid #b4e1f2;
+		}
+		.approved {
+			background-color: #d0f4ea;
+			border: 1px solid #abe9d8;
+		}
+		.rejected {
+			background-color: #fee3e1;
+			border: 1px solid #ffceca;
+		}
+		.common-modal .top {
+			justify-content: space-between;
+			display: flex;
+		}
+		.common-modal .button {
+			display: flex;
+			gap: 0.25rem;
+			justify-content: center;
+			align-items: center;
+			width: initial;
+			padding: 0 1rem;
+			line-height: 2rem;
+			font-size: 0.8rem;
+			font-weight: 400;
+		}
+		.common-modal .button img {
+			filter: invert(1);
+		}
+		#modal-process .modal label {
+    		position: relative;
+		}
+		#modal-leaves .top {
+			align-items: center;
+		}
+		#modal-attachment {
+			z-index: 60;
+		}
+		#modal-leaves .box.white {
+			padding: 0.75rem;
+			border-radius: 0.75rem;
+			margin-top: 0.25rem;
+		}
+		#modal-leaves .pair-content {
+			display: flex;
+			align-items: start;
+		}
+		#modal-leaves .pair {
+			display: flex;
+			align-items: center;
+			gap: 0.4rem;
+			font-size: 0.85rem;
+		}
+		#modal-leaves .medical-attachments {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+		#modal-leaves .medical-upload-btn {
+			border: 1px solid var(--graydark);
+			border-radius: 0.75rem;
+			padding: 0.75rem;
+		}
+		#modal-leaves .medical-files-list {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+		#modal-leaves .medical-file-item {
+			border: 1px solid var(--graydark);
+			border-radius: 0.75rem;
+			padding: 0.25rem 0.75rem;
+			display: flex;
+			background-color: var(--graydark);
+			gap: 0.5rem;
+			font-size: 0.75rem;
+			align-items: center;
+		}
+		#modal-leaves .medical-file-size {
+			margin-left: auto;
+			font-weight: 600;
+    		opacity: 0.5;
+		}
+		#modal-leaves .medical-file-remove {
+			padding: 0.5rem;
+			font-weight: 700;
+			color: var(--primary);
+		}
+		.table-box {
+			gap: 0.5rem;
+			display: flex;
+			flex-direction: column;
+		}
+		.table-box > div {
+			display: flex;
+			flex-direction: column;
+		}
+		.table-row {
+			display: grid;
+			align-items: center;
+			cursor: pointer;
+			transition: var(--transition);
+			grid-template-columns: 0.5fr 0.5fr auto;
+			padding: 0.75rem 1rem;
+			gap: 0.75rem;
+		}
+		.table-row.row-open {
+			border-radius: 0.75rem 0.75rem 0 0;
+		}
+		.table-row .type {
+			display: flex;
+			align-items: center;
+			gap: 0.25rem;
+			font-size: 0.85rem;
+			opacity: 0.65;
+			margin-left: auto;
+		}
+		.table-row .type span {
+			font-weight: 500;
+			font-size: 0.8rem;
+			gap: 0.25rem;
+			display: flex;
+			align-items: center;
+		}
+		.table-row .id {
+			font-weight: 700;
+			display: none;
+		}
+		.table-row .user .data {
+			display: flex;
+    		flex-direction: column;
+			white-space: nowrap;
+    		overflow: hidden;
+		}
+		.table-row .user .name {
+			font-weight: 600;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		.table-row .user .department {
+			font-size: 0.75rem;
+    		opacity: 0.65;
+		}
+		.table-row > div:nth-child(2) {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		.table-row .image {
+			border-radius: 2rem;
+			object-fit: cover;
+		}
+		.table-row .statuses div {
+			padding: 0.25rem 0;
+			border-radius: 0.35rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+			min-width: 6rem;
+			text-align: center;
+		}
+		.leave-expand-panel {
+			background: white;
+			border-radius: 0 0 0.75rem 0.75rem;
+			padding: 0 1rem 1rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+		.leave-expand-panel .edit-content {
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+		}
+		.leave-expand-panel .field-row {
+			display: flex;
+			gap: 0.75rem;
+			position: relative;
+		}
+		.leave-expand-panel textarea,
+		.leave-expand-panel .field-row label {
+			border: 1px solid var(--graydark) !important;
+			border-radius: 0.75rem !important;
+			transition: var(--transition);
+		}
+		.leave-expand-panel textarea:hover,
+		.leave-expand-panel .field-row label:hover {
+			border: 1px solid var(--tertiary) !important;
+		}
+		.leave-expand-loading {
+			opacity: 0.5;
+			font-size: 0.85rem;
+			padding: 0.5rem 0;
+		}
+		.leave-expand-meta {
+			font-size: 0.75rem;
+			opacity: 0.5;
+			margin: 0 0 0.25rem 0;
+		}
+		.leave-expand-panel .view-leave {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+		.leave-expand-panel .view-leave .row {
+			display: flex;
+			justify-content: space-between;
+			gap: 2rem;
+			padding-top: 0.5rem;
+			border-top: 1px solid var(--graydark);
+		}
+		.leave-expand-panel .view-leave .row:first-child {
+			border-top: none;
+		}
+		.leave-expand-panel .view-leave .thumbnails-grid {
+			display: flex;
+    		flex-direction: row;
+		}
+		.leave-expand-panel .view-leave .thumbnails-grid .thumb-item {
+			max-width: 3rem;
+		}
+		.leave-expand-panel .view-leave .label {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			font-size: 0.8rem;
+			font-weight: 500;
+		}
+		.leave-expand-panel .view-leave .value {
+			font-size: 0.7rem;
+			text-align: right;
+			opacity: 0.65;
+		}
+		.leave-expand-panel .view-leave .value a {
+			color: var(--primary);
+		}
+		.leave-expand-panel .buttons {
+			display: flex;
+			gap: 0.5rem;
+			justify-content: flex-end;
+			margin-top: 0.25rem;
+		}
+		#attendance {
+			user-select: none;
+			display: flex;
+			gap: 1rem;
+			margin: 0 auto;
+			max-width: 118rem;
+			flex-direction: column;
+		}
+		#attendance .main {
+			display: flex;
+			min-height: calc(100vh - 6.5rem);
+			gap: 1rem;
+		}
+		#attendance .main .left {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			max-width: 16rem;
+		}
+		#attendance .main .card {
+			padding: 0.75rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+			border-radius: 1rem;
+		}
+
+		#attendance .main .left .thumb {
+			width: 100%;
+			border-radius: 0.5rem;
+		}
+		#attendance .main .left .detail {
+			display: flex;
+			flex-direction: column;
+		}
+		#attendance .main .left .detail .name {
+			display: flex;
+			gap: 0.25rem;
+			align-items: center;
+		}
+		#attendance .main .left .detail b {
+			font-size: 0.9rem;
+    		font-weight: 600;
+		}
+		#attendance .main .left .detail span {
+			font-size: 0.7rem;
+    		font-weight: 400;
+		}
+		#attendance .main .stats {
+			gap: 0.75rem;
+		}
+		#attendance .main .stats .litle {
+			font-size: 0.75rem;
+			font-weight: 500;
+			line-height: 1rem;
+		}
+		#attendance .main .stats .sub {
+			padding: 0.75rem;
+		}
+		#attendance .main .stats .target {
+			display: flex;
+			gap: 0.5rem;
+			font-weight: 600;
+		}
+		#attendance .main .stats .target span {
+			font-weight: 700;
+		}
+		#attendance .main .stats .target img {
+			display: none;
+		}
+		#attendance .main .stats .item {
+			display: flex;
+    		justify-content: space-between;
+			align-items: center;
+		}
+		#attendance .main .item .label {
+			font-weight: 500;
+			font-size: 0.75rem;
+			opacity: 0.75;
+			display: flex;
+			align-items: center;
+			gap: 0.25rem;
+		}
+		#attendance .main .item .data {
+			font-size: 1rem;
+			font-weight: 600;
+		}
+		#attendance .main .item .data.tolerance {
+			color: #76b85d;
+		}
+		#attendance .main .item .data.tolerance.red {
+			color: #f05c46;
+		}
+		#attendance .main .summary {
+			flex: 1;
+		}
+		#attendance .main .right .litle {
+			font-size: 0.75rem;
+			font-weight: 600;
+			line-height: 1rem;
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			color: rgb(16 33 40 / 50%);
+		}
+		#attendance .main .right .user .data {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			flex: 1;
+		}
+		#attendance .main .right .user .data img {
+    		border-radius: 2rem;
+		}
+		#attendance .main .right .user .data .text {
+			display: flex;
+    		flex-direction: column;
+			font-size: 0.8rem;
+		}
+		#attendance .main .salary {
+			position: relative;
+		}
+		#attendance .main .salary .sub {
+			padding: 0.75rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+		#attendance .main .salary .amount {
+			font-size: 1.25rem;
+			font-weight: 700;
+			line-height: 1.5rem;
+		}
+		#attendance .main .salary .final {
+			display: flex;
+			flex-direction: column;
+			font-size: 0.75rem;
+		}
+		#attendance .main .salary .final div {
+			display: flex;
+    		justify-content: space-between;
+			align-items: center;
+		}
+		#attendance .main .salary .final .spacer {
+			padding: 0.25rem 0;
+		}
+		#attendance .main .salary .final div span {
+			font-weight: 500;
+			opacity: 0.75;
+			display: flex;
+			align-items: center;
+			gap: 0.25rem;
+		}
+		#attendance .main .salary .final div span + span {
+			font-weight: 600;
+			opacity: 1;
+			font-size: 0.85rem;
+    		line-height: 1.125rem;
+		}
+		#attendance .main .salary .eye {
+			padding: 0.75rem;
+			position: absolute;
+			right: 0;
+			top: 0;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+
+		#attendance .main .performance {
+			display: none;
+			gap: 0.75rem;
+		}
+		#attendance .main .performance .litle {
+			font-size: 0.75rem;
+			font-weight: 500;
+			line-height: 1rem;
+		}
+		#attendance .main .performance .reviews {
+			display: flex;
+			gap: 1rem;
+			flex-direction: column;
+		}
+		#attendance .main .performance .reviews .user {
+			display: flex;
+			gap: 0.75rem;
+			align-items: center;
+		}
+		#attendance .main .performance .reviews .user .circle {
+			min-width: 1.75rem;
+    		border-radius: 1rem;
+		}
+		#attendance .main .performance .reviews .user .text {
+			display: flex;
+    		flex-direction: column;
+		}
+		#attendance .main .performance .reviews .user .name {
+			line-height: 1rem;
+    		font-weight: 600;
+		}
+		#attendance .main .performance .reviews .user .department {
+			font-size: 0.75rem;
+			font-weight: 400;
+			opacity: 0.5;
+			line-height: 1rem;
+		}
+		#attendance .main .performance .reviews .user .like {
+			margin-left: auto;
+		}
+
+		#attendance .main .week-review {
+			align-items: center;
+			justify-content: center;
+			gap: 0.75rem;
+		}
+		#attendance .main .week-review .percent {
+			font-size: 1.25rem;
+			line-height: 1.5rem;
+			font-weight: 500;
+		}
+		#attendance .main .week-review .bar-wrapper {
+			position: relative;
+			height: 12px;
+			overflow: hidden;
+			width: 100%;
+		}
+
+		#attendance .main .week-review .bar {
+			height: 100%;
+			background: linear-gradient(90deg, #eab12f, #fa6817);
+		}
+
+
+		#attendance .main .middle {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			flex: 1;
+		}
+		#attendance .main .middle .top {
+			display: flex;
+    		justify-content: space-between;
+		}
+		#attendance .main .middle .more {
+			display: flex;
+			gap: 0.25rem;
+			align-items: center;
+			background-color: var(--black);
+			color: var(--white);
+			padding: 0.5rem 1rem;
+			border-radius: 1rem;
+			font-size: 0.8rem;
+		}
+		#attendance .main .middle .more img {
+			filter: invert(1);
+		}
+		#attendance .main .middle .center {
+			display: grid;
+			grid-template-columns: repeat(7, 1fr);
+			gap: 0.75rem;
+			font-weight: 500;
+    		opacity: 0.5;
+		}
+		#attendance .main .middle .center .year {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		#attendance .main .middle .bottom {
+			display: grid;
+			grid-template-columns: repeat(7, 1fr);
+			gap: 0.75rem;
+			flex: 1;
+		}
+		#attendance .main .middle .bottom .month {
+			padding: 0.5rem;
+			border-radius: 0.75rem;
+			display: flex;
+			flex-direction: column;
+			gap: 1.25rem;
+			position: relative;
+		}
+		#attendance .main .middle .bottom .month .number {
+			font-size: 1rem;
+			line-height: 1rem;
+			font-weight: 600;
+			position: absolute;
+			padding: 0.5rem;
+			top: 0;
+			left: 0;
+		}
+		#attendance .main .middle .bottom .month .number.today {
+			background-color: var(--primary);
+			color: white;
+			font-weight: 400;
+			border-radius: 0.5rem 0 0.5rem 0;
+		}
+		#attendance .main .middle .bottom .month.glass .number {
+			opacity: 0.25;
+		}
+		#attendance .main .middle .bottom .month .late {
+			position: absolute;
+			right: 0.5rem;
+			top: 0.5rem;
+		}
+
+		#attendance .main .right {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			width: 18rem;
+			min-height: 8rem;
+		}
+		#attendance .main .middle .bottom .month .body {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			margin-top: 1.5rem;
+		}
+		#attendance .main .middle .bottom .month .body .item {
+			display: flex;
+			flex-direction: column;
+			padding: 0.5rem;
+			border-radius: 0.5rem;
+			background-color: #e6e6e6;
+		}
+		#attendance .main .middle .bottom .month .body .item + .item {
+			background-color: #fce9d8;
+		}
+		#attendance .main .middle .bottom .month .body .item.no-alt-bg {
+			background-color: #e6e6e6;
+		}
+		#attendance .main .middle .bottom .month .body .item.no-alt-bg .label {
+			color: inherit;
+			opacity: 0.4 !important;
+    		color: var(--black) !important;
+		}
+		#attendance .main .middle .bottom .month .body .item.holiday {
+			box-shadow: inset 0 0 0 2px #e6e6e6;
+    		background-color: transparent;
+		}
+		#attendance .main .middle .bottom .month .body .item .label {
+			font-size: 0.65rem;
+			line-height: 0.75rem;
+			opacity: 0.4;
+			font-weight: 600;
+		}
+		#attendance .main .middle .bottom .month .body .item + .item .label {
+			color: #ea6e00;
+    		opacity: 0.5;
+		}
+		#attendance .main .middle .bottom .month .body .item.adjustment {
+    		background-color: #e7ecdd;
+		}
+		#attendance .main .middle .bottom .month .body .item.adjustment .label {
+			color: #496416;
+		}
+		#attendance .main .middle .bottom .month .body .item.vacations {
+    		background-color: #e0e8f3;
+		}
+		#attendance .main .middle .bottom .month .body .item.vacations .label {
+			color: #123171;
+		}
+		#attendance .main .middle .bottom .month .body .item.permit-item {
+    		background-color: #e0e8f3;
+		}
+		#attendance .main .middle .bottom .month .body .item.permit-item .label {
+			color: #123171;
+		}
+		#attendance .main .middle .bottom .month .body .item .date {
+			font-size: 0.8rem;
+			font-weight: 500;
+			line-height: 0.75rem;
+		}
+		#attendance .main .middle .bottom .month .body .item .date.green {
+			color: #76b85d;
+    		font-weight: 600;
+		}
+		#attendance .main .middle .bottom .month .body .item .date.red {
+			color: #f05c46;
+			font-weight: 600;
+		}
+		#attendance .main .middle .bottom .month .body .item.holiday .date {
+			font-size: 0.75rem;
+		}
+		#attendance .main .middle .bottom .month .body .item.incomplete {
+			background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='1' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E");
+    		background-size: 0.6rem;
+		}
+		#attendance .main .middle .bottom .month .body .item.extra {
+			position: absolute;
+			top: 0.25rem;
+			z-index: 10;
+			background-color: white;
+			left: 0.25rem;
+			right: 0.25rem;
+			justify-content: space-between;
+			flex-direction: row;
+			opacity: 0;
+			pointer-events: none;
+			transition: opacity 150ms;
+		}
+		#attendance .main .middle .bottom .month:hover .body .item.extra {
+			opacity: 1;
+			pointer-events: auto;
+		}
+		#attendance .main .middle .bottom .month .body .item.extra .label {
+			color: #000;
+		}
+		#attendance .schedule-period {
+			display: flex;
+			flex-direction: column;
+    		gap: 1rem;
+		}
+		#attendance .schedule-period .week {
+			display: flex;
+    		flex-direction: column;
+			gap: 0.5rem;
+			padding: 0.75rem;
+		}
+		#attendance .schedule-period .days {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+		#attendance .schedule-period .days .day {
+			display: flex;
+			gap: 0.5rem;
+		}
+		#attendance .schedule-period .days .day .intervals {
+			display: flex;
+			gap: 0.5rem;
+		}
+		#attendance .schedule-day {
+			display: flex;
+		}
+		#attendance .users {
+			min-width: 13rem;
+			display: flex;
+    		flex-direction: column;
+			gap: 1rem;
+		}
+		#attendance .users .header {
+			font-size: 1rem;
+    		font-weight: 600;
+		}
+		#attendance .users .column {
+			display: flex;
+    		flex-direction: column;
+		}
+		#attendance .users .row {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.75rem 0;
+			line-height: 1rem;
+		}
+		#attendance .users .row img {
+			border-radius: 1rem;
+		}
+		#attendance .users .row .name {
+			font-weight: 600;
+			font-size: 0.9rem;
+		}
+		#attendance .users .row .position {
+			font-size: 0.8rem;
+			font-weight: 400;
+			color: #6b7280;
+		}
+		#attendance .timeline {
+			position: relative;
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			width: 100%;
+		}
+		#attendance .timeline-header {
+			display: flex;
+		}
+		#attendance .timeline-hour {
+			flex: 1;
+			font-size: 0.8rem;
+			font-weight: 500;
+			line-height: 1.25rem;
+			padding-left: 0.5rem;
+		}
+		#attendance .timeline-row {
+			position: relative;
+			display: flex;
+			height: 3.5rem;
+		}
+		#attendance .timeline-block {
+			position: absolute;
+			top: 0.5rem;
+			height: 2.5rem;
+			border-radius: 4px;
+			font-size: 0.65rem;
+			font-weight: 600;
+			display: flex;
+			align-items: center;
+			overflow: hidden;
+			padding: 0 1px;
+			white-space: nowrap;
+		}
+		#attendance .timeline-block span {
+			padding: 0 0.5rem;
+			color: #fff;
+		}
+		#attendance .timeline-now {
+			position: absolute;
+			top: 0;
+			bottom: 0;
+			width: 2px;
+			background: #000;
+			z-index: 10;
+		}
+		#attendance .timeline-line {
+			position: absolute;
+			top: 0;
+			bottom: 0;
+			width: 2px;
+			background: #ffffff80;
+		}
+		
+		#attendance .header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#attendance .header .title {
+			background-color: var(--black);
+			color: var(--white);
+			padding: 0.75rem 1.5rem;
+			border-radius: 2rem;
+			font-weight: 300;
+		}
+		#attendance .header .title img {
+			padding: 0.5rem;
+			border-radius: 0.5rem;
+			border: 2px solid #eee;
+		}
+		#attendance .header .range {
+			font-size: 1rem;
+			font-weight: 600;
+			text-transform: capitalize;
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			position: relative;
+		}
+		#attendance .board {
+			display: flex;
+			height: 100%;
+			user-select: none;
+			flex-direction: column;
+		}
+		#attendance .group {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			border-right: 2px solid #ffffff80;
+			gap: 0.25rem;
+			transition: var(--transition);
+		}
+		#attendance .calendar {
+			padding: 0;
+			margin: 0;
+			list-style: none;
+			display: flex;
+			flex-wrap: wrap;
+			font-size: 1rem;
+			width: 100%;
+		}
+		#attendance .calendar .day {
+			width: 14.25%;
+			padding: 0.5rem;
+			display: flex;
+			align-items: center;
+			font-weight: 600;
+			position: relative;
+			flex-direction: column;
+			justify-content: start;
+			border-right: 2px solid #ffffff80;
+			border-bottom: 2px solid #ffffff80;
+			gap: 0.5rem;
+
+		}
+		#attendance .calendar .item {
+			display: flex;
+			min-height: 8rem;
+			align-items: center;
+			flex-direction: column;
+			gap: 0.5rem;
+			justify-content: center;
+			width: 100%;
+			height: 100%;
+		}
+		#attendance .calendar .box {
+			border-radius: 0.75rem;
+			cursor: pointer;
+			padding: 0.75rem;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			flex-direction: column;
+			position: relative;
+			transition: var(--transition);
+			background-color: white;
+			box-shadow: 0 0 1rem hsl(0deg 0% 0% / 2.5%);
+			width: 100%;
+		}
+		#attendance .calendar .box .row {
+			display: flex;
+			justify-content: space-between;
+			width: 100%;
+			align-items: center;
+		}
+		#attendance .calendar .box .order-number {
+			font-size: 1rem;
+			font-weight: 600;
+			line-height: 1rem;
+		}
+		#attendance .calendar .box .passed-days {
+			display: flex;
+			gap: 0.5rem;
+		}
+		#attendance .calendar .box .register-day {
+			font-size: 1rem;
+			font-weight: 700;
+		}
+		#attendance .calendar .box .admin-name {
+			font-size: 0.75rem;
+			opacity: 0.75;
+			display: block;
+			line-height: 0.8rem;
+			margin-top: 0.5rem;
+		}
+		#attendance .calendar .box .machine {
+			font-weight: 600;
+			font-size: 0.75rem;
+			line-height: 1rem;
+			display: block;
+		}
+		#attendance .calendar .box img {
+			mix-blend-mode: darken;
+			position: absolute;
+			bottom: 0.5rem;
+			right: 0.5rem;
+			width: 2rem;
+			pointer-events: none;
+		}
+		#attendance .group .name {
+			display: flex;
+			justify-content: center;
+			font-size: 0.9rem;
+			margin-top: 0.75rem;
+			gap: 0.5rem;
+			align-items: center;
+		}
+		#attendance ul {
+			margin: 0;
+			list-style: none;
+			display: flex;
+			gap: 0.75rem;
+			flex-direction: column;
+			padding: 0.75rem;
+			flex: 1;
+		}
+		#attendance ul li .buttons {
+			display: flex;
+			gap: 0.5rem;
+		}
+		#attendance ul li.low .register-day {
+			color: #6fcc85;
+		}
+		#attendance ul li.mid .register-day {
+			color: #ff9600;
+		}
+		#attendance ul li.high .register-day {
+			color: #f96161;
+		}
+		
+		/***********************************************************************************/
+		#modal-process .header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#modal-process .header .left {
+			display: flex;
+			gap: 0.75rem;
+			align-items: center;
+		}
+		#modal-process .header .left .item {
+			display: flex;
+			gap: 0.25rem;
+			align-items: center;
+			background-color: var(--black);
+			color: var(--white);
+			padding: 0.35rem 1rem;
+			border-radius: 2rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#modal-process .header .left .item img {
+			filter: invert(1);
+		}
+		#modal-process .header .days {
+			font-size: 1rem;
+			font-weight: 700;
+		}
+		#modal-process .client {
+			background-color: white;
+			display: flex;
+			align-items: center;
+			padding: 1rem;
+			border-radius: 1rem;
+			box-shadow: 0 0 1rem hsl(0deg 0% 0% / 2.5%);
+			width: 100%;
+			gap: 1rem;
+		}
+		#modal-process .client .data {
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+			justify-content: center;
+		}
+		#modal-process .client .data .machine {
+			font-size: 1rem;
+    		font-weight: 500;
+		}
+		#modal-process .client .data .name {
+			font-size: 0.95rem;
+			font-weight: 400;
+			opacity: 0.75;
+		}
+		#modal-process .client .icons {
+			margin-left: auto;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 0.25rem;
+		}
+		#modal-process .client .icons a {
+			padding: 0.25rem;
+    		display: flex;
+		}
+		#modal-process .client .icons button {
+			padding: 0.25rem;
+			display: flex;
+			margin: 0;
+			background-color: transparent;
+			outline: none;
+			border: none;
+			cursor: pointer;
+		}
+		#modal-process .history {
+			display: flex;
+			flex-direction: column;
+			max-width: 28rem;
+			margin-bottom: -0.75rem;
+		}
+		#modal-process .history .row {
+			align-items: center;
+			display: flex;
+			gap: 0.75rem;
+			padding: 0.75rem 0.25rem;
+			border-top: 1px solid hsl(0deg 0% 100% / 50%);
+		}
+		#modal-process .history .row .left {
+			display: flex;
+			flex-direction: column;
+			width: calc(100% - 6.5rem);
+		}
+		#modal-process .history .row .right {
+			margin-left: auto;
+			display: flex;
+			flex-direction: column;
+		}
+		#modal-process .history .row .name {
+			font-weight: 500;
+			line-height: 1.25rem;
+		}
+		#modal-process .history .row .notes {
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			font-size: 0.75rem;
+			opacity: 0.75;
+			cursor: pointer;
+		}
+		#modal-process .history .row .notes.expanded {
+			text-overflow: unset;
+			white-space: normal;
+			overflow: auto;
+		}
+		#modal-process .history .row .date {
+			opacity: 0.75;
+		}
+		#modal-process .history .row .admin {
+			opacity: 0.75;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			font-size: 0.8rem;
+			display: none;
+		}
+		/* ── mobile-weeks (hidden on desktop) ── */
+		.mobile-weeks { display: none; }
+
+		.wk-card {
+			display: flex;
+			flex-direction: column;
+			border-radius: 0.75rem;
+			overflow: hidden;
+			background: white;
+		}
+		.wk-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 0.5rem 0.75rem;
+			background: var(--graydark);
+			font-size: 0.8rem;
+			font-weight: 600;
+		}
+		.wk-header .wk-delta {
+			font-size: 0.85rem;
+			font-weight: 700;
+		}
+		.wk-header .wk-delta.pos { color: #76b85d; }
+		.wk-header .wk-delta.neg { color: #f05c46; }
+		.wk-day {
+			display: flex;
+			align-items: flex-start;
+			gap: 0.75rem;
+			padding: 0.75rem;
+			border-top: 1px solid var(--graydark);
+		}
+		.wk-day--incomplete { background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23cccccc' fill-opacity='0.4' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E"); background-size: 0.75rem; }
+		.wk-day--holiday  { background-color: #f5f5f5; }
+		.wk-day--vacation { background-color: #e0e8f3; }
+		.wk-day--permit   { background-color: #e0e8f3; }
+		.wk-day-label {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			min-width: 2rem;
+			gap: 0.1rem;
+		}
+		.wk-day-abbr {
+			font-size: 0.65rem;
+			font-weight: 600;
+			opacity: 0.4;
+			text-transform: uppercase;
+		}
+		.wk-day-num {
+			font-size: 0.9rem;
+			font-weight: 700;
+			line-height: 1;
+		}
+		.wk-day-num.today {
+			background-color: var(--primary);
+			color: white;
+			border-radius: 0.35rem;
+			padding: 0.1rem 0.3rem;
+		}
+		.wk-day-items {
+			display: flex;
+			flex-direction: column;
+			gap: 0.2rem;
+			flex: 1;
+		}
+		.wk-no-data {
+			font-size: 0.75rem;
+			opacity: 0.3;
+			align-self: center;
+		}
+		.wk-item {
+			display: flex;
+			gap: 0.4rem;
+			align-items: baseline;
+			font-size: 0.78rem;
+			border-radius: 0.35rem;
+			padding: 0.5rem;
+			background-color: #e6e6e6;
+		}
+		.wk-item + .wk-item { background-color: #fce9d8; }
+		.wk-item + .wk-item .wk-item-lbl { color: #ea6e00; }
+
+		.wk-item.vacations  { background-color: #e0e8f3; }
+		.wk-item.permit-item { background-color: #e0e8f3; }
+		.wk-item.permit-mañana { background-color: #e0e8f3; }
+		.wk-item.permit-tarde  { background-color: #e0e8f3; }
+		.wk-item-lbl {
+			font-size: 0.65rem;
+			font-weight: 600;
+			opacity: 0.5;
+			white-space: nowrap;
+			width: 3.5rem;
+		}
+		.wk-item-val {
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		.wk-item-val.green { color: #76b85d; font-weight: 600; }
+		.wk-item-val.red   { color: #f05c46; font-weight: 600; }
+
+		@media (max-width: 48rem) {
+			.salary-table-head {
+				display: none;
+			}
+			.salary-table-row {
+				grid-template-columns: 1fr 1fr;
+				gap: 0.25rem;
+			}
+			.salary-user {
+				grid-column: 1 / -1;
+			}
+
+			/* layout principal */
+			#attendance .main {
+				flex-direction: column;
+			}
+			#attendance .main .right {
+				width: 100%;
+			}
+
+			/* ocultar grid desktop, mostrar semanas mobile */
+			#attendance .main .summary .center,
+			#attendance .main .summary .bottom {
+				display: none;
+			}
+			.mobile-weeks {
+				display: flex;
+				flex-direction: column;
+				gap: 0.75rem;
+			}
+
+			/* modal licencias */
+			#modal-leaves .top {
+				flex-direction: column;
+				align-items: flex-start;
+				gap: 0.5rem;
+			}
+			#modal-leaves .top .buttons {
+				width: 100%;
+			}
+			#modal-leaves .top .buttons .button {
+				flex: 1;
+				padding: 0 0.5rem;
+				justify-content: center;
+			}
+			#modal-leaves .modal-content {
+				max-height: 65dvh;
+			}
+			#modal-leaves .table-row {
+				grid-template-columns: 1fr auto;
+				grid-template-rows: auto auto;
+				padding: 0.6rem 0.75rem;
+				gap: 0.15rem 0.5rem;
+			}
+			#modal-leaves .table-row > div:nth-child(2) {
+				grid-column: 1;
+				grid-row: 1;
+			}
+			#modal-leaves .table-row .type {
+				grid-column: 1;
+				grid-row: 2;
+				margin-left: 0;
+				opacity: 0.5;
+				font-size: 0.75rem;
+			}
+			#modal-leaves .table-row .statuses {
+				grid-column: 2;
+				grid-row: 1 / 3;
+				align-self: center;
+			}
+		}
+	</style>
+</div>

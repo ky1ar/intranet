@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Rótulo Picking</title>
+
+  <style>
+    :root{
+      --ink:#000;
+      --muted:#000;
+      --soft:#f3f3f3;
+      --line:#000;
+      --hair:#dedede;
+      --radius:0px;
+    }
+
+    /* Más área útil en A5 */
+    @page { size: A5; margin: 4.5mm; }
+
+    * { box-sizing: border-box; }
+    body{
+      margin:0;
+      font-family: Arial, Helvetica, sans-serif;
+      color:var(--ink);
+    }
+
+    .label{
+      border: 1.2px solid var(--line);
+      border-radius: var(--radius);
+      height: 100%;
+    }
+
+    /* Header */
+    .top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      padding: 4mm;
+      border: 1.2px solid var(--line);
+    }
+
+    .logo{ width: 45mm; height:auto; }
+
+    .title{
+      text-align:right;
+      line-height: 1.05;
+    }
+    .title .h{
+      font-weight: 900;
+      font-size: 13pt;
+      letter-spacing:.3px;
+    }
+    .title .pill{
+      margin-top: 1.5mm;
+      display:inline-block;
+      font-size: 8.5pt;
+      font-weight: 800;
+      color: var(--muted);
+      border: 1px solid var(--hair);
+      padding: 1.5mm 3mm;
+      border-radius: 999px;
+      background: #fff;
+    }
+
+    /* Cards */
+    .row2{
+      display:grid;
+      grid-template-columns: 1.1fr 0.9fr;
+    }
+
+    .card{
+      border: 1.2px solid var(--line);
+      border-radius: var(--radius);
+      padding: 4mm;      /* antes 5mm */
+      background: #fff;
+    }
+
+    .k{
+      font-size: 8pt;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      margin-bottom: 1.3mm;
+      color: var(--muted);
+    }
+
+    .pedido{
+      font-size: 22pt;           /* antes 26pt */
+      font-weight: 900;
+      line-height: 1;
+      margin:0;
+    }
+
+    .fecha{
+      font-size: 12.5pt;         /* antes 15pt */
+      font-weight: 900;
+      line-height: 1.1;
+      margin:0;
+      margin-top: 0.6rem;
+    }
+
+    .full{}
+
+    .deliver{
+      font-size: 11pt;           /* antes 13pt */
+      font-weight: 900;
+      margin:0;
+      line-height: 1.15;
+    }
+
+    /* Tabla */
+    .items{
+      border: 1.2px solid var(--line);
+      border-radius: var(--radius);
+      overflow:hidden;
+      background:#fff;
+    }
+
+    .items-head{
+      background: #000;
+      color: #fff;
+      border-bottom: 1px solid var(--line);
+      padding: 3mm;      /* más compacto */
+      display:grid;
+      grid-template-columns: 1fr 18mm;
+      font-weight: 900;
+      font-size: 9pt;
+      letter-spacing: .4px;
+    }
+
+    .items-body{ padding: 0; }
+
+    .r{
+      padding: 3mm;      /* antes 4mm 5mm */
+      display:grid;
+      grid-template-columns: 1fr 18mm;
+      gap: 2.5mm;
+      border-bottom: 1px solid #979797;
+      align-items:start;
+      break-inside: avoid;       /* para columnas */
+      page-break-inside: avoid;
+          align-items: center;
+    }
+    .r:last-child{ border-bottom:none; }
+
+    .product{
+      font-weight: 800;
+      font-size: 9pt;
+      line-height: 1.15;         /* más compacto */
+    }
+
+    .qty{
+      text-align:right;
+      font-weight: 900;
+      font-size: 9.6pt;
+      white-space: nowrap;
+    }
+
+    /* ===== Modos automáticos para que entre todo ===== */
+
+    /* 2 columnas: gana muchísimo alto */
+    .items.cols2 .items-body{
+      column-count: 2;
+      column-gap: 4mm;
+      padding: 1mm 0;            /* para que no “choque” el borde */
+    }
+    .items.cols2 .r{
+      /* en columnas, deja respiración mínima */
+      margin: 0;
+    }
+
+    /* 3 columnas si son demasiados items */
+    .items.cols3 .items-body{
+      column-count: 3;
+      column-gap: 3mm;
+      padding: 1mm 0;
+    }
+    .items.cols3 .r{
+      grid-template-columns: 1fr 14mm; /* qty más angosto */
+    }
+
+    /* Compact extra */
+    .items.compact .r{ padding: 1.5mm 3.2mm; }
+    .items.compact .product{ font-size: 8.2pt; }
+    .items.compact .qty{ font-size: 9.2pt; }
+
+    /* Tiny (cuando hay MUCHO) */
+    .items.tiny .r{ padding: 1.2mm 3mm; }
+    .items.tiny .product{ font-size: 7.8pt; line-height: 1.1; }
+    .items.tiny .qty{ font-size: 8.8pt; }
+
+  </style>
+</head>
+
+<body>
+  {% set n = (data.products or [])|length %}
+  {# reglas simples: ajústalas a tu gusto #}
+  {% set cols = '' %}
+  {% set density = 'tiny' if n >= 22 else ('compact' if n >= 14 else '') %}
+
+  <div class="label">
+
+    <div class="top">
+      <img class="logo"
+           src="https://www.tiendakrear3d.com/wp-content/uploads/2026/02/WhatsApp-Image-2026-02-06-at-11.15.28-AM.jpeg"
+           alt="Krear3D Logo" />
+      <div class="title">
+        <div class="h">RÓTULO DE</div>
+        <div class="h">ENTREGA</div>
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="card">
+        <div class="k">Pedido</div>
+        <h1 class="pedido">{{ data.pedido or '-' }}</h1>
+      </div>
+
+      <div class="card">
+        <div class="k">Fecha</div>
+        <p class="fecha">{{ data.fecha_planificada or '-' }}</p>
+      </div>
+    </div>
+
+    <div class="card full">
+      <div class="k">Nombre / RUC</div>
+      <p class="deliver">{{ data.delivery_name_or_ruc or '-' }}</p>
+    </div>
+
+    <div class="items {{ cols }} {{ density }}">
+      <div class="items-head">
+        <div>PRODUCTO</div>
+        <div style="text-align:right;">CANT.</div>
+      </div>
+
+      <div class="items-body">
+        {% for it in (data.products or []) %}
+          <div class="r">
+            <div class="product">{{ it.product }}</div>
+            <div class="qty">{{ it.qty }}</div>
+          </div>
+        {% endfor %}
+
+        {% if not (data.products or []) %}
+          <div class="r">
+            <div class="product">No se detectaron productos</div>
+            <div class="qty">—</div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

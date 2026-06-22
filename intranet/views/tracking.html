@@ -1,0 +1,2015 @@
+<div x-data="tracking_data">
+	<div id="tracking-dashboard">
+        <div class="controls">
+			<div class="toggle-collapse frost" @click="$store.cache.toogleMoreMenu()" @click.outside="$store.cache.hideMoreMenu()">
+				<div class="item">
+					<img alt="" width="24" height="24" src="/static/icons/line/more.svg">
+				</div>
+			</div>
+
+			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
+				<div class="item" @click="search()">
+					<img alt="" width="18" height="18" src="/static/icons/line/find.svg">
+				</div>
+				<div class="item" @click="viewHistory()">
+					<img alt="" width="18" height="18" src="/static/icons/line/history.svg">
+				</div>
+				<div class="item" @click="viewStatistics()">
+					<img alt="" width="18" height="18" src="/static/icons/line/report.svg">
+				</div>
+			</div>
+
+			<div class="left mobile-hide frost">
+				<div class="item" @click="search()">
+					<img alt="" width="20" height="20" src="/static/icons/line/find.svg">
+					<span>Buscar</span>
+				</div>
+				<div class="item" @click="viewHistory()">
+					<img alt="" width="20" height="20" src="/static/icons/line/history.svg">
+					<span>Historial</span>
+				</div>
+				<div class="item" @click="viewStatistics()">
+					<img alt="" width="20" height="20" src="/static/icons/line/report.svg">
+					<span>Estadísticas</span>
+				</div>
+			</div>
+
+			<div class="right frost-dark" x-show="$store.cache.hasPermission('tracking', 'add')">
+				<div class="item" @click="addTracking()">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/add.svg">
+					<span>Añadir</span>
+				</div>
+			</div>
+		</div>
+
+		<div class="container-tracking main glass">
+			<template x-for="group in $store.cache.getData('tracking_dashboard')" :key="group.status_id">
+				<div class="group">
+					<div class="name">
+						<img width="20" height="20" :src="'/static/icons/module/tracking/' + $store.cache.getById('tracking_status', group.status_id)?.image" alt="">
+						<span x-text="$store.cache.getById('tracking_status', group.status_id)?.name"></span>
+					</div>
+
+					<ul>
+						<template x-if="group.tracking_order.length > 0">
+							<template x-for="item in group.tracking_order" :key="item.id">
+								<li class="white" @click="viewOrder(item.id)">
+									<div class="row">
+										<span class="order-number" x-text="item.order_number"></span>
+										<img width="72" height="16" :src="'/static/icons/module/tracking/' + $store.cache.getById('tracking_agencies', item.agency_id)?.icon" alt="">
+									</div>
+
+									<div class="row">
+										<span class="client-name" x-text="item.client_name"></span>
+									</div>
+
+									<div class="row">
+										<span class="destination-agency" x-text="item.destination_agency"></span>
+									</div>
+								</li>
+							</template>
+						</template>
+					</ul>
+				</div>
+			</template>
+		</div>
+
+
+
+		
+		<div
+			x-show="$store.cache.isVisibleModal('add')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-add"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<form id="registerTrackings" x-ref="form" method="POST" class="modal small glass2" @click.stop @submit.prevent="processTracking">
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="header">
+					<input
+						class="percent40 title"
+						type="text"
+						x-model="order_number"
+						placeholder="N° de Orden"
+						@input="order_number = $event.target.value.toUpperCase()"
+						@blur="fetchOrderData()"
+						required>
+					<div class="hover-opacity button black" @click="readQR()">
+						<img alt="qr" src="/static/icons/line/qr.svg" width="16" height="16">
+					</div>
+				</div>
+				
+				<div class="modal-content">
+					<div class="fields">
+						<label class="white">
+							<select name="agency" id="agency" x-model="agency" @change="updateFields">
+								<option value="1">Shalom</option>
+								<option value="2">Olva</option>
+								<option value="3">Marvisur</option>
+							</select>
+						</label>
+
+						<label class="white">
+							<img alt="user" src="/static/icons/line/id.svg" width="16" height="16">
+							<input
+								type="text"
+								maxlength="15"
+								placeholder="DNI / RUC"
+								x-model="document"
+								x-bind:disabled="disableDoc"
+								@blur="fetchDocumentData()"
+								required>
+						</label>
+					</div>
+
+					<div class="fields">
+						<label :class="disableName ? 'glass2' : 'white'">
+							<img alt="user" src="/static/icons/line/user.svg" width="16" height="16">
+							<input 
+								x-model="name"
+								type="text"
+								placeholder="Nombre o Razón Social" 
+								maxlength="40" 
+								x-bind:disabled="disableName"
+								required>
+						</label>
+					</div>
+					
+					<div class="fields">
+						<label class="white">
+							<img alt="phone" src="/static/icons/line/phone.svg" width="16" height="16">
+							<input 
+								x-model="phone"
+								type="tel" 
+								placeholder="Celular" 
+								minlength="9"
+								maxlength="9" 
+								x-on:input="
+									let val = $event.target.value.replace(/[^0-9]/g, '');
+									if (val.length === 1 && val !== '9') {
+										val = '';
+									}
+									phone = val;
+								"
+								required>
+						</label>
+
+						<label class="white">
+							<img alt="email" src="/static/icons/line/email.svg" width="16" height="16">
+							<input 
+								x-model="email"
+								type="email" 
+								placeholder="Correo"
+								maxlength="60">
+						</label>
+					</div>
+
+					<div class="fields">
+						<label class="white">
+							<input 
+							type="text" 
+							:placeholder="config[agency].p1" 
+							x-model="code1" 
+							x-on:input="
+								if (agency === '3') {
+									code1 = $event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+									if (!code1.startsWith('V')) {
+										code1 = '';
+									}
+								} else {
+									code1 = $event.target.value.replace(/[^0-9]/g, '');
+								}
+							" 
+							:maxlength="config[agency].m1" 
+							required>
+						</label>
+						
+						<template x-if="config[agency].type2 === 'select'">
+							<label class="white">
+								<select class="sp" x-model="code2" required>
+									<template x-for="opt in config[agency].options" :key="opt">
+										<option :value="opt" x-text="opt"></option>
+									</template>
+								</select>
+							</label>
+						</template>
+					
+						<template x-if="config[agency].type2 === 'text'">
+							<label class="white">
+								<input 
+									type="text" 
+									x-model="code2"
+									x-on:input="
+									if (agency === '3') {
+										code2 = $event.target.value.replace(/[^0-9]/g, '');
+									} else {
+										code2 = $event.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+									}
+									"
+									:placeholder="config[agency].p2" 
+									:maxlength="config[agency].m2" 
+									required>
+							</label>
+						</template>
+
+						<template x-if="agency === '1'">
+							<label class="white">
+								<input 
+									type="text" 
+									x-model="code3"
+									placeholder="Clave de recojo" 
+									maxlength="4">
+							</label>
+						</template>
+					</div>
+				</div>
+				<div class="buttons">
+					<button class="button hover-opacity" type="submit" :class="buttons.add.class" x-text="buttons.add.text"></button>
+				</div>
+			</form>
+		</div>
+
+
+
+
+
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('read')"
+			@mousedown.self="$store.cache.hideLastModal(); stopScan();"
+			class="modal-wrap"
+			id="modal-read"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+			>
+			<div class="modal glass2" @click.stop >
+				<div id="scannerBox">
+					<video id="cameraFrame"></video>
+					<div class="scannerDots"></div>
+				</div>
+			</div>
+		</div>
+
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('view')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-view"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal small glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="top">
+					<span class="order" x-text="tracking_order.order_number"></span>
+					<div class="code3" x-show="tracking_order.code3" x-text="'Clave de recojo: ' +tracking_order.code3"></div>
+					<img class="agency" width="80" height="22" :src="'/static/icons/module/tracking/' + $store.cache.getById('tracking_agencies', tracking_order.agency_id)?.icon" alt="">
+				</div>
+
+				<div class="content modal-content">
+					<div class="white user">
+						<span class="letter" x-text="tracking_order.client_name?.charAt(0)"></span>
+
+						<div class="data">
+							<span x-text="tracking_order.client_name"></span>
+							<span x-text="tracking_order.client_document"></span>
+						</div>
+
+						<a class="message hover-opacity" :href="'https://api.whatsapp.com/send?phone=' + tracking_order.client_phone" target="_blank" rel="nofollow">
+							<img width="16" height="16" alt="client_phone" src="/static/icons/line/whatsapp.svg">
+						</a>
+					</div>
+
+					
+
+					<div class="white user">
+						<img width="16" height="16" alt="client_phone" src="/static/icons/line/location.svg">
+
+						<div class="data">
+							<span x-text="tracking_order.destination_agency"></span>
+							<span x-text="'Enviado desde ' + tracking_order.origin_agency"></span>
+						</div>
+					</div>
+					
+					<div class="review glass2">
+						<template x-for="item in tracking_order.status_history" :key="item.status_id">
+							<div class="row">
+								<span class="detail" x-text="item.status_name"></span>
+								<span class="date" x-text="formatDate(item.register_at)"></span>
+							</div>
+						</template>
+					</div>
+					<div class="codes">
+						<div class="glass2" x-html="'Código 1: <b>' +tracking_order.code1+'</b>'"></div>
+						<div class="glass2" x-html="'Código 2: <b>' +tracking_order.code2+'</b>'"></div>
+					</div>
+				</div>
+
+			</div>
+		</div>
+
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('history')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-history"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="top">
+					<span class="title">Historial</span>
+
+					<div class="pagination">
+						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstPage()">
+							<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevPage()">
+							<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextPage()">
+							<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastPage()">
+							<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+						</span>
+					</div>
+
+				</div>
+
+				<div class="modal-content history">
+					<table class="mobile-hide">
+						<thead>
+							<tr>
+								<th>Orden</th>
+								<th>Cliente</th>
+								<th>Estado</th>
+								<th>Fecha de registro</th>
+							</tr>
+						</thead>
+						<tbody>
+							<template x-for="history in history_list" :key="history.id">
+								<tr @click="viewOrder(history.id)">
+									<td class="order">
+										<div class="machine">
+											<b x-text="history.order_number"></b>
+										</div>
+									</td>
+									<td class="client" x-text="history.client_name"></td>
+									
+									<td class="order">
+										<span class="finished" :class="!history.finished ? 'active' : ''" x-text="history.finished ? 'Finalizado':'Activo'"></span>
+									</td>
+									<td x-text="history.register_at"></td>
+								</tr>
+							</template>
+						</tbody>
+					</table>
+
+					<div class="mobile-show mobile-table">
+						<template x-for="history in history_list" :key="history.id">
+							<div class="row white" @click="viewOrder(history.id)">
+								<div class="head">
+									<div class="info">
+										<span class="id" x-text="history.order_number"></span>
+										<span class="date" x-text="history.register_at"></span>
+									</div>
+									<div class="status" :class="!history.finished ? 'active' : 'finished'" x-text="history.finished ? 'Finalizado':'Activo'"></div>
+								</div>
+								<div class="body">
+									<span class="label">Cliente</span>
+									<span class="name" x-text="history.client_name"></span>
+								</div>
+							</div>
+						</template>
+					</div>
+				</div>
+			</div>
+		</div>
+
+
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('statistics')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-statistics"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="top">
+					<span class="title">Estadísticas</span>
+				</div>
+
+				<div class="modal-content">
+					<div class="kpi">
+						<div class="item white">
+							<p>Envíos totales</p>
+							<span x-text="$store.cache.getData('tracking_statistics')?.count.total"></span>
+						</div>
+						<div class="item white">
+							<p>Envíos el día de hoy</p>
+							<span x-text="$store.cache.getData('tracking_statistics')?.count.today"></span>
+						</div>
+						<div class="item white">
+							<p>Envíos en la semana</p>
+							<span x-text="$store.cache.getData('tracking_statistics')?.count.week"></span>
+						</div>
+						<div class="item white">
+							<p>Envíos del mes</p>
+							<span x-text="$store.cache.getData('tracking_statistics')?.count.month"></span>
+						</div>
+					</div>
+
+					<div class="charts">
+						<div class="glass2 box">
+							<span>Envíos por agencia</span>
+							<canvas x-ref="ordersByStatusChart" width="160" height="80"></canvas>
+						</div>
+
+						<div class="glass2 box">
+							<span>Envíos por Mes</span>
+							<canvas x-ref="ordersByMonthChart" width="160" height="80"></canvas>
+						</div>
+
+						<div class="glass2 box">
+							<span>Top 5 destinos</span>
+							<canvas x-ref="ordersByTechChart" width="160" height="80"></canvas>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('search')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-search"
+			x-cloak>
+			<div class="modal" @click.stop>
+				<div class="bottom glass2">
+					<img alt="" class="ico" width="20" height="20" src="/static/icons/line/find.svg">
+					<input type="text"
+						x-model="find_order_number"
+						placeholder="Orden, nombre, dni/ruc"
+						@input="findOrders()">
+					<div class="hover-opacity clear" x-show="find_order_number" @click="find_order_number = ''; finded_orders = [];">
+						<img alt="" class="" width="12" height="12" src="/static/icons/filled/x.svg">
+					</div>
+				</div>
+				<div class="orders glass2" x-show="finded_orders.length > 0">
+					<template x-for="order in finded_orders" :key="order.id">
+						<div class="item" @click="viewOrder(order.id)">
+							<div class="title">
+								<span class="order-number" x-text="order.order_number"></span>
+								<img width="72" height="16" :src="'/static/icons/module/tracking/' + $store.cache.getById('tracking_agencies', order.agency_id)?.icon" alt="">
+							</div>
+							<span class="client" x-text="order.client_name"></span>
+						</div>
+						
+					</template>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+
+
+
+
+	<script>
+		Alpine.data('tracking_data', () => ({
+			api: Alpine.store('cache').api,
+			find_order_number: '',
+			finded_orders: [],
+			dashboard: [],
+			tracking_order: {},
+			order_number: "",    
+			document: "",
+			name: "", 
+			phone: "",    
+			email: "",       
+			agency: "1",         
+			code1: "",          
+			code2: "",
+			code3: "",
+			client_id: null,
+			client_order_id: null,
+			disableDoc: false,     
+			disableName: false,
+			orders: {
+				agencia: [],
+				ruta: [],
+				entregado: []
+        	},
+			config: {
+				1: { p1: "N° Orden Shalom", m1: 8, type2: "text", p2: "Código de Orden", m2: 4 },
+				2: { p1: "N° de Tracking", m1: 7, type2: "select", options: ["26","25", "24", "23", "22"] },
+				3: { p1: "V001", m1: 4, type2: "text", p2: "0000001", m2: 7 }
+			},
+			buttons: {
+                add: { class: '', text: 'Añadir' },
+            },
+        	codeReader: null,
+			scannerRunning: false,
+			current_page: 1,
+			total_pages: null,
+			history_list: [],
+			chartStatus: null,
+			chartMonth: null,
+			chartDepartment: null,
+
+			async init() {
+                this.codeReader = new ZXingBrowser.BrowserQRCodeReader();
+				console.log('Inicializando Tracking...');
+
+				const socket = Alpine.store('cache').socket;
+				if (socket) {
+					socket.removeAllListeners();
+					socket.on("update_tracking_orders", async () => {
+						await Alpine.store('cache').refresh('tracking_dashboard');
+					});
+				}
+
+				await Alpine.store('cache').fetchData([
+					{ key: 'tracking_dashboard', url: `/tracking/dashboard`, force: true },
+					{ key: 'tracking_status', url: '/general/tracking_status' },
+					{ key: 'tracking_agencies', url: '/general/tracking_agencies' },
+				]);
+				// await Alpine.store('cache').verify();
+			},
+
+			async search() {
+				this.find_order_number = '';
+				this.finded_orders = []
+
+				Alpine.store('cache').showModal('search');
+			},
+
+			async findOrders() {
+                const order_number = this.find_order_number;
+                try {
+                    if (order_number.length < 2) {
+                        this.finded_orders = [];
+                        return;
+                    }
+                    
+                    const response = await fetch(`${this.api}/tracking/find/${order_number}`, {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+                    this.finded_orders = jsonData.data;
+                } catch (error) {
+					console.log('Error al buscar órdenes:', error);
+                    this.finded_orders = [];
+                    return;
+                } 
+            },
+
+			async viewStatistics() {
+				await Alpine.store('cache').fetchData([
+					{ key: 'tracking_statistics', url: `/tracking/statistics`, force: true },
+				]);
+				Alpine.store('cache').showModal('statistics');
+				await this.initCharts();
+			},
+
+			async initCharts() {
+				const statistics = Alpine.store('cache').getData('tracking_statistics');
+				await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)));
+
+				if (this.chartStatus) {
+					this.chartStatus.destroy();
+				}
+				if (this.chartMonth) {
+					this.chartMonth.destroy();
+				}
+				if (this.chartDepartment) {
+					this.chartDepartment.destroy();
+				}
+				
+				this.chartStatus = new Chart(this.$refs.ordersByStatusChart, {
+					type: 'bar',
+					data: {
+						labels: statistics.by_agency.map(r => r.agency),
+						datasets: [{
+							label: 'Órdenes',
+							data: statistics.by_agency.map(r => r.count),
+							backgroundColor: 'rgba(255,160,42, 0.75)',
+							borderWidth: 0,
+						}]
+					},
+					options: {
+						responsive: true,
+						plugins: {
+							legend: { display: false }
+						},
+						scales: {
+							x: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: 'transparent',
+								},
+								border: {
+									display: false
+								}
+							},
+							y: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: '#fff',
+								},
+								border: {
+									display: false
+								}
+							}
+						}
+					},
+					
+				});
+
+				this.chartMonth = new Chart(this.$refs.ordersByMonthChart, {
+					type: 'line',
+					data: {
+						labels: statistics.by_month.map(r => r.period),
+						datasets: [{
+							label: 'Órdenes por Mes',
+							data: statistics.by_month.map(r => r.count),
+							fill: true,
+							tension: 0.3,
+							backgroundColor: 'rgba(234,113,52,0.5)',
+							borderWidth: 0
+						}]
+					},
+					options: {
+						responsive: true,
+						plugins: {
+							legend: { display: false }
+						},
+						scales: {
+							x: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: 'transparent',
+								},
+								border: {
+									display: false
+								}
+							},
+							y: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: '#fff',
+								},
+								border: {
+									display: false
+								}
+							}
+						}
+					},
+				});
+
+				this.chartDepartment =new Chart(this.$refs.ordersByTechChart, {
+					type: 'bar',
+					data: {
+						labels: statistics.by_department.map(r => r.department),
+						datasets: [{
+							label: 'Órdenes',
+							data: statistics.by_department.map(r => r.count),
+							backgroundColor: 'rgba(15, 32, 39, 0.75)',
+							borderWidth: 0
+						}]
+					},
+					options: {
+						responsive: true,
+						plugins: {
+							legend: { display: false }
+						},
+						scales: {
+							x: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: 'transparent',
+								},
+								border: {
+									display: false
+								}
+							},
+							y: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: '#fff',
+								},
+								border: {
+									display: false
+								}
+							}
+						}
+					},
+				});
+			},
+				
+
+			async viewHistory() {
+				await this.firstPage();
+				Alpine.store('cache').showModal('history');
+			},
+
+			async firstPage() {
+				this.current_page = 1;
+				await this.getHistory();
+			},
+
+			async lastPage() {
+				this.current_page = this.total_pages;
+				await this.getHistory();
+			},
+
+			async nextPage() {
+				const new_page = this.current_page + 1;
+				if (new_page > this.total_pages)
+					return;
+				this.current_page = new_page;
+				await this.getHistory();
+			},
+
+			async prevPage() {
+				const new_page = this.current_page - 1;
+				if (new_page < 1)
+					return;
+				this.current_page = new_page;
+				await this.getHistory();
+			},
+
+			async getHistory() {
+				try {
+					const response = await fetch(`${this.api}/tracking/history?page=${this.current_page}`);
+					const data = await response.json();
+					const jsonData = data.data || [];
+
+					this.history_list = jsonData.list;
+					this.total_pages = jsonData.pagination.pages;
+				} catch (error) {
+					console.error('Error fetching history', error);
+				} 
+			},
+
+			async viewOrder(order_id) {
+				try {
+					const response = await fetch(Alpine.store('cache').api + `/tracking/order_id/${order_id}`);
+					const data = await response.json();
+					this.tracking_order = data.data;
+					Alpine.store('cache').showModal('view');
+				} catch (error) {
+					console.error('Error en la asignación:', error);
+				} 
+			},
+
+			async startScan() {
+				try {
+					this.scannerRunning = true;
+
+					await this.codeReader.decodeFromVideoDevice(null, 'cameraFrame', async (result, err, controls) => {
+						if (!this.scannerRunning) return;
+
+						if (result) {
+							const readed = result.text;
+							const payload = {
+								ose_id: readed.split('/')[0],
+							};
+
+							try {
+								const response = await fetch(Alpine.store('cache').api + '/tracking/qr_data', {
+									method: 'POST',
+									headers: {'Content-Type': 'application/json'},
+									body: JSON.stringify(payload),
+								});
+
+								const jsonData = await response.json();
+								if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+								const data = jsonData.data;
+
+								this.agency = data.agency;
+								this.code1 = data.numero_orden;
+								this.code2 = data.codigo_orden;
+
+								this.document = data.client_document;
+								this.client_id = data.client_id;
+								this.name = data.client_name;
+								this.phone = data.client_phone;
+								this.email = data.client_email;
+
+							} catch (error) {
+								this.showError('add', error.message);
+							} 
+							
+							this.stopScan();
+
+							if (controls?.stop) {
+								controls.stop();
+							}
+
+							Alpine.store('cache').hideModal('read');
+						}
+					});
+				} catch (e) {
+					console.error("❌ Error accediendo a la cámara:", e);
+				}
+			},
+
+            stopScan() {
+				this.scannerRunning = false;
+
+				if (this.codeReader?.reset) {
+					this.codeReader.reset();
+				}
+
+				const video = document.getElementById('cameraFrame');
+				if (video?.srcObject) {
+					video.srcObject.getTracks().forEach(track => track.stop());
+					video.srcObject = null;
+				}
+			},
+
+			updateFields() {
+				this.code1 = "";
+				this.code2 = "";
+				this.code3 = "";
+				if (this.agency === "2" && Array.isArray(this.config[this.agency]?.options)) {
+					this.code2 = this.config[this.agency].options[0];
+				}
+				if (this.agency !== "1") {
+					this.code3 = null;
+				}
+				this.$nextTick(() => {});
+			},
+	  
+			fetchOrderData() {
+				const orderNumber = this.order_number.trim();
+				if (!orderNumber) return;
+
+				fetch(Alpine.store('cache').api + `/client/order_number/${orderNumber}`)
+					.then(res => res.json())
+					.then(({ data: { client = {}, client_order_id = null } = {} }) => {
+						let shouldClear = !client.name && !client.document && !client.phone && !client.email;
+
+						if (client.name) {
+							this.name = client.name;
+							this.disableName = true;
+						} else if (this.disableName) {
+							this.name = "";
+							this.disableName = false;
+						}
+
+						if (client.document) {
+							this.document = client.document;
+							this.disableDoc = true;
+						} else if (this.disableDoc) {
+							this.document = "";
+							this.disableDoc = false;
+						}
+
+						["phone", "email"].forEach(field => {
+							if (client[field]) {
+								this[field] = client[field];
+							} else if (shouldClear) {
+								this[field] = "";
+							}
+						});
+
+						this.client_id = client.id || null;
+						this.client_order_id = client_order_id;
+					})
+					.catch(() => {
+						this.name = "";
+						this.disableName = false;
+						this.document = "";
+						this.disableDoc = false;
+						["phone", "email"].forEach(field => {
+							this[field] = "";
+						});
+						this.client_id = null;
+						this.client_order_id = null;
+					});
+			},
+
+			fetchDocumentData() {
+				const doc = this.document.trim();
+				if (!doc) return;
+
+				fetch(Alpine.store('cache').api + `/client/data/${doc}`)
+					.then(res => res.json())
+					.then(({ data: client = {} } = {}) => {
+						['name', 'phone', 'email'].forEach(field => {
+							const disableField = `disable${field.charAt(0).toUpperCase() + field.slice(1)}`;
+							if (client[field]) {
+								this[field] = client[field];
+								this[disableField] = true;
+							} else if (this[disableField]) {
+								this[field] = "";
+								this[disableField] = false;
+							}
+						});
+						this.client_id = client.id || null;
+					})
+					.catch(() => {
+						['name', 'phone', 'email'].forEach(field => {
+							const disableField = `disable${field.charAt(0).toUpperCase() + field.slice(1)}`;
+							if (this[disableField]) {
+								this[field] = "";
+								this[disableField] = false;
+							}
+						});
+						this.client_id = null;
+					});
+			},
+
+			getLineColor(agency_id) {
+				switch (agency_id) {
+					case 1: return '#f2473e';
+					case 2: return '#ffb625'; 
+					case 3: return '#f58a39'; 
+					default: return '#cdcdcd';
+				}
+			},
+
+			resetForm() {
+				this.order_number = "";
+				this.document = "";
+				this.name = "";
+				this.phone = "";
+				this.email = "";
+				this.client_order_id = "";
+				this.client_id = null;
+				this.disableDoc = false;
+				this.disableName = false;
+				this.updateFields();
+			},
+
+			async processTracking() {
+				if (!this.$refs.form.checkValidity()) {
+					return;
+				}
+
+				const payload = {
+					order_number: this.order_number,
+					agency_id: this.agency,
+					code1: this.code1,
+					code2: this.code2,
+					code3: this.code3 || null, 
+					client_id: this.client_id || null,
+					client_order_id: this.client_order_id || null,
+					client: {
+						document: this.document,
+						name: this.name,
+						phone: this.phone,
+						email: this.email,
+					},
+				};
+
+				try {
+					const response = await fetch(Alpine.store('cache').api + '/tracking/add', {
+						method: 'POST',
+						headers: {'Content-Type': 'application/json'},
+						body: JSON.stringify(payload),
+					});
+
+                    const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+					
+					Alpine.store('cache').hideModal('add');
+					this.resetForm();
+					
+				} catch (error) {
+					this.showError('add', error.message);
+                } 
+			},
+
+			showError(btnKey, errorMsg) {
+                const originalText = this.buttons[btnKey].text;
+                const originalClass = this.buttons[btnKey].class;
+
+                if (originalClass == 'error') {
+                    return;
+                }
+                this.buttons[btnKey].text = errorMsg;
+                this.buttons[btnKey].class = 'error';
+
+                setTimeout(() => {
+                    this.buttons[btnKey].text = originalText;
+                    this.buttons[btnKey].class = originalClass;
+                }, 1000);
+            },
+
+			addTracking() {
+				Alpine.store('cache').showModal('add');
+			},
+
+			readQR() {
+				Alpine.store('cache').showModal('read');
+				this.startScan();
+			},
+			
+			formatDate(dateStr) {
+				const [datePart, timePart, meridiem] = dateStr.split(' ');
+				const [day, month, year] = datePart.split('-');
+				const [hourRaw, minute] = timePart.split(':');
+
+				let hour = parseInt(hourRaw, 10);
+				if (meridiem === 'PM' && hour !== 12) hour += 12;
+				if (meridiem === 'AM' && hour === 12) hour = 0;
+
+				const jsDate = new Date(`${year}-${month}-${day}T${hour.toString().padStart(2, '0')}:${minute}:00`);
+
+				const weekdays = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+				const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+								'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+				const weekday = weekdays[jsDate.getDay()];
+				const monthName = months[jsDate.getMonth()];
+
+				const finalHour = timePart;
+
+				return `${weekday}, ${parseInt(day)} de ${monthName}, ${finalHour.toLowerCase()} ${meridiem.toLowerCase()}`;
+			},
+		}));
+	  </script>
+	
+	
+
+
+
+
+
+
+	<style>
+		.mobile-table {
+			flex-direction: column;
+			gap: 0.75rem;
+		}
+		.mobile-table .row {
+			padding: 1rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+		}
+		.mobile-table .head {
+			display: flex;
+    		justify-content: space-between;
+			align-items: start;
+		}
+		.mobile-table .head .info {
+			display: flex;
+    		flex-direction: column;
+		}
+		.mobile-table .head .info .id {
+			font-size: 1rem;
+    		font-weight: 600;
+		}
+		.mobile-table .head .info .date {
+			font-size: 0.75rem;
+    		opacity: 0.75;
+		}
+		.mobile-table .head .status {
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		.mobile-table .head .status.active {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		.mobile-table .head .status.finished {
+			background-color: #d0f4ea;
+    		border: 2px solid #abe9d8;
+		}
+		.mobile-table .body {
+			display: flex;
+    		justify-content: space-between;
+			align-items: center;
+		}
+		.mobile-table .body .label {
+			font-size: 0.75rem;
+			opacity: 0.5;
+			font-weight: 600;
+		}
+		.mobile-table .body .name {
+			font-weight: 500;
+			font-size: 0.8rem;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 75%;
+		}
+		#modal-statistics .kpi {
+			display: flex;
+    		gap: 1rem;
+		}
+		#modal-statistics .kpi .item {
+			flex: 1;
+			width: 8rem;
+			display: flex;
+			padding: 1rem;
+			flex-direction: column;
+			gap: 0.25rem;
+		}
+	
+		#modal-statistics .kpi .item span {
+			font-weight: 500;
+    		font-size: 1.5rem;
+			color: var(--primary);
+		}
+		#modal-statistics .kpi .item p {
+			margin: 0;
+			display: flex;
+			flex: 1;
+			align-items: center;
+			font-weight: 500;
+		}
+		#modal-statistics .charts {
+			display: flex;
+			gap: 1rem;
+			flex-wrap: wrap;
+			justify-content: center;
+		}
+		#modal-statistics .charts .box {
+			padding: 1.5rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+			min-width: 28rem;
+		}
+		#modal-statistics .charts .box span {
+			font-weight: 500;
+    		font-size: 1rem;
+		}
+		#modal-history .top {
+    		justify-content: space-between;
+			display: flex;
+		}
+		#modal-history .pagination {
+			display: flex;
+			gap: 0.75rem;
+		}
+		#modal-history .create-link {
+			display: flex;
+			gap: 0.25rem;
+			justify-content: center;
+			align-items: center;
+			width: initial;
+			padding: 0 1rem;
+			line-height: 2rem;
+			font-size: 0.8rem;
+			font-weight: 400;
+		}
+		#modal-history .create-link img {
+			filter: invert(1);
+		}
+		#modal-history .pagination .disabled {
+			opacity: 0.5;
+    		cursor: default !important;
+		}
+		#modal-history .pagination .left img {
+			transform: rotate(180deg);
+		}
+		#modal-history .pagination span {
+			width: 2rem;
+			height: 2rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			border-radius: 2rem;
+		}
+		#modal-history table {
+			border-collapse: collapse;
+		}
+		#modal-history table th {
+			padding: 0.5rem 0.75rem;
+			text-align: left;
+			font-weight: 600;
+			font-size: 0.8rem;
+			opacity: 0.75;
+		}
+		#modal-history table tbody tr {
+			transition: var(--transition);
+			border-top: 3px solid #ffffff80;
+		}
+		#modal-history table tbody tr:hover {
+			background-color: var(--white);
+		}
+		#modal-history table td {
+			padding: 0.5rem 0.75rem;
+			cursor: pointer;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			height: 3.5rem;
+		}
+		#modal-history table.static tbody tr {
+			transition: none;
+		}
+		#modal-history table.static tbody tr:hover {
+			background-color: transparent;
+		}
+		#modal-history table.static td {
+			cursor: default;
+			line-height: 2rem;
+		}
+		#modal-history table td.order {
+			width: 8rem;
+		}
+		#modal-history table td.machine_box {
+			width: 12rem;
+			max-width: 12rem;
+		}
+		#modal-history table td.client {
+			width: 20rem;
+			max-width: 20rem;
+		}
+		#modal-history table td .controlls {
+			display: flex;
+    		gap: 0.5rem;
+		}
+		#modal-history table td .controlls .action {
+			width: 1.5rem;
+			height: 1.5rem;
+			display: flex;
+			justify-content: center;
+		}
+		#modal-history table .machine {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		#modal-history table .link-id {
+			background-color: var(--white);
+			width: 1.75rem;
+			height: 1.75rem;
+			border-radius: 1rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-weight: 500;
+			font-size: 0.8rem;
+			border: 1px solid var(--graydark);
+		}
+		#modal-history table .link-status {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#modal-history table .link-status.status-1 {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		#modal-history table .link-status.status-2 {
+			background-color: #dff5ff;
+    		border: 2px solid #b4e1f2;
+		}
+		#modal-history table .link-status.status-3 {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+		}
+		#modal-history table .link-status.status-4 {
+			background-color: #e4d4fb;
+    		border: 2px solid #d0beeb;
+		}
+		#modal-history table .link-status.status-5 {
+			background-color: #fee3e1;
+    		border: 2px solid #ffceca;
+		}
+		#modal-history table .finished {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#modal-history table .finished.active {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		#modal-history table .machine img {
+			mix-blend-mode: darken;
+		}
+		#modal-history table .machine .model {
+			display: flex;
+    		flex-direction: column;
+		}
+		#modal-history table .machine .model span {
+			font-weight: 500;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 8rem;
+		}
+		#modal-history table .machine .model span + span {
+			font-weight: 400;
+			font-size: 0.75rem;
+			opacity: 0.6;
+		}
+		#modal-search .modal {
+			gap: 0.5rem;
+			min-width: initial;
+		}
+		#modal-search .bottom {
+			display: flex;
+			align-items: center;
+			padding: 0.25rem 1rem;
+			border-radius: 0.75rem;
+		}
+		#modal-search .bottom .ico {
+			opacity: 0.5;
+		}
+		#modal-search .bottom input {
+			flex: 1;
+			background-color: transparent;
+			border: none;
+			outline: none;
+			padding: 0.75rem;
+			font-family: inherit;
+			font-size: 1rem;
+			font-weight: 400;
+			min-width: 10rem;
+		}
+		#modal-search .bottom .clear {
+			padding: 0.25rem;
+		}
+		#modal-search .bottom .clear img {
+			min-width: 0.75rem;
+    		min-height: 0.75rem;
+		}
+		#modal-search .orders {
+			max-height: 18rem;
+			overflow-y: auto;
+			width: 100%;
+			display: flex;
+			flex-direction: column;
+			font-size: 1rem;
+			border-radius: 0.75rem;
+		}
+		#modal-search .orders .item {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			position: relative;
+			padding: 0.75rem 1rem;
+			border-bottom: 3px solid #ffffff80;
+			cursor: pointer;
+			transition: var(--transition);
+			background-color: transparent;
+		}
+		#modal-search .orders .title {
+			display: flex;
+    		justify-content: space-between;
+		}
+		#modal-search .orders .item:last-child {
+			border-bottom: none;
+		}
+		#modal-search .orders .item:hover {
+			background-color: #ffffff;
+		}
+		#modal-search .orders .item .order-number {
+			font-size: 1rem;
+			font-weight: 600;
+			line-height: 1rem;
+		}
+		#modal-search .orders .item .machine {
+			font-weight: 600;
+			font-size: 0.75rem;
+			line-height: 1rem;
+		}
+		#modal-search .orders .item .client {
+			line-height: 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+			opacity: 0.75;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 16rem;
+		}
+		#modal-search .orders .item img {
+			mix-blend-mode: darken;
+			position: absolute;
+			top: 0;
+			right: 0;
+		}
+		#tracking-dashboard {
+			display: flex;
+			min-height: calc(100vh - 6.5rem);
+			gap: 1rem;
+			overflow: auto;
+			flex-direction: column;
+		}
+		#tracking-dashboard .menu {
+			display: flex;
+			background-color: var(--white);
+			border-radius: 2rem;
+			padding: 0.5rem 0.75rem;
+			gap: 0.25rem;
+		}
+		#tracking-dashboard .menu .item {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			border-radius: 2rem;
+			padding: 0 0.75rem;
+			gap: 0.5rem;
+			cursor: pointer;
+			transition: var(--transition);
+		}
+		#tracking-dashboard .menu .item:hover {
+			background-color: var(--gray);
+		}
+		#tracking-dashboard .menu .item .button {
+			border-radius: 2rem;
+			transition: var(--transition);
+			height: 2rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		#tracking-dashboard .menu .item span {
+			font-size: 0.75rem;
+    		font-weight: 600;
+		}
+		#tracking-dashboard .menu.primary {
+			background-color: var(--secondary);
+			color: var(--white);
+		}
+		#tracking-dashboard .menu.primary .item:hover {
+			background-color: hsl(0deg 0% 100% / 20%);
+		}
+		#tracking-dashboard .menu.primary img {
+			filter: invert(1);
+		}
+        
+		#tracking-dashboard .group {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			border-right: 3px solid #ffffff80;
+			gap: 0.25rem;
+			transition: var(--transition);
+			min-width: 10rem;
+		}
+		#tracking-dashboard .group:last-child {
+			border-right: none;
+		}
+		#tracking-dashboard .group .name {
+			display: flex;
+			justify-content: center;
+			font-size: 0.9rem;
+			margin-top: 0.75rem;
+			gap: 0.5rem;
+			align-items: center;
+		}
+		#tracking-dashboard ul {
+			margin: 0;
+			list-style: none;
+			display: flex;
+			gap: 0.75rem;
+			flex-direction: column;
+			padding: 1.25rem;
+			flex: 1;
+		}
+		#tracking-dashboard ul li {
+			border-radius: 0.75rem;
+			cursor: pointer;
+			padding: 1rem;
+			display: flex;
+			gap: 0.25rem;
+			flex-direction: column;
+			transition: var(--transition);
+		}
+		#tracking-dashboard ul li .row {
+			display: flex;
+			justify-content: space-between;
+			width: 100%;
+			align-items: center;
+		}
+		#tracking-dashboard ul li .order-number {
+			font-size: 1rem;
+			font-weight: 600;
+			line-height: 1rem;
+		}
+		#tracking-dashboard ul li .client-name {
+			font-weight: 600;
+			font-size: 0.75rem;
+			line-height: 1rem;
+			display: block;
+		}
+		#tracking-dashboard ul li .destination-agency {
+			font-size: 0.75rem;
+			opacity: 0.75;
+			line-height: 0.8rem;
+			margin-top: 0.5rem;
+		}
+		#tracking-dashboard .container-tracking{
+			display: flex;
+			flex: 1;
+		}
+		#tracking-dashboard .container-tracking .cont{
+			flex: 1;
+			padding: 1rem;
+		}
+		#tracking-dashboard .container-tracking .cont .title{
+			margin: 0 0 1rem 0;
+			text-align: center;
+			font-size: 1rem;
+			font-weight: 400;
+		}
+		#tracking-dashboard .container-tracking .cont .title .icon{
+			width: 1.3rem;
+			margin-right: .5rem;
+		}
+		#tracking-dashboard .container-tracking .cont.ruta{
+			border-left: .1rem solid var(--white);
+			border-right: .1rem solid var(--white);
+		}
+		#tracking-dashboard .container-tracking .cont .data{
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+		}
+		#tracking-dashboard .container-tracking .cont .data .no-orders {
+			text-align: center;
+		}
+		#tracking-dashboard .container-tracking .cont .data .order {
+			display: flex;
+			flex-direction: column;
+			padding: 1rem;
+		}
+		#tracking-dashboard .container-tracking .cont .data .order p{
+			margin: 0;
+		}
+		#tracking-dashboard .container-tracking .cont .data .order .f1{
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#tracking-dashboard .container-tracking .cont .data .order .f1 .orderId{
+			font-weight: 500;
+			font-size: 1rem;
+		}
+		#tracking-dashboard .container-tracking .cont .data .order .f1 img{
+			height: 1.3rem;
+		}
+		#tracking-dashboard .container-tracking .cont .data .order .f2{
+			display: flex;
+			flex-direction: column;
+			margin: 1rem 0;
+		}
+		#tracking-dashboard .container-tracking .cont .data .order .f3{
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#tracking-dashboard .container-tracking .cont .data .order .f3 .origin{
+			padding-right: 1rem;
+		}
+		#tracking-dashboard .container-tracking .cont .data .order .f3 .destiny{
+			padding-left: 1rem;
+		}  
+		#tracking-dashboard .container-tracking .cont .data .order .f3 .line {
+			display: flex;
+			width: 100%;
+			height: 0.5rem;
+			background: linear-gradient(90deg, transparent 0%, rgb(255, 255, 255) 40%, var(--line-color) 100%);
+			background-size: 200% 100%;
+			animation: gradientMove 4s linear infinite;
+			margin-top: 0.15rem;
+			border-radius: 1rem;
+		}
+		#tracking-dashboard .container-tracking .cont .data .order .f3 .line.no-animation {
+			background: var(--line-color);
+			animation: none;
+			background-size: initial;
+		}
+		#tracking-dashboard .container-tracking .cont .data .order .f3 .line.par-animation {
+			background: var(--line-color);
+			animation: blink 1.5s infinite ease-in-out;
+			background-size: initial;
+		}
+
+		@keyframes blink {
+			0%, 100% { opacity: 1; }
+			50% { opacity: 0.2; }
+		}
+
+		@keyframes gradientMove {
+			0% {
+				background-position: 200% 0;
+			}
+			100% {
+				background-position: -200% 0;
+			}
+		}
+
+		#modal-read {
+			align-items: center;
+		}
+		#modal-read .modal {
+			align-items: center;
+			padding: 0;
+			overflow: hidden;
+			border: none;
+			width: initial;
+			border-radius: 1.5rem;
+		}
+		#registerTrackings .header {
+			display: flex;
+			gap: 1rem;
+		}
+		#registerTrackings .header .button {
+			padding: 0 2rem;
+			width: initial;
+		}
+		#registerTrackings .header .button img {
+			filter: invert(1);
+		}
+		#registerTrackings .title {
+			font-family: inherit;
+			border: none;
+			border-radius: 0.75rem;
+			padding: 0 0.75rem;
+			margin: 0;
+			line-height: 2.5rem;
+			outline: none;
+			flex: 1;
+		}
+		#registerTrackings .order,
+		#registerTrackings .phone {
+			width: 40%;
+			margin-bottom: 1rem;
+		}
+		#registerTrackings .doc,
+		#registerTrackings .name {
+			width: 58%;
+			margin-bottom: 1rem;
+		}
+		#registerTrackings .email{
+			width: 100%;
+		}
+		#registerTrackings .agen {
+			width: 20%;
+		}
+		#registerTrackings .track {
+			width: calc(80% - 1rem);
+			gap: 1rem;
+		}
+		#registerTrackings #error-register{
+			width: 100%;
+		}
+		#registerTrackings #error-register p{
+			text-align: center;
+			color: red;
+			font-size: .9rem;
+			font-weight: 600;
+			margin: 1rem auto -1rem auto;
+			line-height: 1;
+		}
+		#registerTrackings #error-register p.true{
+			color: rgb(11, 199, 73);
+		}
+		#registerTrackings .order input,
+		#registerTrackings .doc input,
+		#registerTrackings .name input,
+		#registerTrackings .phone input,
+		#registerTrackings .email input,
+		#registerTrackings .agen select,
+		#registerTrackings .track .sp,
+		#registerTrackings .track input {
+			border: 0.1rem solid var(--newgray);
+			padding: 0.5rem;
+			border-radius: 0.5rem;
+			outline: none;
+			width: 100%;
+			font-size: 0.9rem;
+		}
+		#registerTrackings .track input,
+		#registerTrackings .track .sp {
+			flex: 1;
+		}
+		#registerTrackings .agen-tit {
+			font-size: 1rem;
+			font-weight: 1rem;
+			width: 100%;
+			margin: 0;
+			font-weight: 500;
+		}
+		#registerTrackings .ins {
+			width: 100%;
+			margin: 2rem 0 0 0;
+			border: 0;
+			background-color: var(--primary);
+			color: var(--white);
+			padding: 0.75rem;
+			border-radius: 1rem;
+			font-size: 0.9rem;
+			outline: none;
+			cursor: pointer;
+		}
+
+		/************************************************************************/
+		#scannerBox {
+			position: relative;
+			width: 20rem;
+			height: 20rem;
+		}
+		#scannerBox .scannerDots {
+			position: absolute;
+			top: 20%;
+			left: 20%;
+			width: 60%;
+			height: 60%;
+			border: 2px dashed var(--primary);
+			border-radius: 0.75rem;
+		}
+		#cameraFrame {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+		#scanning {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			background-color: rgba(0, 0, 0, 0.5);
+			color: white;
+			padding: 0.5rem 1rem;
+			border-radius: 1rem;
+			display: none;
+			font-size: 0.85rem;
+			opacity: 0.5;
+			font-family: monospace;
+		}
+		#modal-view {
+			z-index: 30;
+		}
+		#modal-view .top {
+			display: flex;
+			align-items: center;
+			gap: 1rem;
+			font-weight: 500;
+		}
+		#modal-view .top .order {
+			font-size: 1.125rem;
+			line-height: 1rem;
+		}
+		#modal-view .top .code3 {
+			padding: 0.25rem 1rem;
+			background-color: var(--primary);
+			color: var(--white);
+			font-weight: 400;
+			border-radius: 1rem;
+			font-size: 0.8rem;
+		}
+		#modal-view .top .agency {
+    		margin-left: auto;
+		}
+		#modal-view .content .codes {
+			display: flex;
+			justify-content: space-between;
+			width: 100%;
+			gap: 1rem;
+		}
+		#modal-view .content .codes .glass2 {
+			flex: 1;
+			text-align: center;
+			font-weight: 400;
+			display: flex;
+			justify-content: space-between;
+			padding: 0.25rem 1rem;
+		}
+		#modal-view .content .codes .glass2 b {
+			font-weight: 600;
+		}
+		#modal-view .content .user {
+			width: 100%;
+			display: flex;
+			gap: 0.75rem;
+			padding: 1rem;
+			align-items: center;
+		}
+		#modal-view .content .user .letter {
+			background-color: var(--secondary);
+			color: var(--white);
+			width: 1.75rem;
+			height: 1.75rem;
+			border-radius: 1rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+		#modal-view .content .user .data {
+			display: flex;
+			flex-direction: column;
+			gap: 0.125rem;
+		}
+		#modal-view .content .user .data span + span {
+			opacity: 0.5;
+		}
+		#modal-view .content .user .message {
+			margin-left: auto;
+			padding: 0.5rem;
+		}
+		#modal-view .content .user .message img {
+			min-width: 1rem;
+		}
+		#modal-view .review {
+			display: flex;
+			flex: 1;
+			flex-direction: column;
+			gap: 1rem;
+			position: relative;
+			padding: 1rem;
+			border-radius: 0.75rem;
+		}
+		#modal-view .review .row {
+			display: flex;
+			flex-direction: column;
+			position: relative;
+			padding-left: 2rem;
+		}
+		#modal-view .review .row .detail {
+			font-weight: 500;
+		}
+		#modal-view .review .row .date {
+			opacity: 0.6;
+		}
+		#modal-view .review .row::after {
+			content: "";
+			position: absolute;
+			top: 0.125rem;
+			left: 0;
+			width: 14px;
+			height: 14px;
+			background-color: var(--primary);
+			border-radius: 1rem;
+		}
+		#modal-view .review::after {
+			content: "";
+			position: absolute;
+			width: 4px;
+			background-color: var(--primary);
+			left: 21px;
+			top: 1.25rem;
+			bottom: 2.5rem;
+			opacity: 0.25;
+		}
+		@media only screen and (max-width: 48rem) {
+			#tracking-dashboard .group {
+				border-right: none;
+				border-bottom: 3px solid #ffffff80;
+			}
+			#tracking-dashboard .group:last-child {
+				border-bottom: none;
+			}
+			#tracking-dashboard .container-tracking {
+    			flex-direction: column;
+				border-radius: 0;
+			}
+			#tracking-dashboard .container-tracking .cont.ruta {
+				border-left: none;
+    			border-right: none;
+				border-bottom: .1rem solid var(--white);
+    			border-top: .1rem solid var(--white);
+			}
+			#scannerBox {
+				width: initial;
+				aspect-ratio: 1 / 1;
+        		height: initial;
+			}
+			#modal-view .content {
+				width: 100%;
+			}
+			#modal-view .content .codes {
+				flex-direction: column;
+			}
+			#tracking-dashboard .menu {
+				gap: 0.75rem;
+			}
+			#tracking-dashboard .menu .item {
+				padding: 0;
+			}
+			#tracking-dashboard .menu .item .button {
+				height: 2.5rem;
+    			width: 2.5rem;
+			}
+			#tracking-dashboard .menu .item span {
+				display: none;
+			}
+			#modal-statistics .charts {
+				flex-direction: column;
+			}
+			#modal-statistics .charts .box {
+				min-width: initial;
+			}
+		}
+	</style>
+</div>

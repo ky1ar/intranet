@@ -1,0 +1,3248 @@
+<div x-data="support_data">
+	<div id="support-dashboard">
+		<div class="controls">
+			<div class="toggle-collapse frost" @click="$store.cache.toogleMoreMenu()" @click.outside="$store.cache.hideMoreMenu()">
+				<div class="item">
+					<img alt="" width="24" height="24" src="/static/icons/line/more.svg">
+				</div>
+			</div>
+
+			<div class="menu-collapse frost" x-transition.duration.300ms x-show="$store.cache.more_menu">
+				<div class="item" @click="search()">
+					<img alt="" width="18" height="18" src="/static/icons/line/find.svg">
+				</div>
+				<div class="item" @click="viewHistory()">
+					<img alt="" width="18" height="18" src="/static/icons/line/history.svg">
+				</div>
+				<div class="item" @click="viewStatistics()">
+					<img alt="" width="18" height="18" src="/static/icons/line/report.svg">
+				</div>
+			</div>
+			
+			<div class="left mobile-hide frost">
+				<div class="item" @click="search()">
+					<img alt="" width="20" height="20" src="/static/icons/line/find.svg">
+					<span>Buscar</span>
+				</div>
+				<div class="item" @click="viewHistory()">
+					<img alt="" width="20" height="20" src="/static/icons/line/history.svg">
+					<span>Historial</span>
+				</div>
+				<div class="item" @click="viewStatistics()">
+					<img alt="" width="20" height="20" src="/static/icons/line/report.svg">
+					<span>Estadísticas</span>
+				</div>
+			</div>
+
+			<div class="right frost-dark" x-show="$store.cache.hasPermission('support', 'links') || $store.cache.hasPermission('support', 'add')">
+				<div class="item" @click="viewLinks()" x-show="$store.cache.hasPermission('support', 'links')">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/link.svg">
+					<span>Enlaces</span>
+				</div>
+				<div class="item" @click="addOrder()" x-show="$store.cache.hasPermission('support', 'add')">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/add.svg">
+					<span>Añadir</span>
+				</div>
+			</div>
+		</div>
+
+		<div class="board glass">
+			<template x-for="group in $store.cache.getData('support_dashboard')" :key="group.status_id">
+				<div class="group"
+					@dragover="onDragOver($event, group.status_id)" 
+					@dragleave="onDragLeave($event)"
+					@drop="dropService(group.status_id)">
+					<div class="name">
+						<img alt="" width="20" height="20"
+							:src="'/static/icons/module/support/' + ($store.cache.getById('service_status', group.status_id)?.image || 'default.png')"
+							alt="">
+						<span x-text="$store.cache.getById('service_status', group.status_id)?.name || ''"></span>
+					</div>
+
+					<ul>
+						<template x-if="group.service_order.length > 0">
+							<template x-for="item in group.service_order" :key="item.order_number">
+								<li
+									:class="item.priority"
+									:draggable="$store.cache.hasPermission('support', 'move')"
+									@dragstart="dragService(item)"
+									@click="viewOrder(item.order_number)"
+									class="white hover-opacity">
+									<div class="row">
+										<template x-if="item.protect == 0">
+											<span class="order-number"  x-text="`${item.method_letter}-${item.order_number}`"></span>
+										</template>
+
+										<template x-if="item.protect == 1">
+											<span class="order-number" style="color: var(--primary);" x-html="`${item.method_letter}-${item.order_number}<img width='20' height='20' style='position: unset; width: 0.9rem; margin-left: 0.25rem;' src='/static/icons/filled/protect.svg'>`"></span>
+										</template>
+
+										<template x-if="item.updated_today">
+											<div class="update-dot"></div>
+										</template>
+										<div class="passed-days">
+											<span class="register-day" x-text="item.register_days"></span>
+										</div>
+									</div>
+
+									<div class="row">
+										<div>
+											<span class="machine" x-text="item.machine"></span>
+											<span class="admin-name" x-text="item.technician_name"></span>
+											<div class="update-status" @click="mobileStatusChange(item)" @click.stop>Actualizar</div>
+										</div>
+										<img alt="" width="48" height="48" :src="'/static/images/uploads/machines/'+item.machine_image" alt="">
+									</div>
+								</li>
+							</template>
+						</template>
+					</ul>
+				</div>
+			</template>
+		</div>
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('status')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-status"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal little glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="title">
+					<span x-text="selected_service?.order_number"></span>
+					<template x-if="!revert_change">
+						<div class="send-whatsapp">
+							Whatsapp
+							<label class="box">
+								<input id="send-whatsapp" type="checkbox" x-model="sendWhatsapp">
+								<span class="slider"></span>
+							</label>
+						</div>
+					</template>
+				</div>
+				
+				<div class="modal-content">
+					<div class="update">
+						<div class="box">
+							<img alt="" width="20" height="20"
+								:src="'/static/icons/module/support/' + ($store.cache.getById('service_status', revert_change ? selected_group_id:selected_service?.status_id)?.image)"
+								alt="from">
+							<span x-text="($store.cache.getById('service_status', revert_change ? selected_group_id:selected_service?.status_id))?.name"></span>
+						</div>
+
+						<div class="box">
+							<img alt="" width="20" height="20"
+								:src="'/static/icons/module/support/' + ($store.cache.getById('service_status', revert_change ? selected_service?.status_id:selected_group_id)?.image)"
+								alt="to">
+							<span x-text="($store.cache.getById('service_status', revert_change ? selected_service?.status_id:selected_group_id))?.name"></span>
+						</div>
+						<img alt="" class="arrow" :class="revert_change ? 'revert':''" width="16" height="16" src="/static/icons/filled/arrownext.svg">
+					</div>
+						
+					<template x-if="revert_change">
+						<div class="revert">
+							<img width="20" height="20" src="/static/icons/line/delete.svg" alt="alert"> Se eliminarán los datos del último estado registrado, esta acción no se puede revertir.
+						</div>
+					</template>
+
+					<span class="alert">Las notas e imágenes serán visibles, usa lenguaje adecuado.</span>
+
+					<template x-if="!revert_change">
+						<textarea x-model="status_notes" class="text-area glass2" placeholder="Notas"></textarea>
+					</template>
+					
+					<template x-if="!revert_change">
+						<div class="capture-proof">
+							<span class="name">Imágenes</span>
+							<div class="thumbnails-grid">
+								<template x-for="(photo, index) in proof_photos" :key="index">
+									<div class="thumb-item" @click="removePhoto(index)">
+										<div class="thumbnail-wrapper">
+											<div class="delete-button">
+												<img class="delete" alt="delete" width="24" height="24"
+													src="/static/icons/line/delete.svg">
+											</div>
+
+											<img class="thumbnail" :src="photo.preview" alt="preview">
+										</div>
+									</div>
+								</template>
+
+								<div class="add-button hover-opacity" x-show="!preview" @click.prevent="openFileInput()">
+									<img alt="" width="24" height="24" src="/static/icons/line/plus.svg">
+								</div>
+
+								<input
+									type="file"
+									accept="image/*"
+									style="display: none;"
+									x-ref="fileInput"
+									@change="addFiles($event)"
+									multiple 
+								>
+							</div>
+						</div>
+					</template>
+				</div>
+
+				<div class="buttons">
+					<button class="hover-opacity button" @click="updateStatus()" :class="buttons.move_status.class" x-text="buttons.move_status.text"></button>
+				</div>
+			</div>
+		</div>
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('view')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-view"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="top">
+					<span class="title" x-text="`${service_order?.method_letter}-${service_order?.order_number}`"></span>
+					<span class="days" :class="service_order?.priority" x-text="`${service_order?.passed_days}`"></span>
+					<div class="top-controls buttons">
+						<div x-show="$store.cache.hasPermission('support', 'pay_link')" class="copy-pay button black hover-opacity" title="Copiar link de pago" @click="navigator.clipboard.writeText('https://express.culqi.com/pago/OCMZHYTVEX')">
+							<img alt="" width="16" height="16" src="/static/icons/line/link.svg">
+							Link de pago
+						</div>
+
+						<div class="copy-pay button  hover-opacity" title="Descargar rótulo" @click="getLinkPDF(service_order.order_number)">
+							<img alt="" alt="icon" src="/static/icons/line/pdf.svg" width="16" height="16">
+							Rótulo
+						</div>
+					</div>
+					
+				</div>
+
+				<div class="flexbox flex-row">
+					<div class="client white">
+						<div class="show-photos hover-opacity" @click="new_photos = []; $store.cache.showModal('photos');">
+							<img class="icon" alt="camera" width="24" height="24" src="/static/icons/line/camera.svg">
+							<img class="thumb" alt="thumb" width="48" height="48" :src="'/static/images/uploads/machines/'+service_order?.machine_image" alt="">
+						</div>
+
+						<div class="data">
+							<div class="head" :class="$store.cache.hasPermission('support', 'edit') ? 'hover-opacity' : ''" @click="$store.cache.hasPermission('support', 'edit') && startEditMachine()" title="Editar equipo">
+								<span class="brand" x-text="service_order?.brand_name"></span>
+								<span class="line">|</span>
+								<span class="model" x-text="service_order?.machine_model"></span>
+							</div>
+
+							<!-- <span class="machine" x-text="service_order?.machine"></span> -->
+							<span class="name" x-text="show_document ? service_order?.client_document : service_order?.client_name"></span>
+						</div>
+
+						<div class="icons">
+							<a title="Enviar whatsapp" :href="'https://api.whatsapp.com/send?phone=' + service_order?.client_phone" target="_blank" class="hover-opacity" rel="noopener noreferrer">
+								<img alt="" alt="phone" src="/static/icons/line/whatsapp.svg" width="16" height="16">
+							</a>
+
+							<button title="Alternar nombre/documento" @click="show_document = !show_document" class="hover-opacity">
+								<img alt="" alt="document" src="/static/icons/line/document.svg" width="16" height="16">
+							</button>
+						</div>
+					</div>
+
+					<template x-if="service_order?.status_id > 1 && $store.cache.hasPermission('support', 'payment')">
+						<div class="white pay" :class="service_order.paid == 0 ? '' : 'payed'">
+							<div class="pay-box">
+								<div class="btn hover-opacity" @click="updateOrder('paid')" title="Cambiar estado de pago">
+									<img alt="" width="22" height="22" src="/static/icons/line/money.svg">
+								</div>
+								
+								<div class="pay-cnt">
+									<span class="pay-head" x-text="service_order.paid == 0 ? 'Pendiente' : 'Pagado'"></span>
+									
+									<div class="pay-body">
+										<span>S/</span>
+										<input
+											type="text"
+											placeholder="0.0"
+											@input="service_order.pay_amount = service_order.pay_amount.replace(/[^0-9.]/g, '')"
+											@blur="updateOrder('pay_amount')"
+											:size="Math.max(1, String(service_order.pay_amount || 0).length)"
+											x-model="service_order.pay_amount"
+										>
+									</div>
+								</div>
+							</div>
+						</div>
+					</template>
+				</div>
+				
+
+				<div class="modal-content">
+					<template x-if="!$store.cache.hasPermission('support', 'edit')">
+						<div class="fields no-edit">
+							<div class="glass2" x-text="service_order.method_name"></div>
+							<div class="glass2" x-text="service_order.origin_name"></div>
+						</div>
+					</template>
+
+					<template x-if="$store.cache.hasPermission('support', 'edit')">
+						<div class="fields options">
+							<label class="white">
+								<select x-model="service_order.method_id" @change="updateOrder('method_id')">
+									<template x-for="method in $store.cache.getData('service_methods')" :key="method.id">
+										<option :value="method.id" x-text="method.name"></option>
+									</template>
+								</select>
+							</label>
+
+							<label class="white flex1-5">
+								<select x-model="service_order.technician_id" @change="updateOrder('technician_id')">
+									<template x-for="technician in $store.cache.getData('technicians')" :key="technician.id">
+										<option :value="technician.id" x-text="technician.name"></option>
+									</template>
+								</select>
+							</label>
+
+							<label class="white">
+								<select x-model="service_order.origin_id" @change="updateOrder('origin_id')">
+									<template x-for="origin in $store.cache.getData('service_origin')" :key="origin.id">
+										<option :value="origin.id" x-text="origin.name"></option>
+									</template>
+								</select>
+							</label>
+						</div>
+					</template>
+
+					<div class="history">
+						<template x-for="history in service_order?.history" :key="history.status_id">
+							<div class="row">
+								<img alt="" width="20" height="20" :src="'/static/icons/module/support/' + $store.cache.getById('service_status', history.status_id)?.image" alt="">
+
+								<div class="left">
+									<div class="head">
+										<span class="name" x-text="$store.cache.getById('service_status', history.status_id)?.name"></span>
+										<span class="user_name" x-text="history.user_name"></span>
+										<div class="right">
+											<span class="date" x-text="history.register_at"></span>
+										</div>
+									</div>
+									<span class="notes" x-html="history.notes.replace(/\n/g, '<br>')"></span>
+								</div>
+							</div>
+						</template>
+					</div>
+				</div>
+
+				<div class="buttons" x-show="$store.cache.hasPermission('support', 'finish') && service_order?.status_id >= 8">
+					<button class="button hover-opacity" :class="{ 'black': service_order && service_order.status_id == 8 }" @click="createPDF(service_order.order_number)">Descargar Reporte</button>
+					<button class="button hover-opacity" @click="finish(service_order)"  x-show="service_order?.status_id == 8">Finalizar</button>
+				</div>
+
+				<div class="buttons" x-show="$store.cache.hasPermission('support', 'delete') && service_order?.status_id < 8">
+					<button class="button hover-opacity" @click="$store.cache.showModal('confirm-delete-order')">Eliminar orden</button>
+				</div>
+			</div>
+		</div>
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('confirm-delete-order')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-confirm-delete-order"
+			x-cloak
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+		>
+			<div class="modal little glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="title center">
+					<span style="text-align: center;">¿Eliminar esta orden de servicio?</span>
+					<p class="created">Esta acción eliminará el historial de estados y no se puede deshacer</p>
+				</div>
+
+				<div class="buttons">
+					<button class="button black hover-opacity" @click="deleteOrder()">Sí, eliminar</button>
+					<button class="button hover-opacity" @click="$store.cache.hideLastModal()">No</button>
+				</div>
+			</div>
+		</div>
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('edit-machine')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-edit-machine"
+			x-cloak
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+		>
+			<div class="modal little glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="title center">
+					<div class="machine-edit-preview">
+						<img width="48" height="48" :src="'/static/images/uploads/machines/' + (edit_machine.machine_id ? edit_machine.machine_image : service_order?.machine_image)" alt="">
+						<span x-text="edit_machine.machine_id ? edit_machine.machine : service_order?.machine"></span>
+					</div>
+				</div>
+
+				<div class="fields">
+					<label class="white flex1">
+						<img alt="" src="/static/icons/line/printer.svg" width="16" height="16">
+						<input type="text" x-model="edit_machine.machine" placeholder="Modelo de equipo" @input="getMachineView()" @keydown.escape="$store.cache.hideLastModal()">
+						<div class="white machines" x-show="machines.length > 0">
+							<template x-for="machine in machines" :key="machine.id">
+								<span x-text="machine.name" @click="selectMachineForEdit(machine)"></span>
+							</template>
+						</div>
+					</label>
+				</div>
+
+				<div class="buttons">
+					<button class="button black hover-opacity" @click="$store.cache.hideLastModal()">Cancelar</button>
+					<button class="button hover-opacity" @click="updateMachine()" :disabled="!edit_machine.machine_id">Guardar</button>
+				</div>
+			</div>
+		</div>
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('photos')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-photos"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal small glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="top">
+					<span class="title">Galería</span>
+				</div>
+				<div class="bottom thumbnails-grid">
+					<template x-for="photo_item in service_order?.photos" :key="photo_item.id">
+						<div class="thumbnail-wrapper hover-opacity" @click="showPhoto(photo_item.filename);">
+							<img class="hover-opacity" :src="'/static/images/uploads/' + photo_item.filename" alt="preview">
+						</div>
+					</template>
+				</div>
+
+				<div class="capture-proof">
+					<span class="name">Añadir fotos</span>
+					<div class="thumbnails-grid">
+						<template x-for="(photo, index) in new_photos" :key="index">
+							<div class="thumb-item" @click="removeNewPhoto(index)">
+								<div class="thumbnail-wrapper">
+									<div class="delete-button">
+										<img class="delete" alt="delete" width="24" height="24"
+											src="/static/icons/line/delete.svg">
+									</div>
+									<img class="thumbnail" :src="photo.preview" alt="preview">
+								</div>
+							</div>
+						</template>
+
+						<div class="add-button hover-opacity" @click.prevent="openPhotoFileInput()">
+							<img alt="" width="24" height="24" src="/static/icons/line/plus.svg">
+						</div>
+
+						<input
+							type="file"
+							accept="image/*"
+							style="display: none;"
+							x-ref="photoFileInput"
+							@change="addPhotoFiles($event)"
+							multiple
+						>
+					</div>
+				</div>
+
+				<div class="buttons" x-show="new_photos.length > 0">
+					<button class="hover-opacity button" @click="uploadNewPhotos()">Subir imágenes</button>
+				</div>
+			</div>
+			
+		</div>
+
+		<div 
+			x-show="$store.cache.isVisibleModal('image')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-image"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal small glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="modal-content">
+					<img 
+						:src="'/static/images/uploads/' + showing_photo"
+						alt="preview"
+					>
+				</div>
+			</div>
+		</div>
+
+		<div
+			x-show="$store.cache.isVisibleModal('add')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-add"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal small glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="modal-content">
+					<div class="fields">
+						<label class="white">
+							<select x-model="process_service.method_id">
+								<template x-if="$store.cache.getData('service_methods')?.length !== 1">
+									<option value="">Tipo</option>
+								</template>
+
+								<template x-for="method in $store.cache.getData('service_methods')" :key="method.id">
+									<option :value="method.id" x-text="method.name"></option>
+								</template>
+							</select>
+						</label>
+
+						<label class="white">
+							<input type="date" x-model="process_service.register_date">
+						</label>
+
+						<label class="white">
+							<img alt="" alt="user" src="/static/icons/line/id.svg" width="16" height="16">
+							<input type="text" maxlength="11" @input="process_service.client_document = process_service.client_document.replace(/\D/g, '')" placeholder="DNI / RUC" x-model="process_service.client_document" @blur="fetchClientData()">
+						</label>
+					</div>
+
+					<div class="fields">
+						<label :class="client_found ? 'glass2' : 'white'">
+							<img alt="" alt="user" src="/static/icons/line/user.svg" width="16" height="16">
+							<input :disabled="client_found" type="text" placeholder="Nombre o Razón Social" x-model="process_service.client_name">
+						</label>
+					</div>
+
+					<div class="fields">
+						<label class="white">
+							<img alt="" alt="phone" src="/static/icons/line/phone.svg" width="16" height="16">
+							<input type="text" maxlength="9" @input="process_service.client_phone = process_service.client_phone.replace(/\D/g, '')" placeholder="Celular" x-model="process_service.client_phone">
+						</label>
+
+						<label class="white">
+							<img alt="" alt="email" src="/static/icons/line/email.svg" width="16" height="16">
+							<input type="text" placeholder="Email" x-model="process_service.client_email">
+						</label>
+					</div>
+
+					<div class="fields">
+						<label class="white flex2-3">
+							<img alt="" alt="phone" src="/static/icons/line/printer.svg" width="16" height="16">
+							<input type="text" x-model="process_service.machine" placeholder="Modelo de equipo" @input="getMachine()">
+							<div class="white machines">
+								<template x-for="machine in machines" :key="machine.id">
+									<span
+									x-text="machine.name"
+									@click="
+										process_service.machine = machine.name;
+										process_service.machine_id = machine.id;
+										process_service.machine_image = machine.image;
+										machines = [];
+									">
+									</span>
+								</template>
+							</div>
+							
+						</label>
+
+						
+						<label class="white">
+							<select x-model="process_service.origin_id">
+								<template x-for="origin in $store.cache.getData('service_origin')" :key="origin.id">
+									<option :value="origin.id" x-text="origin.name"></option>
+								</template>
+							</select>
+						</label>
+					</div>
+
+					<textarea x-model="process_service.status_notes" class="text-area glass2" placeholder="Problema reportado"></textarea>
+				</div>
+
+				<div class="buttons">
+					<button class="button hover-opacity" @click="newOrder()" :class="buttons.add.class" x-text="buttons.add.text"></button>
+				</div>
+			</div>
+		</div>
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('history')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap common-modal"
+			id="modal-history"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal big glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="top">
+					<span class="title">Historial</span>
+
+					<div class="pagination">
+						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstPage()" title="Primera página">
+							<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevPage()" title="Página anterior">
+							<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextPage()" title="Siguiente página">
+							<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastPage()" title="Última página">
+							<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+						</span>
+					</div>
+				</div>
+
+				<div class="modal-content history">
+					<table class="mobile-hide">
+						<thead>
+							<tr>
+								<th>Orden</th>
+								<th>Equipo</th>
+								<th>Cliente</th>
+								<th>Estado</th>
+								<th>Ingreso</th>
+							</tr>
+						</thead>
+						<tbody>
+							<template x-for="history in history_list" :key="history.id">
+								<tr @click="viewOrder(history.order_number)">
+									<td class="order">
+										<div class="machine">
+											<b x-text="history.method_letter"></b>
+											<div class="model">
+												<span x-text="history.order_number"></span>
+												<span x-show="history.origin_name == 'Provincia'" x-text="history.origin_name"></span>
+											</div>
+										</div>
+									</td>
+									<td class="machine_box">
+										<div class="machine">
+											<img alt="" width="40" height="40" :src="'/static/images/uploads/machines/'+history.machine_image" alt="">
+											<div class="model">
+												<span x-text="history.machine"></span>
+												<span x-text="history.brand"></span>
+											</div>
+										</div>
+									</td>
+									<td class="client" x-text="history.client_name"></td>
+									<td class="order">
+										<span class="finished" :class="!history.finished ? 'active' : ''" x-text="history.finished ? 'Finalizado':'Activo'"></span>
+									</td>
+									<td x-text="history.register_at"></td>
+								</tr>
+							</template>
+						</tbody>
+					</table>
+
+					<div class="mobile-show mobile-table">
+						<template x-for="history in history_list" :key="history.id">
+							<div class="row white" @click="viewOrder(history.order_number)">
+								<div class="head">
+									<div class="info">
+										<span class="id" x-text="history.order_number"></span>
+										<span class="date" x-text="history.register_at"></span>
+									</div>
+									<div class="status" :class="!history.finished ? 'active' : 'finished'" x-text="history.finished ? 'Finalizado':'Activo'"></div>
+								</div>
+								<div class="body">
+									<span class="label">Cliente</span>
+									<span class="name" x-text="history.client_name"></span>
+								</div>
+								<div class="body">
+									<span class="label">Equipo</span>
+									<span class="name" x-text="`${history.brand} ${history.machine}`"></span>
+								</div>
+							</div>
+						</template>
+					</div>
+				</div>
+			</div>
+		</div>
+
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('search')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-search"
+			x-cloak>
+			<div class="modal little" @click.stop>
+				<div class="bottom glass2">
+					<img alt="" class="ico" width="20" height="20" src="/static/icons/line/find.svg">
+					<input type="text"
+						x-model="find_order_number"
+						placeholder="Orden, nombre, dni/ruc"
+						@input="findOrders()">
+					<div class="hover-opacity clear" x-show="find_order_number" title="Limpiar búsqueda" @click="find_order_number = ''; finded_orders = [];">
+						<img alt="" class="" width="12" height="12" src="/static/icons/filled/x.svg">
+					</div>
+				</div>
+				<div class="orders glass2" x-show="finded_orders.length > 0">
+					<template x-for="order in finded_orders" :key="order.id">
+						<div class="item" @click="viewOrder(order.order_number)">
+							<div class="title">
+								<span class="order-number" x-text="order.order_number"></span>
+								<span class="machine" x-text="order.machine"></span>
+							</div>
+							<span class="client" x-text="order.client_name"></span>
+
+							<img alt="" width="48" height="48" :src="`/static/images/uploads/machines/${order.machine_image}`" alt="">
+						</div>
+						
+					</template>
+				</div>
+			</div>
+		</div>
+
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('links')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap common-modal"
+			id="modal-links"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal extra glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="top">
+					<button class="create-link button hover-opacity" @click="newLink()">
+						<img alt="" width="16" height="16" src="/static/icons/line/add.svg">
+						Nuevo
+					</button>
+
+					<template x-if="link_list.length !== 0">
+						<div class="pagination">
+							<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstLinkPage()" title="Primera página">
+								<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevLinkPage()" title="Página anterior">
+								<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextLinkPage()" title="Siguiente página">
+								<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+							</span>
+							<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastLinkPage()" title="Última página">
+								<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+							</span>
+						</div>
+					</template>
+				</div>
+
+				<div class="modal-content">
+					<template x-if="link_list.length == 0">
+						<span style="padding: 1rem;">Aún no has creado enlaces, añade uno y aparecerá aquí.</span>
+					</template>
+
+					<template x-if="link_list.length > 0">
+						<div class="history">
+							<table class="static mobile-hide">
+								<thead>
+									<tr>
+										<th>ID</th>
+										<th>Orden</th>
+										<th>Cliente</th>
+										<th>Estado</th>
+										<th>Creado por</th>
+										<th>Fecha de creación</th>
+										<th></th>
+									</tr>
+								</thead>
+								<tbody>
+									<template x-for="link in link_list" :key="link.id">
+										<tr>
+											<td>
+												<b class="link-id" x-text="link.id"></b>
+											</td>
+											<td>
+												<b x-text="link.order_number"></b>
+											</td>
+											<td x-text="link.client_name"></td>
+											<td>
+												<span class="link-status" :class="`status-${link.status_id}`" x-text="link.status"></span>
+											</td>
+											<td x-text="link.user_name"></td>
+											<td x-text="link.register_at"></td>
+											<td>
+												<template x-if="link.order_number == '-' && link.status_id < 3">
+													<div class="controlls">
+														<div class="action hover-opacity" title="Copiar link" @click="navigator.clipboard.writeText(link.url)">
+															<img alt="" alt="icon" src="/static/icons/line/copy.svg" width="16" height="16">
+														</div>
+														<div class="action hover-opacity" title="Eliminar link" @click="deleteLink(link.id)">
+															<img alt="" alt="icon" src="/static/icons/line/delete.svg" width="16" height="16">
+														</div>
+													</div>
+												</template>
+												<template x-if="link.order_number != '-'">
+													<div class="controlls">
+														<div class="action hover-opacity" title="Ver orden" @click="viewOrder(link.order_number)">
+															<img alt="" alt="icon" src="/static/icons/line/eye.svg" width="16" height="16">
+														</div>
+														<div class="action hover-opacity" title="Descargar rótulo" @click="getLinkPDF(link.order_number)">
+															<img alt="" alt="icon" src="/static/icons/line/pdf.svg" width="16" height="16">
+														</div>
+													</div>
+												</template>
+											</td>
+										</tr>
+									</template>
+								</tbody>
+							</table>
+
+							<div class="mobile-show mobile-table">
+								<template x-for="link in link_list" :key="link.id">
+									<div class="row white">
+										<div class="head">
+											<div class="info">
+												<span class="id" x-text="link.order_number == '-' ? 'Pendiente' : link.order_number" :class="{'pending': link.order_number == '-'}"></span>
+												<span class="date" x-text="link.register_at"></span>
+											</div>
+											<div class="status" :class="`status-${link.status_id}`" x-text="link.status"></div>
+										</div>
+										<div class="body">
+											<span class="label">Creado por</span>
+											<span class="name" x-text="link.user_name"></span>
+										</div>
+										<div class="body">
+											<span class="label">Cliente</span>
+											<span class="name" x-text="link.client_name"></span>
+										</div>
+
+										<div class="options" x-show="link.order_number == '-' && link.status_id < 3">
+											<div class="action hover-opacity" title="Copiar link" @click="navigator.clipboard.writeText(link.url)">
+												<span>Copiar link</span>
+												<img alt="" alt="icon" src="/static/icons/line/copy.svg" width="16" height="16">
+											</div>
+											<div class="action hover-opacity" title="Eliminar link" @click="deleteLink(link.id)">
+												<span>Eliminar</span>
+												<img alt="" alt="icon" src="/static/icons/line/delete.svg" width="16" height="16">
+											</div>
+										</div>
+
+										<div class="options" x-show="link.order_number != '-'">
+											<div class="action hover-opacity" title="Ver orden" @click="viewOrder(link.order_number)">
+												<span>Ver orden</span>
+												<img alt="" alt="icon" src="/static/icons/line/eye.svg" width="16" height="16">
+											</div>
+											<div class="action hover-opacity" title="Descargar rótulo" @click="getLinkPDF(link.order_number)">
+												<span>Rótulo</span>
+												<img alt="" alt="icon" src="/static/icons/line/pdf.svg" width="16" height="16">
+											</div>
+										</div>
+									</div>
+								</template>
+							</div>
+						</div>
+					</template>
+				</div>
+				
+			</div>
+		</div>
+
+
+
+		<div
+			x-show="$store.cache.isVisibleModal('statistics')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-statistics"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="top">
+					<span class="title">Estadísticas</span>
+				</div>
+
+				<div class="modal-content">
+					<div class="kpi">
+						<div class="item white">
+							<p>Total</p>
+							<span x-text="$store.cache.getData('support_statistics')?.count.total"></span>
+						</div>
+						<div class="item white">
+							<p>Hoy</p>
+							<span x-text="$store.cache.getData('support_statistics')?.count.today"></span>
+						</div>
+						<div class="item white">
+							<p>Semana</p>
+							<span x-text="$store.cache.getData('support_statistics')?.count.week"></span>
+						</div>
+						<div class="item white">
+							<p>Mes</p>
+							<span x-text="$store.cache.getData('support_statistics')?.count.month"></span>
+						</div>
+					</div>
+
+					<div class="charts">
+						<div class="glass2 box">
+							<span>Órdenes por Estado</span>
+							<canvas x-ref="ordersByStatusChart" width="160" height="80"></canvas>
+						</div>
+
+						<div class="glass2 box">
+							<span>Órdenes por Mes</span>
+							<canvas x-ref="ordersByMonthChart" width="160" height="80"></canvas>
+						</div>
+
+						<div class="glass2 box">
+							<span>Órdenes por Técnico</span>
+							<div class="date-filters">
+								<label>
+									<span>Desde</span>
+									<input type="date" x-model="tech_start_date" @change.debounce.300ms="reloadTechStatistics()">
+								</label>
+								<label>
+									<span>Hasta</span>
+									<input type="date" x-model="tech_end_date" @change.debounce.300ms="reloadTechStatistics()">
+								</label>
+								
+							</div>
+							<canvas x-ref="ordersByTechChart" width="160" height="80"></canvas>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+
+
+
+	<script>
+		var chartStatus = null;
+		var chartMonth  = null;
+		var chartTech   = null;
+		var techReloading = false;
+	</script>
+
+	<script>
+		Alpine.data('support_data',() => ({
+			find_order_number: '',
+			sendWhatsapp: true,
+			dashboard: [],
+			history_list: [],
+			link_list: [],
+			total_pages: null,
+			current_page: 1,
+			service_order: [],
+			machines: [],
+			edit_machine: {},
+			finded_orders: [],
+			selected_service: null,
+			status_notes: '',
+			show_document: false,
+			process_service: {},
+			client_found: false,
+			processing: false,
+            preview: null,
+			proof_photos: [],
+			new_photos: [],
+			showing_photo: '',
+			selected_group_id: null,
+			revert_change: false,
+			tech_start_date: '',
+			tech_end_date: '',
+
+			buttons: {
+                add: { class: '', text: 'Añadir' },
+                move_status: { class: '', text: this.selected_service?.status_id == 8 ? 'Finalizar orden': this.revert_change ? 'Retroceder estado':'Actualizar estado' },
+            },
+            api: Alpine.store('cache').api,
+
+			async init() {
+				console.log('Inicializando Support...');
+
+                // Socket
+                const socket = Alpine.store('cache').socket;
+				if (socket) {
+					socket.removeAllListeners();
+					socket.on("support_dashboard_update", async () => {
+						await Alpine.store('cache').refresh('support_dashboard');
+					});
+					socket.on("support_link_update", async () => {
+						await this.getLinkHistory();
+					});
+				}	
+
+				await Alpine.store('cache').fetchData([
+					{ key: 'support_dashboard', url: `/support/dashboard?user_id=${Alpine.store('cache').user.id}`, force: true },
+					{ key: 'service_methods', url: '/general/service_methods' },
+					{ key: 'service_status', url: '/general/service_status' },
+					{ key: 'service_origin', url: '/general/service_origin' },
+					{ key: 'technicians', url: '/general/technicians' },
+				]);
+
+				// await Alpine.store('cache').verify();
+
+			},
+
+			setDefaultTechDates() {
+				const today = new Date();
+				const first = new Date(today.getFullYear(), today.getMonth(), 1);
+				const last  = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+				const toIso = d => d.toISOString().slice(0, 10);
+
+				this.tech_start_date = this.tech_start_date || toIso(first);
+				this.tech_end_date   = this.tech_end_date   || toIso(last);
+			},
+
+			async getMachine() {
+                const machine_search = this.process_service.machine;
+
+                try {
+                    if (machine_search.length < 2) {
+                        this.machines = [];
+                        return;
+                    }
+                    
+                    const response = await fetch(`${this.api}/machine/find/${machine_search}`, {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+                    this.machines = jsonData.data;
+                } catch (error) {
+                    this.machines = [];
+                    return;
+                } 
+            },
+
+			startEditMachine() {
+				this.edit_machine = {
+					machine: this.service_order.machine,
+					machine_id: this.service_order.machine_id,
+					machine_image: this.service_order.machine_image,
+				};
+				this.machines = [];
+				Alpine.store('cache').showModal('edit-machine');
+			},
+
+			selectMachineForEdit(machine) {
+				this.edit_machine.machine = machine.name;
+				this.edit_machine.machine_id = machine.id;
+				this.edit_machine.machine_image = machine.image;
+				this.machines = [];
+			},
+
+			async getMachineView() {
+				const machine_search = this.edit_machine.machine;
+				if (machine_search.length < 2) { this.machines = []; return; }
+				try {
+					const response = await fetch(`${this.api}/machine/find/${machine_search}`);
+					const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error');
+					this.machines = jsonData.data;
+				} catch {
+					this.machines = [];
+				}
+			},
+
+			async updateMachine() {
+				if (!this.edit_machine.machine_id) return;
+				try {
+					const response = await fetch(`${this.api}/support/order/update`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${this.token}`,
+						},
+						body: JSON.stringify({
+							order_number: this.service_order.order_number,
+							user_id: Alpine.store('cache').user.id,
+							machine_id: this.edit_machine.machine_id,
+						}),
+					});
+					const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error al actualizar');
+
+					await this.getServiceOrder(this.service_order.order_number);
+					this.edit_machine = {};
+					this.machines = [];
+					Alpine.store('cache').hideLastModal();
+				} catch (error) {
+					console.error(error.message);
+				}
+			},
+
+			payToggle() {
+				this.process_service.payed = !this.process_service.payed
+			},
+
+			async newOrder() {
+				if (!this.process_service) return;
+				if (this.processing) return;
+
+				this.processing = true;
+
+                const payload = { 
+                    user_id: Alpine.store('cache').user.id,
+                    machine_id: this.process_service.machine_id || null,
+                    method_id: this.process_service.method_id || 3,
+                    notes: this.process_service.status_notes || "",
+                    origin_id: this.process_service.origin_id || 1,
+                    register_at: this.process_service.register_date,
+                    client_id: this.process_service.client_id,
+                    client: {
+						document: this.process_service.client_document,
+						email: this.process_service.client_email,
+						name: this.process_service.client_name,
+						phone: this.process_service.client_phone,
+					},
+                }
+
+                try {
+                    const response = await fetch(`${this.api}/support/process`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+                    
+                    //this.$refs.terms.scrollTop = 0;
+                    //this.step++;
+                    this.resetOrder();
+					Alpine.store('cache').hideModal('add');
+
+                } catch (error) {
+                    this.showError('add', error.message);
+                } finally {
+					this.processing = false;
+                }
+            }, 
+
+			
+			async updateOrder(field) {
+				let value = this.service_order[field];
+				if (field == 'paid') {
+					if (value == 0) {
+						this.service_order.paid = 1
+					} else {
+						this.service_order.paid = 0
+					}
+					value = this.service_order.paid
+				}
+
+				if (!value && field != 'paid') {
+					console.warn(`El campo ${field} está vacío`);
+					return;
+				}
+
+				const payload = {
+					order_number: this.service_order.order_number,
+					[field]: value,
+					user_id: Alpine.store('cache').user.id,
+				};
+
+				try {
+					const response = await fetch(`${this.api}/support/order/update`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(payload),
+					});
+
+					if (!response.ok) throw new Error('Error al actualizar');
+					console.log(`Campo ${field} actualizado correctamente`);
+				} catch (error) {
+					console.error('Error actualizando:', error);
+				} 
+			},
+			
+			showError(btnKey, errorMsg) {
+                const originalText = this.buttons[btnKey].text;
+                const originalClass = this.buttons[btnKey].class;
+
+                if (originalClass == 'error') {
+                    return;
+                }
+                this.buttons[btnKey].text = errorMsg;
+                this.buttons[btnKey].class = 'error';
+
+                setTimeout(() => {
+                    this.buttons[btnKey].text = originalText;
+                    this.buttons[btnKey].class = originalClass;
+                }, 1000);
+            },
+
+			resetOrder() {
+                this.process_service = {};
+            },
+
+			dragService(service) {
+				this.selected_service = service;
+			},
+
+			mobileStatusChange(service) {
+				this.selected_group_id = service.status_id + 1;
+				this.selected_service = service;
+				
+				this.status_notes = '';
+				this.sendWhatsapp = true;
+				this.preview = null;
+				this.proof_photos = [];
+				Alpine.store('cache').showModal('status');
+			},
+
+			onDragOver(event, targetStatusId) {
+				event.preventDefault();
+
+				if (this.selected_service.status_id == targetStatusId || this.selected_service.status_id + 1 == targetStatusId || this.selected_service.status_id - 1 == targetStatusId) {
+					event.currentTarget.classList.add('drag-over');
+					event.dataTransfer.dropEffect = 'move';
+				} else {
+					event.dataTransfer.dropEffect = 'none';
+				}
+			},
+			
+			onDragLeave(event) {
+				event.currentTarget.classList.remove('drag-over');
+			},
+			
+			async dropService(group_id) {
+				document.querySelectorAll('.group').forEach(container => {
+					container.classList.remove('drag-over');
+				});
+			
+				if (!this.selected_service) {
+					return;
+				}
+				
+				if (this.selected_service.status_id == group_id) {
+					this.selected_service = null;
+					return;
+				}
+				this.selected_group_id = group_id;
+				this.revert_change = group_id < this.selected_service.status_id;
+
+				this.status_notes = '';
+				this.sendWhatsapp = true;
+				this.preview = null;
+				this.proof_photos = [];
+				Alpine.store('cache').showModal('status');
+			},
+
+			showPhoto(photo) {
+				this.showing_photo = photo;
+				Alpine.store('cache').showModal('image');
+			},
+			
+			addFiles(event) {
+				for (let f of event.target.files) {
+					if (f) {
+						let reader = new FileReader();
+						reader.onload = e => this.proof_photos.push({ file: f, preview: e.target.result });
+						reader.readAsDataURL(f);
+					}
+				}
+				event.target.value = '';
+			},
+
+			openFileInput() {
+                if (this.$refs.fileInput) {
+					this.$refs.fileInput.value = '';
+					// o: this.$refs.fileInput.value = null;
+				}
+                this.$refs.fileInput.click();
+            },
+
+			removePhoto(index) {
+				this.proof_photos.splice(index, 1);
+			},
+
+			openPhotoFileInput() {
+				if (this.$refs.photoFileInput) {
+					this.$refs.photoFileInput.value = '';
+				}
+				this.$refs.photoFileInput.click();
+			},
+
+			addPhotoFiles(event) {
+				for (let f of event.target.files) {
+					if (f) {
+						let reader = new FileReader();
+						reader.onload = e => this.new_photos.push({ file: f, preview: e.target.result });
+						reader.readAsDataURL(f);
+					}
+				}
+				event.target.value = '';
+			},
+
+			removeNewPhoto(index) {
+				this.new_photos.splice(index, 1);
+			},
+
+			async uploadNewPhotos() {
+				if (this.processing || this.new_photos.length === 0) return;
+				this.processing = true;
+				try {
+					const formData = new FormData();
+					for (let i = 0; i < this.new_photos.length; i++) {
+						const resized = await Alpine.store('cache').resizeImage(this.new_photos[i].file, 1024, 1024);
+						formData.append('images[]', resized);
+					}
+					formData.append('order_number', this.service_order.order_number);
+
+					const response = await fetch(`${this.api}/support/photos/add`, {
+						method: 'POST',
+						body: formData
+					});
+
+					if (!response.ok) throw new Error('Error al subir las fotos.');
+
+					this.new_photos = [];
+					await this.getServiceOrder(this.service_order.order_number);
+				} catch (error) {
+					console.error('Error al subir fotos:', error);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			finish(service) {
+				this.selected_service = service;
+				this.status_notes = '';
+				Alpine.store('cache').showModal('status');
+			},
+
+			async deleteOrder() {
+				try {
+					const response = await fetch(`${this.api}/support/order/delete`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${this.token}`,
+						},
+						body: JSON.stringify({ order_number: this.service_order.order_number }),
+					});
+					const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || 'Error al eliminar');
+
+					Alpine.store('cache').hideAllModals();
+					this.service_order = {};
+					await Alpine.store('cache').refresh('support_dashboard');
+				} catch (error) {
+					console.error(error.message);
+				}
+			},
+
+			async createPDF(order_number) {
+				if (this.processing) return;
+				this.processing = true;
+
+				try {
+					const response = await fetch(`${this.api}/support/pdf/${order_number}`);
+					if (!response.ok) throw new Error('No se pudo generar el PDF');
+
+					const blob = await response.blob();
+					const url = window.URL.createObjectURL(blob);
+
+					const link = document.createElement('a');
+					link.href = url;
+					link.download = `reporte_orden_${order_number}.pdf`;
+					document.body.appendChild(link);
+					link.click();
+					link.remove();
+
+					window.URL.revokeObjectURL(url);
+				} catch (error) {
+					console.error('Error al descargar el PDF:', error);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async getServiceOrder(order_number) {
+				const response = await fetch(`${this.api}/support/order_number/${order_number}`);
+				const data = await response.json();
+				this.service_order = data.data;
+			},
+
+			async viewOrder(order_number) {
+				try {
+					await this.getServiceOrder(order_number);
+					this.edit_machine = {};
+					this.machines = [];
+					Alpine.store('cache').showModal('view');
+				} catch (error) {
+					console.error('Error en la asignación:', error);
+				}
+			},
+
+			async processPay() {
+
+				const payload = {
+					order_number: this.service_order.order_number,
+					pay_amount: this.service_order.pay_amount,
+				};
+
+				try {
+					const response = await fetch(`${this.api}/support/pay_amount`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(payload)
+					});
+
+				} catch (error) {
+					console.error('Error en la asignación:', error);
+				} 
+			},
+
+			addOrder() {
+				Alpine.store('cache').showModal('add');
+			},
+
+			async viewHistory() {
+				await this.firstPage();
+				Alpine.store('cache').showModal('history');
+			},
+			
+			async search() {
+				this.find_order_number = '';
+				this.finded_orders = []
+
+				Alpine.store('cache').showModal('search');
+			},
+
+			async viewLinks() {
+				await this.firstLinkPage();
+				Alpine.store('cache').showModal('links');
+			},
+
+			async viewStatistics() {
+				this.setDefaultTechDates();
+
+				 await Alpine.store('cache').fetchData([
+					{ 
+						key: 'support_statistics', 
+						url: `/support/statistics?start_date=${this.tech_start_date}&end_date=${this.tech_end_date}`, 
+						force: true 
+					},
+				]);
+				Alpine.store('cache').showModal('statistics');
+				await this.initCharts();
+			},
+
+			buildTechChart(statistics) {
+	const canvas = this.$refs.ordersByTechChart;
+	if (!canvas) return;
+
+	const byTech = Array.isArray(statistics.by_tech) ? statistics.by_tech : [];
+
+	// Destruir si ya había uno
+	if (chartTech) {
+		chartTech.destroy();
+		chartTech = null;
+	}
+
+	const ctx = canvas.getContext('2d');
+	if (!ctx) {
+		console.warn('No se pudo obtener el contexto 2D para ordersByTechChart');
+		return;
+	}
+
+	chartTech = new Chart(ctx, {
+		type: 'bar',
+		data: {
+			labels: byTech.map(r => r.technician),
+			datasets: [{
+				label: 'Órdenes',
+				data: byTech.map(r => r.count),
+				backgroundColor: 'rgba(15, 32, 39, 0.75)',
+				borderWidth: 0
+			}]
+		},
+		options: {
+			responsive: true,
+			plugins: {
+				legend: { display: false },
+				// 🔸 Quitar tooltip (hover)
+				tooltip: { enabled: false }
+			},
+			scales: {
+				x: {
+					ticks: {
+						color: '#666',
+						font: {
+							size: 12,
+							family: 'Lexend',
+							weight: '500'
+						}
+					},
+					grid: { color: 'transparent' },
+					border: { display: false }
+				},
+				y: {
+					ticks: {
+						color: '#666',
+						font: {
+							size: 12,
+							family: 'Lexend',
+							weight: '500'
+						}
+					},
+					grid: { color: '#fff' },
+					border: { display: false }
+				}
+			}
+		},
+		// 🔸 Plugin inline para escribir el número encima de cada barra
+		plugins: [{
+			id: 'valueAboveBar',
+			afterDatasetsDraw(chart, args, pluginOptions) {
+				const { ctx } = chart;
+				ctx.save();
+				ctx.textAlign = 'center';
+				ctx.textBaseline = 'bottom';
+				ctx.fillStyle = '#333';
+				ctx.font = '600 12px Lexend';
+
+				const dataset = chart.getDatasetMeta(0);
+				dataset.data.forEach((bar, index) => {
+					const value = chart.data.datasets[0].data[index];
+					if (value == null) return;
+					const x = bar.x;
+					const y = bar.y - 4; // un poco encima de la barra
+					ctx.fillText(value, x, y);
+				});
+
+				ctx.restore();
+			}
+		}]
+	});
+},
+
+
+			async reloadTechStatistics() {
+				// Evitar múltiples ejecuciones simultáneas
+				if (techReloading) return;
+				techReloading = true;
+
+				try {
+					if (!this.tech_start_date || !this.tech_end_date) {
+						return;
+					}
+
+					// Copias locales, no tocamos los x-model
+					let startDate = this.tech_start_date;
+					let endDate   = this.tech_end_date;
+
+					const start = new Date(startDate);
+					const end   = new Date(endDate);
+
+					// Normalizar solo en variables locales, no sobre this.*
+					if (start > end) {
+						const tmp = startDate;
+						startDate = endDate;
+						endDate   = tmp;
+					}
+
+					// 1) Pedir estadísticas al backend con el nuevo rango
+					await Alpine.store('cache').fetchData([
+						{ 
+							key: 'support_statistics', 
+							url: `/support/statistics?start_date=${startDate}&end_date=${endDate}`, 
+							force: true 
+						},
+					]);
+
+					const statistics = Alpine.store('cache').getData('support_statistics');
+					if (!statistics) return;
+
+					const byTech = Array.isArray(statistics.by_tech) ? statistics.by_tech : [];
+
+					// 2) Si no hay chart aún, lo construimos desde cero
+					if (!chartTech) {
+						this.buildTechChart(statistics);
+						return;
+					}
+
+					// 3) Si ya existe, solo actualizamos datos
+					chartTech.data.labels = byTech.map(r => r.technician);
+					chartTech.data.datasets[0].data = byTech.map(r => r.count);
+					chartTech.update();
+
+				} catch (e) {
+					console.error('Error en reloadTechStatistics:', e);
+				} finally {
+					techReloading = false;
+				}
+			},
+
+			async initCharts() {
+				const statistics = Alpine.store('cache').getData('support_statistics');
+				if (!statistics) return;
+
+				if (
+					!this.$refs.ordersByStatusChart ||
+					!this.$refs.ordersByMonthChart  ||
+					!this.$refs.ordersByTechChart
+				) {
+					return;
+				}
+
+				await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)));
+
+				if (chartStatus) chartStatus.destroy();
+				if (chartMonth)  chartMonth.destroy();
+
+				
+				chartStatus = new Chart(this.$refs.ordersByStatusChart, {
+					type: 'bar',
+					data: {
+						labels: statistics.by_status.map(r => r.status),
+						datasets: [{
+							label: 'Órdenes',
+							data: statistics.by_status.map(r => r.count),
+							backgroundColor: 'rgba(255,160,42, 0.75)',
+							borderWidth: 0,
+						}]
+					},
+					options: {
+						responsive: true,
+						plugins: {
+							legend: { display: false }
+						},
+						scales: {
+							x: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: 'transparent',
+								},
+								border: {
+									display: false
+								}
+							},
+							y: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: '#fff',
+								},
+								border: {
+									display: false
+								}
+							}
+						}
+					},
+					
+				});
+
+				chartMonth = new Chart(this.$refs.ordersByMonthChart, {
+					type: 'line',
+					data: {
+						labels: statistics.by_month.map(r => r.period),
+						datasets: [{
+							label: 'Órdenes por Mes',
+							data: statistics.by_month.map(r => r.count),
+							fill: true,
+							tension: 0.3,
+							backgroundColor: 'rgba(234,113,52,0.5)',
+							borderWidth: 0
+						}]
+					},
+					options: {
+						responsive: true,
+						plugins: {
+							legend: { display: false }
+						},
+						scales: {
+							x: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: 'transparent',
+								},
+								border: {
+									display: false
+								}
+							},
+							y: {
+								ticks: {
+									color: '#666',
+									font: {
+										size: 12,
+										family: 'Lexend',
+										weight: '500'
+									}
+								},
+								grid: {
+									color: '#fff',
+								},
+								border: {
+									display: false
+								}
+							}
+						}
+					},
+				});
+
+				this.buildTechChart(statistics);
+			},
+				
+			async getHistory() {
+				try {
+					const response = await fetch(`${this.api}/support/history?page=${this.current_page}`);
+					const data = await response.json();
+					const jsonData = data.data || [];
+
+					this.history_list = jsonData.list;
+					this.total_pages = jsonData.pagination.pages;
+				} catch (error) {
+					console.error('Error fetching history', error);
+				} 
+			},
+
+			async getLinkHistory() {
+				try {
+					const response = await fetch(`${this.api}/support/link_history?page=${this.current_page}`);
+					const data = await response.json();
+					const jsonData = data.data || [];
+
+					this.link_list = jsonData.list;
+					this.total_pages = jsonData.pagination.pages;
+				} catch (error) {
+					console.error('Error fetching link', error);
+				}
+			},
+
+			async deleteLink(link_id) {
+				if (this.processing) return;
+
+				this.processing = true;
+
+				const payload = {
+					link_id: link_id,
+					user_id: Alpine.store('cache').user.id,
+				};
+			
+				try {
+					const response = await fetch(`${this.api}/support/link_delete`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(payload)
+					});
+			
+				} catch (error) {
+					console.error('Error en la asignación:', error);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async newLink() {
+				if (this.processing) return;
+
+				this.processing = true;
+
+				const payload = {
+					user_id: Alpine.store('cache').user.id,
+				};
+			
+				try {
+					const response = await fetch(`${this.api}/support/link`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(payload)
+					});
+
+				} catch (error) {
+					console.error('Error en la asignación:', error);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async firstPage() {
+				this.current_page = 1;
+				await this.getHistory();
+			},
+
+			async lastPage() {
+				this.current_page = this.total_pages;
+				await this.getHistory();
+			},
+
+			async nextPage() {
+				const new_page = this.current_page + 1;
+				if (new_page > this.total_pages)
+					return;
+				this.current_page = new_page;
+				await this.getHistory();
+			},
+
+			async prevPage() {
+				const new_page = this.current_page - 1;
+				if (new_page < 1)
+					return;
+				this.current_page = new_page;
+				await this.getHistory();
+			},
+
+			async firstLinkPage() {
+				this.current_page = 1;
+				await this.getLinkHistory();
+			},
+
+			async lastLinkPage() {
+				this.current_page = this.total_pages;
+				await this.getLinkHistory();
+			},
+
+			async nextLinkPage() {
+				const new_page = this.current_page + 1;
+				if (new_page > this.total_pages)
+					return;
+				this.current_page = new_page;
+				await this.getLinkHistory();
+			},
+
+			async prevLinkPage() {
+				const new_page = this.current_page - 1;
+				if (new_page < 1)
+					return;
+				this.current_page = new_page;
+				await this.getLinkHistory();
+			},
+
+			async fetchClientData() {
+				const document = this.process_service.client_document;
+				if (!document) {
+					this.process_service.client_id = '';
+					this.process_service.client_name = '';
+					this.process_service.client_phone = '';
+					this.client_found = false;
+					return;
+				}
+
+				try {
+					const response = await fetch(`${this.api}/client/data/${document}`);
+					if (!response.ok) {
+						this.process_service.client_id = '';
+						this.process_service.client_name = '';
+						this.process_service.client_phone = '';
+						this.process_service.client_email = '';
+						this.client_found = false;
+						return;
+					}
+
+					const data = await response.json();
+					if (data.success) {
+						this.process_service.client_id = data.data.id;
+						this.process_service.client_name = data.data.name;
+						this.process_service.client_phone = data.data.phone;
+						this.process_service.client_email = data.data.email;
+						this.client_found = true;
+					} else {
+						console.warn('Respuesta de API no exitosa.');
+					}
+				} catch (error) {
+					console.error('Error al obtener datos del usuario:', error);
+				} 
+			},
+
+			async updateStatus() {
+				if (!this.selected_service) return;
+				if (this.processing) return;
+				this.processing = true;
+				
+				if (this.revert_change) {
+					const payload = {
+						order_number: this.selected_service.order_number,
+						user_id: Alpine.store('cache').user.id,
+					};
+						
+					try {
+						const response = await fetch(`${this.api}/support/order/prev`, {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json'
+							},
+							body: JSON.stringify(payload)
+						});
+				
+						if (!response.ok) {
+							throw new Error('Error al retornar la orden.');
+						}
+
+						Alpine.store('cache').hideModal('status');
+						this.selected_service = null;
+
+					} catch (error) {
+						console.error('Error:', error);
+					} finally {
+						this.processing = false;
+					}
+				} else {
+					total_photos = this.proof_photos.length;
+					if (total_photos < 1) {
+						this.showError('move_status', 'Añade al menos 1 imagen');
+						this.processing = false;
+						return;
+					}
+
+					const formData = new FormData();
+					for (let i = 0; i < total_photos; i++) {
+						const resized = await Alpine.store('cache').resizeImage(this.proof_photos[i].file, 1024, 1024);
+						formData.append('images[]', resized);
+					}
+					formData.append("user_id", Alpine.store('cache').user.id);
+					formData.append("order_number", this.selected_service.order_number);
+					formData.append("send", this.sendWhatsapp);
+					formData.append("notes", this.status_notes);
+					formData.append("status_id", this.selected_service.status_id);
+
+					try {
+						const response = await fetch(`${this.api}/support/order/next`, {
+							method: 'POST',
+							body: formData
+						});
+				
+						if (!response.ok) {
+							throw new Error('Error al asignar la orden.');
+						}
+						if (this.selected_service.status_id == 8) {
+							Alpine.store('cache').hideAllModals();
+						} else {
+							Alpine.store('cache').hideModal('status');
+						}
+
+						this.selected_service = null;
+
+					} catch (error) {
+						console.error('Error en la asignación:', error);
+					} finally {
+						this.processing = false;
+					}
+				}
+			},
+			
+			async findOrders() {
+                const order_number = this.find_order_number;
+                try {
+                    if (order_number.length < 2) {
+                        this.finded_orders = [];
+                        return;
+                    }
+                    
+                    const response = await fetch(`${this.api}/support/find/${order_number}`, {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+                    this.finded_orders = jsonData.data;
+                } catch (error) {
+					console.log('Error al buscar órdenes:', error);
+                    this.finded_orders = [];
+                    return;
+                } 
+            },
+
+			async getLinkPDF(order_number) {
+				if (this.processing) return;
+				this.processing = true;
+
+				try {
+					const response = await fetch(`${this.api}/support/link/pdf/${order_number}`);
+					if (!response.ok) throw new Error('No se pudo generar el PDF');
+
+					const blob = await response.blob();
+					const url = window.URL.createObjectURL(blob);
+
+					const link = document.createElement('a');
+					link.href = url;
+					link.download = `rotulo_${order_number}.pdf`;
+					document.body.appendChild(link);
+					link.click();
+					link.remove();
+
+					window.URL.revokeObjectURL(url);
+				} catch (error) {
+					console.error('Error al descargar el PDF:', error);
+				} finally {
+					this.processing = false;
+				}
+			},
+		}));
+	</script>
+
+
+
+
+
+
+
+	<style>
+		#modal-confirm-delete-order {
+			z-index: 50;
+		}
+		#modal-edit-machine {
+			z-index: 50;
+		}
+		#modal-edit-machine .machine-edit-preview {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			font-weight: 500;
+		}
+		#modal-edit-machine .machine-edit-preview img {
+			border-radius: 0.5rem;
+			mix-blend-mode: multiply;
+		}
+		#modal-edit-machine .fields label {
+			position: relative;
+		}
+		#modal-edit-machine .fields label .machines {
+			position: absolute;
+			top: 100%;
+			left: 0;
+			right: 0;
+			z-index: 10;
+			border-radius: 0.5rem;
+			overflow: hidden;
+			display: flex;
+			flex-direction: column;
+		}
+		#modal-edit-machine .fields label .machines span {
+			padding: 0.5rem 0.75rem;
+			cursor: pointer;
+			font-size: 0.9rem;
+		}
+		#modal-edit-machine .fields label .machines span:hover {
+			opacity: 0.7;
+		}
+		.mobile-table {
+			flex-direction: column;
+			gap: 0.75rem;
+		}
+		.mobile-table .row {
+			padding: 1rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+		}
+		.mobile-table .head {
+			display: flex;
+    		justify-content: space-between;
+			align-items: start;
+			margin-bottom: 0.5rem;
+		}
+		.mobile-table .head .info {
+			display: flex;
+    		flex-direction: column;
+		}
+		.mobile-table .head .info .id {
+			font-size: 1rem;
+    		font-weight: 600;
+		}
+		.mobile-table .head .info .id.pending {
+			font-size: 0.85rem;
+    		opacity: 0.5;
+		}
+		.mobile-table .head .info .date {
+			font-size: 0.75rem;
+    		opacity: 0.75;
+		}
+		.mobile-table .head .status {
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		.mobile-table .head .status.active {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		.mobile-table .head .status.finished {
+			background-color: #d0f4ea;
+    		border: 2px solid #abe9d8;
+		}
+		.mobile-table .body {
+			display: flex;
+    		justify-content: space-between;
+			align-items: center;
+		}
+		.mobile-table .body .label {
+			font-size: 0.75rem;
+			opacity: 0.5;
+		}
+		.mobile-table .body .name {
+			font-weight: 500;
+			font-size: 0.8rem;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 75%;
+		}
+		.mobile-table .options {
+			display: flex;
+			gap: 0.75rem;
+			margin-top: 0.5rem;
+		}
+		.mobile-table .options .action {
+			flex: 1;
+			background-color: var(--newgray);
+			padding: 0.5rem 0.75rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.5rem;
+			border-radius: 2rem;
+			box-shadow: 0 1px 0 hsl(0deg 0% 0% / 15%);
+		}
+		.mobile-table .options span {
+			font-weight: 500;
+    		font-size: 0.8rem;
+		}
+		.modal .fields.options {
+			flex-direction: row;
+		}
+		#modal-statistics .date-filters {
+			display: flex;
+			gap: 0.5rem;
+			align-items: center;
+			font-size: 0.8rem;
+		}
+
+		#modal-statistics .date-filters input[type="date"] {
+			font-family: inherit;
+			font-size: 0.8rem;
+			border-radius: 0.5rem;
+			border: 1px solid var(--graydark);
+			padding: 0.25rem 0.5rem;
+			background-color: #fff;
+		}
+
+		#modal-image {
+			z-index: 50;
+		}
+		#modal-image img {
+			border-radius: 0.75rem;
+		}
+		#modal-photos {
+			z-index: 40;
+		}
+		#modal-photos .capture-proof {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			user-select: none;
+		}
+		#modal-photos .capture-proof .name {
+			font-weight: 500;
+		}
+		#modal-search .modal {
+			gap: 0.5rem;
+			min-width: initial;
+		}
+		#modal-search .bottom {
+			display: flex;
+			align-items: center;
+			padding: 0.25rem 1rem;
+			border-radius: 0.75rem;
+		}
+		#modal-search .bottom .ico {
+			opacity: 0.5;
+		}
+		#modal-search .bottom input {
+			flex: 1;
+			background-color: transparent;
+			border: none;
+			outline: none;
+			padding: 0.75rem;
+			font-family: inherit;
+			font-size: 1rem;
+			font-weight: 400;
+			min-width: 10rem;
+		}
+		#modal-search .bottom .clear {
+			padding: 0.25rem;
+		}
+		#modal-search .bottom .clear img {
+			min-width: 0.75rem;
+    		min-height: 0.75rem;
+		}
+		#modal-search .orders {
+			max-height: 18rem;
+			overflow-y: auto;
+			width: 100%;
+			display: flex;
+			flex-direction: column;
+			font-size: 1rem;
+			border-radius: 0.75rem;
+		}
+		#modal-search .orders .item {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			position: relative;
+			padding: 0.75rem 1rem;
+			border-bottom: 2px solid #ffffff80;
+			cursor: pointer;
+			transition: var(--transition);
+			background-color: transparent;
+		}
+		#modal-search .orders .title {
+			display: flex;
+    		justify-content: space-between;
+		}
+		#modal-search .orders .item:last-child {
+			border-bottom: none;
+		}
+		#modal-search .orders .item:hover {
+			background-color: #ffffff;
+		}
+		#modal-search .orders .item .order-number {
+			font-size: 1rem;
+			font-weight: 600;
+			line-height: 1rem;
+		}
+		#modal-search .orders .item .machine {
+			font-weight: 600;
+			font-size: 0.75rem;
+			line-height: 1rem;
+			display: none;
+		}
+		#modal-search .orders .item .client {
+			line-height: 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+			opacity: 0.75;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 12rem;
+		}
+		#modal-search .orders .item img {
+			mix-blend-mode: darken;
+			position: absolute;
+			bottom: 0.75rem;
+			right: 0.75rem;
+			width: 2rem;
+		}
+		#modal-statistics .kpi {
+			display: flex;
+    		gap: 1rem;
+		}
+		#modal-statistics .kpi .item {
+			flex: 1;
+			width: 8rem;
+			display: flex;
+			padding: 1rem;
+			flex-direction: column;
+			gap: 0.25rem;
+		}
+	
+		#modal-statistics .kpi .item span {
+			font-weight: 500;
+    		font-size: 1.5rem;
+			color: var(--primary);
+		}
+		#modal-statistics .kpi .item p {
+			margin: 0;
+			display: flex;
+			flex: 1;
+			align-items: center;
+			font-weight: 500;
+		}
+		#modal-statistics .charts {
+			display: flex;
+			gap: 1rem;
+			flex-wrap: wrap;
+			justify-content: center;
+		}
+		#modal-statistics .charts .box {
+			padding: 1.5rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+			min-width: 28rem;
+		}
+		#modal-statistics .charts .box span {
+			font-weight: 500;
+		}
+
+		.mobile-table .head .status.status-1 {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		.mobile-table .head .status.status-2 {
+			background-color: #dff5ff;
+    		border: 2px solid #b4e1f2;
+		}
+		.mobile-table .head .status.status-3 {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+		}
+		.mobile-table .head .status.status-4 {
+			background-color: #e4d4fb;
+    		border: 2px solid #d0beeb;
+		}
+		.mobile-table .head .status.status-5 {
+			background-color: #fee3e1;
+    		border: 2px solid #ffceca;
+		}
+		.common-modal .top {
+    		justify-content: space-between;
+			display: flex;
+		}
+		.common-modal .pagination {
+			display: flex;
+			gap: 0.75rem;
+		}
+		.common-modal .create-link {
+			display: flex;
+			gap: 0.25rem;
+			justify-content: center;
+			align-items: center;
+			width: initial;
+			padding: 0 1rem;
+			line-height: 2rem;
+			font-size: 0.8rem;
+			font-weight: 400;
+		}
+		.common-modal .create-link img {
+			filter: invert(1);
+		}
+		.common-modal .pagination .disabled {
+			opacity: 0.5;
+    		cursor: default !important;
+		}
+		.common-modal .pagination .left img {
+			transform: rotate(180deg);
+		}
+		.common-modal .pagination span {
+			width: 2rem;
+			height: 2rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			border-radius: 2rem;
+		}
+		.common-modal table {
+			border-collapse: collapse;
+		}
+		.common-modal table th {
+			padding: 0.5rem 0.75rem;
+			text-align: left;
+			font-weight: 600;
+			font-size: 0.8rem;
+			opacity: 0.75;
+		}
+		.common-modal table tbody tr {
+			transition: var(--transition);
+		}
+		.common-modal table tbody tr:hover {
+			background-color: var(--white);
+		}
+		.common-modal table td {
+			padding: 0.5rem 0.75rem;
+			cursor: pointer;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		.common-modal table.static tbody tr {
+			transition: none;
+		}
+		.common-modal table.static tbody tr:hover {
+			background-color: transparent;
+		}
+		.common-modal table.static td {
+			cursor: default;
+			line-height: 2rem;
+		}
+		.common-modal table td.order {
+			width: 6rem;
+		}
+		.common-modal table td.machine_box {
+			width: 12rem;
+			max-width: 12rem;
+		}
+		.common-modal table td.client {
+			width: 20rem;
+			max-width: 20rem;
+		}
+		.common-modal table td .controlls {
+			display: flex;
+    		gap: 0.5rem;
+		}
+		.common-modal table td .controlls .action {
+			width: 1.5rem;
+			height: 1.5rem;
+			display: flex;
+			justify-content: center;
+		}
+		.common-modal table .machine {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		.common-modal table .link-id {
+			background-color: var(--white);
+			width: 1.75rem;
+			height: 1.75rem;
+			border-radius: 1rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-weight: 500;
+			font-size: 0.8rem;
+			border: 1px solid var(--graydark);
+		}
+		.common-modal table .link-status {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		.common-modal table .status-1 {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		.common-modal table .status-2 {
+			background-color: #dff5ff;
+    		border: 2px solid #b4e1f2;
+		}
+		.common-modal table .status-3 {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+		}
+		.common-modal table .status-4 {
+			background-color: #e4d4fb;
+    		border: 2px solid #d0beeb;
+		}
+		.common-modal table .status-5 {
+			background-color: #fee3e1;
+    		border: 2px solid #ffceca;
+		}
+		.common-modal table .finished {
+			background-color: #d0f4ea;
+			border: 2px solid #abe9d8;
+			border-radius: 1rem;
+			padding: 0.25rem 0.75rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		.common-modal table .finished.active {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		.common-modal table .machine b {
+			background-color: var(--white);
+			width: 1.75rem;
+			height: 1.75rem;
+			border-radius: 1rem;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-weight: 500;
+			font-size: 0.8rem;
+			border: 1px solid var(--graydark);
+		}
+		.common-modal table .machine img {
+			mix-blend-mode: darken;
+		}
+		.common-modal table .machine .model {
+			display: flex;
+    		flex-direction: column;
+		}
+		.common-modal table .machine .model span {
+			font-weight: 500;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 8rem;
+		}
+		.common-modal table .machine .model span + span {
+			font-weight: 400;
+			font-size: 0.75rem;
+			opacity: 0.6;
+		}
+		#support-dashboard {
+			display: flex;
+			min-height: calc(100vh - 6.5rem);
+			gap: 1rem;
+			overflow: auto;
+			flex-direction: column;
+		}
+		#support-dashboard .board {
+			display: flex;
+			height: 100%;
+			user-select: none;
+			flex: 1;
+			overflow: auto;
+		}
+		#support-dashboard .group {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			border-right: 3px solid #ffffff80;
+			gap: 0.25rem;
+			transition: var(--transition);
+			min-width: 10rem;
+		}
+		#support-dashboard .group:last-child {
+			border-right: none;
+		}
+		#support-dashboard .group .name {
+			display: flex;
+			justify-content: center;
+			font-size: 0.9rem;
+			margin-top: 0.75rem;
+			gap: 0.5rem;
+			align-items: center;
+		}
+		#support-dashboard ul {
+			margin: 0;
+			list-style: none;
+			display: flex;
+			gap: 0.75rem;
+			flex-direction: column;
+			padding: 0.75rem;
+			flex: 1;
+		}
+		#support-dashboard ul li {
+			padding: 0.75rem;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			flex-direction: column;
+			position: relative;
+		}
+		#support-dashboard .group.drag-over {
+			background-color: #ffffff80;
+		}
+		#support-dashboard .group.drag-over ul li {
+			box-shadow: 0 0 1rem #0000000d;
+		}
+		#support-dashboard ul li .row {
+			display: flex;
+			justify-content: space-between;
+			width: 100%;
+			align-items: center;
+		}
+		#support-dashboard ul li .order-number {
+			font-size: 1rem;
+			font-weight: 600;
+			line-height: 1rem;
+		}
+		#support-dashboard ul li .passed-days {
+			display: flex;
+			gap: 0.5rem;
+		}
+		#support-dashboard ul li .updated-days,
+		#support-dashboard ul li .register-day {
+			font-size: 1rem;
+			font-weight: 700;
+		}
+		#support-dashboard ul li .updated-days {
+			background-color: #f0f0f0;
+			color: var(--black);
+			display: none;
+		}
+		#support-dashboard ul li .update-dot {
+			width: 0.4rem;
+			height: 0.4rem;
+			background-color: var(--primary);
+			border-radius: 1rem;
+			position: absolute;
+			top: 0.4rem;
+			left: 0.4rem;
+		}
+		#support-dashboard ul li .admin-name {
+			font-size: 0.75rem;
+			opacity: 0.75;
+			display: block;
+			line-height: 0.8rem;
+			margin-top: 0.5rem;
+		}
+		#support-dashboard ul li .update-status {
+			border-radius: 1rem;
+			background-color: var(--newgray);
+			text-align: center;
+			padding: 0.5rem 1em;
+			font-size: 0.75rem;
+			font-weight: 600;
+			margin-top: 0.5rem;
+			display: none;
+		}
+		#support-dashboard ul li .machine {
+			font-weight: 600;
+			font-size: 0.75rem;
+			line-height: 1rem;
+			display: block;
+		}
+		#support-dashboard ul li .buttons {
+			display: flex;
+			gap: 0.5rem;
+		}
+		#support-dashboard ul li img {
+			mix-blend-mode: darken;
+			position: absolute;
+			bottom: 0.5rem;
+			right: 0.5rem;
+			width: 2rem;
+			pointer-events: none;
+		}
+		#support-dashboard ul li.low .register-day {
+			color: #6fcc85;
+		}
+		#support-dashboard ul li.mid .register-day {
+			color: #ff9600;
+		}
+		#support-dashboard ul li.high .register-day {
+			color: #f96161;
+		}
+		/***********************************************************************************/
+		.modal .text-area {
+			max-width: initial;
+			width: 100%;
+		}
+		#modal-status {
+			z-index: 40;
+		}
+		#modal-status .capture-proof {
+			max-width: 24rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			user-select: none;
+        }
+		#modal-status .capture-proof .name {
+			font-weight: 500;
+        }
+		
+		#modal-status .alert {
+			font-size: 0.75rem;
+			color: var(--primary);
+			margin-bottom: -0.5rem;
+		}
+		#modal-status .update {
+			display: flex;
+			justify-content: center;
+			gap: 1rem;
+			background-color: white;
+			box-shadow: 0 0 2rem hsl(0deg 0% 0% / 5%);
+			border-radius: 1rem;
+			position: relative;
+		}
+		#modal-status .update .box {
+			padding: 1rem;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 0.5rem;
+			flex: 1;
+		}
+		#modal-status .update .arrow {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+		}
+		#modal-status .update .arrow.revert {
+			transform: translate(-50%, -50%) rotate(180deg);
+		}
+		#modal-status .update .box img {
+			margin-top: 0.5rem;
+		}
+		#modal-status .update .box span {
+			font-size: 0.8rem;
+		}
+		#modal-status .revert {
+			display: flex;
+			gap: 0.5rem;
+			justify-content: center;
+			padding: 0.5rem 0;
+			max-width: 24rem;
+		}
+		#modal-status .send-whatsapp {
+			display: flex;
+			gap: 0.5rem;
+			align-items: center;
+			font-size: 0.75rem;
+			position: absolute;
+			right: 0;
+    		top: -0.25rem;
+		}
+		#modal-status .send-whatsapp .dot {
+			width: 0.5rem;
+			height: 0.5rem;
+			background-color: var(--primary);
+			border-radius: 1rem;
+		}
+		#modal-status .send-whatsapp .box {
+			position: relative;
+			width: 2.5rem;
+			height: 1.5rem;
+			flex: initial;
+		}
+		#modal-status .send-whatsapp .box input {
+			opacity: 0;
+			width: 0;
+			height: 0;
+		}
+		#modal-status .send-whatsapp .box .slider {
+			border-radius: 2rem;
+			position: absolute;
+			cursor: pointer;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background-color: #ccc;
+			transition: all 0.25s ease-in-out;
+		}
+		#modal-status .send-whatsapp .box .slider:before {
+			position: absolute;
+			content: "";
+			height: 1rem;
+			width: 1rem;
+			left: 0.25rem;
+			bottom: 0.25rem;
+			background-color: white;
+			transition: all 0.25s ease-in-out;
+			border-radius: 50%;
+		}
+		#modal-status .send-whatsapp .box input:checked + .slider {
+			background-color: var(--primary);
+		}
+		#modal-status .send-whatsapp .box input:checked + .slider:before {
+			transform: translateX(1rem);
+		}
+		/***********************************************************************************/
+		#modal-view {
+		    z-index: 30;
+		}
+		#modal-view .header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#modal-view .header .left {
+			display: flex;
+			gap: 0.75rem;
+			align-items: center;
+		}
+		#modal-view .header .left .item {
+			display: flex;
+			gap: 0.25rem;
+			align-items: center;
+			background-color: var(--black);
+			color: var(--white);
+			padding: 0.35rem 1rem;
+			border-radius: 2rem;
+			font-size: 0.75rem;
+			font-weight: 500;
+		}
+		#modal-view .header .left .item img {
+			filter: invert(1);
+		}
+		#modal-view .header .days {
+			font-size: 1rem;
+			font-weight: 700;
+		}
+		#modal-view .client {
+			display: flex;
+			align-items: center;
+			padding: 1rem;
+			width: 100%;
+			gap: 1rem;
+		}
+		#modal-view .client .show-photos {
+			position: relative;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			overflow: hidden;
+    		border-radius: 0.5rem;
+		}
+		#modal-view .client .show-photos .icon {
+			opacity: 0;
+			filter: invert(1);
+			position: absolute;
+			z-index: 10;
+			transition: var(--transition);
+		}
+		#modal-view .client .show-photos .thumb {
+			transition: var(--transition);
+		}
+		#modal-view .client .show-photos:hover .icon {
+			opacity: 1;
+		}
+		#modal-view .client .show-photos:hover .thumb {
+			filter: brightness(0.65) blur(2px);
+		}
+		#modal-view .client .data {
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+			justify-content: center;
+		}
+		#modal-view .client .data .head {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			font-weight: 500;
+			font-size: 1rem;
+		}
+		#modal-view .client .data .head .brand {
+		}
+		#modal-view .client .data .head .line {
+			opacity: 0.25;
+		}
+		#modal-view .client .data .head .model {
+			color: var(--primary);
+		}
+		#modal-view .client .data .machine {
+			font-size: 1rem;
+    		font-weight: 500;
+		}
+		#modal-view .client .data .name {
+			font-size: 0.95rem;
+			font-weight: 400;
+			opacity: 0.75;
+		}
+		#modal-view .client .data .head.hover-opacity {
+			cursor: pointer;
+		}
+		#modal-view .client .icons {
+			margin-left: auto;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 0.25rem;
+		}
+		#modal-view .client .icons a {
+			padding: 0.25rem;
+    		display: flex;
+		}
+		#modal-view .client .icons button {
+			padding: 0.25rem;
+			display: flex;
+			margin: 0;
+			background-color: transparent;
+			outline: none;
+			border: none;
+			cursor: pointer;
+		}
+		#modal-view .no-edit .glass2 {
+			flex: 1;
+			justify-content: center;
+			display: flex;
+			padding: 0.25rem;
+			font-weight: 500;
+			border-radius: 0.75rem;
+		}
+		#modal-view .top {
+			display: flex;
+			gap: 0.5rem;
+			align-items: center;
+		}
+		#modal-view .top-controls {
+			margin-left: auto;
+		}
+		#modal-view .copy-pay {
+			padding: 0.5rem 1rem;
+			border-radius: 2rem;
+			display: flex;
+			gap: 0.25rem;
+			font-size: 0.75rem;
+			line-height: initial;
+			width: initial;
+		}
+		#modal-view .copy-pay img {
+			min-width: 1rem;
+			filter: invert(1);
+		}
+		#modal-view .pay {
+			display: flex;
+			gap: 0.5rem;
+			flex-direction: column;
+			padding: 1rem;
+			justify-content: center;
+		}
+		#modal-view .pay .pay-box {
+			display: flex;
+			gap: 0.75rem;
+			align-items: center;
+		}
+		#modal-view .pay .btn {
+			background-color: var(--graydark);
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			border-radius: 2rem;
+			width: 2.5rem;
+			height: 2.5rem;
+		}
+		#modal-view .pay .btn img {
+			min-width: 1.35rem;
+		}
+		#modal-view .pay .pay-cnt {
+			display: flex;
+			gap: 0.125rem;
+			flex-direction: column;
+		}
+		#modal-view .pay .pay-head {
+			display: flex;
+			gap: 0.5rem;
+			font-size: 0.75rem;
+			min-width: 6rem;
+			font-weight: 500;
+			opacity: 0.75;
+		}
+		#modal-view .pay .pay-body {
+			display: flex;
+			gap: 0.25rem;
+			align-items: center;
+			font-size: 1rem;
+			font-weight: 500;
+			transition: var(--transition);
+		}
+		#modal-view .pay input {
+			border: none;
+			outline: none;
+			padding: 0;
+			margin: 0;
+			font-weight: 500;
+			font-size: 1.25rem;
+			background-color: transparent;
+			font-family: inherit;
+			transition: var(--transition);
+		}
+		#modal-view .pay.payed .btn {
+			background-color: #4BBC66;
+		}
+		#modal-view .pay.payed .btn img {
+			filter: invert(1);
+		}
+		#modal-view .pay.payed .pay-body {
+			color: #4BBC66;
+		}
+		#modal-view .pay.payed input {
+			color: #4BBC66;
+		}
+
+
+		#modal-view .top .days {
+			font-weight: 600;
+			padding: 0.25rem 0.75rem;
+			border-radius: 2rem;
+			font-size: 0.85rem;
+		}
+		#modal-view .top .days.low {
+			background-color: #d0f4ea;
+    		border: 2px solid #abe9d8;
+		}
+		#modal-view .top .days.mid {
+			background-color: #fff0de;
+    		border: 2px solid #fcdab1;
+		}
+		#modal-view .top .days.high {
+			background-color: #fee3e1;
+			border: 2px solid #ffceca;
+		}
+		#modal-view .hover-opacity.finish {
+			padding: 0.25rem 0;
+			border: 2px solid var(--primary);
+			background-color: var(--primary);
+			color: var(--white);
+			border-radius: 2rem;
+			text-align: center;
+			display: flex;
+			justify-content: center;
+			line-height: 1.75rem;
+		}
+		#modal-view .hover-opacity.finish.black {
+			background-color: var(--secondary);
+			border: 2px solid var(--secondary);
+		}
+		#modal-view .history {
+			display: flex;
+			flex-direction: column;
+		}
+		#modal-view .history .row {
+			align-items: start;
+			display: flex;
+			gap: 0.75rem;
+			padding: 0.75rem 0.25rem;
+			border-bottom: 1px solid var(--white);
+		}
+		#modal-view .history .row:last-child {
+			border-bottom: none;
+		}
+		#modal-view .history .row .left {
+			display: flex;
+			flex-direction: column;
+			width: 100%;
+			gap: 0.125rem;
+		}
+		#modal-view .history .row .head {
+			display: flex;
+			gap: 1rem;
+			align-items: center;
+		}
+		#modal-view .history .row .name {
+			font-weight: 500;
+			line-height: 1.25rem;
+		}
+		#modal-view .history .row .user_name {
+			opacity: 0.5;
+			font-size: 0.65rem;
+			margin-left: -0.5rem;
+		}
+		#modal-view .history .row .right {
+			margin-left: auto;
+			display: flex;
+			gap: 0.5rem;
+			opacity: 0.75;
+			align-items: center;
+			font-size: 0.65rem;
+		}
+		#modal-view .history .row .admin {
+			font-size: 0.6rem;
+    		line-height: 1rem;
+		}
+		#modal-view .history .row .notes {
+			font-size: 0.8rem;
+			opacity: 0.75;
+		}
+		/***********************************************************************************/
+		#modal-add .modal {
+			max-width: 36rem;
+		}
+		#modal-add .modal .title {
+			align-items: center;
+			gap: 0.5rem;
+			display: flex;
+		}
+		#modal-add .modal .title img {
+			border-radius: 1rem;
+		}
+		#modal-add .modal .machines {
+			position: absolute;
+			max-height: 8rem;
+			overflow-y: auto;
+			top: 2.75rem;
+			left: 0;
+			width: 100%;
+			display: flex;
+			flex-direction: column;
+			line-height: 2rem;
+			z-index: 10;
+		}
+		#modal-add .modal .machines span {
+			padding: 0 0.75rem;
+			transition: var(--transition);
+			cursor: pointer;
+		}
+		#modal-add .modal .machines span:hover {
+			background-color: var(--gray);
+		}
+
+
+		@media only screen and (max-width: 48rem) {
+			#support-dashboard {
+				min-height: calc(100dvh - 5.5rem);
+			}
+			#support-dashboard .board {
+				flex-direction: column;
+				border-radius: 0;
+			}
+            #support-dashboard .group {
+				border-right: none;
+				border-bottom: 3px solid #ffffff80;
+			}
+			#support-dashboard .group:last-child {
+				border-bottom: none;
+			}
+			#modal-view .modal {
+				min-width: initial;
+			}
+			#modal-view .top {
+				flex-wrap: wrap;
+			}
+			#modal-view .top .finish {
+				margin-top: -0.5rem;
+				margin-left: initial;
+				width: 100%;
+				text-align: center;
+				margin-right: 0px;
+			}
+			#support-dashboard .menu {
+				gap: 0.75rem;
+			}
+			#support-dashboard .menu .item {
+				padding: 0;
+			}
+			#support-dashboard .menu .item .button {
+				height: 2.5rem;
+    			width: 2.5rem;
+			}
+			#support-dashboard .menu .item span {
+				display: none;
+			}
+			#modal-statistics .charts {
+				flex-direction: column;
+			}
+			#modal-statistics .charts .box {
+				min-width: initial;
+			}
+			#modal-photos .thumbnails-grid {
+				width: initial;
+				justify-content: space-around;
+			}
+			#support-dashboard ul li .update-status {
+				display: block;
+			}
+
+			#modal-statistics .top {
+				flex-direction: column;
+				align-items: flex-start;
+			}
+
+			#modal-statistics .date-filters {
+				width: 100%;
+				justify-content: flex-start;
+				flex-wrap: wrap;
+			}
+        }
+	</style>
+</div>

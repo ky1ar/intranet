@@ -1,0 +1,91 @@
+<div x-data="clients_data">
+	<div id="clients">
+
+		<table class="glass" border="0">
+			<tbody>
+				<tr class="">
+					<th>ID</th>
+					<th>Nombre</th>
+					<th>Documento</th>
+					<th>Celular</th>
+				</tr>
+
+				<template x-for="client in clients.clients" :key="client.id">
+					<tr class="row">
+						<td x-text="client.id"></td>
+						<td class="name">
+							<div class="letter" :style="`background-color: ${client.color}; border-radius: 2rem;`" x-text="client.letter"></div>
+							<span x-text="client.name"></span>
+						</td>
+						<td x-text="client.document"></td>
+						<td x-text="client.phone"></td>
+					</tr>
+				</template>
+
+			</tbody>
+		</table>
+	</div>
+
+
+
+	<script>
+		Alpine.data('clients_data',() => ({
+			clients: [],
+
+			async init() {
+				console.log('Inicializando Clients...');
+				
+				//const loginVerification = Alpine.store('auth').loginVerify();
+				await this.fetchData();
+
+			},
+
+			async fetchData() {
+				try {
+					console.log('Obteniendo datos desde API')
+					const [clientsRes, serviceMethodsRes, techniciansRes] = await Promise.all([
+						fetch(Alpine.store('cache').api + '/client/all').then(res => res.json()),
+					]);
+
+					this.clients = clientsRes.data;
+					//await this.getDashboard();
+				} catch (error) {
+					console.error('Error fetching data:', error);
+				}
+			},
+		}));
+	</script>
+	
+
+
+
+	<style>
+		#clients {
+			width: 100%;
+			user-select: none;
+			padding: 1rem;
+			min-height: calc(100vh - 6.5rem);
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			margin: 0 auto;
+			max-width: 118rem;
+		}
+		#clients table {
+			padding: 1rem;
+		}
+		#clients table .row .name {
+			align-items: center;
+			display: flex;
+			gap: 0.5rem;
+		}
+		#clients table .row .letter {
+			display: flex;
+			width: 2rem;
+			height: 2rem;
+			justify-content: center;
+			align-items: center;
+			color: var(--white);
+		}
+	</style>
+</div>

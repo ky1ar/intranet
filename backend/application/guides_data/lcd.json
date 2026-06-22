@@ -1,0 +1,274 @@
+{
+ "type": "lcd",
+ "label": "Centro de aprendizaje LCD / Resina",
+ "tabs": [
+  {
+   "title": "Guía rápida de CHITUBOX",
+   "level": "Básico",
+   "reading_min": 7,
+   "intro": "Aprende el flujo básico para preparar un archivo de impresión 3D en resina usando CHITUBOX: agregar impresora, importar modelo, orientar, vaciar, colocar soportes, laminar y guardar el archivo.\n\n---",
+   "sections": [
+    {
+     "title": "¿Qué es CHITUBOX?",
+     "html": "<p>CHITUBOX es un software laminador para impresoras de resina. Su función es convertir un modelo 3D, como STL, OBJ o 3MF, en un archivo que la impresora pueda leer capa por capa.</p><p>Con CHITUBOX puedes:</p><ul class=\"guia-md-list\"><li>configurar tu impresora LCD, MSLA o DLP;</li><li>importar modelos 3D;</li><li>mover, rotar y escalar piezas;</li><li>vaciar modelos y agregar agujeros de drenaje;</li><li>generar soportes;</li><li>configurar exposición, altura de capa y velocidades;</li><li>laminar y guardar el archivo final.</li></ul><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/chitubox/chitubox_portada.png\" alt=\"Introducción a CHITUBOX\" loading=\"lazy\"><figcaption>Introducción a CHITUBOX</figcaption></figure><p><strong>Recomendación K3D:</strong> usa CHITUBOX como guía general para resina. Para algunos equipos Anycubic, también puede usarse Photon Workshop si el equipo lo requiere.</p>"
+    },
+    {
+     "title": "Descargar e instalar CHITUBOX",
+     "html": "<p>Pasos sugeridos:</p><ol class=\"guia-md-list\"><li>Ingresa a la web oficial de CHITUBOX.</li><li>Descarga la versión compatible con tu sistema operativo.</li><li>Instala el programa siguiendo el asistente.</li><li>Abre CHITUBOX desde el ícono del escritorio o menú de inicio.</li><li>Inicia sesión o registra una cuenta si el software lo solicita.</li></ol><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/chitubox/chitubox_descarga.png\" alt=\"Descarga del software\" loading=\"lazy\"><figcaption>Descarga del software</figcaption></figure>"
+    },
+    {
+     "title": "Agregar o seleccionar tu impresora",
+     "html": "<p>Al abrir CHITUBOX por primera vez, debes agregar el modelo de impresora que usarás.</p><p>Pasos:</p><ol class=\"guia-md-list\"><li>Abre el panel de impresoras o gestión de máquinas.</li><li>Busca la marca y modelo de tu equipo.</li><li>Selecciona el modelo correcto.</li><li>Verifica volumen de impresión, resolución y formato de archivo.</li><li>Guarda la configuración.</li></ol><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/chitubox/chitubox_seleccion_maquina.png\" alt=\"Selección de máquina\" loading=\"lazy\"><figcaption>Selección de máquina</figcaption></figure><p><strong>Importante:</strong> no modifiques la resolución ni el tamaño de impresión de un perfil preconfigurado salvo que soporte técnico lo indique. Un perfil incorrecto puede generar archivos incompatibles o impresiones fallidas.</p>"
+    },
+    {
+     "title": "Conoce la interfaz principal",
+     "html": "<p>La interfaz de CHITUBOX se organiza en varias zonas:</p><ul class=\"guia-md-list\"><li><strong>Menú principal:</strong> abrir proyecto, guardar, abrir archivo, recientes, idioma y ayuda.</li><li><strong>Área de trabajo:</strong> plataforma virtual donde se ubica el modelo.</li><li><strong>Herramientas de edición:</strong> mover, rotar, escalar, espejo, duplicar.</li><li><strong>Panel de soportes:</strong> agrega soportes automáticos o manuales.</li><li><strong>Panel de laminado:</strong> parámetros de exposición, altura de capa y velocidades.</li><li><strong>Vista previa:</strong> revisión capa por capa antes de imprimir.</li></ul><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/chitubox/chitubox_menu_principal.png\" alt=\"Menú principal\" loading=\"lazy\"><figcaption>Menú principal</figcaption></figure><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/chitubox/chitubox_open_save.png\" alt=\"Abrir y guardar archivos\" loading=\"lazy\"><figcaption>Abrir y guardar archivos</figcaption></figure>"
+    },
+    {
+     "title": "Importar un modelo STL, OBJ o 3MF",
+     "html": "<p>Para cargar un modelo:</p><ol class=\"guia-md-list\"><li>Haz clic en <strong>Open</strong> o <strong>Abrir archivo</strong>.</li><li>Selecciona el archivo STL, OBJ o 3MF.</li><li>Verifica que el modelo aparezca sobre la plataforma.</li><li>Confirma que la pieza esté dentro del volumen de impresión.</li></ol><p><strong>Tip K3D:</strong> si el modelo aparece demasiado grande, fuera de la plataforma o con orientación extraña, corrígelo antes de generar soportes.</p>"
+    },
+    {
+     "title": "Herramientas básicas del modelo",
+     "html": "<h4 class=\"guia-md-h3\">Mover</h4><p>Permite cambiar la posición del modelo en los ejes X, Y y Z.</p><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/chitubox/chitubox_mover.png\" alt=\"Herramienta mover\" loading=\"lazy\"><figcaption>Herramienta mover</figcaption></figure><h4 class=\"guia-md-h3\">Rotar</h4><p>Permite orientar la pieza para mejorar el acabado, reducir fallas y colocar soportes de forma correcta.</p><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/chitubox/chitubox_rotar.png\" alt=\"Herramienta rotar\" loading=\"lazy\"><figcaption>Herramienta rotar</figcaption></figure><h4 class=\"guia-md-h3\">Escalar</h4><p>Permite aumentar o reducir el tamaño del modelo.</p><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/chitubox/chitubox_escalar.png\" alt=\"Herramienta escalar\" loading=\"lazy\"><figcaption>Herramienta escalar</figcaption></figure><h4 class=\"guia-md-h3\">Espejo y duplicado</h4><p>Permite invertir el modelo o crear copias para imprimir varias piezas en una sola plataforma.</p><p><strong>Recomendación K3D:</strong> no llenes toda la cama si recién estás aprendiendo. Empieza con una pieza pequeña para validar exposición, soportes y adherencia.</p>"
+    },
+    {
+     "title": "Orientar la pieza",
+     "html": "<p>La orientación es una de las decisiones más importantes en impresión de resina.</p><p>Una buena orientación ayuda a:</p><ul class=\"guia-md-list\"><li>reducir marcas visibles de soportes;</li><li>disminuir fuerza de succión sobre el FEP;</li><li>mejorar adherencia a la plataforma;</li><li>evitar piezas deformadas;</li><li>ahorrar resina y tiempo.</li></ul><p>Recomendaciones generales:</p><ul class=\"guia-md-list\"><li>Evita imprimir piezas grandes completamente planas contra el FEP.</li><li>Inclina modelos entre 30° y 45° cuando sea conveniente.</li><li>Coloca soportes en zonas menos visibles.</li><li>Revisa que no queden islas sin soporte en la vista previa.</li></ul>"
+    },
+    {
+     "title": "Vaciar modelos y agregar agujeros de drenaje",
+     "html": "<p>En piezas grandes, puede ser conveniente vaciar el modelo para reducir consumo de resina y peso.</p><h4 class=\"guia-md-h3\">Hollow / Vaciar</h4><p>Permite crear una pieza hueca con un espesor de pared definido.</p><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/chitubox/chitubox_hollow.png\" alt=\"Hollow\" loading=\"lazy\"><figcaption>Hollow</figcaption></figure><h4 class=\"guia-md-h3\">Dig Hole / Agujeros de drenaje</h4><p>Permite agregar orificios para que la resina líquida pueda salir del interior de la pieza.</p><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/chitubox/chitubox_dig_hole.png\" alt=\"Dig Hole\" loading=\"lazy\"><figcaption>Dig Hole</figcaption></figure><p>Recomendaciones:</p><ul class=\"guia-md-list\"><li>Usa espesor de pared suficiente para evitar piezas frágiles.</li><li>Agrega al menos dos agujeros de drenaje cuando el modelo esté hueco.</li><li>Ubica los agujeros en zonas poco visibles.</li><li>Lava bien el interior de la pieza antes del curado final.</li></ul><p><strong>Tip K3D:</strong> no dejes modelos huecos sin drenaje. La resina atrapada puede generar presión interna, mal olor, filtraciones o deformaciones con el tiempo.</p>"
+    },
+    {
+     "title": "Configurar parámetros de laminado",
+     "html": "<p>Los parámetros dependen de la impresora, resina, color, temperatura ambiente y altura de capa.</p><p>Parámetros principales:</p><ul class=\"guia-md-list\"><li><strong>Layer Height / Altura de capa:</strong> detalle vertical de impresión.</li><li><strong>Bottom Exposure / Exposición de base:</strong> tiempo de exposición de las primeras capas.</li><li><strong>Normal Exposure / Exposición normal:</strong> tiempo de exposición de las capas regulares.</li><li><strong>Bottom Layers / Capas inferiores:</strong> cantidad de capas reforzadas para adherencia.</li><li><strong>Lift Distance / Distancia de elevación:</strong> separación entre capa y FEP.</li><li><strong>Lift Speed / Velocidad de elevación:</strong> velocidad de movimiento al despegar cada capa.</li></ul><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/chitubox/chitubox_parametros_laminado.png\" alt=\"Parámetros de laminado\" loading=\"lazy\"><figcaption>Parámetros de laminado</figcaption></figure><p><strong>Recomendación K3D:</strong> empieza con el perfil recomendado por el fabricante de la resina o por Krear 3D. Luego ajusta de forma gradual.</p>"
+    },
+    {
+     "title": "Agregar soportes",
+     "html": "<p>Las piezas de resina suelen necesitar soportes para imprimirse correctamente.</p><p>Opciones comunes:</p><ul class=\"guia-md-list\"><li><strong>Light:</strong> soportes ligeros para piezas pequeñas o detalles finos.</li><li><strong>Medium:</strong> soporte equilibrado para uso general.</li><li><strong>Heavy:</strong> soporte fuerte para piezas pesadas o con mayor fuerza de succión.</li></ul><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/chitubox/chitubox_soportes.png\" alt=\"Soportes\" loading=\"lazy\"><figcaption>Soportes</figcaption></figure><p>Buenas prácticas:</p><ul class=\"guia-md-list\"><li>Usa soportes más fuertes en la base o zonas de mayor carga.</li><li>Refuerza zonas con islas detectadas en la vista previa.</li><li>Evita colocar soportes en superficies visibles si puedes orientar la pieza mejor.</li><li>Revisa manualmente los soportes automáticos.</li></ul>"
+    },
+    {
+     "title": "Laminar el modelo",
+     "html": "<p>Cuando el modelo esté orientado, soportado y configurado, puedes laminar.</p><p>Pasos:</p><ol class=\"guia-md-list\"><li>Haz clic en <strong>Slice</strong> o <strong>Laminar</strong>.</li><li>Espera el procesamiento del archivo.</li><li>Revisa tiempo estimado y consumo de resina.</li><li>Abre la vista previa.</li></ol><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/chitubox/chitubox_slice.png\" alt=\"Slice\" loading=\"lazy\"><figcaption>Slice</figcaption></figure>"
+    },
+    {
+     "title": "Revisar vista previa",
+     "html": "<p>La vista previa permite revisar el archivo capa por capa antes de imprimir.</p><p>Verifica:</p><ul class=\"guia-md-list\"><li>que no existan islas sin soporte;</li><li>que la primera capa esté correcta;</li><li>que los soportes se generen desde zonas adecuadas;</li><li>que no existan partes flotando;</li><li>que el modelo no sobrepase el área de impresión;</li><li>que el archivo corresponda al formato de tu impresora.</li></ul><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/chitubox/chitubox_preview.png\" alt=\"Vista previa\" loading=\"lazy\"><figcaption>Vista previa</figcaption></figure><p><strong>Tip K3D:</strong> nunca imprimas un archivo de resina sin revisar la vista previa. Puede evitar pérdida de resina, fallas y daño en el FEP.</p>"
+    },
+    {
+     "title": "Guardar archivo para imprimir",
+     "html": "<p>Después de laminar:</p><ol class=\"guia-md-list\"><li>Guarda el archivo en tu computadora.</li><li>Copia el archivo final al USB si tu impresora trabaja con memoria externa.</li><li>Inserta el USB en la impresora.</li><li>Selecciona el archivo desde la pantalla del equipo.</li><li>Inicia la impresión.</li></ol><p><strong>Recomendación K3D:</strong> evita guardar directamente desde el slicer al USB si notas errores de lectura. Guarda primero en la computadora y luego copia el archivo.</p>"
+    },
+    {
+     "title": "Checklist antes de imprimir",
+     "html": "<p>Antes de iniciar una impresión de resina, revisa:</p><ul class=\"guia-md-list\"><li>la plataforma está limpia y bien nivelada;</li><li>el FEP está limpio, tenso y sin daños visibles;</li><li>la resina está filtrada o bien agitada;</li><li>la impresora corresponde al perfil seleccionado;</li><li>la exposición es adecuada para la resina;</li><li>el modelo tiene soportes suficientes;</li><li>revisaste la vista previa;</li><li>tienes guantes, mascarilla y espacio ventilado.</li></ul>"
+    }
+   ]
+  },
+  {
+   "title": "Tecnología LCD / Resina",
+   "level": "Básico",
+   "reading_min": 2,
+   "intro": "Esta guía explica de forma simple cómo funciona la impresión 3D de resina y qué conceptos debe conocer un usuario antes de iniciar.\n\n---",
+   "sections": [
+    {
+     "title": "¿Qué es la impresión 3D de resina?",
+     "html": "<p>La impresión 3D de resina fabrica piezas usando una resina líquida fotosensible que se solidifica mediante luz UV. La pieza se forma capa por capa, con alta precisión y gran nivel de detalle.</p><p>Se usa principalmente para:</p><ul class=\"guia-md-list\"><li>figuras y coleccionables;</li><li>piezas dentales o modelos de alta precisión;</li><li>prototipos pequeños;</li><li>miniaturas;</li><li>joyería y moldes;</li><li>piezas con detalles finos.</li></ul>"
+    },
+    {
+     "title": "LCD / MSLA / DLP: ¿en qué se diferencian?",
+     "html": "<h4 class=\"guia-md-h3\">LCD / MSLA</h4><p>Usa una pantalla LCD monocromática o similar para proyectar la imagen de cada capa y curar la resina con luz UV.</p><h4 class=\"guia-md-h3\">DLP</h4><p>Usa un proyector digital para curar la imagen de cada capa. En tus recursos antiguos se explica como un proceso de manufactura aditiva donde la resina líquida se cura mediante luz ultravioleta en un tanque, agregando capas finas y curando todos los puntos de la capa al mismo tiempo.</p><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/dlp_resina/sistema_dlp_resina.png\" alt=\"Sistema DLP\" loading=\"lazy\"><figcaption>Sistema DLP</figcaption></figure><h4 class=\"guia-md-h3\">SLA</h4><p>Usa un láser para curar la resina punto por punto. No es el enfoque principal de esta guía, pero pertenece a la familia de tecnologías de fotopolimerización.</p>"
+    },
+    {
+     "title": "Partes principales de una impresora de resina",
+     "html": "<ul class=\"guia-md-list\"><li><strong>Cubeta o tanque de resina:</strong> contiene la resina líquida.</li><li><strong>FEP o film:</strong> lámina transparente en la base del tanque.</li><li><strong>Plataforma de impresión:</strong> superficie donde se adhiere la pieza.</li><li><strong>Pantalla LCD / fuente UV:</strong> genera la luz que cura cada capa.</li><li><strong>Eje Z:</strong> mueve la plataforma durante la impresión.</li><li><strong>Tapa protectora:</strong> reduce exposición a luz externa y contiene vapores.</li></ul>"
+    },
+    {
+     "title": "Flujo general de trabajo",
+     "html": "<ol class=\"guia-md-list\"><li>Descargar o diseñar un modelo 3D.</li><li>Abrir el modelo en CHITUBOX u otro slicer.</li><li>Orientar la pieza.</li><li>Vaciar si corresponde.</li><li>Agregar agujeros de drenaje si la pieza está hueca.</li><li>Colocar soportes.</li><li>Configurar exposición y altura de capa.</li><li>Laminar.</li><li>Imprimir.</li><li>Lavar.</li><li>Secar.</li><li>Retirar soportes.</li><li>Curar con luz UV.</li></ol>"
+    },
+    {
+     "title": "Ventajas de la impresión de resina",
+     "html": "<ul class=\"guia-md-list\"><li>Mayor detalle que FDM.</li><li>Capas menos visibles.</li><li>Mejor acabado superficial.</li><li>Ideal para piezas pequeñas y detalladas.</li><li>Muy útil para figuras, miniaturas y dental.</li></ul>"
+    },
+    {
+     "title": "Consideraciones importantes",
+     "html": "<p>La resina requiere más cuidado que el filamento FDM:</p><ul class=\"guia-md-list\"><li>usar guantes y protección;</li><li>evitar contacto directo con la piel;</li><li>trabajar en un ambiente ventilado;</li><li>limpiar piezas con alcohol isopropílico o método recomendado por la resina;</li><li>curar piezas antes de manipularlas de forma final;</li><li>no botar resina líquida al desagüe.</li></ul>"
+    },
+    {
+     "title": "Cuándo elegir resina y cuándo elegir FDM",
+     "html": "<div class=\"guia-md-tablewrap\"><table class=\"guia-md-table\"><thead><tr><th>Necesidad</th><th>Mejor opción</th></tr></thead><tbody><tr><td>Figuras detalladas</td><td>Resina</td></tr><tr><td>Miniaturas</td><td>Resina</td></tr><tr><td>Piezas grandes y económicas</td><td>FDM</td></tr><tr><td>Piezas funcionales resistentes</td><td>FDM o resina técnica</td></tr><tr><td>Modelos dentales</td><td>Resina</td></tr><tr><td>Prototipos rápidos grandes</td><td>FDM</td></tr></tbody></table></div>"
+    }
+   ]
+  },
+  {
+   "title": "Seguridad con resina",
+   "level": "Básico",
+   "reading_min": 2,
+   "intro": "La impresión 3D con resina ofrece gran detalle, pero requiere cuidados especiales. Esta guía resume buenas prácticas de seguridad para usuarios nuevos.\n\n---",
+   "sections": [
+    {
+     "title": "Antes de empezar",
+     "html": "<p>Prepara tu espacio de trabajo:</p><ul class=\"guia-md-list\"><li>superficie estable y fácil de limpiar;</li><li>buena ventilación;</li><li>guantes disponibles;</li><li>mascarilla si el ambiente lo requiere;</li><li>papel absorbente;</li><li>recipiente para residuos;</li><li>alcohol isopropílico o limpiador recomendado;</li><li>filtros de resina;</li><li>luz UV o estación Wash &amp; Cure para curado.</li></ul>"
+    },
+    {
+     "title": "Protección personal",
+     "html": "<p>Usa siempre:</p><ul class=\"guia-md-list\"><li>guantes de nitrilo;</li><li>lentes de protección si hay riesgo de salpicaduras;</li><li>mascarilla en espacios con poca ventilación;</li><li>ropa o mandil que puedas limpiar fácilmente.</li></ul><p>No manipules resina líquida con las manos descubiertas.</p>"
+    },
+    {
+     "title": "Manipulación de resina",
+     "html": "<p>Buenas prácticas:</p><ul class=\"guia-md-list\"><li>agita la botella antes de usarla;</li><li>vierte la resina lentamente para evitar derrames;</li><li>no llenes demasiado la cubeta;</li><li>mantén la botella cerrada cuando no la uses;</li><li>evita exposición directa al sol;</li><li>filtra la resina usada antes de devolverla a la botella.</li></ul><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/dlp_resina/preparacion_impresora_resina.png\" alt=\"Preparación de impresora\" loading=\"lazy\"><figcaption>Preparación de impresora</figcaption></figure>"
+    },
+    {
+     "title": "Resina sobrante",
+     "html": "<p>La resina no curada puede reutilizarse si está limpia.</p><p>Pasos:</p><ol class=\"guia-md-list\"><li>Retira la cubeta con cuidado.</li><li>Filtra la resina usando un filtro adecuado.</li><li>Guarda la resina en una botella opaca o en su envase original.</li><li>Mantén el envase lejos del sol y del calor.</li></ol><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/dlp_resina/postproceso_resina.png\" alt=\"Postproceso y residuos\" loading=\"lazy\"><figcaption>Postproceso y residuos</figcaption></figure>"
+    },
+    {
+     "title": "Limpieza del área",
+     "html": "<p>Si cae resina:</p><ol class=\"guia-md-list\"><li>Usa guantes.</li><li>Absorbe el derrame con papel.</li><li>Limpia la zona con alcohol o limpiador adecuado.</li><li>Cura el papel contaminado con luz UV antes de desecharlo.</li></ol>"
+    },
+    {
+     "title": "Residuos",
+     "html": "<p>No arrojes resina líquida ni alcohol contaminado al lavadero.</p><p>Recomendaciones:</p><ul class=\"guia-md-list\"><li>cura los residuos de resina antes de desecharlos;</li><li>guarda alcohol contaminado en un recipiente cerrado;</li><li>consulta la normativa local para manejo de residuos químicos;</li><li>mantén los residuos lejos de niños y mascotas.</li></ul>"
+    },
+    {
+     "title": "Checklist de seguridad",
+     "html": "<p>Antes de imprimir:</p><ul class=\"guia-md-list\"><li>tengo guantes;</li><li>la zona está ventilada;</li><li>la cubeta está limpia;</li><li>el FEP no está dañado;</li><li>tengo papel y alcohol para limpieza;</li><li>la resina está bien mezclada;</li><li>no hay luz solar directa sobre la resina.</li></ul><p>Después de imprimir:</p><ul class=\"guia-md-list\"><li>retiro la pieza con guantes;</li><li>limpio la plataforma;</li><li>filtro resina sobrante si corresponde;</li><li>lavo la pieza;</li><li>curo la pieza;</li><li>limpio el área de trabajo.</li></ul>"
+    },
+    {
+     "title": "Nota K3D",
+     "html": "<p>La resina líquida debe tratarse con cuidado. Una buena rutina de seguridad evita accidentes, piezas contaminadas y problemas de limpieza.</p>"
+    }
+   ]
+  },
+  {
+   "title": "Postproceso: lavado y curado",
+   "level": "Básico",
+   "reading_min": 2,
+   "intro": "El postproceso es la etapa posterior a la impresión. En resina, es tan importante como la configuración del archivo.\n\n---",
+   "sections": [
+    {
+     "title": "¿Por qué es necesario el postproceso?",
+     "html": "<p>Cuando una pieza sale de la impresora, todavía tiene resina líquida en la superficie y no está completamente curada. Por eso necesita:</p><ol class=\"guia-md-list\"><li>escurrir;</li><li>lavar;</li><li>secar;</li><li>retirar soportes;</li><li>curar con luz UV.</li></ol>"
+    },
+    {
+     "title": "Retirar la pieza de la plataforma",
+     "html": "<p>Pasos:</p><ol class=\"guia-md-list\"><li>Usa guantes.</li><li>Retira la plataforma de impresión.</li><li>Deja escurrir la resina sobrante.</li><li>Usa una espátula adecuada para separar la pieza.</li><li>Evita ejercer fuerza excesiva que pueda romper la pieza.</li></ol>"
+    },
+    {
+     "title": "Lavado",
+     "html": "<p>El lavado elimina la resina no curada de la superficie.</p><p>Puedes usar una estación Wash &amp; Cure o un recipiente manual con alcohol isopropílico, según la resina utilizada.</p><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/dlp_resina/wash_cure_intro.png\" alt=\"Wash &amp; Cure\" loading=\"lazy\"><figcaption>Wash &amp; Cure</figcaption></figure><p>Flujo recomendado:</p><ol class=\"guia-md-list\"><li>Coloca la pieza en el recipiente de lavado.</li><li>Lava durante el tiempo recomendado.</li><li>Retira la pieza.</li><li>Deja secar antes del curado.</li></ol><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/dlp_resina/wash_cure_lavado.png\" alt=\"Lavado en Wash &amp; Cure\" loading=\"lazy\"><figcaption>Lavado en Wash &amp; Cure</figcaption></figure><p><strong>Tip K3D:</strong> no cures una pieza que aún esté húmeda con alcohol. Puede quedar pegajosa, blanquecina o con acabado irregular.</p>"
+    },
+    {
+     "title": "Retirar soportes",
+     "html": "<p>Puedes retirar soportes antes o después del curado, dependiendo del tipo de resina y geometría.</p><p>Recomendación general:</p><ul class=\"guia-md-list\"><li>retira soportes con cuidado antes del curado final si quieres reducir marcas;</li><li>usa pinzas o alicate de corte;</li><li>evita tirar los soportes con fuerza;</li><li>lija suavemente si quedan marcas.</li></ul><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/dlp_resina/postproceso_resina.png\" alt=\"Retiro de soportes\" loading=\"lazy\"><figcaption>Retiro de soportes</figcaption></figure>"
+    },
+    {
+     "title": "Curado UV",
+     "html": "<p>El curado final mejora la resistencia y estabilidad de la pieza.</p><p>Pasos:</p><ol class=\"guia-md-list\"><li>Coloca la pieza seca en la estación de curado.</li><li>Selecciona el tiempo según tamaño y resina.</li><li>Gira la pieza si es necesario para curado uniforme.</li><li>No mires directamente los LEDs UV.</li></ol><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/dlp_resina/wash_cure_curado.png\" alt=\"Curado UV\" loading=\"lazy\"><figcaption>Curado UV</figcaption></figure>"
+    },
+    {
+     "title": "Tiempos de referencia",
+     "html": "<p>Los tiempos dependen de la resina, tamaño, color y potencia UV.</p><div class=\"guia-md-tablewrap\"><table class=\"guia-md-table\"><thead><tr><th>Tipo de pieza</th><th>Lavado aprox.</th><th>Curado aprox.</th></tr></thead><tbody><tr><td>Miniatura pequeña</td><td>2–4 min</td><td>2–5 min</td></tr><tr><td>Pieza mediana</td><td>4–6 min</td><td>5–8 min</td></tr><tr><td>Pieza grande</td><td>6–10 min</td><td>8–15 min</td></tr><tr><td>Pieza hueca</td><td>Revisar interior</td><td>Curado por etapas</td></tr></tbody></table></div><p><strong>Nota:</strong> usa siempre las recomendaciones del fabricante de la resina como referencia principal.</p>"
+    },
+    {
+     "title": "Errores comunes en postproceso",
+     "html": "<h4 class=\"guia-md-h3\">La pieza queda pegajosa</h4><p>Posibles causas:</p><ul class=\"guia-md-list\"><li>lavado insuficiente;</li><li>pieza curada aún húmeda;</li><li>curado incompleto;</li><li>resina acumulada en cavidades.</li></ul><p>Solución:</p><ul class=\"guia-md-list\"><li>lavar nuevamente;</li><li>secar completamente;</li><li>curar por más tiempo;</li><li>revisar agujeros de drenaje si la pieza es hueca.</li></ul><h4 class=\"guia-md-h3\">La pieza se deforma</h4><p>Posibles causas:</p><ul class=\"guia-md-list\"><li>curado excesivo;</li><li>pieza delgada;</li><li>mal soporte;</li><li>exposición irregular.</li></ul><p>Solución:</p><ul class=\"guia-md-list\"><li>reducir tiempo de curado;</li><li>orientar mejor;</li><li>reforzar paredes o soportes;</li><li>curar por etapas.</li></ul>"
+    },
+    {
+     "title": "Checklist de postproceso",
+     "html": "<ul class=\"guia-md-list\"><li>pieza retirada con guantes;</li><li>resina sobrante escurrida;</li><li>pieza lavada;</li><li>pieza seca;</li><li>soportes retirados con cuidado;</li><li>pieza curada correctamente;</li><li>residuos tratados de forma segura.</li></ul>"
+    }
+   ]
+  },
+  {
+   "title": "Errores comunes",
+   "level": "Intermedio",
+   "reading_min": 3,
+   "intro": "Esta guía ayuda a identificar problemas frecuentes en impresoras LCD, MSLA y DLP.\n\n---",
+   "sections": [
+    {
+     "title": "La pieza no se pega a la plataforma",
+     "html": "<h4 class=\"guia-md-h3\">Síntoma</h4><p>La pieza queda pegada al FEP, aparece solo una base parcial o no se forma nada sobre la plataforma.</p><h4 class=\"guia-md-h3\">Posibles causas</h4><ul class=\"guia-md-list\"><li>plataforma mal nivelada;</li><li>exposición de base insuficiente;</li><li>superficie de plataforma demasiado lisa;</li><li>FEP muy tenso, dañado o desgastado;</li><li>resina fría o mal mezclada;</li><li>soportes o base mal configurados.</li></ul><h4 class=\"guia-md-h3\">Soluciones</h4><ul class=\"guia-md-list\"><li>nivelar nuevamente la plataforma;</li><li>aumentar ligeramente la exposición de base;</li><li>limpiar plataforma y tanque;</li><li>revisar estado del FEP;</li><li>agitar la resina;</li><li>usar raft o base de soporte adecuada.</li></ul><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/dlp_resina/errores_adherencia.png\" alt=\"Adherencia a plataforma\" loading=\"lazy\"><figcaption>Adherencia a plataforma</figcaption></figure>"
+    },
+    {
+     "title": "La pieza se despega a mitad de impresión",
+     "html": "<h4 class=\"guia-md-h3\">Síntoma</h4><p>La impresión empieza bien pero luego se desprende o queda incompleta.</p><h4 class=\"guia-md-h3\">Posibles causas</h4><ul class=\"guia-md-list\"><li>soportes débiles;</li><li>demasiada fuerza de succión;</li><li>pieza muy grande y plana;</li><li>velocidad de elevación alta;</li><li>exposición normal baja.</li></ul><h4 class=\"guia-md-h3\">Soluciones</h4><ul class=\"guia-md-list\"><li>mejorar orientación;</li><li>agregar soportes medianos o fuertes en zonas críticas;</li><li>reducir áreas planas paralelas al FEP;</li><li>ajustar velocidad de elevación;</li><li>revisar exposición normal.</li></ul><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/dlp_resina/errores_soportes.png\" alt=\"Soportes\" loading=\"lazy\"><figcaption>Soportes</figcaption></figure>"
+    },
+    {
+     "title": "Soportes fallan o se rompen",
+     "html": "<h4 class=\"guia-md-h3\">Síntoma</h4><p>Los soportes se imprimen, pero la pieza no queda sostenida o aparecen partes faltantes.</p><h4 class=\"guia-md-h3\">Posibles causas</h4><ul class=\"guia-md-list\"><li>soportes muy ligeros;</li><li>punta de soporte muy pequeña;</li><li>pocas conexiones;</li><li>mala orientación;</li><li>islas sin soporte.</li></ul><h4 class=\"guia-md-h3\">Soluciones</h4><ul class=\"guia-md-list\"><li>usar soportes Medium o Heavy en zonas importantes;</li><li>aumentar diámetro de contacto;</li><li>revisar islas en la vista previa;</li><li>agregar soportes manuales;</li><li>orientar la pieza para reducir voladizos.</li></ul>"
+    },
+    {
+     "title": "Capas separadas o líneas visibles",
+     "html": "<h4 class=\"guia-md-h3\">Síntoma</h4><p>La pieza presenta cortes, bandas o capas mal adheridas.</p><h4 class=\"guia-md-h3\">Posibles causas</h4><ul class=\"guia-md-list\"><li>exposición insuficiente;</li><li>movimiento Z irregular;</li><li>resina mal mezclada;</li><li>temperatura baja;</li><li>FEP en mal estado.</li></ul><h4 class=\"guia-md-h3\">Soluciones</h4><ul class=\"guia-md-list\"><li>aumentar exposición normal de forma gradual;</li><li>revisar eje Z;</li><li>mezclar bien la resina;</li><li>imprimir en ambiente estable;</li><li>reemplazar FEP si está dañado.</li></ul>"
+    },
+    {
+     "title": "Detalles blandos o sobreexpuestos",
+     "html": "<h4 class=\"guia-md-h3\">Síntoma</h4><p>Los detalles finos se pierden, los bordes se ven gruesos o la pieza queda inflada.</p><h4 class=\"guia-md-h3\">Posibles causas</h4><ul class=\"guia-md-list\"><li>exposición demasiado alta;</li><li>altura de capa inadecuada;</li><li>antialiasing mal configurado;</li><li>resina no adecuada para detalle fino.</li></ul><h4 class=\"guia-md-h3\">Soluciones</h4><ul class=\"guia-md-list\"><li>reducir exposición normal poco a poco;</li><li>usar altura de capa menor;</li><li>revisar perfil de resina;</li><li>hacer test de exposición.</li></ul><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/dlp_resina/errores_resina_exposicion.png\" alt=\"Resina y exposición\" loading=\"lazy\"><figcaption>Resina y exposición</figcaption></figure>"
+    },
+    {
+     "title": "Piezas huecas con resina atrapada",
+     "html": "<h4 class=\"guia-md-h3\">Síntoma</h4><p>La pieza gotea, se agrieta, huele fuerte o se deforma con el tiempo.</p><h4 class=\"guia-md-h3\">Posibles causas</h4><ul class=\"guia-md-list\"><li>modelo hueco sin agujeros de drenaje;</li><li>agujeros demasiado pequeños;</li><li>lavado interno insuficiente;</li><li>curado incompleto del interior.</li></ul><h4 class=\"guia-md-h3\">Soluciones</h4><ul class=\"guia-md-list\"><li>agregar dos o más agujeros de drenaje;</li><li>lavar el interior;</li><li>dejar secar completamente;</li><li>curar el interior si es posible.</li></ul>"
+    },
+    {
+     "title": "Marcas excesivas de soporte",
+     "html": "<h4 class=\"guia-md-h3\">Síntoma</h4><p>La pieza tiene puntos, cráteres o marcas visibles donde se retiraron soportes.</p><h4 class=\"guia-md-h3\">Posibles causas</h4><ul class=\"guia-md-list\"><li>soportes muy gruesos en zonas visibles;</li><li>retiro brusco;</li><li>mala orientación;</li><li>curado antes de retirar soportes.</li></ul><h4 class=\"guia-md-h3\">Soluciones</h4><ul class=\"guia-md-list\"><li>orientar para colocar soportes en zonas ocultas;</li><li>usar soportes más finos en detalles;</li><li>retirar soportes con alicate;</li><li>lijar o reparar superficialmente si es necesario.</li></ul>"
+    },
+    {
+     "title": "Fallas por FEP",
+     "html": "<h4 class=\"guia-md-h3\">Síntoma</h4><p>Impresiones repetidamente fallidas, capas pegadas al tanque, marcas o deformaciones.</p><h4 class=\"guia-md-h3\">Posibles causas</h4><ul class=\"guia-md-list\"><li>FEP rayado;</li><li>FEP opaco;</li><li>FEP demasiado flojo o tenso;</li><li>residuos pegados en el tanque.</li></ul><h4 class=\"guia-md-h3\">Soluciones</h4><ul class=\"guia-md-list\"><li>revisar visualmente el FEP;</li><li>limpiar con cuidado;</li><li>reemplazar si está dañado;</li><li>evitar espátulas metálicas sobre el FEP.</li></ul><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/dlp_resina/errores_fep.png\" alt=\"Calidad de lámina FEP\" loading=\"lazy\"><figcaption>Calidad de lámina FEP</figcaption></figure>"
+    },
+    {
+     "title": "Checklist rápido de diagnóstico",
+     "html": "<p>Cuando una impresión falla, revisa en este orden:</p><ol class=\"guia-md-list\"><li>¿La plataforma está nivelada?</li><li>¿La resina está bien mezclada?</li><li>¿La exposición corresponde a la resina?</li><li>¿El FEP está en buen estado?</li><li>¿El modelo tiene soportes suficientes?</li><li>¿Hay islas sin soporte?</li><li>¿La orientación reduce succión?</li><li>¿El archivo corresponde a tu impresora?</li></ol><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/dlp_resina/errores_consideraciones.png\" alt=\"Consideraciones generales\" loading=\"lazy\"><figcaption>Consideraciones generales</figcaption></figure>"
+    }
+   ]
+  },
+  {
+   "title": "Modelos y diseño",
+   "level": "Básico",
+   "reading_min": 2,
+   "intro": "Esta guía ayuda a elegir, preparar y diseñar modelos adecuados para impresoras LCD, MSLA o DLP.\n\n---",
+   "sections": [
+    {
+     "title": "Elegir modelos adecuados",
+     "html": "<p>La impresión de resina funciona especialmente bien para modelos con alto nivel de detalle.</p><p>Modelos recomendados:</p><ul class=\"guia-md-list\"><li>miniaturas;</li><li>bustos;</li><li>figuras coleccionables;</li><li>piezas dentales;</li><li>joyería;</li><li>prototipos pequeños;</li><li>modelos con texturas finas.</li></ul><p>Modelos menos recomendados:</p><ul class=\"guia-md-list\"><li>piezas muy grandes y macizas;</li><li>piezas que necesitan mucha resistencia mecánica;</li><li>objetos de uso rudo;</li><li>modelos huecos sin drenaje.</li></ul><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/dlp_resina/paginas_descarga_modelos.png\" alt=\"Páginas para modelos 3D\" loading=\"lazy\"><figcaption>Páginas para modelos 3D</figcaption></figure><p><strong>Recomendación K3D:</strong> en la web, prioriza K3D FAB como fuente de modelos recomendados y deja otros repositorios como recursos externos secundarios.</p>"
+    },
+    {
+     "title": "Orientación de la pieza",
+     "html": "<p>La orientación afecta acabado, soportes, tiempo y probabilidad de falla.</p><p>Buenas prácticas:</p><ul class=\"guia-md-list\"><li>inclina modelos grandes;</li><li>evita superficies grandes paralelas al FEP;</li><li>ubica soportes en zonas menos visibles;</li><li>distribuye la fuerza de succión;</li><li>revisa el resultado capa por capa.</li></ul>"
+    },
+    {
+     "title": "Piezas huecas",
+     "html": "<p>Vaciar una pieza ayuda a reducir consumo de resina y peso.</p><p>Recomendaciones:</p><ul class=\"guia-md-list\"><li>no uses paredes demasiado delgadas;</li><li>agrega agujeros de drenaje;</li><li>evita cavidades cerradas;</li><li>lava el interior;</li><li>cura correctamente.</li></ul><figure class=\"guia-md-fig\"><img src=\"__GUIDE_BASE__/lcd/dlp_resina/parametros_laminado.png\" alt=\"Herramienta Hollow\" loading=\"lazy\"><figcaption>Herramienta Hollow</figcaption></figure>"
+    },
+    {
+     "title": "Agujeros de drenaje",
+     "html": "<p>Los agujeros permiten que salga resina líquida atrapada dentro de modelos huecos.</p><p>Buenas prácticas:</p><ul class=\"guia-md-list\"><li>coloca mínimo dos agujeros;</li><li>ubícalos en la zona inferior según orientación;</li><li>evita que queden bloqueados por soportes;</li><li>hazlos suficientemente grandes para lavar el interior.</li></ul>"
+    },
+    {
+     "title": "Soportes desde el diseño",
+     "html": "<p>Al diseñar o elegir un modelo, piensa en los soportes desde el inicio.</p><p>Un buen diseño para resina:</p><ul class=\"guia-md-list\"><li>evita voladizos innecesarios;</li><li>divide piezas complejas en partes;</li><li>deja superficies visibles libres de soportes;</li><li>incluye encajes si el modelo se imprimirá por partes.</li></ul>"
+    },
+    {
+     "title": "Encajes y tolerancias",
+     "html": "<p>Para piezas que ensamblan:</p><ul class=\"guia-md-list\"><li>deja holgura entre piezas;</li><li>evita encajes demasiado ajustados;</li><li>prueba con piezas pequeñas antes de imprimir todo el modelo;</li><li>considera contracción o variación según resina.</li></ul><p>Valores de referencia:</p><div class=\"guia-md-tablewrap\"><table class=\"guia-md-table\"><thead><tr><th>Tipo de encaje</th><th>Holgura inicial sugerida</th></tr></thead><tbody><tr><td>Encaje decorativo</td><td>0.10–0.20 mm</td></tr><tr><td>Encaje manual normal</td><td>0.20–0.40 mm</td></tr><tr><td>Piezas que deben entrar fácil</td><td>0.40–0.60 mm</td></tr></tbody></table></div>"
+    },
+    {
+     "title": "Modelos grandes",
+     "html": "<p>Para modelos grandes:</p><ul class=\"guia-md-list\"><li>dividir en partes puede mejorar el resultado;</li><li>usar pines o encajes facilita el armado;</li><li>vaciar reduce consumo;</li><li>agregar drenajes evita resina atrapada;</li><li>orientar cada parte de forma independiente.</li></ul>"
+    },
+    {
+     "title": "Checklist antes de laminar un modelo",
+     "html": "<ul class=\"guia-md-list\"><li>el modelo cabe en la plataforma;</li><li>la orientación reduce succión;</li><li>hay soportes suficientes;</li><li>no hay islas sin soporte;</li><li>si está hueco, tiene drenajes;</li><li>las zonas visibles tienen pocos soportes;</li><li>el archivo no está dañado;</li><li>el formato es compatible con el slicer.</li></ul>"
+    },
+    {
+     "title": "Nota K3D",
+     "html": "<p>Un buen resultado en resina depende tanto del modelo como de la configuración. Antes de imprimir piezas grandes o costosas, haz una prueba pequeña de exposición y soporte.</p>"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,831 @@
+<div x-data="conversations_data">
+	<div id="conversations">
+
+		<div class="conv-layout">
+
+			<!-- ── Left panel: conversation list ─────────────────────── -->
+			<div class="conv-sidebar">
+				<div class="conv-sidebar-header">
+					<span class="conv-sidebar-title">Conversaciones</span>
+					<button class="conv-refresh-btn" @click="load()" title="Actualizar">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+							<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+							<path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+						</svg>
+					</button>
+				</div>
+
+				<div class="conv-list" @scroll="onScroll($event)">
+					<template x-if="conversations.length === 0">
+						<div class="conv-empty-list">Sin conversaciones</div>
+					</template>
+
+					<template x-for="conv in conversations" :key="conv.wa_id">
+						<div
+							class="conv-item"
+							:class="selected && selected.wa_id === conv.wa_id ? 'conv-item-active' : ''"
+							@click="select(conv)"
+						>
+							<div class="conv-avatar" x-text="initials(displayName(conv))"></div>
+							<div class="conv-item-body">
+								<div class="conv-item-top">
+									<span class="conv-item-name" x-text="displayName(conv)"></span>
+									<span class="conv-item-time" x-text="formatTime(conv.created_at)"></span>
+								</div>
+								<div class="conv-item-preview">
+									<span
+										class="conv-dir-badge"
+										:class="conv.direction === 'out' ? 'badge-out' : 'badge-in'"
+										x-text="conv.direction === 'out' ? '↑' : '↓'"
+									></span>
+									<span x-text="previewMsg(conv)"></span>
+								</div>
+							</div>
+						</div>
+					</template>
+
+					<template x-if="loadingMore">
+						<div class="conv-loading-more">Cargando más…</div>
+					</template>
+				</div>
+			</div>
+
+			<!-- ── Right panel: chat thread ───────────────────────────── -->
+			<div class="conv-main">
+
+				<!-- Empty state -->
+				<template x-if="!selected">
+					<div class="conv-empty-state">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48" style="opacity:0.2">
+							<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+						</svg>
+						<p>Selecciona una conversación</p>
+					</div>
+				</template>
+
+				<!-- Thread -->
+				<template x-if="selected">
+					<div class="conv-thread">
+
+						<!-- Thread header -->
+						<div class="conv-thread-header">
+							<div class="conv-thread-avatar" x-text="initials(displayName(selected))"></div>
+							<div>
+								<div class="conv-thread-name" x-text="displayName(selected)"></div>
+								<div class="conv-thread-phone" x-text="formatPhone(selected.wa_id)"></div>
+							</div>
+						</div>
+
+						<!-- Messages -->
+						<div class="conv-messages" id="conv-messages-scroll">
+							<template x-if="loadingMessages">
+								<div class="conv-loading">Cargando mensajes...</div>
+							</template>
+
+							<template x-for="msg in messages" :key="msg.id">
+								<div class="conv-msg" :class="msg.direction === 'out' ? 'conv-msg-out' : 'conv-msg-in'">
+									<div class="conv-bubble" :class="msg.direction === 'out' ? 'bubble-out' : 'bubble-in'">
+										<!-- Media header -->
+										<template x-if="msg.media_url && bubbleMediaType(msg) === 'pdf'">
+											<a class="bubble-pdf-link" href="#" @click.prevent="openAttachment(msg)">
+												<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+												Ver PDF adjunto
+											</a>
+										</template>
+										<template x-if="msg.media_url && bubbleMediaType(msg) !== 'pdf'">
+											<img class="bubble-media-img" :src="msg.media_url" alt="Imagen adjunta" loading="lazy" style="cursor:pointer" @click="openAttachment(msg)">
+										</template>
+										<!-- Body -->
+										<div class="bubble-text" x-html="renderBubbleHtml(msg)"></div>
+										<!-- Template badge -->
+										<template x-if="msg.template_name">
+											<div class="bubble-tmpl-badge" x-text="msg.template_name"></div>
+										</template>
+										<div class="bubble-time" x-text="formatMsgTime(msg.created_at)"></div>
+									</div>
+								</div>
+							</template>
+						</div>
+
+						<!-- Reply input -->
+						<div class="conv-reply-bar">
+							<input
+								type="text"
+								class="conv-reply-input"
+								x-model="replyText"
+								@keyup.enter="send()"
+								placeholder="Escribe un mensaje..."
+								:disabled="sending"
+							>
+							<button
+								class="conv-send-btn"
+								@click="send()"
+								:disabled="sending || !replyText.trim()"
+							>
+								<template x-if="!sending">
+									<svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+										<path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+									</svg>
+								</template>
+								<template x-if="sending">
+									<span class="conv-spinner"></span>
+								</template>
+							</button>
+						</div>
+
+					</div>
+				</template>
+
+			</div>
+		</div>
+
+	</div>
+
+	<!-- Modal: visor de adjunto (PDF / imagen) -->
+	<div
+		x-show="$store.cache.isVisibleModal('attachment')"
+		@mousedown.self="$store.cache.hideLastModal()"
+		class="modal-wrap"
+		id="modal-attachment"
+		x-transition:enter="modal-enter"
+		x-transition:enter-start="modal-enter-start"
+		x-transition:enter-end="modal-enter-end"
+		x-transition:leave="modal-leave"
+		x-transition:leave-start="modal-leave-start"
+		x-transition:leave-end="modal-leave-end"
+		x-cloak
+	>
+		<div class="modal small glass2" @click.stop>
+			<div class="modal-grabber">
+				<div class="modal-grabber-bar"></div>
+			</div>
+			<div class="modal-content">
+				<template x-if="viewer_payload?.kind === 'pdf'">
+					<iframe :src="viewer_payload.url" style="width:100%; height:70vh; border:0;"></iframe>
+				</template>
+				<template x-if="viewer_payload?.kind === 'image'">
+					<img style="border-radius:0.75rem; max-width:100%;" :src="viewer_payload.url">
+				</template>
+			</div>
+		</div>
+	</div>
+
+
+	<script>
+	const WA_TEMPLATES = {
+		'soporte_0_registro': {
+			body: `Hola 😊, se ha registrado una nueva solicitud de soporte.\n\n📦 Equipo: *{{device_model}}*\n📝 Orden N.º: *{{order_number}}*\n\nPodrás revisar el estado de tu equipo con el número de orden y el DNI o RUC usados para el registro desde:\n👉 {{url}}\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático, por favor no respondas._`,
+			params: ['device_model', 'order_number', 'url'],
+		},
+		'soporte_0_ingreso': {
+			body: `Hola {{username}} 😊\n\nHemos recibido tu {{machine}} para revisión por nuestro equipo técnico.\n{{notes}}\n\n✅ El ingreso fue realizado correctamente. Te mantendremos informado sobre el estado de tu equipo.\n📄 Puedes revisar los términos y condiciones aceptados aquí: {{terms_link}}\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático, por favor no respondas._`,
+			params: ['username', 'machine', 'notes', 'terms_link'],
+		},
+		'soporte_1_revision': {
+			body: `Hola {{username}} 😊\n\n🔍 Ya iniciamos la revisión técnica de tu equipo. Pronto te informaremos sobre el diagnóstico y las posibles soluciones.\n📝 Ten en cuenta que este proceso puede tomar varios días, ya que realizamos pruebas exhaustivas para garantizar el buen funcionamiento.\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático, por favor no respondas._`,
+			params: ['username'],
+		},
+		'soporte_2_diagnostico': {
+			body: `Hola {{username}} 😊\n\n📋 Hemos finalizado la revisión de tu equipo y ya contamos con un diagnóstico. Si es necesario, te enviaremos los detalles y las opciones de reparación. ¡Seguimos avanzando!\n⚠ Si necesitas hablar con alguien de nuestro equipo de soporte técnico, contáctanos al WhatsApp \u202A{{number}}\u202C.\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático, por favor no respondas._`,
+			params: ['username', 'number'],
+		},
+		'soporte_3_repuesto': {
+			body: `Hola {{username}} 😊\n\n🔧 Ya hemos identificado el repuesto necesario para la reparación de tu equipo. Si no lo tenemos en stock, procederemos con la importación. Te mantendremos informado.\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático, por favor no respondas._`,
+			params: ['username'],
+		},
+		'soporte_4_reparacion': {
+			body: `Hola {{username}} 😊\n\n⚙ Tu equipo está en proceso de reparación. Nuestro equipo técnico está trabajando para que vuelva a funcionar perfectamente. Te avisaremos cuando finalice.\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático, por favor no respondas._`,
+			params: ['username'],
+		},
+		'soporte_5_pruebas': {
+			body: `Hola {{username}} 😊\n\n🖨 Tu equipo ha sido reparado y estamos realizando las pruebas finales para garantizar su correcto funcionamiento. En breve te confirmaremos cuándo podrás venir a recogerlo.\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático, por favor no respondas._`,
+			params: ['username'],
+		},
+		'soporte_6_recojo': {
+			body: `Hola {{username}} 😊\n\n✅ ¡Tu equipo está listo para ser recogido! Puedes pasar por nuestra tienda de lunes a sábado.\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático, por favor no respondas._`,
+			params: ['username'],
+		},
+		'soporte_7_entrega': {
+			body: `Hola {{username}} 😊\n\n✅ ¡Tu equipo fue entregado con éxito! Esperamos que todo esté en orden y hayas tenido una excelente experiencia.\n\n⭐ Tu opinión es muy importante para nosotros, déjanos una reseña aquí 👉 {{link}}\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático, por favor no respondas._`,
+			params: ['username', 'link'],
+			media: 'image',
+		},
+		'logistica_agendado': {
+			body: `👋 ¡Hola {{username}}!\n\n📦 Tu pedido {{order_number}} ya está listo y programado para ser entregado el día {{delivery_date}} 🗓\n\n📲 Te avisaré nuevamente el mismo día cuando el repartidor esté en camino 🚚\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático por favor no respondas._`,
+			params: ['username', 'order_number', 'delivery_date'],
+		},
+		'entrega': {
+			body: `👋 ¡Hola {{username}}!\n\n📦 Tu pedido {{order_number}} será entregado hoy, entre {{start}} y {{end}}, en la dirección indicada.\n\n🚚 Nuestro repartidor se comunicará contigo al llegar y podrá esperarte hasta {{timer}} minutos.\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático por favor no respondas._`,
+			params: ['username', 'order_number', 'start', 'end', 'timer'],
+		},
+		'entrega_exitosa_img': {
+			body: `👋 ¡Hola {{username}}!\n\n🥳 Tu pedido ha sido entregado con éxito. ¡Gracias por confiar en Krear 3D!\n\n📩 Si necesitas ayuda, escríbenos por WhatsApp al {{number}}.\n\n⭐ ¿Nos dejas una reseña? Tu opinión es importante 👉 {{link}}\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático por favor no respondas._`,
+			params: ['username', 'number', 'link'],
+			media: 'image',
+		},
+		'no_entrega_img': {
+			body: `👋 ¡Hola {{username}}!\n\n😕 No pudimos entregar tu pedido {{order_number}}.\n\n🛠 Por favor contáctate con uno de nuestros asesores para reprogramar la entrega o brindarte más información.\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático por favor no respondas._`,
+			params: ['username', 'order_number'],
+			media: 'image',
+		},
+		'refunds_register': {
+			body: `👋 Hola {{name}}, recibimos tu solicitud de extorno {{number}} por S/ {{amount}} ✅\n\nNuestro equipo la revisará y te responderá en máx. 7 días hábiles.\n\nGracias por confiar en Krear 3D 🧡`,
+			params: ['name', 'number', 'amount'],
+		},
+		'refunds_no_penality': {
+			body: `✅ ¡Buenas noticias {{name}}! Tu extorno {{number}} fue aprobado 🎉\n\nTe devolveremos el monto completo de S/ {{amount}}.\n\nPronto realizaremos el abono al medio de pago indicado.\n\nKrear 3D 🧡`,
+			params: ['name', 'number', 'amount'],
+		},
+		'refunds_penality': {
+			body: `✅ ¡Hola {{name}}! Tu extorno {{number}} fue aprobado 🎉\n\nMonto solicitado: S/ {{amount}}\nPenalidad aplicada: S/ 10\nMonto a devolver: S/ {{amount_final}}\n\nPronto realizaremos el abono al medio de pago indicado.\n\nKrear 3D 🧡`,
+			params: ['name', 'number', 'amount', 'amount_final'],
+		},
+		'refunds_reverted': {
+			body: `Hola {{name}} 😔 Lamentamos informarte que tu extorno {{number}} no procedió en esta oportunidad.\n\nEscríbenos para conocer los motivos o gestionar una nueva 💬\n\nKrear 3D 🧡`,
+			params: ['name', 'number'],
+		},
+		'refunds_executed': {
+			body: `💸 ¡Listo {{name}}! Tu extorno {{number}} por S/ {{amount}} ya fue abonado 🎉\n\nAdjuntamos la constancia de la operación 📎\n\n¡Gracias por tu confianza! Krear 3D 🧡`,
+			params: ['name', 'number', 'amount'],
+			media: 'image',
+		},
+		'tracking_alert': {
+			body: `👋 ¡Hola {{username}}!\n\nTu pedido {{order}} ha sido enviado vía {{agency}} 🚚\n\n{{code1}}\n{{code2}}\n{{code3}}\n\n📍 Puedes rastrear tu envío aquí 👉 {{url}} 🌐\n\n_🤖 Soy Fabrix, el asistente virtual de Krear 3D. Este es un mensaje automático por favor no respondas._`,
+			params: ['username', 'order', 'agency', 'code1', 'code2', 'code3', 'url'],
+		},
+		'odoo_invoice_prod': {
+			body: `Hola {{name}} 👋\n\nGracias por tu compra en Krear 3D.\n\nTe adjuntamos el comprobante electrónico en PDF:\n🧾 Número: {{number}}\n📅 Fecha de emisión: {{date}}\n\n_🤖 Soy Fabrix, asistente virtual de Krear 3D. Mensaje automático, por favor no respondas._`,
+			params: ['name', 'number', 'date'],
+			media: 'pdf',
+		},
+	};
+
+	function _escHtml(s) {
+		return String(s ?? '')
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;');
+	}
+
+	function _fmtWa(text) {
+		return text
+			.replace(/\*(.*?)\*/g, (_, m) => `<strong>${m}</strong>`)
+			.replace(/_(.*?)_/g,   (_, m) => `<em>${m}</em>`)
+			.replace(/\n/g, '<br>');
+	}
+
+	Alpine.data('conversations_data', () => ({
+		conversations:   [],
+		convLimit:       25,
+		convHasMore:     true,
+		loadingMore:     false,
+		selected:        null,
+		messages:        [],
+		replyText:       '',
+		loadingMessages: false,
+		sending:         false,
+		viewer_payload:  null,
+		_pollTimer:      null,
+
+		async init() {
+			await this.load();
+			this._pollTimer = setInterval(() => this._poll(), 20000);
+		},
+
+		destroy() {
+			clearInterval(this._pollTimer);
+		},
+
+		async load() {
+			const api = Alpine.store('cache').api;
+			const r = await fetch(`${api}/conversations?limit=${this.convLimit}&offset=0`, { headers: { 'X-No-Toast': '1' } });
+			const j = await r.json();
+			this.conversations = j.data || [];
+			this.convHasMore   = this.conversations.length === this.convLimit;
+		},
+
+		async loadMore() {
+			if (this.loadingMore || !this.convHasMore) return;
+			this.loadingMore = true;
+			try {
+				const api    = Alpine.store('cache').api;
+				const offset = this.conversations.length;
+				const r = await fetch(`${api}/conversations?limit=${this.convLimit}&offset=${offset}`, { headers: { 'X-No-Toast': '1' } });
+				const j = await r.json();
+				const batch = j.data || [];
+				const seen  = new Set(this.conversations.map(c => c.wa_id));
+				this.conversations.push(...batch.filter(c => !seen.has(c.wa_id)));
+				this.convHasMore = batch.length === this.convLimit;
+			} finally {
+				this.loadingMore = false;
+			}
+		},
+
+		onScroll(e) {
+			const el = e.target;
+			if (el.scrollTop + el.clientHeight >= el.scrollHeight - 80) {
+				this.loadMore();
+			}
+		},
+
+		async select(conv) {
+			this.selected  = conv;
+			this.messages  = [];
+			this.replyText = '';
+			await this.loadMessages(conv.wa_id);
+		},
+
+		async loadMessages(wa_id) {
+			this.loadingMessages = true;
+			const api = Alpine.store('cache').api;
+			try {
+				const r = await fetch(`${api}/conversations/${wa_id}/messages`, { headers: { 'X-No-Toast': '1' } });
+				const j = await r.json();
+				this.messages = j.data || [];
+				this.$nextTick(() => this._scrollBottom());
+			} finally {
+				this.loadingMessages = false;
+			}
+		},
+
+		async _poll() {
+			const api = Alpine.store('cache').api;
+			// Refresh the currently-loaded window silently (keeps infinite-scroll progress)
+			const count = Math.max(this.convLimit, this.conversations.length);
+			const r = await fetch(`${api}/conversations?limit=${count}&offset=0`, { headers: { 'X-No-Toast': '1' } });
+			const j = await r.json();
+			const fresh = j.data || [];
+			this.conversations = fresh;
+			this.convHasMore   = fresh.length === count;
+
+			// Refresh open thread silently
+			if (this.selected) {
+				const r2 = await fetch(`${api}/conversations/${this.selected.wa_id}/messages`, { headers: { 'X-No-Toast': '1' } });
+				const j2 = await r2.json();
+				const updated = j2.data || [];
+				if (updated.length !== this.messages.length) {
+					this.messages = updated;
+					this.$nextTick(() => this._scrollBottom());
+				}
+			}
+		},
+
+		async send() {
+			if (!this.replyText.trim() || !this.selected || this.sending) return;
+			this.sending = true;
+			const api  = Alpine.store('cache').api;
+			const text = this.replyText.trim();
+			try {
+				const r = await fetch(`${api}/conversations/reply`, {
+					method:  'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body:    JSON.stringify({ wa_id: this.selected.wa_id, text }),
+				});
+				const j = await r.json();
+				if (j.success) {
+					this.replyText = '';
+					await this.loadMessages(this.selected.wa_id);
+					await this.load();
+				}
+			} finally {
+				this.sending = false;
+			}
+		},
+
+		_scrollBottom() {
+			const el = document.getElementById('conv-messages-scroll');
+			if (el) el.scrollTop = el.scrollHeight;
+		},
+
+		initials(name) {
+			if (!name) return '?';
+			const parts = name.trim().split(' ').filter(Boolean);
+			return parts.length >= 2
+				? (parts[0][0] + parts[1][0]).toUpperCase()
+				: name.substring(0, 2).toUpperCase();
+		},
+
+		formatTime(iso) {
+			if (!iso) return '';
+			const d   = new Date(iso);
+			const now = new Date();
+			if (d.toDateString() === now.toDateString())
+				return d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+			const yesterday = new Date(now);
+			yesterday.setDate(now.getDate() - 1);
+			if (d.toDateString() === yesterday.toDateString()) return 'ayer';
+			return d.toLocaleDateString('es-PE', { day: '2-digit', month: 'short' });
+		},
+
+		formatMsgTime(iso) {
+			if (!iso) return '';
+			return new Date(iso).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+		},
+
+		msgLabel(msg) {
+			if (msg.content)       return msg.content;
+			if (msg.template_name) return `[${msg.template_name}]`;
+			return `(${msg.msg_type})`;
+		},
+
+		renderBubbleHtml(msg) {
+			if (msg.direction === 'out' && msg.template_name) {
+				const tmpl = WA_TEMPLATES[msg.template_name];
+				if (tmpl) {
+					const values = (msg.content || '').split(' | ');
+					let text = tmpl.body;
+					tmpl.params.forEach((name, i) => {
+						text = text.replaceAll(`{{${name}}}`, _escHtml(values[i] ?? ''));
+					});
+					return _fmtWa(text);
+				}
+				// Fallback: not in map
+				const raw = msg.content ? `[${msg.template_name}]\n${msg.content}` : `[${msg.template_name}]`;
+				return _fmtWa(_escHtml(raw));
+			}
+			// Inbound or free text — plain text, no x-html risk
+			return _fmtWa(_escHtml(msg.content || `(${msg.msg_type})`));
+		},
+
+		openAttachment(msg) {
+			if (!msg || !msg.media_url) return;
+			const kind = this.bubbleMediaType(msg) === 'pdf' ? 'pdf' : 'image';
+			this.viewer_payload = { kind, url: msg.media_url };
+			Alpine.store('cache').showModal('attachment');
+		},
+
+		reorderName(raw) {
+			if (!raw) return null;
+			const name = String(raw).trim().replace(/\s+/g, ' ');
+			if (name.includes(',')) {
+				const [last, first] = name.split(',');
+				if (first && first.trim() && last && last.trim()) return `${first.trim()} ${last.trim()}`;
+			}
+			return name || null;
+		},
+
+		// Nombre extraido del template saliente (param 'name'/'username')
+		nameFromTemplate(conv) {
+			if (!conv || conv.direction !== 'out' || !conv.template_name) return null;
+			const tmpl = WA_TEMPLATES[conv.template_name];
+			if (!tmpl || !Array.isArray(tmpl.params)) return null;
+			let idx = tmpl.params.indexOf('name');
+			if (idx < 0) idx = tmpl.params.indexOf('username');
+			if (idx < 0) return null;
+			const values = (conv.content || '').split(' | ');
+			return this.reorderName(values[idx]);
+		},
+
+		displayName(conv) {
+			if (!conv) return '';
+			const cn = conv.contact_name;
+			if (cn && cn !== conv.wa_id) return cn;
+			return this.nameFromTemplate(conv) || cn || conv.wa_id;
+		},
+
+		bubbleMediaType(msg) {
+			const tmpl = WA_TEMPLATES[msg.template_name];
+			return tmpl?.media || 'image';
+		},
+
+		formatPhone(wa_id) {
+			if (!wa_id) return '';
+			const d = String(wa_id).replace(/\D/g, '');
+			if (d.length === 11 && d.startsWith('51')) {
+				const n = d.slice(2);
+				return `+51 ${n.slice(0,3)} ${n.slice(3,6)} ${n.slice(6)}`;
+			}
+			return `+${d}`;
+		},
+
+		previewMsg(conv) {
+			let text;
+			if (conv.direction === 'out' && conv.template_name && WA_TEMPLATES[conv.template_name]) {
+				const tmpl = WA_TEMPLATES[conv.template_name];
+				const values = (conv.content || '').split(' | ');
+				text = tmpl.body;
+				tmpl.params.forEach((name, i) => {
+					text = text.replaceAll(`{{${name}}}`, values[i] ?? '');
+				});
+				text = text.replace(/\*(.*?)\*/g, '$1').replace(/_(.*?)_/g, '$1').replace(/\n+/g, ' ').trim();
+			} else {
+				text = conv.content || (conv.template_name ? `[${conv.template_name}]` : `(${conv.msg_type})`);
+			}
+			return text.length > 50 ? text.substring(0, 50) + '…' : text;
+		},
+	}));
+	</script>
+
+
+	<style>
+	#conversations {
+		height: calc(100vh - 2rem);
+		display: flex;
+		flex-direction: column;
+		margin-top: -4.5rem;
+	}
+
+	/* ── Layout ── */
+	.conv-layout {
+		display: grid;
+		grid-template-columns: 400px 1fr;
+		height: 100%;
+		gap: 0;
+		border-radius: 1rem;
+		overflow: hidden;
+		box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+	}
+
+	/* ── Sidebar ── */
+	.conv-sidebar {
+		display: flex;
+		flex-direction: column;
+		background: #fff;
+		border-right: 1px solid #f0f0f0;
+		overflow: hidden;
+	}
+	.conv-sidebar-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 1rem 1.25rem;
+		border-bottom: 1px solid #f0f0f0;
+		flex-shrink: 0;
+	}
+	.conv-sidebar-title {
+		font-weight: 700;
+		font-size: 0.95rem;
+	}
+	.conv-refresh-btn {
+		background: none;
+		border: none;
+		cursor: pointer;
+		padding: 0.35rem;
+		border-radius: 0.5rem;
+		color: #888;
+		display: flex;
+		align-items: center;
+		transition: background 0.15s, color 0.15s;
+	}
+	.conv-refresh-btn:hover { background: #f5f5f5; color: #333; }
+
+	.conv-list {
+		flex: 1;
+		overflow-y: auto;
+	}
+	.conv-empty-list {
+		padding: 2rem 1.25rem;
+		text-align: center;
+		color: #bbb;
+		font-size: 0.85rem;
+	}
+	.conv-loading-more {
+		padding: 0.85rem 1.25rem;
+		text-align: center;
+		color: #bbb;
+		font-size: 0.78rem;
+	}
+
+	/* ── Conversation item ── */
+	.conv-item {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.85rem 1.25rem;
+		cursor: pointer;
+		border-bottom: 1px solid #fafafa;
+		transition: background 0.12s;
+	}
+	.conv-item:hover       { background: #fdf3ee; }
+	.conv-item-active      { background: #fdf3ee; border-left: 3px solid var(--primary); }
+	.conv-avatar {
+		width: 2.5rem;
+		height: 2.5rem;
+		min-width: 2.5rem;
+		border-radius: 50%;
+		background: var(--primaryopacity, #fde8d8);
+		color: var(--primary);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-weight: 700;
+		font-size: 0.8rem;
+	}
+	.conv-item-body   { flex: 1; min-width: 0; }
+	.conv-item-top    { display: flex; justify-content: space-between; align-items: center; gap: 0.25rem; }
+	.conv-item-name   { font-weight: 600; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.conv-item-time   { font-size: 0.7rem; color: #aaa; white-space: nowrap; flex-shrink: 0; }
+	.conv-item-preview {
+		font-size: 0.78rem;
+		color: #999;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		margin-top: 0.15rem;
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+	.conv-dir-badge {
+		font-size: 0.65rem;
+		font-weight: 700;
+		padding: 0.1rem 0.3rem;
+		border-radius: 3px;
+		flex-shrink: 0;
+	}
+	.badge-in  { background: #e8f5e9; color: #388e3c; }
+	.badge-out { background: #fff3e0; color: #e65100; }
+
+	/* ── Main panel ── */
+	.conv-main {
+		display: flex;
+		flex-direction: column;
+		background: #f8f8f8;
+		overflow: hidden;
+	}
+	.conv-empty-state {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.75rem;
+		color: #bbb;
+		font-size: 0.9rem;
+		height: 100%;
+	}
+
+	/* ── Thread ── */
+	.conv-thread {
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		background-image: url(https://www.tiendakrear3d.com/wp-content/uploads/2026/02/wspbg.png);
+    	background-color: #ebebeb;
+	}
+	.conv-thread-header {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.9rem 1.25rem;
+		background: #fff;
+		border-bottom: 1px solid #f0f0f0;
+		flex-shrink: 0;
+	}
+	.conv-thread-avatar {
+		width: 2.25rem;
+		height: 2.25rem;
+		border-radius: 50%;
+		background: var(--primaryopacity, #fde8d8);
+		color: var(--primary);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-weight: 700;
+		font-size: 0.78rem;
+	}
+	.conv-thread-name  { font-weight: 700; font-size: 0.9rem; }
+	.conv-thread-phone { font-size: 0.75rem; color: #aaa; }
+
+	/* ── Messages ── */
+	.conv-messages {
+		flex: 1;
+		overflow-y: auto;
+		padding: 1rem 2.5rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+	.conv-loading {
+		text-align: center;
+		color: #bbb;
+		font-size: 0.85rem;
+		padding: 2rem 0;
+	}
+
+	.conv-msg { display: flex; }
+	.conv-msg-in  { justify-content: flex-start; }
+	.conv-msg-out { justify-content: flex-end; }
+
+	.conv-bubble {
+		max-width: 55%;
+		padding: 0.6rem 0.85rem;
+		border-radius: 1rem;
+		font-size: 0.875rem;
+		line-height: 1.45;
+		position: relative;
+	}
+	.bubble-in {
+		background: #fff;
+		border-bottom-left-radius: 0.25rem;
+		box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+	}
+	.bubble-out {
+		background: white;
+		border-bottom-right-radius: 0.25rem;
+		box-shadow: 0 0 1rem hsl(0deg 0% 0% / 5%);
+	}
+	.bubble-text { word-break: break-word; line-height: 1.5; }
+	.bubble-text strong { font-weight: 700; }
+	.bubble-text em { font-style: italic; opacity: 0.8; }
+	.bubble-time {
+		font-size: 0.65rem;
+		margin-top: 0.4rem;
+		opacity: 0.55;
+		text-align: right;
+	}
+	.bubble-tmpl-badge {
+		font-size: 0.6rem;
+		opacity: 0.4;
+		margin-top: 0.35rem;
+		font-family: monospace;
+	}
+	.bubble-media-img {
+		max-width: 100%;
+		border-radius: 0.5rem;
+		margin-bottom: 0.5rem;
+		display: block;
+	}
+	.bubble-pdf-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		background: rgba(255,255,255,0.18);
+		padding: 0.45rem 0.75rem;
+		border-radius: 0.5rem;
+		text-decoration: none;
+		color: inherit;
+		font-size: 0.8rem;
+		font-weight: 600;
+		margin-bottom: 0.5rem;
+	}
+	.bubble-pdf-link:hover { background: rgba(255,255,255,0.3); }
+
+	/* ── Reply bar ── */
+	.conv-reply-bar {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.85rem 1.25rem;
+		padding-top: 0;
+		flex-shrink: 0;
+	}
+	.conv-reply-input {
+		flex: 1;
+		border: 1.5px solid #e8e8e8;
+		border-radius: 1.5rem;
+		padding: 0.65rem 1rem;
+		font-size: 0.88rem;
+		font-family: inherit;
+		outline: none;
+		background: #f9f9f9;
+		transition: border-color 0.15s;
+	}
+	.conv-reply-input:focus { border-color: var(--primary); background: #fff; }
+	.conv-reply-input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+	.conv-send-btn {
+		width: 2.4rem;
+		height: 2.4rem;
+		border-radius: 50%;
+		border: none;
+		background: var(--primary, #e05a00);
+		color: #fff;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		transition: opacity 0.15s, transform 0.1s;
+	}
+	.conv-send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+	.conv-send-btn:not(:disabled):hover { opacity: 0.85; }
+	.conv-send-btn:not(:disabled):active { transform: scale(0.93); }
+
+	.conv-spinner {
+		width: 14px;
+		height: 14px;
+		border: 2px solid rgba(255,255,255,0.4);
+		border-top-color: #fff;
+		border-radius: 50%;
+		animation: conv-spin 0.6s linear infinite;
+	}
+	@keyframes conv-spin { to { transform: rotate(360deg); } }
+
+	#modal-attachment { z-index: 50; }
+
+	/* ── Responsive ── */
+	@media (max-width: 680px) {
+		.conv-layout {
+			grid-template-columns: 1fr;
+			grid-template-rows: auto 1fr;
+		}
+		.conv-sidebar {
+			max-height: 40vh;
+			border-right: none;
+			border-bottom: 1px solid #f0f0f0;
+		}
+		#conversations { height: 100dvh; }
+	}
+	</style>
+</div>

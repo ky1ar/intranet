@@ -1,0 +1,804 @@
+<div x-data="logistics_data">
+	<div id="logistics">
+		<div class="controls">
+			<div class="left frost">
+				<div class="item" @click="prev()">
+					<img class="flip" alt="prev" src="/static/icons/line/right.svg" width="20" height="20">
+				</div>
+				<div class="item date" @click="today()" x-text="$store.cache.getData('logistics_driver')?.day_name">
+					Hoy
+				</div>
+				<div class="item" @click="next()">
+					<img alt="next" src="/static/icons/line/right.svg" width="20" height="20">
+				</div>
+			</div>
+		</div>
+
+		<div class="main glass">
+			<div class="schedule-container">
+				<div class="schedule">
+					<div class="day-container">
+						<template x-for="schedule_index in [1, 2]" :key="schedule_index">
+							<div class="order-container">
+								<template x-if="$store.cache.getData('logistics_driver')?.orders && $store.cache.getData('logistics_driver')?.orders['schedule_' + schedule_index]?.length > 0">
+									<template x-for="shipping in $store.cache.getData('logistics_driver')?.orders['schedule_' + schedule_index]" :key="shipping.order_number">
+										<div>
+											<template x-if="canViewAll() || shipping.driver_id == $store.cache.user.id">
+												<div class="item-card"
+													:style="`background-color: ${shipping.method_background}; border: 2px solid ${shipping.method_border}`"
+													@click="processShippingModal(shipping.shipping_order_id)"
+												>
+													<span class="number" x-text="shipping.order_number"></span>
+													<span class="district" x-text="shipping.district_name"></span>
+													<div class="data">
+														<span class="name" x-text="shipping.client_name"></span>
+														<span class="address" x-text="shipping.address"></span>
+														<div style="margin-top: 0.5rem;">
+															<img width="16" height="16" alt="" src="/static/icons/line/logistics.svg">
+															<span class="name" style="margin-left: 0.25rem;" x-text="shipping.driver_name"></span>
+														</div>
+													</div>
+													<template x-if="shipping.status_id > 2">
+														<span class="status" 
+															:style="`border: 2px solid ${shipping.method_border}; 
+																	background-color: ${shipping.status_id > 3 ? shipping.method_background : 'white'}`"
+															x-text="shipping.status_name"></span>
+													</template>
+												</div>
+											</template>
+										</div>
+									</template>
+								</template>
+							</div>
+						</template>
+					</div>
+				</div>
+			</div>
+
+		</div>
+
+		<div
+			x-show="$store.cache.isVisibleModal('finish')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-finish"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal small glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="view-head">
+					<span class="label">Orden</span>
+					<span class="date" x-text="process_shipping.register_date_str"></span>
+				</div>
+				<div class="view-data">
+					<span class="order" x-text="process_shipping.order_number"></span>
+					<span class="type"
+						:style="`background-color: ${process_shipping.method_background}; border: 2px solid ${process_shipping.method_border}`"
+						x-text="process_shipping.method_name"
+					></span>
+				</div>
+
+				<div class="content modal-content">
+					<div class="left">
+						<a class="white contact" :href="'tel:+51'+process_shipping.client_phone">
+							<img width="16" height="16" alt="client_phone" style="margin-top: 2px; " src="/static/icons/filled/phone.svg">
+							<div class="data">
+								<div class="title" x-text="process_shipping.client_name"></div>
+								<div class="subtitle" x-text="process_shipping.client_phone"></div>
+							</div>
+						</a>
+
+						<a class="white contact" 
+							:href="`https://maps.google.com/maps?q=${encodeURIComponent(process_shipping.address)}`" 
+							target="_blank">
+							<img width="20" height="20" alt="notification" style="margin: 0 -4px;" src="/static/icons/filled/location.svg">
+							<div class="data">
+								<div class="title" x-text="process_shipping.address"></div>
+								<template x-if="process_shipping.reference != ''">
+									<div class="subtitle" x-text="`Ref. ${process_shipping.reference}`"></div>
+								</template>
+								<div class="subtitle" x-text="process_shipping.district_name"></div>
+							</div>
+						</a>
+
+						<template x-if="process_shipping.maps">
+							<a class="white contact" 
+								:href="process_shipping.maps" 
+								target="_blank">
+								<img width="20" height="20" alt="notification" style="margin: 0 -2px;" src="/static/icons/filled/maps.svg">
+								<div class="data">
+									<div class="title">Google Maps</div>
+									<div class="subtitle">Link disponible</div>
+								</div>
+							</a>
+						</template>
+					</div>
+
+					<div class="thumbnails-grid" x-show="process_shipping.proof_photos?.length > 0">
+						<template x-for="(photo, index) in process_shipping.proof_photos" :key="index">
+							<div class="thumbnail-wrapper">
+								<img
+									class="thumbnail hover-opacity"
+									:src="'/static/images/uploads/' + photo"
+									alt="preview"
+									@click="viewing_photo = photo; $store.cache.showModal('image');"
+									style="cursor: pointer;"
+								>
+							</div>
+						</template>
+					</div>
+
+					<div class="capture-proof" x-show="canDeliver() && process_shipping.status_id == 3">
+						<div class="thumbnails-grid">
+							<template x-for="(photo, index) in proof_photos" :key="index">
+								<div class="thumb-item" @click="removePhoto(index)">
+									<div class="thumbnail-wrapper">
+										<div class="delete-button">
+											<img class="delete" alt="delete" width="24" height="24" src="/static/icons/line/delete.svg">
+										</div>
+										<img class="thumbnail" :src="photo.preview" alt="preview">
+									</div>
+								</div>
+							</template>
+							<div class="add-button hover-opacity" @click.prevent="openFileInput()">
+								<img alt="" width="24" height="24" src="/static/icons/line/plus.svg">
+							</div>
+							<input type="file" accept="image/*" capture="environment" style="display: none;" x-ref="fileInput" @change="addFiles($event)" multiple>
+						</div>
+					</div>
+				</div>
+
+				<div class="buttons changes" x-show="canDeliver() && process_shipping.status_id == 2">
+					<div class="button hover-opacity" @click="onTheWay()" x-text="'En camino'"></div>
+				</div>
+
+				<div class="buttons options" x-show="canDeliver() && process_shipping.status_id == 3">
+					<button class="button hover-opacity black" @click="rejectShipping()" :class="buttons.reject.class" x-text="buttons.reject.text"></button>
+					<button class="button hover-opacity" @click="completeShipping()" :class="buttons.complete.class" x-text="buttons.complete.text"></button>
+				</div>
+			</div>
+		</div>
+
+		<div 
+			x-show="$store.cache.isVisibleModal('image')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap"
+			id="modal-image"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2"  @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+				<div class="modal-content">
+					<img
+					:src="'/static/images/uploads/' + viewing_photo"
+					alt="preview"
+					style="border-radius: 0.75rem;">
+				</div>
+				
+			</div>
+			
+		</div>
+	</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+	<script>
+		Alpine.data('logistics_data',() => ({
+			schedule: [],
+			offset: 0,
+			process_shipping: {},
+			processing: false,
+			proof_photos: [],
+			viewing_photo: null,
+			buttons: {
+                reject: { class: '', text: 'No entregado' },
+                complete: { class: '', text: 'Entregado' },
+            },
+			
+			async init() {
+				console.log('Inicializando Driver...');
+
+                // Socket
+				const socket = Alpine.store('cache').socket;
+                if (socket) {
+					socket.removeAllListeners();
+					socket.on("logistics_update_driver", async () => {
+						await Alpine.store('cache').refresh('logistics_driver');
+					});
+				}
+
+				await Alpine.store('cache').fetchData([
+					{ key: 'logistics_driver', url: `/logistic/dashboard/day?offset=${this.offset}`, force: true },
+				]);
+
+				// await Alpine.store('cache').verify();
+
+			},
+
+			resetOrder() {
+                this.process_shipping = {};
+                this.proof_photos = [];
+                this.viewing_photo = null;
+            },
+
+			canDeliver() {
+				return Alpine.store('cache').hasPermission('driver', 'deliver');
+			},
+			canViewAll() {
+				return Alpine.store('cache').hasPermission('driver', 'view_all');
+			},
+
+			showError(btnKey, errorMsg) {
+                const originalText = this.buttons[btnKey].text;
+                const originalClass = this.buttons[btnKey].class;
+
+                if (originalClass == 'error') {
+                    return;
+                }
+                this.buttons[btnKey].text = errorMsg;
+                this.buttons[btnKey].class = 'error';
+
+                setTimeout(() => {
+                    this.buttons[btnKey].text = originalText;
+                    this.buttons[btnKey].class = originalClass;
+                }, 1000);
+            },
+
+			async processShippingModal(shipping_order_id){
+				this.proof_photos = [];
+				this.viewing_photo = null;
+				await this.getShipping(shipping_order_id);
+				Alpine.store('cache').showModal('finish');
+			},
+			
+			async getShipping(shipping_order_id) {
+
+				try {
+					const response = await fetch(Alpine.store('cache').api + `/logistic/shipping_order_id/${shipping_order_id}`).then(res => res.json());
+					this.process_shipping = response.data || {};
+
+				} catch (error) {
+					console.error('Error fetching order:', error);
+                }
+			},
+
+			async next() {
+				this.offset++;
+				await Alpine.store('cache').refresh([
+					{ key: 'logistics_driver', url: `/logistic/dashboard/day?offset=${this.offset}` }
+				]);
+			},
+
+			async prev() {
+				this.offset--;
+				await Alpine.store('cache').refresh([
+					{ key: 'logistics_driver', url: `/logistic/dashboard/day?offset=${this.offset}` }
+				]);
+			},
+
+			async today() {
+				this.offset = 0;
+				await Alpine.store('cache').refresh([
+					{ key: 'logistics_driver', url: `/logistic/dashboard/day` }
+				]);
+			},
+
+			async onTheWay(){
+				if (this.processing) return;
+				this.processing = true;
+
+				try {
+					await this.updateOrderStatus(3);
+					this.process_shipping.status_id = 3;
+					Alpine.store('cache').hideModal('finish');
+				} catch (error) {
+					console.error("Error en el proceso de actualización:", error);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async updateOrderStatus(status) {
+				const payload = {
+					shipping_order_id: this.process_shipping.shipping_order_id,
+					status_id: status,
+					user_id: Alpine.store('cache').user.id,
+				};
+
+				try {
+					const response = await fetch(Alpine.store('cache').api + '/logistic/set', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(payload)
+					});
+				
+					if (!response.ok) {
+						throw new Error('Error al asignar la orden.');
+					}
+				} catch (error) {
+					console.error("Error en el proceso de actualización:", error);
+				} 
+			},
+
+			addFiles(event) {
+				for (let f of event.target.files) {
+					if (f) {
+						let reader = new FileReader();
+						reader.onload = e => this.proof_photos.push({ file: f, preview: e.target.result });
+						reader.readAsDataURL(f);
+					}
+				}
+				event.target.value = '';
+			},
+
+			removePhoto(index) {
+				this.proof_photos.splice(index, 1);
+			},
+
+			openFileInput() {
+				this.$refs.fileInput.value = null;
+				this.$refs.fileInput.click();
+			},
+
+			async buildProofFormData() {
+				const formData = new FormData();
+				for (let i = 0; i < this.proof_photos.length; i++) {
+					const resized = await this.resizeImage(this.proof_photos[i].file, 1024, 1024);
+					formData.append('images[]', resized);
+				}
+				formData.append('user_id', Alpine.store('cache').user.id);
+				formData.append('order_number', this.process_shipping.order_number);
+				formData.append('shipping_order_id', this.process_shipping.shipping_order_id);
+				return formData;
+			},
+
+			async completeShipping() {
+				if (this.processing) return;
+				this.processing = true;
+
+				if (this.proof_photos.length < 1) {
+					this.showError('complete', 'Sube al menos 1 foto');
+					this.processing = false;
+					return;
+				}
+
+				try {
+					const formData = await this.buildProofFormData();
+					await this.uploadImage(formData);
+					await this.updateOrderStatus(4);
+					Alpine.store('cache').hideModal('finish');
+				} catch (error) {
+					console.error("Error en el proceso de entrega:", error);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			async rejectShipping() {
+				if (this.processing) return;
+				this.processing = true;
+
+				if (this.proof_photos.length < 1) {
+					this.showError('reject', 'Sube al menos 1 foto');
+					this.processing = false;
+					return;
+				}
+
+				try {
+					const formData = await this.buildProofFormData();
+					await this.uploadImage(formData);
+					await this.updateOrderStatus(6);
+					Alpine.store('cache').hideModal('finish');
+				} catch (error) {
+					console.error("Error en el proceso de entrega:", error);
+				} finally {
+					this.processing = false;
+				}
+			},
+
+			resizeImage(file, maxWidth, maxHeight) {
+				return new Promise((resolve, reject) => {
+					const img = new Image();
+					const reader = new FileReader();
+			
+					reader.onload = (e) => {
+						img.onload = () => {
+							const canvas = document.createElement('canvas');
+							const ctx = canvas.getContext('2d');
+			
+							let width = img.width;
+							let height = img.height;
+			
+							if (width > height) {
+								if (width > maxWidth) {
+									height *= maxWidth / width;
+									width = maxWidth;
+								}
+							} else {
+								if (height > maxHeight) {
+									width *= maxHeight / height;
+									height = maxHeight;
+								}
+							}
+			
+							canvas.width = width;
+							canvas.height = height;
+							ctx.drawImage(img, 0, 0, width, height);
+			
+							canvas.toBlob((blob) => {
+								if (blob) resolve(blob);
+								else reject(new Error("Error al redimensionar la imagen"));
+							}, file.type);
+						};
+			
+						img.src = e.target.result;
+					};
+			
+					reader.onerror = () => reject(new Error("Error al leer el archivo"));
+					reader.readAsDataURL(file);
+				});
+			},
+			
+			async uploadImage(formData) {
+				const response = await fetch(Alpine.store('cache').api + '/logistic/upload_proof', {
+					method: 'POST',
+					body: formData
+				});
+			
+				if (!response.ok) {
+					throw new Error('Error al subir la imagen.');
+				}
+			},
+			
+		}));
+	</script>
+	
+
+
+
+
+
+
+
+	<style>
+		.controls {
+			justify-content: center;
+		}
+		#logistics {
+			user-select: none;
+			display: flex;
+			margin: 0 auto;
+			max-width: 32rem;
+			flex-direction: column;
+		}
+		#logistics .header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+		}
+		
+		/***********************************************************************************/
+		#logistics .main {
+			display: flex;
+			min-height: calc(100vh - 6.5rem);
+			gap: 1rem;
+			padding: 1rem;
+			overflow: auto;
+			flex-direction: column;
+		}
+		#logistics .main .navigation {
+			display: flex;
+			gap: 0.75rem;
+			justify-content: space-between;
+			font-weight: 500;
+		}
+		#logistics .main .navigation .button {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			width: 2.5rem;
+			line-height: 2.5rem;
+		}
+		#logistics .main .navigation .button.middle {
+			width: initial;
+			padding: 0 1.25rem;
+			flex: 1;
+		}
+		#logistics .main .navigation .button:last-child img{
+			transform: rotate(180deg);
+		}
+		#logistics .main .schedule-container {
+			display: flex;
+			flex: 1;
+		}
+		/*********************************************************************************/
+		#logistics .main .pending-shippings {
+			width: 15%;
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			padding-right: 1rem;
+		}
+		#logistics .main .pending-shippings .title {
+			line-height: 2.75rem;
+			border-radius: 0.75rem;
+			border: 2px dotted #c5c5c5;
+			font-weight: 600;
+			color: #494949;
+			font-size: 0.8rem;
+			text-align: center;
+			cursor: pointer;
+		}
+		#logistics .main .pending-shippings .container {
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+			height: 100%;
+		}
+		#logistics .main .pending-shippings .empty {
+			text-align: center;
+		}
+		/*********************************************************************************/
+		#logistics .main .schedule {
+			display: flex;
+			flex: 1;
+			user-select: none;
+		}
+		#logistics .main .schedule .day-container {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			border-right: 2px solid #eee;
+		}
+		#logistics .main .schedule .day-container:last-child {
+			border-right: none;
+		}
+		#logistics .main .schedule .day-container .day-name {
+			display: flex;
+			justify-content: center;
+			font-size: 0.9rem;
+			font-weight: 500;
+			border-bottom: 2px solid #eee;
+			padding: 0.75rem 0;
+		}
+		/***********************************************************************************/
+		#logistics .order-container {
+			display: flex;
+			gap: 0.75rem;
+			flex-direction: column;
+			flex: 1;
+			border-bottom: 3px solid #ffffff80;
+			padding-bottom: 1.5rem;
+		}
+		#logistics .order-container + .order-container {
+			border-bottom: none;
+			padding-bottom: 0;
+			padding-top: 1.5rem;
+		}
+		#logistics .item-card {
+			border-radius: 0.75rem;
+			padding: 0.75rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			cursor: pointer;
+			position: relative;
+			transition: var(--transition);
+			align-items: start;
+		}
+		#logistics .item-card .data {
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+		}
+		#logistics .item-card:active {
+			transform: scale(0.95);
+		}
+		#logistics .item-card .district {
+			font-size: 0.75rem;
+			font-weight: 600;
+			opacity: 0.6;
+			position: absolute;
+			right: 10px;
+			top: 10px;
+			width: 50%;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			overflow: hidden;
+			text-align: right;
+			line-height: 1rem;
+		}
+		#logistics .item-card .address {
+			font-size: 0.75rem;
+			font-weight: 400;
+			line-height: 0.9rem;
+		}
+		#logistics .item-card .name {
+			font-size: 0.75rem;
+			font-weight: 600;
+			line-height: 1rem;
+		}
+		#logistics .item-card .status {
+			font-size: 0.65rem;
+			font-weight: 600;
+			line-height: 1rem;
+			position: absolute;
+			bottom: -2px;
+			right: -2px;
+			/*background-color: var(--white);*/
+			padding: 0.25rem 0.75rem;
+			border-radius: 0.75rem 0;
+		}
+		#logistics .item-card .phone {
+			font-size: 0.75rem;
+			font-weight: 600;
+			line-height: 0.9rem;
+			color: var(--black);
+			display: flex;
+			align-items: center;
+			gap: 0.25rem;
+		}
+		#main .item-card .number {
+			font-size: 0.85rem;
+			opacity: 0.6;
+			font-weight: 700;
+			line-height: 1rem;
+		}
+		#main .item-card .shipping {
+			display: none;
+		}
+		#main .item-card .date {
+			font-size: 0.75rem;
+			font-weight: 500;
+			opacity: 0.75;
+		}
+		#main .item-card.past-date {
+			/*opacity: 1 !important;
+			cursor: default !important;*/
+		}
+		#main .right {
+			width: 85%;
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+		}
+		#modal-shipping .title {
+			font-family: inherit;
+			border: none;
+			border-radius: 0.75rem;
+			padding: 0 0.75rem;
+			margin: 0;
+			line-height: 2.5rem;
+			outline: none;
+		}
+		/***********************************************************************************/
+		#modal-finish .view-head {
+			display: flex;
+			justify-content: space-between;
+			margin-top: -0.75rem;
+			pointer-events: none;
+			font-size: 0.8rem;
+			opacity: 0.5;
+		}
+		
+		#modal-finish .view-head .label {
+			text-transform: uppercase;
+    		font-weight: 600;
+		}
+		#modal-finish .view-head .date {
+			font-weight: 500;
+		}
+		#modal-finish .view-data {
+			display: flex;
+			margin-top: -0.5rem;
+			justify-content: space-between;
+		}
+		#modal-finish .view-data .order {
+			font-weight: 500;
+    		font-size: 1.35rem;
+		}
+		#modal-finish .view-data .type {
+			padding: 0.25rem 1rem;
+			border-radius: 2rem;
+			font-weight: 600;
+		}
+		#modal-finish .left {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.75rem;
+		}
+		#modal-finish .left .header {
+			width: 100%;
+		}
+		#modal-finish .left .header .type {
+			padding: 0.5rem 1rem;
+			border-radius: 2rem;
+			font-weight: 500;
+		}
+		#modal-finish .left .contact {
+			width: 100%;
+			border-radius: 0.75rem;
+			display: flex;
+			padding: 0.75rem 1rem;
+			gap: 0.75rem;
+			color: var(--black);
+			align-items: start;
+		}
+		#modal-finish .left .contact .data {
+			display: flex;
+			gap: 0.25rem;
+			flex-direction: column;
+		}
+		#modal-finish .left .contact .data .title {
+			font-size: 0.9rem;
+		}
+		#modal-finish .left .contact .data .subtitle {
+			font-size: 0.8rem;
+		}
+		#modal-finish .left .contact .data .subtitle + .subtitle {
+			font-weight: 600;
+    		opacity: 0.4;
+		}
+		#modal-finish .right {
+			width: 12.5rem;
+			border: 2px solid var(--gray);
+			border-radius: 0.75rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			overflow: hidden;
+			flex: 1;
+		}
+		#modal-finish .changes .button {
+			text-align: center;
+			line-height: 3rem;
+		}
+		#modal-finish .capture-proof {
+			display: flex;
+			width: 100%;
+		}
+		#modal-finish .capture-proof .thumbnails-grid {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.75rem;
+			justify-content: space-between;
+		}
+		@media only screen and (max-width: 48rem) {
+			#logistics .main .schedule {
+				flex-direction: column;
+			}
+			#logistics .main {
+				border-radius: 0;
+			}
+		}
+	</style>
+</div>

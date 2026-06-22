@@ -1,0 +1,484 @@
+<div x-data="login_data" class="fixed" id="new-login">
+    <div class="box glass">
+        <img src="/static/images/logo.svg" alt="Logo" width="128" height="27">
+
+        <div x-show="!temp_auth.name" class="content">
+            <div class="top">
+                <div class="banner">
+                    <img alt="user" src="/static/images/uploads/users/00000000.jpg" width="64" height="64">
+                    <h1>¡Hola! Soy Fabrix</h1>
+                </div>
+                <p>El asistente virtual de Krear 3D.</p>
+            </div>
+
+            <form @submit.prevent="find()" class="bottom">
+                <input type="text"
+                    x-model="temp_auth.document"
+                    required
+                    placeholder="Ingresa tu DNI para empezar."
+                    pattern="\d{8}" 
+                    maxlength="8"
+                    inputmode="numeric"
+                    oninput="this.value = this.value.replace(/\D/g, '').slice(0, 8)">
+                <button class="hover-opacity" :class="buttons.find.class" x-text="buttons.find.text" type="submit"></button>
+            </form>
+        </div>
+
+        <div x-show="temp_auth.name" class="content">
+            <div class="top">
+                <div class="banner">
+                    <img alt="user" src="/static/images/uploads/users/00000000.jpg" width="64" height="64">
+                    <template x-if="first_login">
+                        <div>
+                            <h1 x-show="step == 0" x-text="`¡Genial, ${temp_auth.name}!`"></h1>
+                            <h1 x-show="step == 1" x-text="`¡Revisa tu WhatsApp, ${temp_auth.name}!`"></h1>
+                            <h1 x-show="step == 2" x-text="`¡Casi listo, ${temp_auth.name}!`"></h1>
+                            <h1 x-show="step == 3" x-text="`¡Un paso más, ${temp_auth.name}!`"></h1>
+                        </div>
+                    </template>
+
+                    <template x-if="!first_login">
+                        <h1 x-text="temp_auth.id != 21 ? `¡Hola de nuevo, ${temp_auth.name}!`: '¡Listo para inicar sesión!'"></h1>
+                    </template>
+                </div>
+
+                <template x-if="first_login">
+                    <div>
+                        <p x-show="step == 0">Solo necesito tu número de celular para enviarte un código.</p>
+                        <p x-show="step == 1">Revisa tu WhatsApp y pon aquí los 6 dígitos que te mandé.</p>
+                        <p x-show="step == 2">Elige 4 números para crear tu clave secreta.</p>
+                        <p x-show="step == 3">Vuelve a escribir tu clave para confirmarla.</p>
+                    </div>
+                </template>
+
+                <template x-if="!first_login">
+                    <p x-text="temp_auth.id != 21 ? `Ingresa tu clave para acceder`: 'Ingresa mi clave para acceder'"></p>
+                </template>
+            </div>
+
+            <template x-if="first_login">
+                <div>
+                    <form x-show="step == 0" @submit.prevent="sendOTP()" class="bottom">
+                        <input type="tel" 
+                            x-model="temp_auth.phone" 
+                            required 
+                            placeholder="Ej. 912345678"
+                            pattern="\d{9}" 
+                            maxlength="9"
+                            inputmode="numeric"
+                            oninput="this.value = this.value.replace(/\D/g, '').slice(0, 9)">
+
+                        <button class="hover-opacity" :class="buttons.add_phone.class" x-text="buttons.add_phone.text" type="submit"></button>
+                    </form>
+
+                    <form x-show="step == 1" @submit.prevent="validateOTP()" class="bottom">
+                        <input type="tel" 
+                            x-model="temp_auth.otp" 
+                            required 
+                            placeholder="Ingresa el código"
+                            pattern="\d{6}" 
+                            maxlength="6"
+                            inputmode="numeric"
+                            oninput="this.value = this.value.replace(/\D/g, '').slice(0, 6)">
+
+                        <button class="hover-opacity" :class="buttons.validate_otp.class" x-text="buttons.validate_otp.text" type="submit"></button>
+                    </form>
+
+                    <form x-show="step == 2" @submit.prevent="step = 3" class="bottom">
+                        <input type="password" 
+                            x-model="temp_auth.pin" 
+                            required 
+                            placeholder="Ingresa 4 números"
+                            pattern="\d{4}" 
+                            maxlength="4"
+                            inputmode="numeric"
+                            oninput="this.value = this.value.replace(/\D/g, '').slice(0, 4)">
+                        <button class="hover-opacity" type="submit">Continuar</button>
+                    </form>
+
+                    <form x-show="step == 3" @submit.prevent="register()" class="bottom">
+                        <input type="password" 
+                            x-model="temp_auth.confirm_pin" 
+                            required 
+                            placeholder="Repite los 4 números"
+                            pattern="\d{4}" 
+                            maxlength="4"
+                            inputmode="numeric"
+                            oninput="this.value = this.value.replace(/\D/g, '').slice(0, 4)">
+                        <button class="hover-opacity" :class="buttons.register.class" x-text="buttons.register.text" type="submit"></button>
+                    </form>
+                </div>
+            </template>
+            
+            <template x-if="!first_login">
+                <form @submit.prevent="login()" class="bottom">
+                    <input type="password"
+                        x-model="temp_auth.pin"
+                        required
+                        placeholder="Clave secreta"
+                        pattern="\d{4}" 
+                        maxlength="4"
+                        inputmode="numeric"
+                        autocomplete="off"
+                        autocorrect="off"
+                        spellcheck="false"
+                        oninput="this.value = this.value.replace(/\D/g, '').slice(0, 4)">
+                    <button class="hover-opacity" :class="buttons.login.class" x-text="buttons.login.text" type="submit"></button>
+                </form>
+            </template>
+
+            <button
+                class="hover-opacity clean"
+                @click="clean_temp()"
+                x-text="`No soy ${temp_auth.name}`">
+            </button>
+        </div>
+        <span class="copy" x-html="`Krear 3D © 2025. Todos los derechos reservados <br>${localStorage.getItem('app_version')}`"></span>
+    </div>
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <script>
+        Alpine.data('login_data',() => ({
+            temp_auth: {
+                document: (JSON.parse(localStorage.getItem('temp_auth'))?.document || ''),
+                name: (JSON.parse(localStorage.getItem('temp_auth'))?.name || ''),
+                image: (JSON.parse(localStorage.getItem('temp_auth'))?.image || '/static/images/uploads/users/user_default.jpg'),
+            },
+
+            buttons: {
+                find: { class: '', text: 'Siguiente' },
+                login: { class: '', text: 'Acceder' },
+                register: { class: '', text: 'Acceder' },
+                add_phone: { class: '', text: 'Continuar' },
+                validate_otp: { class: '', text: 'Verificar' },
+            },
+            first_login: false,
+            pin_creation: false,
+            step: 0,
+
+            async sendOTP() {
+                const payload = {
+                    user_id: this.temp_auth.id,
+                    phone: this.temp_auth.phone
+                };
+
+                try {
+                    const response = await fetch(Alpine.store('cache').api + '/user/send_otp', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+                    this.step = 1;
+
+                } catch (error) {
+                    this.showError('add_phone', error.message);
+                } 
+            }, 
+
+            async validateOTP() {
+                const payload = {
+                    user_id: this.temp_auth.id,
+                    phone: this.temp_auth.phone,
+                    otp_code: this.temp_auth.otp
+                };
+
+                try {
+                    const response = await fetch(Alpine.store('cache').api + '/user/validate_otp', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+                    this.step = 2;
+
+                } catch (error) {
+                    this.showError('validate_otp', error.message);
+                } 
+            }, 
+
+            async find() {
+                const payload = { document: this.temp_auth.document };
+
+                try {
+                    const response = await fetch(Alpine.store('cache').api + '/user/find', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+                    const { name, id, image, first_login } = jsonData.data;
+
+                    this.temp_auth.name = name;
+                    this.temp_auth.id = id;
+                    this.first_login = first_login ?? false;
+
+                    if (image) this.temp_auth.image = `/static/images/uploads/users/${image}`;
+
+                    if (!first_login) {
+                        localStorage.setItem('temp_auth', JSON.stringify({
+                            document: this.temp_auth.document,
+                            name: this.temp_auth.name,
+                            image: this.temp_auth.image,
+                        }));
+                    }
+                } catch (error) {
+                    this.showError('find', error.message);
+                } 
+            }, 
+
+            async login() {
+                console.log('Login...');
+                const payload = { 
+                    document: this.temp_auth.document,
+                    password: this.temp_auth.pin,
+                }
+
+                try {
+                    const response = await fetch(Alpine.store('cache').api + '/user/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) {
+                        if (response.status === 422) {
+                            this.showError('login', jsonData?.data?.message || 'Datos inválidos');
+                            localStorage.removeItem('temp_auth'); 
+                            setTimeout(() => window.PineconeRouter.context.navigate('/'), 1000);
+                            return;
+                        }
+                        throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+                    }
+                    
+                    const user = jsonData.data;
+                    localStorage.setItem('user_token', user.token); // ✅ Guardar token primero
+                    Alpine.store('cache').setUser(user);
+                    Alpine.store('cache').initSocket();              // ✅ Los 3 inits aquí
+                    Alpine.store('cache').sidebarOn();
+                    Alpine.store('cache').initPush();
+
+                    window.PineconeRouter.context.navigate(Alpine.store('cache').user.default_page);
+
+                } catch (error) {
+                    this.showError('login', error.message);
+                } 
+            },
+
+            showError(btnKey, errorMsg) {
+                const originalText = this.buttons[btnKey].text;
+                const originalClass = this.buttons[btnKey].class;
+
+                if (originalClass == 'error') {
+                    return;
+                }
+                this.buttons[btnKey].text = errorMsg;
+                this.buttons[btnKey].class = 'error';
+
+                setTimeout(() => {
+                    this.buttons[btnKey].text = originalText;
+                    this.buttons[btnKey].class = originalClass;
+                }, 2000);
+            },
+
+            async register() {
+                pin = this.temp_auth.pin;
+                confirm_pin = this.temp_auth.confirm_pin;
+
+                if (pin != confirm_pin) {
+                    this.showError('register', "Las claves son distintas");
+                    this.temp_auth.pin = ''
+                    this.temp_auth.confirm_pin = '';
+                    this.step = 2;
+                    return;
+                }
+
+                const payload = {
+                    phone: this.temp_auth.phone,
+                    document: this.temp_auth.document,
+                    pin: this.temp_auth.pin
+                }
+
+                try {
+                    const response = await fetch(Alpine.store('cache').api + '/user/create_pin', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+                    
+                    const jsonData = await response.json();
+                    if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
+
+                    const saveToLocal = {
+                        image: this.temp_auth.image,
+                        document: this.temp_auth.document,
+                        name: this.temp_auth.name
+                    }
+                    
+                    localStorage.setItem('temp_auth', JSON.stringify(saveToLocal));
+                    await this.login();
+                    this.first_login = false;
+                    this.step = 0;
+                } catch (error) {
+                    this.showError('register', error.message);
+                    this.step = 2;
+                }
+            },
+            
+            clean_temp() {
+                this.temp_auth = {
+                    document: '',
+                    name: '',
+                    image: '/static/images/uploads/users/user_default.jpg',
+                },
+                this.first_login = false;
+                this.step = 0;
+                localStorage.removeItem('temp_auth'); 
+            },
+
+            async init() {
+				console.log('Inicializando Login...');
+            }
+        }));
+    </script>
+
+
+
+
+
+
+
+
+    <style>
+        #new-login {
+            text-align: center;
+        }
+        #new-login .box {
+            display: flex;
+            flex-direction: column;
+            gap: 5rem;
+            padding: 2rem 3rem;
+            max-width: 24rem;
+        }
+        #new-login .copy {
+            opacity: 0.5;
+            font-size: 0.7rem;
+        }
+        #new-login .clean {
+            border: none;
+            outline: none;
+            background-color: transparent;
+            font-family: inherit;
+            font-weight: 500;
+            color: var(--primary);
+            font-size: 0.85rem;
+            padding: 0;
+        }
+        #new-login .content {
+            display: flex;
+            gap: 1.5rem;
+            flex-direction: column;
+            max-width: 24rem;
+        }
+        #new-login .content .top {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        #new-login .content .top h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        #new-login .content .top p {
+            margin: 0;
+        }
+        #new-login .content .top .banner {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            align-items: center;
+            flex-direction: column;
+        }
+        #new-login .content .top .banner img {
+            border-radius: 2rem;
+        }
+        #new-login .content .bottom {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-width: 16rem;
+        }
+        #new-login .content .bottom.row {
+            flex-direction: row;
+        }
+        #new-login .content .bottom input {
+            outline: none;
+            border: 1px solid var(--white);
+            background-color: var(--white) !important;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            width: 100%;
+            font-family: var(--font);
+            font-size: 0.85rem;
+            text-align: center;
+        }
+        #new-login .content .bottom button {
+            width: 100%;
+            text-align: center;
+            padding: 0.75rem;
+            background-color: var(--primary);
+            border-radius: 0.5rem;
+            color: var(--white);
+            border: none;
+            font-size: 0.85rem;
+            font-family: var(--font);
+        }
+        #new-login .content .bottom button.gray {
+            background-color: var(--graydark);
+            color: var(--black);
+        }
+        #new-login .content .bottom button.error {
+            opacity: 1;
+            background-color: #d7445a;
+        }
+        #new-login .content ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        #new-login .content li {
+            font-size: 0.95rem;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+
+    </style>
+</div>

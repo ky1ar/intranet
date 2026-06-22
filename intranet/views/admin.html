@@ -1,0 +1,848 @@
+<div x-data="admin_perms_data">
+	<div id="admin-perms">
+
+		<!-- Lista de usuarios -->
+		<div class="users-panel white-frost" x-show="!selected_user">
+			<div class="panel-top">
+				<div class="search-wrap">
+					<img src="/static/icons/line/find.svg" width="14" height="14" alt="">
+					<input type="text" x-model="search" placeholder="Buscar por nombre o área...">
+				</div>
+			</div>
+
+			<div class="users-grid">
+				<template x-for="u in filteredUsers()" :key="u.id">
+					<div class="user-card white hover-opacity" @click="selectUser(u)">
+						<img :src="'/static/images/uploads/users/' + u.image" width="36" height="36" alt="">
+						<div class="info">
+							<span class="name" x-text="u.name"></span>
+							<span class="dept" x-text="u.department_name"></span>
+						</div>
+						<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+							<path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.3"/>
+						</svg>
+					</div>
+				</template>
+			</div>
+
+			<div class="empty" x-show="filteredUsers().length === 0">
+				No se encontraron usuarios
+			</div>
+		</div>
+
+		<!-- Editor de permisos -->
+		<div class="editor-panel" x-show="selected_user" x-cloak>
+			<div class="editor-top frost">
+				<div class="back hover-opacity" @click="goBack()">
+					<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+						<path d="M12 4l-6 6 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+					</svg>
+				</div>
+				<img :src="'/static/images/uploads/users/' + (selected_user?.image || 'user_default.jpg')" width="40" height="40" alt="">
+				<div class="info">
+					<span class="name" x-text="selected_user?.name"></span>
+					<span class="dept" x-text="selected_user?.department_name"></span>
+				</div>
+				<button class="save-btn hover-opacity" @click="savePermissions()" :disabled="saving">
+					<span x-text="saving ? 'Guardando...' : 'Guardar'"></span>
+				</button>
+			</div>
+
+			<div class="modules-list">
+				<template x-for="mod in access_map" :key="mod.module_id">
+					<div class="mod-card white" :class="{'mod-open': mod._open}">
+						<div class="mod-head" @click="mod.permissions.length > 0 && (mod._open = !mod._open)" :style="mod.permissions.length === 0 && 'cursor: default'">
+							<div class="mod-left">
+								<div class="mod-toggle" 
+									 :class="{'active': mod.visible, 'off': !mod.visible}"
+									 @click.stop="mod.can_edit && (mod.visible = !mod.visible)">
+									<div class="dot"></div>
+								</div>
+								<span class="mod-name" x-text="mod.name"></span>
+							</div>
+							<div class="mod-right" x-show="mod.permissions.length > 0">
+    							<span class="mod-count" x-text="countGranted(mod) + '/' + mod.permissions.length"></span>
+								<svg class="chevron" :class="{'open': mod._open}" width="14" height="14" viewBox="0 0 14 14" fill="none">
+									<path d="M4 5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+								</svg>
+							</div>
+						</div>
+
+						<div class="mod-body" x-show="mod._open" x-transition.duration.200ms>
+							<!-- Select all -->
+							<div class="select-all" x-show="mod.can_edit" @click="toggleAll(mod)">
+								<span>Seleccionar todos</span>
+								<div class="check" :class="{'on': allGranted(mod), 'partial': someGranted(mod) && !allGranted(mod)}">
+									<svg x-show="allGranted(mod)" width="10" height="10" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" fill="none"/></svg>
+									<svg x-show="someGranted(mod) && !allGranted(mod)" width="10" height="10" viewBox="0 0 12 12"><line x1="3" y1="6" x2="9" y2="6" stroke="white" stroke-width="2"/></svg>
+								</div>
+							</div>
+
+							<template x-for="group in groupedPermissions(mod)" :key="group.label">
+								<div class="perm-section" :class="{'has-label': group.label}">
+									<div class="section-label" x-show="group.label" x-text="group.label"></div>
+									<div class="perm-items">
+										<template x-for="perm in group.items" :key="perm.id">
+											<div class="perm-item" 
+												 :class="{'disabled': !perm.can_edit, 'active': perm.granted}" 
+												 @click="perm.can_edit && (perm.granted = !perm.granted)">
+												<span x-text="perm.name"></span>
+												<div class="check" :class="{'on': perm.granted}">
+													<svg x-show="perm.granted" width="10" height="10" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" fill="none"/></svg>
+												</div>
+											</div>
+										</template>
+									</div>
+								</div>
+							</template>
+						</div>
+					</div>
+				</template>
+			</div>
+
+			<!-- Salary + cuenta de pago -->
+			<div class="salary-section white" x-show="selected_user">
+				<div class="salary-head" @click="salary_open = !salary_open">
+					<div class="mod-left">
+						<img src="/static/icons/filled/wallet.svg" width="18" height="18" alt="">
+						<span class="mod-name">Salario</span>
+					</div>
+					<div class="mod-right">
+						<span class="mod-count" x-text="salary_config?.base_salary ? `S/ ${Number(salary_config.base_salary).toFixed(2)}` : 'Sin configurar'"></span>
+						<svg class="chevron" :class="{'open': salary_open}" width="14" height="14" viewBox="0 0 14 14" fill="none">
+							<path d="M4 5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+						</svg>
+					</div>
+				</div>
+
+				<div class="salary-body" x-show="salary_open" x-transition.duration.200ms>
+					<div class="salary-fields">
+						<label class="salary-field">
+							<span>Empresa</span>
+							<select x-model="salary_form.business_id" @change="onBusinessChange()">
+								<option value="">Seleccionar...</option>
+								<template x-for="b in businesses" :key="b.id">
+									<option :value="b.id" x-text="b.name"></option>
+								</template>
+							</select>
+						</label>
+						<label class="salary-field">
+							<span>Sueldo base</span>
+							<input type="number" min="0" step="0.01" placeholder="0.00" x-model.number="salary_form.base_salary">
+						</label>
+						<label class="salary-field">
+							<span>Vigente desde</span>
+							<input type="date" x-model="salary_form.effective_from">
+						</label>
+						<label class="salary-field">
+							<span>Número de cuenta</span>
+							<input type="text" maxlength="20" placeholder="Ej. 19475032505008" x-model="salary_form.account_number">
+						</label>
+					</div>
+
+					<button class="salary-save hover-opacity"
+						@click="saveAll()"
+						:disabled="saving_salary"
+						x-text="saving_salary ? 'Guardando...' : 'Guardar'">
+					</button>
+				</div>
+			</div>
+
+		</div>
+	</div>
+
+	<script>
+		Alpine.data('admin_perms_data', () => ({
+			users: [],
+			search: '',
+			selected_user: null,
+			access_map: [],
+			saving: false,
+			salary_open: false,
+			salary_config: null,
+			salary_form: { business_id: '', base_salary: '', effective_from: '', account_number: '' },
+			saving_salary: false,
+			bank_accounts: [],
+			businesses: [],
+
+			async init() {
+				if (!Alpine.store('cache').hasModule('admin')) {
+					window.PineconeRouter.context.navigate('/');
+					return;
+				}
+				console.log('Inicializando Admin Permisos...');
+				await this.loadUsers();
+				await this.loadBusinesses();
+			},
+
+			async loadBusinesses() {
+				try {
+					const res = await fetch(`${Alpine.store('cache').api}/imports/options/business`);
+					const data = await res.json();
+					this.businesses = data.data || [];
+				} catch (e) {
+					console.error('Error cargando empresas:', e);
+				}
+			},
+
+			// En selectUser(), después de cargar access_map:
+			async selectUser(user) {
+				this.selected_user = user;
+				try {
+					const token = localStorage.getItem('user_token');
+					const res = await fetch(`${Alpine.store('cache').api}/modules/admin/user/${user.id}/map`, {
+						headers: { 'Authorization': `Bearer ${token}` },
+					});
+					const data = await res.json();
+					const map = data.data || [];
+					map.forEach(m => m._open = false);
+					this.access_map = map;
+
+					await this.loadSalaryData(user.id);
+
+				} catch (e) {
+					console.error('Error cargando mapa:', e);
+				}
+			},
+
+			_emptyForm() {
+				return { business_id: '', base_salary: '', effective_from: '', account_number: '' };
+			},
+
+			async loadSalaryData(userId) {
+				const token = localStorage.getItem('user_token');
+				const h = { 'Authorization': `Bearer ${token}` };
+				const [cfgRes, bankRes] = await Promise.all([
+					fetch(`${Alpine.store('cache').api}/attendance/salary/config/${userId}`, { headers: h }),
+					fetch(`${Alpine.store('cache').api}/attendance/salary/bank-account/${userId}`, { headers: h }),
+				]);
+				const cfg  = (await cfgRes.json()).data  || null;
+				const bank = (await bankRes.json()).data || [];
+
+				this.salary_config = cfg;
+				this.bank_accounts = bank;
+
+				const f = this._emptyForm();
+				if (cfg) {
+					f.business_id    = cfg.business_id    || '';
+					f.base_salary    = cfg.base_salary    || '';
+					f.effective_from = cfg.effective_from || '';
+				}
+				if (f.business_id) {
+					const acct = bank.find(a => a.business_id == f.business_id);
+					if (acct) f.account_number = acct.account_number;
+				}
+				this.salary_form = f;
+			},
+
+			onBusinessChange() {
+				const acct = this.bank_accounts.find(a => a.business_id == this.salary_form.business_id);
+				this.salary_form.account_number = acct ? acct.account_number : '';
+			},
+
+			async saveAll() {
+				if (this.saving_salary) return;
+				if (!this.salary_form.business_id || !this.salary_form.base_salary || !this.salary_form.effective_from) return;
+				this.saving_salary = true;
+				try {
+					const token = localStorage.getItem('user_token');
+					const h = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+					const uid = this.selected_user.id;
+
+					const saves = [
+						fetch(`${Alpine.store('cache').api}/attendance/salary/config`, {
+							method: 'POST', headers: h,
+							body: JSON.stringify({
+								user_id:        uid,
+								business_id:    this.salary_form.business_id,
+								base_salary:    this.salary_form.base_salary,
+								effective_from: this.salary_form.effective_from,
+							}),
+						}),
+					];
+					if (this.salary_form.account_number) {
+						saves.push(fetch(`${Alpine.store('cache').api}/attendance/salary/bank-account`, {
+							method: 'POST', headers: h,
+							body: JSON.stringify({
+								user_id:        uid,
+								business_id:    this.salary_form.business_id,
+								account_type:   'A',
+								account_number: this.salary_form.account_number,
+								doc_type:       '1',
+								currency:       'S',
+							}),
+						}));
+					}
+					await Promise.all(saves);
+					await this.loadSalaryData(uid);
+					this.salary_open = false;
+				} catch (e) {
+					console.error('Error guardando:', e);
+				} finally {
+					this.saving_salary = false;
+				}
+			},
+
+			goBack() {
+				this.selected_user = null;
+				this.access_map = [];
+				this.salary_config = null;
+				this.salary_open = false;
+				this.bank_accounts = [];
+				this.salary_form = this._emptyForm();
+			},
+
+			async loadUsers() {
+				try {
+					const token = localStorage.getItem('user_token');
+					const res = await fetch(`${Alpine.store('cache').api}/modules/admin/users`, {
+						headers: { 'Authorization': `Bearer ${token}` },
+					});
+					const data = await res.json();
+					this.users = data.data || [];
+				} catch (e) {
+					console.error('Error cargando usuarios:', e);
+				}
+			},
+
+			filteredUsers() {
+				if (!this.search) return this.users;
+				const q = this.search.toLowerCase();
+				return this.users.filter(u =>
+					u.name.toLowerCase().includes(q) ||
+					u.department_name.toLowerCase().includes(q)
+				);
+			},
+
+			countGranted(mod) {
+				return mod.permissions.filter(p => p.granted).length;
+			},
+
+			allGranted(mod) {
+				const editable = mod.permissions.filter(p => p.can_edit);
+				return editable.length > 0 && editable.every(p => p.granted);
+			},
+
+			someGranted(mod) {
+				const editable = mod.permissions.filter(p => p.can_edit);
+				return editable.some(p => p.granted);
+			},
+
+			toggleAll(mod) {
+				const editable = mod.permissions.filter(p => p.can_edit);
+				const allOn = editable.every(p => p.granted);
+				editable.forEach(p => p.granted = !allOn);
+			},
+
+			groupedPermissions(mod) {
+				const perms = mod.permissions || [];
+				const groups = [];
+				const viewArea = [];
+				const actions = [];
+				const approvals = [];
+
+				for (const p of perms) {
+					if (p.slug.startsWith('view_') || p.slug === 'view_all') {
+						viewArea.push(p);
+					} else if (p.slug.startsWith('approve_')) {
+						approvals.push(p);
+					} else {
+						actions.push(p);
+					}
+				}
+
+				viewArea.sort((a, b) => {
+					if (a.slug === 'view_all') return -1;
+					if (b.slug === 'view_all') return 1;
+					return a.name.localeCompare(b.name);
+				});
+
+				if (actions.length)   groups.push({ label: '',                     items: actions });
+				if (approvals.length) groups.push({ label: 'Aprobaciones',         items: approvals });
+				if (viewArea.length)  groups.push({ label: 'Visibilidad por área', items: viewArea });
+
+				if (!groups.length) groups.push({ label: '', items: perms });
+				return groups;
+			},
+
+			async savePermissions() {
+				this.saving = true;
+				try {
+					const token = localStorage.getItem('user_token');
+					const modules = this.access_map.map(mod => ({
+						slug: mod.slug,
+						visible: mod.visible,
+						is_pinned: mod.is_pinned,
+						permissions: Object.fromEntries(
+							mod.permissions.map(p => [p.slug, p.granted])
+						),
+					}));
+
+					const res = await fetch(`${Alpine.store('cache').api}/modules/admin/user/save`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${token}`,
+						},
+						body: JSON.stringify({
+							target_user_id: this.selected_user.id,
+							modules: modules,
+						}),
+					});
+
+					if (res.ok) {
+						this.goBack();
+					}
+				} catch (e) {
+					console.error('Error guardando:', e);
+				} finally {
+					this.saving = false;
+				}
+			},
+		}));
+	</script>
+
+	<style>
+		#content.sidebar {
+			margin-top: 0;
+		}
+		#admin-perms {
+			width: 100%;
+			user-select: none;
+			min-height: calc(100vh - 6.5rem);
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+			margin: 0 auto;
+			max-width: 36rem;
+		}
+		.users-panel {
+			border-radius: 1rem;
+		}
+		/* ── Users panel ──────────────────────────── */
+		.users-panel .panel-top {
+			padding: 1.25rem 1.25rem 0.75rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+		}
+		.users-panel .panel-title {
+			font-size: 1.1rem;
+			font-weight: 700;
+		}
+		.users-panel .search-wrap {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			background: var(--gray);
+			border-radius: 0.75rem;
+			padding: 0 0.75rem;
+			transition: var(--transition);
+		}
+		.users-panel .search-wrap:focus-within {
+			outline: 2px solid var(--primary);
+			outline-offset: -1px;
+		}
+		.users-panel .search-wrap img {
+			opacity: 0.4;
+			flex-shrink: 0;
+		}
+		.users-panel .search-wrap input {
+			border: none;
+			background: transparent;
+			font-family: var(--font);
+			font-size: 0.8rem;
+			padding: 0.5rem 0;
+			width: 100%;
+			outline: none;
+		}
+		.users-grid {
+			display: flex;
+			flex-direction: column;
+		}
+		.user-card {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			padding: 0.7rem 1.25rem;
+			cursor: pointer;
+			border-radius: 0 !important;
+			box-shadow: none !important;
+			border-top: 1px solid hsl(0 0% 0% / 4%);
+		}
+		.user-card img {
+			border-radius: 50%;
+			object-fit: cover;
+			flex-shrink: 0;
+			width: 36px;
+			height: 36px;
+		}
+		.user-card .info,
+		.editor-top .info {
+			display: flex;
+			flex-direction: column;
+			flex: 1;
+			min-width: 0;
+		}
+		.user-card .name,
+		.editor-top .name {
+			font-weight: 600;
+			font-size: 0.85rem;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		.user-card .dept,
+		.editor-top .dept {
+			font-size: 0.7rem;
+			opacity: 0.5;
+		}
+		.user-card svg {
+			flex-shrink: 0;
+			color: var(--black);
+		}
+		#admin-perms .empty {
+			padding: 3rem 1rem;
+			text-align: center;
+			opacity: 0.4;
+			font-size: 0.85rem;
+		}
+
+		/* ── Editor top bar ──────────────────────── */
+		.editor-panel {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+		.editor-top {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			padding: 0.75rem 1rem;
+			position: sticky;
+			top: 1rem;
+			z-index: 10;
+			border-radius: 1rem;
+		}
+		.editor-top .back {
+			cursor: pointer;
+			padding: 0.25rem;
+			opacity: 0.5;
+			transition: opacity var(--transition);
+		}
+		.editor-top .back:hover { opacity: 1; }
+		.editor-top img {
+			border-radius: 50%;
+			object-fit: cover;
+			flex-shrink: 0;
+			width: 40px;
+			height: 40px;
+		}
+		.editor-top .save-btn {
+			background: var(--primary);
+			color: white;
+			border: none;
+			border-radius: 2rem;
+			padding: 0.5rem 1.25rem;
+			font-family: var(--font);
+			font-size: 0.75rem;
+			font-weight: 600;
+			cursor: pointer;
+			white-space: nowrap;
+			transition: opacity var(--transition);
+		}
+		.editor-top .save-btn:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+
+		/* ── Module cards ─────────────────────────── */
+		.modules-list {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+		.mod-card {
+			overflow: hidden;
+			transition: var(--transition);
+			border-radius: 1rem;
+		}
+		.mod-head {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 0.75rem 1rem;
+			cursor: pointer;
+		}
+		.mod-left {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		.mod-name {
+			font-weight: 600;
+			font-size: 0.85rem;
+		}
+		.mod-right {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		.mod-count {
+			font-size: 0.7rem;
+			opacity: 0.35;
+			font-weight: 500;
+		}
+		.chevron {
+			transition: transform var(--transition);
+			opacity: 0.3;
+		}
+		.chevron.open {
+			transform: rotate(180deg);
+		}
+
+		/* Toggle */
+		.mod-toggle {
+			width: 2.25rem;
+			height: 1.25rem;
+			border-radius: 1rem;
+			background: var(--graydark);
+			position: relative;
+			cursor: pointer;
+			transition: background var(--transition);
+			flex-shrink: 0;
+		}
+		.mod-toggle.active {
+			background: var(--primary);
+		}
+		.mod-toggle .dot {
+			width: 0.85rem;
+			height: 0.85rem;
+			border-radius: 50%;
+			background: white;
+			position: absolute;
+			top: 0.2rem;
+			left: 0.2rem;
+			transition: transform var(--transition);
+		}
+		.mod-toggle.active .dot {
+			transform: translateX(1rem);
+		}
+
+		/* ── Module body ──────────────────────────── */
+		.mod-body {
+			border-top: 1px solid var(--gray);
+		}
+
+		/* Select all */
+		.select-all {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 0.25rem 1rem;
+			cursor: pointer;
+			font-size: 0.75rem;
+			font-weight: 600;
+			color: var(--primary);
+		}
+
+		.perm-section {
+		}
+		/* Sections */
+		.perm-section.has-label {
+			border-top: 1px solid var(--gray);
+		}
+		.section-label {
+			font-size: 0.65rem;
+			font-weight: 700;
+			text-transform: uppercase;
+			opacity: 0.35;
+			padding: 0.5rem 1rem 0;
+		}
+
+		/* Permission items */
+		.perm-items {
+			display: flex;
+			flex-direction: column;
+			padding: 0 0 0.5rem 0;
+		}
+		.perm-section.has-label .perm-items {
+			margin-left: 0.75rem;
+		}
+		.perm-item {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 0.25rem 1rem 0.25rem 1rem;
+			cursor: pointer;
+			font-size: 0.75rem;
+			transition: background var(--transition);
+		}
+		.perm-item:hover {
+			background: hsl(0 0% 0% / 2%);
+		}
+		.perm-item.disabled {
+			opacity: 0.25;
+			pointer-events: none;
+			display: none;
+		}
+
+		/* Checkbox */
+		.check {
+			width: 1.25rem;
+			height: 1.25rem;
+			border-radius: 0.35rem;
+			border: 1.5px solid var(--graydarkest);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			flex-shrink: 0;
+			transition: all var(--transition);
+		}
+		.check.on {
+			background: var(--primary);
+			border-color: var(--primary);
+		}
+		.check.partial {
+			background: var(--graydarkest);
+			border-color: var(--graydarkest);
+		}
+
+		/* Salary section */
+		.salary-section {
+			overflow: hidden;
+		}
+		.salary-head {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 0.85rem 1.25rem;
+			cursor: pointer;
+		}
+		.salary-body {
+			border-top: 1px solid var(--gray);
+			padding: 1rem 1.25rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+		}
+		.salary-fields {
+			display: grid;
+			grid-template-columns: 1fr 1fr 1fr;
+			gap: 0.5rem;
+		}
+		.salary-field {
+			display: flex;
+			flex-direction: column;
+			gap: 0.25rem;
+		}
+		.salary-field span {
+			font-size: 0.7rem;
+			font-weight: 500;
+			opacity: 0.5;
+		}
+		.salary-field input,
+		.salary-field select {
+			border: 1.5px solid var(--graydark);
+			border-radius: 0.5rem;
+			padding: 0.5rem 0.6rem;
+			font-family: var(--font);
+			font-size: 0.8rem;
+			outline: none;
+			transition: border-color var(--transition);
+		}
+		.salary-field input:focus,
+		.salary-field select:focus {
+			border-color: var(--primary);
+		}
+		.salary-save {
+			background: var(--secondary);
+			color: white;
+			border: none;
+			border-radius: 1rem;
+			padding: 0.75rem;
+			font-family: var(--font);
+			font-size: 0.75rem;
+			cursor: pointer;
+		}
+		.salary-save:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+
+		.bank-list {
+			display: flex;
+			flex-direction: column;
+			gap: 0.35rem;
+			margin-bottom: 1rem;
+		}
+		.bank-item {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			padding: 0.5rem 0.75rem;
+			border-radius: 0.6rem;
+			background: var(--gray);
+			cursor: pointer;
+			font-size: 0.8rem;
+			transition: background var(--transition);
+		}
+		.bank-item:hover {
+			background: var(--graydark);
+		}
+		.bank-item-biz {
+			font-weight: 600;
+			min-width: 5rem;
+		}
+		.bank-item-num {
+			font-family: monospace;
+			font-size: 0.78rem;
+			flex: 1;
+		}
+		.bank-item-type {
+			font-size: 0.7rem;
+			opacity: 0.5;
+		}
+
+		/* ── Responsive ───────────────────────────── */
+		@media (max-width: 48rem) {
+			.salary-fields {
+				grid-template-columns: 1fr;
+			}
+			#content.sidebar {
+				margin-top: 5.5rem;
+			}
+			.users-panel {
+				border-radius: 0;
+			}
+			.users-panel .panel-top {
+				padding: 1rem 1rem 0.75rem;
+			}
+			.user-card {
+				padding: 0.7rem 1rem;
+			}
+			.mod-head {
+				padding: 0.85rem 1rem;
+			}
+			.perm-item {
+				padding: 0.55rem 1rem 0.55rem 1.5rem;
+			}
+			.select-all {
+				padding: 0.5rem 1rem;
+			}
+			.section-label {
+				padding: 0.5rem 1rem 0.1rem;
+			}
+			.editor-top {
+				padding: 1rem 0.75rem;
+				position: fixed;
+				bottom: 0;
+				left: 0;
+				top: initial;
+				width: 100%;
+				border-radius: 0;
+				gap: 0.5rem;
+			}
+		}
+	</style>
+</div>
