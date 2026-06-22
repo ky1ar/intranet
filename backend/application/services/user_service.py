@@ -82,7 +82,7 @@ class UserService:
         if user.level_id == 1:
             return "Usuario sin acceso al sistema", 400
 
-        has_view_all = self._has_attendance_perm(user_id, 'view_all')
+        has_view_all = self._has_attendance_perm(user_id, 'view_all') or self._has_attendance_perm(user_id, 'monitor')
 
         if has_view_all:
             team, tc = self.user_repository.get_all_team()
@@ -194,11 +194,14 @@ class UserService:
         if uc != 200:
             return user, uc
         
+        if user.level_id < 2:
+            return "Usuario sin acceso al sistema", 403
+
         modules_data, _ = self.module_service.get_user_modules(user.id)
         default_page, _ = self.module_service.get_default_page(user.id)
 
         return {
-            "app_version": "1.7.3",
+            "app_version": "1.7.5",
             "id": user.id,
             "level_id": user.level_id,
             "department_id": user.department_id,

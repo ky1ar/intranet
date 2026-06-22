@@ -539,6 +539,24 @@ document.addEventListener('alpine:init', () => {
             document.title = ui?.title || 'Krear 3D - Intranet';
         },
 
+        trackScreen(path) {
+            const token = localStorage.getItem('user_token');
+            if (!token || !this.user?.id) return;
+            if (!path || path === '/') return;
+            try {
+                fetch(`${this.api}/analytics/screen`, {
+                    method: 'POST',
+                    keepalive: true,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'X-No-Toast': '1',
+                    },
+                    body: JSON.stringify({ route: path }),
+                }).catch(() => {});
+            } catch (e) {}
+        },
+
         getPages() {
             const modules = this.user.modules;
 
@@ -1142,7 +1160,9 @@ document.addEventListener('pinecone-start', () => {
 });
 
 document.addEventListener('pinecone-end', () => {
-    Alpine.store('cache').setActivePage(window.location.pathname);
+    const path = window.location.pathname;
+    Alpine.store('cache').setActivePage(path);
+    Alpine.store('cache').trackScreen(path);
     // NProgress.done();
 });
 

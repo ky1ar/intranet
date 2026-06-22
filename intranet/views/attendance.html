@@ -83,7 +83,7 @@
 
 								<template x-if="!day.is_summary">
 									<div class="body">
-										<template x-for="(item, i) in dayItems(day)" :key="i">
+										<template x-for="(item, i) in dayItems(day).filter(it => !restrictOthers() || !it.extra)" :key="i">
 										<div
 											class="item"
 											:class="`${item.class || ''} ${item.incomplete ? 'incomplete' : ''} ${item.extra ? 'extra' : ''} ${item.holiday ? 'holiday' : ''} ${item.adjustment ? 'adjustment' : ''} ${item.vacation ? 'vacations' : ''}`"
@@ -98,7 +98,7 @@
 								</template>
 
 								<!-- BODY RESUMEN (Σ) -->
-								<template x-if="day.is_summary">
+								<template x-if="day.is_summary && !restrictOthers()">
 									<div class="body week_summary">
 										<div class="week_summary_box">
 											<div class="row">
@@ -160,7 +160,7 @@
 
 								<div class="wk-header">
 									<span class="wk-range" x-text="weekDateRange(week)"></span>
-									<template x-if="weekSigma(week)?.is_summary && weekSigma(week)?.summary">
+									<template x-if="weekSigma(week)?.is_summary && weekSigma(week)?.summary && !restrictOthers()">
 										<span class="wk-delta"
 											:class="(weekSigma(week).summary.delta_min ?? 0) < 0 ? 'neg' : 'pos'"
 											x-text="minutesToText(weekSigma(week).summary.delta_min ?? 0, true)"
@@ -307,7 +307,7 @@
 					</div>
 				</div>
 
-				<div class="card glass stats">
+				<div class="card glass stats" x-show="!restrictOthers()">
 					<span class="litle">
 						<img alt="" width="18" height="18" src="/static/icons/filled/tag.svg">
 						Resumen del mes
@@ -1552,6 +1552,20 @@
 			return Math.max(0, s - e);
 		},
 
+		isMonitor() {
+			return Alpine.store('cache').hasPermission('attendance', 'monitor');
+		},
+
+		isViewingSelf() {
+			return (this.option_user?.id ?? this.user.id) === this.user.id;
+		},
+
+		// Perfil 'monitor': ve a todo el equipo pero, al ver a OTROS, se le ocultan
+		// el resumen del mes (stats), el resumen semanal, los items extra y la tardanza.
+		restrictOthers() {
+			return this.isMonitor() && !this.isViewingSelf();
+		},
+
 		canViewOthers() {
 			return this.getTeam().length > 0;
 		},
@@ -1815,6 +1829,7 @@
 		},
 
 		showLate(day) {
+			if (this.restrictOthers()) return false;
 			return this.isLateDay(day);
 		},
 

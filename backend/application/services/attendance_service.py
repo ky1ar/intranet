@@ -10,6 +10,7 @@ from application.services.module_service import ModuleService
 from application.repository.attendance_repository import AttendanceRepository
 from application.repository.user_repository import UserRepository
 from application.repository.salary_repository import SalaryRepository
+from application.repository.analytics_repository import AnalyticsRepository
 from application import socketio
 from config import Paths
 from flask_jwt_extended import get_jwt_identity
@@ -23,6 +24,7 @@ _RE_DNI = re.compile(r"\d{8}")
 class AttendanceService:
     def __init__(self):
         self.salary_repository = SalaryRepository()
+        self.analytics_repository = AnalyticsRepository()
         self.attendance_repository = AttendanceRepository()
         self.user_repository = UserRepository()
         self.push_service = PushSender()
@@ -567,6 +569,15 @@ class AttendanceService:
     def summary_by_offset(self, data):
         user_id = int(data.get("user_id"))
         offset = int(data.get("offset") or 0)
+
+        # Registra la consulta cuando un usuario con permiso 'monitor' revisa el
+        # perfil de OTRO. Best-effort: nunca debe romper la carga del periodo.
+        try:
+            viewer_id = int(get_jwt_identity())
+            if viewer_id != user_id and self._has_perm(viewer_id, 'monitor'):
+                self.analytics_repository.log_profile_view(viewer_id, user_id)
+        except Exception:
+            logging.exception("No se pudo registrar la consulta de perfil de asistencia")
 
         period, pc = self.attendance_repository.get_period_by_offset(offset, today=date.today())
         if pc != 200:
