@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Bienvenido a Krear 3D Prime</title>
+<style>
+    body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    h1 { color: #F07E46; }
+    p { font-size: 16px; line-height: 1.5; color: #333333; }
+    .btn { display: inline-block; background-color: #F07E46; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; margin-top: 20px; }
+    .footer { font-size: 12px; color: #888888; text-align: center; margin-top: 30px; }
+</style>
+</head>
+<body>
+    <div class="container">
+        <h1>¡Bienvenido a Krear 3D Prime!</h1>
+        <p>Hola,</p>
+        <p>Tu suscripción al plan <strong>{{ plan_type }}</strong> ha sido activada con éxito.</p>
+        <p>A partir de este momento, podrás disfrutar de todos los beneficios exclusivos de la comunidad Krear 3D Prime, incluyendo:</p>
+        <ul>
+            <li>Descuentos especiales en insumos (10% en filamentos y resinas).</li>
+            <li>Descuentos en repuestos y upgrades (5%).</li>
+            {% if plan_type == 'full' %}
+            <li>Acceso a todas las marcas.</li>
+            {% else %}
+            <li>Acceso a marcas K3D y Krear 3D.</li>
+            {% endif %}
+        </ul>
+        <p>Para aplicar tus beneficios, simplemente inicia sesión en nuestra tienda con este mismo correo.</p>
+        <a href="https://www.tiendakrear3d.com" class="btn">Ir a la Tienda</a>
+        <div class="footer">
+            <p>Gracias por confiar en nosotros.</p>
+            <p>El equipo de Krear 3D</p>
+        </div>
+    </div>
+</body>
+</html>

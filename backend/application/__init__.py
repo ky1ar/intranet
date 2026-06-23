@@ -64,6 +64,7 @@ from application.routes.refund_routes import refund_bp
 from application.routes.approval_routes import approval_bp
 from application.routes.guide_routes import guide_bp
 from application.routes.conversation_routes import conversation_bp
+from application.routes.prime_routes import prime_bp
 
 
 app.register_blueprint(dev_bp)
@@ -90,6 +91,7 @@ app.register_blueprint(refund_bp)
 app.register_blueprint(approval_bp)
 app.register_blueprint(guide_bp)
 app.register_blueprint(conversation_bp)
+app.register_blueprint(prime_bp)
 
 
 def api_key_required():
