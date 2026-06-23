@@ -76,7 +76,7 @@ class PrimeService:
             self.repository.update_subscription_status(active_sub.culqi_subscription_id, "cancelled")
 
         # 5. Crear la nueva suscripción
-        new_sub, sc = self.repository.create_subscription(client.id, email, culqi_id, plan_type)
+        new_sub, sc = self.repository.create_subscription(client.id, culqi_id, plan_type)
         if sc != 200:
             return "Error al crear suscripción", 500
 
@@ -103,8 +103,8 @@ class PrimeService:
             
         return [{
             "id": s.id,
-            "client_name": s.client.name if s.client else s.email,
-            "email": s.email,
+            "client_name": s.client.name if s.client else 'Sin Nombre',
+            "email": s.client.email if s.client else 'Sin Email',
             "phone": s.client.phone if s.client else None,
             "culqi_subscription_id": s.culqi_subscription_id,
             "plan_type": s.plan_type,

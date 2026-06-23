@@ -47,8 +47,9 @@ class PrimeRepository:
     def get_active_subscription_by_email(self, email):
         sub = (
             g.db_session.query(PrimeSubscription)
+            .join(Clients)
             .filter(
-                PrimeSubscription.email == email,
+                Clients.email == email,
                 PrimeSubscription.status == 'active'
             )
             .first()
@@ -56,10 +57,9 @@ class PrimeRepository:
         return sub, 200
 
     @handle_db_exceptions
-    def create_subscription(self, client_id, email, culqi_id, plan_type):
+    def create_subscription(self, client_id, culqi_id, plan_type):
         sub = PrimeSubscription(
             client_id=client_id,
-            email=email,
             culqi_subscription_id=culqi_id,
             plan_type=plan_type,
             status="active",
