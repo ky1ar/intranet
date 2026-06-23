@@ -155,6 +155,7 @@ document.addEventListener('alpine:init', () => {
             safebuy:     { image: 'safebuy.svg',    label: 'Compra Segura', title: 'Krear 3D - Compra Segura' },
             approvals:     { image: 'approval.svg',       label: 'Aprobaciones',   title: 'Krear 3D - Aprobaciones' },
             conversations: { image: 'marketing.svg',     label: 'Conversaciones', title: 'Krear 3D - Conversaciones' },
+            prime:         { image: 'marketing.svg',     label: 'Prime',          title: 'Krear 3D - Prime' },
             admin:         { image: 'admin.svg',         label: 'Admin',          title: 'Krear 3D - Admin' },
         },
 

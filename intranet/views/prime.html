@@ -1,0 +1,108 @@
+<div x-data="primeModule()" x-init="init()" class="prime-module module-container">
+    <div class="module-header">
+        <div class="module-title">
+            <h2>Krear 3D Prime</h2>
+            <p>Gestión de suscriptores y membresías</p>
+        </div>
+        <div class="module-actions">
+            <!-- Filtro por Plan -->
+            <select x-model="filters.plan_type" @change="fetchData()" class="input" style="width: 150px; display: inline-block;">
+                <option value="">Todos los planes</option>
+                <option value="lite">Lite</option>
+                <option value="full">Full</option>
+            </select>
+            
+            <!-- Filtro por Estado -->
+            <select x-model="filters.status" @change="fetchData()" class="input" style="width: 150px; display: inline-block; margin-left: 10px;">
+                <option value="">Todos los estados</option>
+                <option value="active">Activos</option>
+                <option value="cancelled">Cancelados</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="module-content">
+        <div class="table-container white">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Plan</th>
+                        <th>Estado</th>
+                        <th>Fecha Inicio</th>
+                        <th>Fecha Fin</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="sub in subscriptions" :key="sub.id">
+                        <tr>
+                            <td x-text="sub.email"></td>
+                            <td>
+                                <span class="badge" 
+                                      :class="sub.plan_type === 'full' ? 'badge-primary' : 'badge-secondary'"
+                                      x-text="sub.plan_type.toUpperCase()"></span>
+                            </td>
+                            <td>
+                                <span class="badge" 
+                                      :class="sub.status === 'active' ? 'badge-success' : 'badge-danger'"
+                                      x-text="sub.status === 'active' ? 'Activo' : 'Cancelado'"></span>
+                            </td>
+                            <td x-text="formatDate(sub.start_date)"></td>
+                            <td x-text="sub.end_date ? formatDate(sub.end_date) : '-'"></td>
+                        </tr>
+                    </template>
+                    <tr x-show="subscriptions.length === 0">
+                        <td colspan="5" class="text-center">No hay suscriptores encontrados</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function primeModule() {
+    return {
+        subscriptions: [],
+        filters: {
+            plan_type: '',
+            status: ''
+        },
+        async init() {
+            PineToast.start('Cargando suscriptores...');
+            await this.fetchData();
+            PineToast.done();
+        },
+        async fetchData() {
+            const token = localStorage.getItem('user_token');
+            const api = Alpine.store('cache').api;
+            
+            let url = `${api}/api/prime/list?`;
+            const params = new URLSearchParams();
+            if (this.filters.plan_type) params.append('plan_type', this.filters.plan_type);
+            if (this.filters.status) params.append('status', this.filters.status);
+            url += params.toString();
+
+            try {
+                const res = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const json = await res.json();
+                    this.subscriptions = json.data || [];
+                } else {
+                    PineToast.flash('Error al cargar datos', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                PineToast.flash('Error de red', 'error');
+            }
+        },
+        formatDate(dateString) {
+            if (!dateString) return '';
+            const d = new Date(dateString);
+            return d.toLocaleDateString('es-PE', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+        }
+    }
+}
+</script>
