@@ -67,3 +67,8 @@ def statistics():
 @warehouse_bp.route("/locations/occupied", methods=["GET"])
 def get_occupied_locations():
     return controller.warehouse_get_occupied_locations()
+
+
+@warehouse_bp.route("/picking", methods=["GET"])
+def picking_plan():
+    return controller.warehouse_picking_plan(request.args.get("number"))

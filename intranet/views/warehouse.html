@@ -28,6 +28,11 @@
 			</div>
 			
 			<div class="right frost-dark" style="margin-left: auto;">
+				<div class="item hover-opacity press" @click="openPickingModal()">
+					<img class="invert" alt="" width="18" height="18" src="/static/icons/line/box.svg">
+					<span>Picking</span>
+				</div>
+				
 				<div class="item hover-opacity press" @click="openMapModal()">
 					<img class="invert" alt="" width="18" height="18" src="/static/icons/line/map.svg">
 					<span>Mapa</span>
@@ -179,6 +184,118 @@
 					<button class="scanner-zoom-btn hover-opacity press"
 							@click="zoomIn()" :disabled="zoom_level >= 4">+</button>
 				</div>
+			</div>
+		</div>
+
+
+		<!-- Modal picking por pedido (Odoo) -->
+		<div
+			x-show="$store.cache.isVisibleModal('warehouse-picking')"
+			@mousedown.self="$store.cache.hideModal('warehouse-picking')"
+			class="modal-wrap"
+			id="modal-warehouse-picking"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2" @click.stop>
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="title">
+					<span>Picking por pedido</span>
+				</div>
+
+				<form class="searchbar glass2" @submit.prevent="fetchPickingPlan()" style="margin-bottom: 16px;">
+					<img alt="" class="ico" width="20" height="20" src="/static/icons/line/box.svg">
+					<input
+						type="text"
+						x-model="picking_order_input"
+						placeholder="N° de pedido Odoo (ej. S31097)"
+						@input="picking_error = ''"
+					>
+					<div class="hover-opacity press" title="Buscar pedido" @click="fetchPickingPlan()">
+						<img alt="" width="20" height="20" src="/static/icons/line/find.svg">
+					</div>
+				</form>
+
+				<div class="picking-error" x-show="picking_error" x-text="picking_error" x-cloak
+					style="color:#e05; font-size:13px; text-align:center; margin-bottom:12px;"></div>
+
+				<div class="picking-loading" x-show="picking_loading" x-cloak
+					style="text-align:center; padding:24px; opacity:.6;">Consultando pedido...</div>
+
+				<template x-if="picking_data && picking_data.order">
+					<div class="picking-order-head" style="margin-bottom:14px;">
+						<div style="font-weight:600;" x-text="picking_data.order.name || '-'"></div>
+						<div style="font-size:13px; opacity:.7;" x-text="picking_data.order.partner_name || ''"></div>
+						<div style="font-size:13px; opacity:.7;"
+							x-text="`${picking_data.order.currency || ''} ${picking_data.order.amount_total ?? ''} · ${picking_data.items.length} ítems`"></div>
+					</div>
+				</template>
+
+				<div class="finded-products glass2" x-show="picking_data && picking_data.items && picking_data.items.length" x-cloak>
+					<template x-for="(item, idx) in (picking_data?.items || [])" :key="idx">
+						<div class="item" :style="(!item.found || !item.allocations.length) ? 'opacity:.55;' : ''">
+							<div class="product">
+								<img class="image" alt="" width="48" height="48"
+									:src="`/static/images/uploads/machines/${item.image}`">
+
+								<div class="text">
+									<div class="title">
+										<span class="brand" x-text="item.found ? `${item.brand} ${item.model}` : item.description"></span>
+										<span class="category" x-text="item.found ? (item.category || '') : (item.barcode ? `Cód. ${item.barcode}` : 'Sin código')"></span>
+									</div>
+									<span class="stock" x-text="`Pedido: ${item.quantity} uds.`"></span>
+								</div>
+							</div>
+
+							<!-- Ubicaciones propuestas para picking -->
+							<template x-for="alloc in item.allocations" :key="alloc.warehouse_stock_id">
+								<div class="location hover-opacity" @click="openLocationModal(alloc.location.label)">
+									<span class="block">
+										<span class="label">Bloque</span>
+										<span class="number" x-text="alloc.location.block || '0'"></span>
+									</span>
+
+									<span class="block black">
+										<span class="label">Rack</span>
+										<span class="number" x-text="alloc.location.level || '-'"></span>
+									</span>
+
+									<span class="block black">
+										<span class="label">Nivel</span>
+										<span class="number fix" x-text="alloc.location.position || '-'"></span>
+									</span>
+
+									<span class="ubi">
+										<span x-text="`Sacar ${alloc.take} de ${alloc.stock}`"></span>
+									</span>
+								</div>
+							</template>
+
+							<!-- Sin ubicación disponible -->
+							<div class="picking-unavailable" x-show="!item.allocations.length"
+								style="padding:8px 12px; font-size:13px; color:#e05; align-self:center;"
+								x-text="item.message"></div>
+
+							<!-- Aviso de stock parcial -->
+							<div class="picking-partial" x-show="item.allocations.length && item.shortage > 0"
+								style="padding:4px 12px; font-size:12px; color:#d80; align-self:center;"
+								x-text="`Faltan ${item.shortage} ud.`"></div>
+						</div>
+					</template>
+				</div>
+
+				<div class="picking-empty" x-show="picking_data && (!picking_data.found)" x-cloak
+					style="text-align:center; padding:24px; opacity:.6;">Pedido no encontrado</div>
+
+				<button class="button black hover-opacity" @click="$store.cache.hideModal('warehouse-picking')" style="margin-top:16px;">Cerrar</button>
 			</div>
 		</div>
 
@@ -934,6 +1051,12 @@
 			finded_locations: [],
 			_findAbortController: null,
 
+			// ── Picking por pedido (Odoo) ──────────────────────
+			picking_order_input: '',
+			picking_data: null,
+			picking_loading: false,
+			picking_error: '',
+
 			// ── Modal ubicación ────────────────────────────────
 			selected_location: null,
 			location_modal_loading: false,
@@ -1585,6 +1708,41 @@
 					if (match) return this.normalizeWarehouseLabel(match[0]);
 				}
 				return null;
+			},
+
+			// ══════════════════════════════════════════════════
+			//  PICKING POR PEDIDO (ODOO)
+			// ══════════════════════════════════════════════════
+			openPickingModal() {
+				this.picking_order_input = '';
+				this.picking_data = null;
+				this.picking_error = '';
+				this.picking_loading = false;
+				Alpine.store('cache').showModal('warehouse-picking');
+			},
+
+			async fetchPickingPlan() {
+				const number = (this.picking_order_input || '').trim();
+				this.picking_error = '';
+				if (!number) { this.picking_error = 'Ingresa un número de pedido'; return; }
+				try {
+					this.picking_loading = true;
+					this.picking_data = null;
+					const response = await fetch(
+						`${this.api}/warehouse/picking?number=${encodeURIComponent(number)}`,
+						{ method: 'GET', headers: { 'Content-Type': 'application/json' } }
+					);
+					const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || jsonData?.data || 'No se pudo consultar el pedido');
+					const data = jsonData.data || {};
+					this.picking_data = data;
+					if (!data.found) this.picking_error = 'Pedido no encontrado';
+				} catch (error) {
+					this.picking_error = error.message || 'Error consultando el pedido';
+					this.picking_data = null;
+				} finally {
+					this.picking_loading = false;
+				}
 			},
 
 			// ══════════════════════════════════════════════════

@@ -341,6 +341,38 @@ class WarehouseRepository:
         return total, 200
 
 
+    @handle_db_exceptions
+    def get_stock_locations_for_product(self, product_id):
+        rows = (
+            g.db_session.query(WarehouseStock)
+            .join(WarehouseStock.product)
+            .join(Machines.brand)
+            .join(WarehouseStock.code)
+            .filter(
+                WarehouseStock.product_id == product_id,
+                WarehouseStock.stock > 0,
+            )
+            .order_by(
+                WarehouseStock.stock.asc(),
+                WarehouseCodes.block.asc(),
+                WarehouseCodes.level.asc(),
+                WarehouseCodes.position.asc(),
+            )
+            .all()
+        )
+        return rows, 200
+
+
+    @handle_db_exceptions
+    def get_machine(self, product_id):
+        machine = (
+            g.db_session.query(Machines)
+            .filter(Machines.id == product_id)
+            .first()
+        )
+        return machine, 200
+
+
     def resolve_product_id(self, warehouse_stock_id):
         try:
             row = g.db_session.query(WarehouseStock).filter_by(id=warehouse_stock_id).first()

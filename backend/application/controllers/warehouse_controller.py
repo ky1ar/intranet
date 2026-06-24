@@ -53,5 +53,12 @@ class WarehouseController:
 
 
     @handle_logs_and_exceptions
+    def warehouse_picking_plan(self, order_number):
+        if not order_number:
+            return "number requerido", 400
+        return self.warehouse.build_picking_plan(order_number)
+
+
+    @handle_logs_and_exceptions
     def warehouse_get_occupied_locations(self):
         return self.warehouse.get_occupied_locations()

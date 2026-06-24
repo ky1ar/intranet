@@ -1,10 +1,11 @@
-import io, openpyxl
+import io, re, openpyxl
 from application.handlers import handle_exceptions
 from application.repository.warehouse_repository import WarehouseRepository
 from application.services.push_service import PushSender
 from application.repository.user_repository import UserRepository
 from flask_jwt_extended import get_jwt_identity
 from application.utils import format_name
+from application.services.odoo_service import OdooService
 
 
 class WarehouseService:
@@ -12,6 +13,7 @@ class WarehouseService:
         self.warehouse_repository = WarehouseRepository()
         self.push_service         = PushSender()
         self.user_repository      = UserRepository()
+        self.odoo_service         = OdooService()
 
 
     def _current_user_id(self):
@@ -206,6 +208,160 @@ class WarehouseService:
         ))
 
         return {"products": products, "locations": locations}, 200
+
+
+    def _picking_allocation(self, rows, needed):
+        """Reparte la cantidad necesaria entre ubicaciones, consumiendo primero
+        las de menor stock. Devuelve (allocations, remaining)."""
+        allocations = []
+        remaining = needed
+        for row in rows:
+            if remaining <= 0:
+                break
+            take = min(remaining, row.stock)
+            if take <= 0:
+                continue
+            allocations.append({
+                "warehouse_stock_id": row.id,
+                "take": take,
+                "stock": row.stock,
+                "location": {
+                    "block": row.code.block,
+                    "level": row.code.level,
+                    "position": row.code.position,
+                    "label": self._location_label(
+                        row.code.block, row.code.level, row.code.position
+                    ),
+                },
+            })
+            remaining -= take
+        return allocations, remaining
+
+
+    # Productos de Odoo que no son artículos físicos de almacén → se omiten.
+    IGNORED_PRODUCT_NAMES = {"ready to pick"}
+
+    def _resolve_machine_id(self, line):
+        """Determina el id de máquina de una línea de pedido.
+        1) usa barcode si es numérico.
+        2) si no, toma el valor entre corchetes al inicio del nombre (ej. "[840] ...")."""
+        barcode = line.get("barcode")
+        if barcode is not None and str(barcode).strip().isdigit():
+            return int(str(barcode).strip())
+        for field in ("product", "description"):
+            match = re.match(r"^\s*\[(\d+)\]", line.get(field) or "")
+            if match:
+                return int(match.group(1))
+        return None
+
+
+    @handle_exceptions
+    def build_picking_plan(self, order_number):
+        order, rc = self.odoo_service.get_sale_order_detail(order_number)
+        if rc != 200:
+            return order, rc
+        if not isinstance(order, dict) or not order.get("found"):
+            return {"found": False}, 200
+
+        items = []
+        for line in order.get("lines", []):
+            barcode = line.get("barcode")
+            raw_name = (line.get("product") or line.get("description") or "").strip()
+            if raw_name.lower() in self.IGNORED_PRODUCT_NAMES:
+                continue
+            try:
+                needed = int(round(float(line.get("quantity") or 0)))
+            except (TypeError, ValueError):
+                needed = 0
+            fallback_name = line.get("product") or line.get("description") or "Producto"
+
+            item = {
+                "barcode": barcode,
+                "description": fallback_name,
+                "quantity": needed,
+                "qty_delivered": line.get("qty_delivered") or 0,
+                "found": False,
+                "available": False,
+                "status": "no_barcode",
+                "message": "Sin código — no disponible para picking",
+                "product_id": None,
+                "brand": None,
+                "model": None,
+                "category": None,
+                "image": "impresoras-varias1.webp",
+                "allocations": [],
+                "allocated": 0,
+                "shortage": needed,
+                "total_stock": 0,
+            }
+
+            product_id = self._resolve_machine_id(line)
+
+            if product_id is None:
+                items.append(item)
+                continue
+
+            machine, _ = self.warehouse_repository.get_machine(product_id)
+            if not machine:
+                item["status"] = "not_found"
+                item["message"] = "Producto no encontrado en el catálogo"
+                items.append(item)
+                continue
+
+            item["found"]      = True
+            item["product_id"] = product_id
+            item["brand"]      = machine.brand.name if machine.brand else None
+            item["model"]      = machine.model
+            item["category"]   = machine.category.name if machine.category else None
+            item["image"]      = machine.image if machine.image != "" else "impresoras-varias1.webp"
+
+            rows, _ = self.warehouse_repository.get_stock_locations_for_product(product_id)
+            total_stock = sum(r.stock for r in rows)
+            item["total_stock"] = total_stock
+
+            if needed <= 0:
+                item["status"]    = "ok"
+                item["available"] = True
+                item["message"]   = "Sin cantidad solicitada"
+                item["shortage"]  = 0
+                items.append(item)
+                continue
+
+            if total_stock <= 0:
+                item["status"]  = "no_stock"
+                item["message"] = "Sin stock en almacén"
+                items.append(item)
+                continue
+
+            allocations, remaining = self._picking_allocation(rows, needed)
+            item["allocations"] = allocations
+            item["allocated"]   = needed - remaining
+            item["shortage"]    = remaining
+            item["available"]   = item["allocated"] > 0
+
+            if remaining <= 0:
+                item["status"]  = "ok"
+                item["message"] = "Disponible para picking"
+            else:
+                item["status"]  = "partial"
+                item["message"] = f"Stock insuficiente: faltan {remaining} ud."
+
+            items.append(item)
+
+        return {
+            "found": True,
+            "order": {
+                "id":             order.get("id"),
+                "name":           order.get("name"),
+                "partner_name":   order.get("partner_name"),
+                "date_order":     order.get("date_order"),
+                "state":          order.get("state"),
+                "invoice_status": order.get("invoice_status"),
+                "amount_total":   order.get("amount_total"),
+                "currency":       order.get("currency"),
+            },
+            "items": items,
+        }, 200
 
 
     @handle_exceptions
