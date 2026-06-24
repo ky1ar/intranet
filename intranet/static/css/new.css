@@ -674,10 +674,25 @@ body.modal-open {
     border-top-color: #ea7134;
 }
 @keyframes pine-spin{ to{ transform:rotate(360deg); } }
-.pine-toast.pine-flash-error{ background:#e36464 !important; }
-.pine-toast.pine-flash-success{ background:#1e7e44 !important; }
+/* Mensajes (sin spinner): mismo cristal "frost" que "Cargando…",
+   sólo un punto de color como indicador — sin rellenos pesados. */
 .pine-toast.pine-flash-error .title,
-.pine-toast.pine-flash-success .title{ color:#fff; }
+.pine-toast.pine-flash-success .title{
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--secondary);
+}
+.pine-toast.pine-flash-error .title::before,
+.pine-toast.pine-flash-success .title::before{
+    content: "";
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+}
+.pine-toast.pine-flash-error .title::before{ background:#e06464; }
+.pine-toast.pine-flash-success .title::before{ background:#2e9e5b; }
 /***********************************************************************************/
 .comments-container {
     display: flex;

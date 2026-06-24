@@ -60,5 +60,10 @@ class WarehouseController:
 
 
     @handle_logs_and_exceptions
+    def warehouse_complete_picking(self, data):
+        return self.warehouse.complete_picking(data)
+
+
+    @handle_logs_and_exceptions
     def warehouse_get_occupied_locations(self):
         return self.warehouse.get_occupied_locations()

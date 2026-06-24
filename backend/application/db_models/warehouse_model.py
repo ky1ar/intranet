@@ -30,6 +30,7 @@ class WarehouseLog(BaseModel):
     product_id = db.Column(db.Integer, db.ForeignKey('machines.id'), nullable=True)
     user_id    = db.Column(db.Integer, db.ForeignKey('user.id'),     nullable=True)
     quantity   = db.Column(db.Integer, nullable=True)
+    order_ref  = db.Column(db.String(20), nullable=True)
     from_code_id = db.Column(db.Integer, db.ForeignKey('warehouse_codes.id'),  nullable=True)
     to_code_id   = db.Column(db.Integer, db.ForeignKey('warehouse_codes.id'),  nullable=True)
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.current_timestamp())

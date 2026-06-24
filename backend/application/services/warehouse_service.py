@@ -263,6 +263,9 @@ class WarehouseService:
         if not isinstance(order, dict) or not order.get("found"):
             return {"found": False}, 200
 
+        order_name = order.get("name")
+        picked_map, _ = self.warehouse_repository.get_picked_quantities_for_order(order_name)
+
         items = []
         for line in order.get("lines", []):
             barcode = line.get("barcode")
@@ -293,6 +296,8 @@ class WarehouseService:
                 "allocated": 0,
                 "shortage": needed,
                 "total_stock": 0,
+                "already_picked": 0,
+                "pending": needed,
             }
 
             product_id = self._resolve_machine_id(line)
@@ -315,9 +320,13 @@ class WarehouseService:
             item["category"]   = machine.category.name if machine.category else None
             item["image"]      = machine.image if machine.image != "" else "impresoras-varias1.webp"
 
-            rows, _ = self.warehouse_repository.get_stock_locations_for_product(product_id)
-            total_stock = sum(r.stock for r in rows)
-            item["total_stock"] = total_stock
+            already = int(picked_map.get(product_id, 0) or 0)
+            pending = needed - already
+            if pending < 0:
+                pending = 0
+            item["already_picked"] = already
+            item["pending"]        = pending
+            item["shortage"]       = pending
 
             if needed <= 0:
                 item["status"]    = "ok"
@@ -327,29 +336,66 @@ class WarehouseService:
                 items.append(item)
                 continue
 
+            # Pedido ya recogido por completo para este producto.
+            if pending <= 0:
+                item["status"]   = "done"
+                item["message"]  = "Ya pickeado"
+                item["shortage"] = 0
+                items.append(item)
+                continue
+
+            rows, _ = self.warehouse_repository.get_stock_locations_for_product(product_id)
+            total_stock = sum(r.stock for r in rows)
+            item["total_stock"] = total_stock
+
             if total_stock <= 0:
                 item["status"]  = "no_stock"
                 item["message"] = "Sin stock en almacén"
                 items.append(item)
                 continue
 
-            allocations, remaining = self._picking_allocation(rows, needed)
+            # Sólo se reparte la cantidad restante (pendiente) del pedido.
+            allocations, remaining = self._picking_allocation(rows, pending)
             item["allocations"] = allocations
-            item["allocated"]   = needed - remaining
+            item["allocated"]   = pending - remaining
             item["shortage"]    = remaining
             item["available"]   = item["allocated"] > 0
 
             if remaining <= 0:
                 item["status"]  = "ok"
-                item["message"] = "Disponible para picking"
+                item["message"] = f"Restante: {pending} ud." if already > 0 else "Disponible para picking"
             else:
                 item["status"]  = "partial"
                 item["message"] = f"Stock insuficiente: faltan {remaining} ud."
 
             items.append(item)
 
+        # ── Orden de ruta de picking ─────────────────────────────────────
+        # El número de rack (level) es secuencial por el almacén (1..55),
+        # así que ordenar por (level, position, block) genera una ruta de
+        # una sola vuelta. Los ítems sin ubicación quedan al final.
+        def _loc_key(loc):
+            return (int(loc.get("level") or 0), str(loc.get("position") or ""), int(loc.get("block") or 0))
+
+        for it in items:
+            it["allocations"].sort(key=lambda a: _loc_key(a["location"]))
+
+        def _route_key(it):
+            allocs = it.get("allocations") or []
+            if not allocs:
+                return (1, 9999, "Z", 9999)
+            return (0,) + min(_loc_key(a["location"]) for a in allocs)
+
+        items.sort(key=_route_key)
+
+        pending_items = sum(1 for it in items if it.get("found") and (it.get("pending") or 0) > 0)
+        picked_items  = sum(1 for it in items if it.get("found") and it.get("status") == "done")
+        fully_picked  = pending_items == 0 and picked_items > 0
+
         return {
             "found": True,
+            "fully_picked": fully_picked,
+            "pending_items": pending_items,
             "order": {
                 "id":             order.get("id"),
                 "name":           order.get("name"),
@@ -361,6 +407,77 @@ class WarehouseService:
                 "currency":       order.get("currency"),
             },
             "items": items,
+        }, 200
+
+
+    @handle_exceptions
+    def complete_picking(self, data):
+        order_name = (data or {}).get("order")
+        picks      = (data or {}).get("picks") or []
+
+        if not isinstance(picks, list) or not picks:
+            return {"message": "No hay ítems para completar"}, 400
+
+        user_id = self._current_user_id()
+        results = []
+        errors  = []
+        total_units = 0
+
+        for pick in picks:
+            try:
+                wsid     = int(pick.get("warehouse_stock_id"))
+                quantity = int(pick.get("quantity"))
+            except (TypeError, ValueError):
+                errors.append({"warehouse_stock_id": pick.get("warehouse_stock_id"), "message": "Datos inválidos"})
+                continue
+
+            if quantity < 1:
+                continue
+
+            removed, rc = self.warehouse_repository.remove_stock(warehouse_stock_id=wsid, quantity=quantity)
+            if rc != 200:
+                errors.append({"warehouse_stock_id": wsid, "message": removed})
+                continue
+
+            product_id = removed.get("product_id")
+            self.warehouse_repository.save_log(
+                action="pick",
+                product_id=product_id,
+                user_id=user_id,
+                quantity=quantity,
+                order_ref=order_name,
+                from_code_id=removed.get("code_id"),
+            )
+
+            total_units += quantity
+            results.append({
+                "warehouse_stock_id": wsid,
+                "product_id":         product_id,
+                "quantity":           quantity,
+                "label":              removed.get("label"),
+                "remaining_stock":    removed.get("stock"),
+            })
+
+            # Aviso de stock bajo (igual que en el retiro individual)
+            if product_id:
+                total, _ = self.warehouse_repository.get_total_stock_for_product(product_id)
+                if total < 3:
+                    user_ids, _ = self.user_repository.get_all_user_ids()
+                    self.push_service.send_to_users(
+                        user_ids=user_ids,
+                        title="⚠️ Stock bajo en almacén",
+                        body=f"{removed.get('product_name', 'Producto')} tiene {total} ud{'s' if total != 1 else ''} en total.",
+                    )
+
+        if not results and errors:
+            return {"message": "No se pudo completar el picking", "errors": errors}, 400
+
+        return {
+            "message": "Picking completado",
+            "order": order_name,
+            "picked": results,
+            "units": total_units,
+            "errors": errors,
         }, 200
 
 

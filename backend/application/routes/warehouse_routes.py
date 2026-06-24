@@ -72,3 +72,9 @@ def get_occupied_locations():
 @warehouse_bp.route("/picking", methods=["GET"])
 def picking_plan():
     return controller.warehouse_picking_plan(request.args.get("number"))
+
+
+@warehouse_bp.route("/picking/complete", methods=["POST"])
+@jwt_required()
+def picking_complete():
+    return controller.warehouse_complete_picking(request.get_json())

@@ -329,6 +329,26 @@ class WarehouseRepository:
 
 
     @handle_db_exceptions
+    def get_picked_quantities_for_order(self, order_ref):
+        if not order_ref:
+            return {}, 200
+        rows = (
+            g.db_session.query(
+                WarehouseLog.product_id,
+                func.coalesce(func.sum(WarehouseLog.quantity), 0),
+            )
+            .filter(
+                WarehouseLog.order_ref == order_ref,
+                WarehouseLog.action == "pick",
+                WarehouseLog.product_id.isnot(None),
+            )
+            .group_by(WarehouseLog.product_id)
+            .all()
+        )
+        return {pid: int(qty or 0) for pid, qty in rows}, 200
+
+
+    @handle_db_exceptions
     def get_total_stock_for_product(self, product_id):
         total = (
             g.db_session.query(func.sum(WarehouseStock.stock))
@@ -382,12 +402,13 @@ class WarehouseRepository:
 
 
     @handle_db_exceptions
-    def save_log(self, action, product_id=None, user_id=None, quantity=None, from_code_id=None, to_code_id=None):
+    def save_log(self, action, product_id=None, user_id=None, quantity=None, from_code_id=None, to_code_id=None, order_ref=None):
         log = WarehouseLog(
             action=action,
             product_id=product_id,
             user_id=user_id,
             quantity=quantity,
+            order_ref=order_ref,
             from_code_id=from_code_id,
             to_code_id=to_code_id,
             created_at=peru_time(),
@@ -500,6 +521,7 @@ class WarehouseRepository:
                 "user":          r.user.name if r.user else None,
                 "user_image":    r.user.image if r.user else None,
                 "quantity":      r.quantity,
+                "order_ref":     r.order_ref,
                 "from_label":    _code_label(r.from_code),
                 "to_label":      _code_label(r.to_code),
                 "created_at":    r.created_at.isoformat() if r.created_at else None,

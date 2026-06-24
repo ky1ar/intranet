@@ -208,24 +208,22 @@
 				</div>
 
 				<div class="title">
-					<span>Picking por pedido</span>
+					<span>Picking</span>
 				</div>
 
-				<form class="searchbar glass2" @submit.prevent="fetchPickingPlan()" style="margin-bottom: 16px;">
-					<img alt="" class="ico" width="20" height="20" src="/static/icons/line/box.svg">
-					<input
-						type="text"
-						x-model="picking_order_input"
-						placeholder="N° de pedido Odoo (ej. S31097)"
-						@input="picking_error = ''"
-					>
+				<form class="search-order" @submit.prevent="fetchPickingPlan()">
+					<label class="white">
+						<input
+							type="text"
+							x-model="picking_order_input"
+							placeholder="N° de pedido"
+						>
+					</label>
+					
 					<div class="hover-opacity press" title="Buscar pedido" @click="fetchPickingPlan()">
 						<img alt="" width="20" height="20" src="/static/icons/line/find.svg">
 					</div>
 				</form>
-
-				<div class="picking-error" x-show="picking_error" x-text="picking_error" x-cloak
-					style="color:#e05; font-size:13px; text-align:center; margin-bottom:12px;"></div>
 
 				<div class="picking-loading" x-show="picking_loading" x-cloak
 					style="text-align:center; padding:24px; opacity:.6;">Consultando pedido...</div>
@@ -236,12 +234,25 @@
 						<div style="font-size:13px; opacity:.7;" x-text="picking_data.order.partner_name || ''"></div>
 						<div style="font-size:13px; opacity:.7;"
 							x-text="`${picking_data.order.currency || ''} ${picking_data.order.amount_total ?? ''} · ${picking_data.items.length} ítems`"></div>
+
+							<div x-show="picking_data.fully_picked" x-cloak
+								style="margin-top:8px; display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:8px; background:rgba(26,157,75,.14); color:#1a9d4b; font-weight:600; font-size:13px;">
+								✓ Pedido ya pickeado</div>
 					</div>
 				</template>
 
 				<div class="finded-products glass2" x-show="picking_data && picking_data.items && picking_data.items.length" x-cloak>
 					<template x-for="(item, idx) in (picking_data?.items || [])" :key="idx">
-						<div class="item" :style="(!item.found || !item.allocations.length) ? 'opacity:.55;' : ''">
+						<div class="item picking-item" :style="(item.status === 'done') ? 'opacity:.6;' : ((!item.found || !item.allocations.length) ? 'opacity:.55;' : '')">
+							<!-- Recogido (checkbox sólo si queda pendiente) -->
+							<label class="picking-check" x-show="item.found && item.allocations.length && item.status !== 'done'"
+								style="display:flex; align-items:center; padding:0 4px 0 2px; cursor:pointer;">
+								<input type="checkbox" x-model="item.checked"
+									style="width:20px; height:20px; accent-color:#f60; cursor:pointer;">
+							</label>
+							<div class="picking-done-ico" x-show="item.status === 'done'"
+								style="display:flex; align-items:center; padding:0 6px 0 2px; color:#1a9d4b; font-weight:700; font-size:20px;">✓</div>
+
 							<div class="product">
 								<img class="image" alt="" width="48" height="48"
 									:src="`/static/images/uploads/machines/${item.image}`">
@@ -251,7 +262,7 @@
 										<span class="brand" x-text="item.found ? `${item.brand} ${item.model}` : item.description"></span>
 										<span class="category" x-text="item.found ? (item.category || '') : (item.barcode ? `Cód. ${item.barcode}` : 'Sin código')"></span>
 									</div>
-									<span class="stock" x-text="`Pedido: ${item.quantity} uds.`"></span>
+									<span class="stock" x-text="pickingQtyLabel(item)"></span>
 								</div>
 							</div>
 
@@ -279,8 +290,13 @@
 								</div>
 							</template>
 
-							<!-- Sin ubicación disponible -->
-							<div class="picking-unavailable" x-show="!item.allocations.length"
+							<!-- Ya pickeado -->
+							<div class="picking-done-msg" x-show="item.status === 'done'"
+								style="padding:8px 12px; font-size:13px; color:#1a9d4b; font-weight:600; align-self:center; white-space:nowrap;">
+								Ya pickeado</div>
+
+							<!-- Sin ubicación disponible (no recogido) -->
+							<div class="picking-unavailable" x-show="item.status !== 'done' && !item.allocations.length"
 								style="padding:8px 12px; font-size:13px; color:#e05; align-self:center;"
 								x-text="item.message"></div>
 
@@ -295,7 +311,12 @@
 				<div class="picking-empty" x-show="picking_data && (!picking_data.found)" x-cloak
 					style="text-align:center; padding:24px; opacity:.6;">Pedido no encontrado</div>
 
-				<button class="button black hover-opacity" @click="$store.cache.hideModal('warehouse-picking')" style="margin-top:16px;">Cerrar</button>
+				<button class="button hover-opacity"
+					x-show="picking_data && picking_data.found && (picking_data.items || []).some(i => i.found && i.allocations.length && i.status !== 'done')"
+					:disabled="picking_completing || !pickingSelectedCount()"
+					@click="completePicking()"
+					x-text="picking_completing ? 'Completando...' : `Completar recogido (${pickingSelectedCount()})`"></button>
+				<!-- <button class="button black hover-opacity" style="flex:1;" @click="$store.cache.hideModal('warehouse-picking')">Cerrar</button> -->
 			</div>
 		</div>
 
@@ -940,6 +961,7 @@
 													class="wh-product-img"
 												>
 												<span class="wh-product-name" x-text="log.product || 'Carga masiva'"></span>
+												<span class="wh-order-ref" x-show="log.order_ref" x-text="log.order_ref" style="margin-left:6px; font-size:11px; padding:1px 6px; border-radius:6px; background:rgba(255,102,0,.14); color:#c45000; align-self:center;"></span>
 											</div>
 											
 											<div class="wh-qty" x-text="log.quantity ? `${log.quantity} uds.` : '—'"></div>
@@ -973,6 +995,7 @@
 												<span x-show="log.quantity" x-text="`${log.quantity} uds.`"></span>
 												<span x-show="log.from_label" x-text="`De: ${log.from_label}`"></span>
 												<span x-show="log.to_label" x-text="`A: ${log.to_label}`"></span>
+												<span x-show="log.order_ref" x-text="`Pedido: ${log.order_ref}`"></span>
 											</div>
 											<div class="wh-mobile-footer">
 												<div class="wh-user-cell">
@@ -1055,7 +1078,7 @@
 			picking_order_input: '',
 			picking_data: null,
 			picking_loading: false,
-			picking_error: '',
+			picking_completing: false,
 
 			// ── Modal ubicación ────────────────────────────────
 			selected_location: null,
@@ -1716,15 +1739,14 @@
 			openPickingModal() {
 				this.picking_order_input = '';
 				this.picking_data = null;
-				this.picking_error = '';
 				this.picking_loading = false;
+				this.picking_completing = false;
 				Alpine.store('cache').showModal('warehouse-picking');
 			},
 
 			async fetchPickingPlan() {
 				const number = (this.picking_order_input || '').trim();
-				this.picking_error = '';
-				if (!number) { this.picking_error = 'Ingresa un número de pedido'; return; }
+				if (!number) { PineToast.flash('Ingresa un número de pedido', 'error'); return; }
 				try {
 					this.picking_loading = true;
 					this.picking_data = null;
@@ -1735,13 +1757,63 @@
 					const jsonData = await response.json();
 					if (!response.ok) throw new Error(jsonData?.data?.message || jsonData?.data || 'No se pudo consultar el pedido');
 					const data = jsonData.data || {};
+					(data.items || []).forEach(it => { it.checked = false; });
 					this.picking_data = data;
-					if (!data.found) this.picking_error = 'Pedido no encontrado';
+					if (!data.found) PineToast.flash('Pedido no encontrado', 'error');
 				} catch (error) {
-					this.picking_error = error.message || 'Error consultando el pedido';
+					PineToast.flash(error.message || 'Error consultando el pedido', 'error');
 					this.picking_data = null;
 				} finally {
 					this.picking_loading = false;
+				}
+			},
+
+			pickingQtyLabel(item) {
+				const q    = Number(item.quantity ?? 0);
+				const done = Number(item.already_picked ?? 0);
+				if (done > 0 && done >= q) return `Pedido: ${q} · Pickeado completo`;
+				if (done > 0)              return `Pedido: ${q} · Pickeado: ${done} · Falta: ${item.pending}`;
+				return `Pedido: ${q} uds.`;
+			},
+
+			pickingSelectedCount() {
+				return (this.picking_data?.items || [])
+					.filter(i => i.checked && i.found && i.allocations.length && i.status !== 'done').length;
+			},
+
+			async completePicking() {
+				if (!this.picking_data || this.picking_completing) return;
+				const targets = (this.picking_data.items || [])
+					.filter(i => i.checked && i.found && i.allocations.length && i.status !== 'done');
+				if (!targets.length) return;
+
+				const picks = [];
+				targets.forEach(it => {
+					(it.allocations || []).forEach(a => {
+						picks.push({ warehouse_stock_id: a.warehouse_stock_id, quantity: a.take });
+					});
+				});
+
+				try {
+					this.picking_completing = true;
+					const response = await fetch(`${this.api}/warehouse/picking/complete`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+						body: JSON.stringify({ order: this.picking_data.order?.name || null, picks }),
+					});
+					const jsonData = await response.json();
+					if (!response.ok) throw new Error(jsonData?.data?.message || jsonData?.data || 'No se pudo completar el picking');
+
+					const units = jsonData.data?.units ?? picks.reduce((s, p) => s + p.quantity, 0);
+					const count = targets.length;
+					await this.loadOccupiedLocations();
+					// Refresca el plan: el backend recalcula pendiente vs ya pickeado.
+					await this.fetchPickingPlan();
+					PineToast.flash(`Recogido registrado: ${units} ud. en ${count} producto(s).`, 'success');
+				} catch (error) {
+					PineToast.flash(error.message || 'Error completando el picking', 'error');
+				} finally {
+					this.picking_completing = false;
 				}
 			},
 
@@ -2976,6 +3048,11 @@
 			align-items: center;
 		}
 		
+		#modal-warehouse-picking .search-order {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
 		
 		@media only screen and (max-width: 75rem) {
 			
