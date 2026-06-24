@@ -173,6 +173,7 @@ document.addEventListener('alpine:init', () => {
         pdf_title: 'Reglamento',
         sidebar_expanded: false,
         menu_expanded: localStorage.getItem('menu_expanded') === '1',
+        dark_mode: localStorage.getItem('dark_mode') === '1',
         is_narrow: window.innerWidth < 768,
         _settings_modules: [],
         _settings_saving: false,
@@ -200,6 +201,11 @@ document.addEventListener('alpine:init', () => {
         setMenuExpanded(val) {
             this.menu_expanded = val;
             localStorage.setItem('menu_expanded', val ? '1' : '0');
+        },
+        setDarkMode(val) {
+            this.dark_mode = val;
+            localStorage.setItem('dark_mode', val ? '1' : '0');
+            document.documentElement.classList.toggle('dark', val);
         },
 
         _setSettingsDefault(slug) {

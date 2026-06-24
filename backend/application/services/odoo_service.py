@@ -267,3 +267,17 @@ class OdooService:
         if not data:
             return {"found": False}, 200
         return data, 200
+
+
+    def get_sale_order_detail(self, order_number):
+        order_number = (order_number or "").strip()
+        if not order_number:
+            return {"found": False}, 200
+        try:
+            data = self.odoo_client.get_sale_order_by_name(order_number)
+        except Exception:
+            logging.exception("Odoo sale order lookup failed for %s", order_number)
+            return "No se pudo consultar Odoo", 502
+        if not data:
+            return {"found": False}, 200
+        return data, 200

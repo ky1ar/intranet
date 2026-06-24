@@ -31,6 +31,9 @@
 
     <!--<link rel="stylesheet" href="static/css/style.css?v=0.1.0.7215">-->
     <link rel="stylesheet" href="/static/css/new.css?v=1.7.6">
+    <script>
+        if (localStorage.getItem('dark_mode') === '1') document.documentElement.classList.add('dark');
+    </script>
 </head>
 
 <body class="container" x-data="data" :class="{'modal-open': $store.cache.hasActiveModals()}">
@@ -270,6 +273,15 @@
                                 <div class="slider"></div>
                             </label>
                         </div>
+                        <!-- <div class="mod-toggle">
+                            <span class="mod-toggle-label">Tema oscuro</span>
+                            <label class="box">
+                                <input type="checkbox"
+                                       :checked="$store.cache.dark_mode"
+                                       @change="$store.cache.setDarkMode($event.target.checked)">
+                                <div class="slider"></div>
+                            </label>
+                        </div> -->
 
                         <div class="mod-list">
                             <template x-for="(mod, idx) in $store.cache._settings_modules" :key="mod.slug">

@@ -254,3 +254,81 @@ class OdooClient:
             "currency": _name(move.get("currency_id")),
             "lines": lines,
         }
+
+
+    def get_sale_order_by_name(self, order_number):
+        """Busca un pedido de venta (ej. S31242) por su número y devuelve el detalle con sus productos."""
+        order_number = (order_number or "").strip()
+        if not order_number:
+            return None
+
+        fields_order = [
+            "name", "partner_id", "date_order", "state",
+            "invoice_status", "amount_untaxed", "amount_tax",
+            "amount_total", "currency_id",
+        ]
+        orders = self._exec(
+            "sale.order", "search_read",
+            [[("name", "=ilike", order_number)]],
+            {"fields": fields_order, "order": "id desc", "limit": 1},
+        )
+        if not orders:
+            return None
+
+        order = orders[0]
+        order_id = order["id"]  # search_read siempre incluye 'id'
+
+        def _name(rel):
+            return rel[1] if isinstance(rel, list) and len(rel) >= 2 else None
+
+        # Líneas del pedido: un solo search_read.
+        line_recs = self._exec(
+            "sale.order.line", "search_read",
+            [[("order_id", "=", order_id), ("product_id", "!=", False)]],
+            {"fields": ["product_id", "name", "product_uom_qty", "qty_delivered",
+                        "price_unit", "price_subtotal", "price_total"],
+             "order": "id asc"},
+        )
+
+        # Código de barras: un solo read sobre product.product para todas las líneas.
+        product_ids = list({
+            ln["product_id"][0] for ln in line_recs
+            if isinstance(ln.get("product_id"), list) and ln["product_id"]
+        })
+        barcode_by_product = {}
+        if product_ids:
+            prod_recs = self._exec(
+                "product.product", "read",
+                [product_ids],
+                {"fields": ["barcode"]},
+            )
+            barcode_by_product = {p["id"]: (p.get("barcode") or None) for p in prod_recs}
+
+        lines = []
+        for ln in line_recs:
+            pid = ln["product_id"][0] if isinstance(ln.get("product_id"), list) and ln["product_id"] else None
+            lines.append({
+                "product": _name(ln.get("product_id")) or (ln.get("name") or "").split("\n")[0],
+                "barcode": barcode_by_product.get(pid),
+                "description": ln.get("name") or None,
+                "quantity": ln.get("product_uom_qty") or 0,
+                "qty_delivered": ln.get("qty_delivered") or 0,
+                "price_unit": ln.get("price_unit") or 0,
+                "price_subtotal": ln.get("price_subtotal") or 0,
+                "price_total": ln.get("price_total") or 0,
+            })
+
+        return {
+            "found": True,
+            "id": order_id,
+            "name": order.get("name"),
+            "partner_name": _name(order.get("partner_id")),
+            "date_order": order.get("date_order") or None,
+            "state": order.get("state") or None,
+            "invoice_status": order.get("invoice_status") or None,
+            "amount_untaxed": order.get("amount_untaxed") or 0,
+            "amount_tax": order.get("amount_tax") or 0,
+            "amount_total": order.get("amount_total") or 0,
+            "currency": _name(order.get("currency_id")),
+            "lines": lines,
+        }

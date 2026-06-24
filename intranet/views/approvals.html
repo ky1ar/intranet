@@ -357,19 +357,24 @@
 			x-transition:leave-end="modal-leave-end"
 			x-cloak
 		>
-			<div class="modal glass2 big" @click.stop>
+			<div class="modal glass2 small" @click.stop>
 				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
 
-				<div class="gm-head">
-					<div class="gm-title">
-						<img width="20" height="20" src="/static/icons/line/book.svg" alt="">
+				<div class="top">
+					<div class="title">
 						<span x-text="gm.view === 'list' ? 'Gestor de guías' : (gm.view === 'search' ? 'Agregar guía' : (gm.machine?.name || 'Editar guía'))"></span>
 					</div>
 					<template x-if="gm.view === 'list'">
-						<button class="gm-btn primary" @click="gmNew()">+ Agregar guía</button>
+						<button class="button icon hover-opacity mini" @click="gmNew()">
+							<img alt="update" width="16" height="16" src="/static/icons/line/add.svg">
+							<span>Agregar</span>
+						</button>
 					</template>
 					<template x-if="gm.view !== 'list'">
-						<button class="gm-btn ghost" @click="gmBack()">← Volver</button>
+						<button class="button icon black hover-opacity mini" @click="gmBack()">
+							<img class="flip" alt="update" width="16" height="16" src="/static/icons/line/right.svg">
+							<span>Volver</span>
+						</button>
 					</template>
 				</div>
 
@@ -384,11 +389,15 @@
 									<img class="gm-card-img" :src="'/static/images/uploads/machines/' + g.machine_image" :alt="g.machine_name">
 									<div class="gm-card-info">
 										<div class="gm-card-name" x-text="g.machine_name"></div>
-										<div class="gm-card-meta" x-text="g.item_count + ' paso(s)'"></div>
+										<div class="gm-card-meta" x-text="g.item_count + ' video(s)'"></div>
 									</div>
 									<div class="gm-card-actions">
-										<button class="gm-icon" title="Editar" @click="gmEditExisting(g)">✎</button>
-										<button class="gm-icon danger" title="Eliminar" @click="gmDelete(g)">🗑</button>
+										<button class="gm-icon" title="Editar" @click="gmEditExisting(g)">
+											<img alt="" src="/static/icons/line/pencil.svg" width="16" height="16">
+										</button>
+										<button class="gm-icon danger" title="Eliminar" @click="gmDelete(g)">
+											<img alt="" src="/static/icons/line/delete.svg" width="15" height="15">
+										</button>
 									</div>
 								</div>
 							</template>
@@ -398,10 +407,13 @@
 					<!-- SEARCH -->
 					<template x-if="gm.view === 'search'">
 						<div class="gm-search">
-							<input type="text" class="gm-input" placeholder="Busca el equipo por modelo…" x-model="gm.search" @input.debounce.300ms="gmSearch()">
-							<div class="gm-results">
+							<label class="white">
+								<input type="text" placeholder="Busca el equipo por modelo…" x-model="gm.search" @input.debounce.300ms="gmSearch()">
+							</label>
+
+							<div class="white gm-results">
 								<template x-for="m in gm.results" :key="m.id">
-									<div class="gm-result" @click="gmPickMachine(m)">
+									<div class="gm-result hover-opacity" @click="gmPickMachine(m)">
 										<img :src="'/static/images/uploads/machines/' + m.image" :alt="m.name">
 										<span x-text="m.name"></span>
 									</div>
@@ -413,32 +425,33 @@
 
 					<!-- EDITOR -->
 					<template x-if="gm.view === 'editor'">
-						<div class="gm-editor">
-							<div class="gm-machine">
-								<img :src="'/static/images/uploads/machines/' + (gm.machine?.image || '')" :alt="gm.machine?.name">
-								<div class="gm-machine-name" x-text="gm.machine?.name"></div>
-							</div>
-
-
-							<label class="gm-label">Pasos (título + link de YouTube)</label>
-							<div class="gm-steps">
+						<div class="editor">
+							<div class="white editor-items">
 								<template x-for="(step, i) in gm.steps" :key="i">
-									<div class="gm-step">
-										<span class="gm-step-n" x-text="i + 1"></span>
-										<div class="gm-step-fields">
-											<input type="text" class="gm-input" placeholder="Título (ej: Unboxing y ensamblado)" x-model="step.title">
-											<input type="text" class="gm-input" placeholder="https://youtu.be/…" x-model="step.url">
+									<div class="item">
+										<div class="delete hover-opacity" @click="gmRemoveStep(i)">
+											<img alt="eliminar" width="14" height="14" src="/static/icons/line/delete.svg">
+											<span x-text="i + 1"></span>
 										</div>
-										<button class="gm-icon danger" title="Quitar" @click="gmRemoveStep(i)">✕</button>
+
+										<div class="row">
+											<label>
+												<input type="text" placeholder="Agregar título" x-model="step.title">
+											</label>
+											<label>
+												<input type="text" class="url" placeholder="Añadir URL" x-model="step.url">
+											</label>
+										</div>
 									</div>
 								</template>
+								<div class="item">
+									<div class="add-button hover-opacity" @click="gmAddStep()">+ Añadir ítem</div>
+								</div>
 							</div>
-							<button class="gm-btn ghost" @click="gmAddStep()">+ Agregar paso</button>
 
-
-							<div class="gm-editor-actions">
-								<button class="gm-btn ghost" @click="gmBack()">Cancelar</button>
-								<button class="gm-btn primary" :disabled="gm.saving" @click="gmSave()" x-text="gm.saving ? 'Guardando…' : 'Guardar guía'"></button>
+							<div class="buttons">
+								<button class="hover-opacity button black" @click="gmBack()">Cancelar</button>
+								<button class="hover-opacity button" :disabled="gm.saving" @click="gmSave()" x-text="gm.saving ? 'Guardando…' : 'Guardar guía'"></button>
 							</div>
 						</div>
 					</template>
@@ -967,7 +980,7 @@
 			flex: 1;
 			display: flex;
 			flex-direction: column;
-			border-right: 3px solid #ffffff80;
+			border-right: 2px solid var(--glass-border);
 			gap: 0.6rem;
 			padding: 0.75rem;
 			min-width: 13rem;
@@ -1303,34 +1316,44 @@
 		}
 
 		@media (max-width: 48rem) {
-			#approvals .main { flex-direction: column; }
-			#approvals .group { flex: unset; min-width: 100%; }
+			#approvals .main {
+				flex-direction: column;
+			}
+			#approvals .group {
+				flex: unset;
+				min-width: 100%;
+			}
 		}
 
 		/* ── Gestor de guías ── */
-		#modal-guide-manager .modal { display:flex; flex-direction:column; max-height:88vh; }
-		#modal-guide-manager .gm-head {
-			display:flex; align-items:center; justify-content:space-between;
-			gap:1rem; padding:0.25rem 0.25rem 1rem; border-bottom:1px solid #ffffff1a; margin-bottom:1rem;
+		#modal-guide-manager .top {
+			display: flex;
+			justify-content: space-between;
+			gap: 1rem;
+		}	
+		#modal-guide-manager .top .title {
+			justify-content: center;
 		}
-		#modal-guide-manager .gm-title { display:flex; align-items:center; gap:0.6rem; font-weight:700; font-size:1.05rem; }
-		#modal-guide-manager .gm-content { overflow:auto; }
-		.gm-btn {
-			border:none; border-radius:2rem; padding:0.55rem 1.1rem; font-weight:600; font-size:0.82rem;
-			cursor:pointer; font-family:inherit; transition:opacity .15s;
-		}
-		.gm-btn.primary { background:var(--primary,#e05a00); color:#fff; }
-		.gm-btn.ghost { background:transparent; color:var(--primary,#e05a00); border:1px solid var(--primary,#e05a00); }
-		.gm-btn:hover { opacity:0.88; }
-		.gm-btn:disabled { opacity:0.5; cursor:not-allowed; }
-		.gm-empty { text-align:center; opacity:0.5; font-size:0.85rem; padding:1.5rem 0; }
 
+		.gm-empty { text-align:center; opacity:0.5; font-size:0.85rem; padding:1.5rem 0; }
 		.gm-list { display:flex; flex-direction:column; gap:0.6rem; }
-		.gm-card { display:flex; align-items:center; gap:0.9rem; padding:0.7rem 0.9rem; border-radius:0.85rem; }
-		.gm-card-img { width:2.75rem; height:2.75rem; object-fit:contain; border-radius:0.5rem; background:#0000000a; }
+		.gm-card {
+			display: flex;
+			align-items: center;
+			gap: 0.9rem;
+			padding: 0.75rem 1rem;
+		}
+		.gm-card-img {
+			width: 2.75rem;
+    		height: 2.75rem;
+		}
 		.gm-card-info { flex:1; min-width:0; display:flex; flex-direction:column; gap:0.15rem; }
 		.gm-card-name { font-weight:600; font-size:0.9rem; }
-		.gm-card-meta { font-size:0.72rem; opacity:0.5; }
+		.gm-card-meta {
+			font-size:0.75rem;
+			font-weight: 500;
+			opacity:0.5;
+		}
 		.gm-card-actions { display:flex; gap:0.4rem; }
 		.gm-icon {
 			border:none; background:#0000000d; width:2rem; height:2rem; border-radius:0.5rem;
@@ -1339,31 +1362,104 @@
 		.gm-icon:hover { background:#00000018; }
 		.gm-icon.danger:hover { background:#e3646433; }
 
-		.gm-search .gm-results { display:flex; flex-direction:column; gap:0.35rem; margin-top:0.6rem; max-height:50vh; overflow:auto; }
-		.gm-result { display:flex; align-items:center; gap:0.6rem; padding:0.5rem 0.7rem; border-radius:0.6rem; cursor:pointer; transition:background .12s; }
-		.gm-result:hover { background:#e0570011; }
-		.gm-result img { width:2.25rem; height:2.25rem; object-fit:contain; border-radius:0.4rem; background:#0000000a; }
-		.gm-result span { font-size:0.88rem; font-weight:500; }
-
-		.gm-editor { display:flex; flex-direction:column; gap:0.6rem; }
-		.gm-machine { display:flex; align-items:center; gap:0.9rem; padding:0.7rem 0.9rem; border-radius:0.85rem; background:#e0570011; margin-bottom:0.3rem; }
-		.gm-machine img { width:3rem; height:3rem; object-fit:contain; }
-		.gm-machine-name { font-weight:700; font-size:1rem; }
-		.gm-label { font-size:0.78rem; font-weight:600; opacity:0.6; margin-top:0.4rem; }
-		.gm-input {
-			width:100%; box-sizing:border-box; font-family:inherit; font-size:0.88rem;
-			border:1px solid #00000022; border-radius:0.6rem; padding:0.6rem 0.75rem; background:#fff; outline:none;
+		#modal-guide-manager .gm-search {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
 		}
-		.gm-input:focus { border-color:var(--primary,#e05a00); }
-		.gm-steps { display:flex; flex-direction:column; gap:0.5rem; }
-		.gm-step { display:flex; align-items:flex-start; gap:0.5rem; }
-		.gm-step-n {
-			flex-shrink:0; width:1.6rem; height:1.6rem; border-radius:50%; background:var(--primary,#e05a00); color:#fff;
-			display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; margin-top:0.35rem;
+		#modal-guide-manager .gm-search .gm-results {
+			display: flex;
+			flex-direction: column;
+			max-height: 50vh;
+			overflow: auto;
 		}
-		.gm-step-fields { flex:1; display:flex; flex-direction:column; gap:0.35rem; }
-		.gm-editor-actions { display:flex; justify-content:flex-end; gap:0.6rem; margin-top:0.8rem; }
-
+		#modal-guide-manager .gm-result {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			padding: 0.5rem 0.75rem;
+			border-bottom: 1px solid #00000014;
+		}
+		#modal-guide-manager .gm-result img {
+			width: 2rem;
+			height: 2rem;
+		}
+		#modal-guide-manager .editor {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+		}
+		#modal-guide-manager .editor .editor-items {
+			padding: 0 1rem;
+			border-radius: 0.5rem;
+			flex: 1;
+		}
+		#modal-guide-manager .editor .item {
+			display: flex;
+			gap: 0.75rem;
+			align-items: center;
+			padding: 0.75rem 0;
+			border-bottom: 1px solid #00000014;
+		}
+		#modal-guide-manager .editor .item .delete {
+			min-width: 1.5rem;
+			height: 1.5rem;
+			border-radius: 1rem;
+			background-color: var(--graydark);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 0.7rem;
+			font-weight: 600;
+			color: #0000006e;
+			position: relative;
+		}
+		#modal-guide-manager .editor .item .delete img {
+			position: absolute;
+			opacity: 0;
+			transition: var(--transition);
+		}
+		#modal-guide-manager .editor .item .delete span {
+			transition: var(--transition);
+		}
+		#modal-guide-manager .editor .item .delete:hover img {
+			opacity: 1;
+		}
+		#modal-guide-manager .editor .item .delete:hover span {
+			opacity: 0;
+		}
+		#modal-guide-manager .editor .item .row {
+			display: flex;
+			flex-direction: column;
+			gap: 0.125rem;
+			font-weight: 600;
+			overflow: hidden;
+			flex: 1;
+		}
+		#modal-guide-manager .editor .item .row label {
+			padding: 0;
+		}
+		#modal-guide-manager .editor .item .row input {
+			height: initial;
+			font-size: 0.85rem;
+			font-weight: 500;
+			text-overflow: ellipsis;
+		}	
+		#modal-guide-manager .editor .item .row .url {
+			font-size: 0.75rem;
+			opacity: 0.5;
+		}
+		#modal-guide-manager .editor .item .add-button {
+			border: 1px dashed #000000;
+			padding: 0.5rem 1rem;
+			border-radius: 0.5rem;
+			width: 100%;
+			opacity: 0.25;
+			align-items: center;
+			font-weight: 500;
+			font-size: 0.8rem;
+			text-align: center;
+		}
 		/* ── Buscar ── */
 		#modal-search .modal { gap: 0.5rem; min-width: initial; }
 		#modal-search .bottom { display: flex; align-items: center; padding: 0.25rem 1rem; border-radius: 0.75rem; }

@@ -17,9 +17,40 @@
     --newgray: #c3c3c375;
 	--black: #0f2027;
 
+    --background: #e5e6e8;
+
+    --glass: hsl(0deg 0% 100% / 29%);
+    --glass-border: hsl(0deg 0% 100% / 32%);
+
+    --frost: rgb(255 255 255 / 50%);
+
+    
     --transition: 0.2s ease-in-out; 
     --font: "Lexend";
     --pop: "Poppins";
+}
+
+html.dark {
+    --background: #0d1118;
+
+    --glass: hsl(0deg 0% 100% / 4%);
+    --glass-border: hsl(0deg 0% 100% / 6%);
+
+    --frost: rgb(43 49 59 / 50%);
+
+	--secondary: #ffffff;
+    --white: #1f242d;
+    --gray: #0d1118;
+    --graydark: #07090d;
+    --graydarkest: #3b474f;
+    --newgray: #ffffff1a;
+    --black: #e7eef3;
+}
+html.dark img {
+    filter: invert(1) !important;
+}
+html.dark img.invert {
+    filter: invert(0) !important;
 }
 *, 
 *:before, 
@@ -49,7 +80,7 @@ html {
 body {
     margin: 0;
     font-family: var(--font), sans-serif;
-    background-color: #e5e6e8;
+    background-color: var(--background);
     /* background: linear-gradient(315deg, hsl(20deg 35% 45% / 15%), hsl(211deg 35% 45% / 15%)); */
     font-size: 0.85rem;
     color: var(--black);
@@ -98,14 +129,14 @@ body.modal-open {
     border-radius: 2rem;
 }
 .frost {
-    background-color: rgb(255 255 255 / 50%);
+    background-color: var(--frost);
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1), 0 0px 8px rgba(0, 0, 0, 0.05);
     backdrop-filter: blur(4px);
     border-radius: 2rem;
 }
 .glass {
-    background-color: hsl(0deg 0% 100% / 29%);
-    border: 2px solid hsl(0deg 0% 100% / 32%);
+    background-color: var(--glass);
+    border: 2px solid var(--glass-border);
     box-shadow: 0 0 2rem hsl(0deg 0% 0% / 5%);
     border-radius: 1.5rem;
 }
@@ -470,6 +501,15 @@ body.modal-open {
     padding: 0;
     width: 100%;
     outline: none;
+}
+.modal .button.mini {
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    display: flex;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    line-height: initial;
+    width: initial;
 }
 .modal .button.icon {
     display: flex;
