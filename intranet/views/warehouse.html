@@ -248,7 +248,7 @@
 							<label class="picking-check" x-show="item.found && item.allocations.length && item.status !== 'done'"
 								style="display:flex; align-items:center; padding:0 4px 0 2px; cursor:pointer;">
 								<input type="checkbox" x-model="item.checked"
-									style="width:20px; height:20px; accent-color:#f60; cursor:pointer;">
+									style="width:20px; height:20px; accent-color:var(--primary); cursor:pointer;">
 							</label>
 							<div class="picking-done-ico" x-show="item.status === 'done'"
 								style="display:flex; align-items:center; padding:0 6px 0 2px; color:#1a9d4b; font-weight:700; font-size:20px;">✓</div>
@@ -292,17 +292,17 @@
 
 							<!-- Ya pickeado -->
 							<div class="picking-done-msg" x-show="item.status === 'done'"
-								style="padding:8px 12px; font-size:13px; color:#1a9d4b; font-weight:600; align-self:center; white-space:nowrap;">
+								style="align-self:center; display:inline-flex; align-items:center; padding:5px 11px; border-radius:999px; font-size:12px; font-weight:600; color:#1a9d4b; background:rgba(26,157,75,.12); white-space:nowrap;">
 								Ya pickeado</div>
 
 							<!-- Sin ubicación disponible (no recogido) -->
 							<div class="picking-unavailable" x-show="item.status !== 'done' && !item.allocations.length"
-								style="padding:8px 12px; font-size:13px; color:#e05; align-self:center;"
+								style="align-self:center; padding:5px 11px; border-radius:12px; font-size:12px; font-weight:600; line-height:1.3; text-align:center; max-width:170px; color:#e0413a; background:rgba(224,65,58,.10);"
 								x-text="item.message"></div>
 
 							<!-- Aviso de stock parcial -->
 							<div class="picking-partial" x-show="item.allocations.length && item.shortage > 0"
-								style="padding:4px 12px; font-size:12px; color:#d80; align-self:center;"
+								style="align-self:center; display:inline-flex; align-items:center; padding:5px 11px; border-radius:999px; font-size:12px; font-weight:600; color:var(--tertiary); background:rgba(255,160,42,.16); white-space:nowrap;"
 								x-text="`Faltan ${item.shortage} ud.`"></div>
 						</div>
 					</template>
@@ -2982,13 +2982,12 @@
 		#warehouse .finded-products {
 			overflow: auto;
 			width: 100%;
-			margin-top: -1rem;
 			border-radius: 0.75rem;
 		}
 		#warehouse .finded-products .item {
 			display: flex;
 			align-items: center;
-			border-bottom: 2px solid #ffffffba;
+			border-bottom: 2px solid var(--glass-border);
 		}
 		#warehouse .finded-products .item:last-child {
 			border-bottom: none;
@@ -3005,7 +3004,7 @@
 			cursor: pointer;
 		}
 		#warehouse .finded-products .item .product.active:hover {
-			background-color: #ffffffba;
+			background-color: rgba(234, 113, 52, 0.1);
 		}
 		#warehouse .finded-products .item .product .image {
 			mix-blend-mode: darken;

@@ -100,7 +100,7 @@
                             <!-- Sub-página (sin icono, indentada) -->
                             <template x-if="item.type === 'subpage'">
                                 <a :href="`/${item.name}`">
-                                    <img width="18" height="18" :src="`/static/icons/line/${item.image}`" alt="">
+                                    <img class="themed" width="18" height="18" :src="`/static/icons/line/${item.image}`" alt="">
                                     <span class="nav-label" x-text="item.label"></span>
                                 </a>
                             </template>

@@ -46,10 +46,10 @@ html.dark {
     --newgray: #ffffff1a;
     --black: #e7eef3;
 }
-html.dark img {
+html.dark img.themed {
     filter: invert(1) !important;
 }
-html.dark img.invert {
+html.dark img.themed.invert {
     filter: invert(0) !important;
 }
 *, 
@@ -83,7 +83,7 @@ body {
     background-color: var(--background);
     /* background: linear-gradient(315deg, hsl(20deg 35% 45% / 15%), hsl(211deg 35% 45% / 15%)); */
     font-size: 0.85rem;
-    color: var(--black);
+    color: var(--secondary);
     position: relative;
     min-width: 20rem;
 }
@@ -990,7 +990,7 @@ body.modal-open {
 }
 #sidebar.menu-expanded ul li a span {
     display: flex;
-    color: var(--black);
+    color: var(--secondary);
     opacity: 1;
     visibility: visible;
     background-color: transparent;
@@ -1020,7 +1020,7 @@ body.modal-open {
     padding: 0 0.25rem 0 0.5rem;
     border-radius: 0.5rem;
     cursor: pointer;
-    color: var(--black);
+    color: var(--secondary);
     transition: var(--transition);
     height: 2rem;
 }
@@ -1082,7 +1082,7 @@ body.modal-open {
     opacity: 1 !important;
 }
 #sidebar.menu-expanded ul li.active a span {
-    color: var(--white);
+    color: #fff;
 }
 #sidebar.menu-expanded .config {
     box-shadow: none;
