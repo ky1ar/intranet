@@ -208,7 +208,7 @@ class ModuleRepository:
 
 
     @handle_db_exceptions
-    def save_user_settings(self, user_id, modules_data):
+    def save_user_settings(self, user_id, modules_data, nav_order=None):
         (
             g.db_session.query(UserModuleAccess)
             .filter(UserModuleAccess.user_id == user_id)
@@ -227,6 +227,13 @@ class ModuleRepository:
                     'is_pinned': item['is_pinned'],
                     'is_default': item.get('is_default', False),
                 })
+            )
+
+        if nav_order is not None:
+            (
+                g.db_session.query(Users)
+                .filter(Users.id == user_id)
+                .update({'nav_order': nav_order})
             )
 
         g.db_session.commit()

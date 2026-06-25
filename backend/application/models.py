@@ -61,6 +61,7 @@ class Users(BaseModel):
     email = db.Column(db.String(255))
     password = db.Column(db.String(255))
     default_page = db.Column(db.String(100))
+    nav_order = db.Column(db.JSON, nullable=True)
     stamp = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
     level = db.relationship("UserLevel", lazy="joined", foreign_keys=[level_id])

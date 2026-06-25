@@ -212,6 +212,7 @@ class UserService:
             "image": user.image if user.image else 'user_default.jpg',
             "default_page": default_page,
             "modules": modules_data if isinstance(modules_data, list) else [],
+            "nav_order": user.nav_order or [],
         }, 200
 
 
@@ -248,6 +249,7 @@ class UserService:
                 "image": user.image if user.image else 'user_default.jpg',
                 "default_page": default_page,
                 "modules": modules_data if isinstance(modules_data, list) else [],
+                "nav_order": user.nav_order or [],
                 "token": access_token
             }
             return user_data, 200

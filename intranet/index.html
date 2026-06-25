@@ -66,7 +66,7 @@
     
     <template x-if="$store.cache.user.id">
         <div>
-            <div id="sidebar" :class="{'menu-expanded': $store.cache.menu_expanded && !$store.cache.is_narrow, 'white': $store.cache.menu_expanded && !$store.cache.is_narrow}">
+            <div id="sidebar" :class="{'menu-expanded': !$store.cache.is_narrow, 'white': !$store.cache.is_narrow}">
                 <div class="home-logo white-frost" @click="$store.cache.sidebar_expanded = !$store.cache.sidebar_expanded"
                      :class="{'expanded': $store.cache.sidebar_expanded}">
                     <img class="home" src="/static/images/single-logo.svg" alt="Logo" width="32" height="32">
@@ -77,27 +77,41 @@
                 </div>
 
                 <ul class="white-frost">
-                    <template x-for="page in $store.cache.getPages()" :key="page.name">
-                        <li :class="{'active': $store.cache.active_page == '/' + page.name}">
-                            <a :href="`/${page.name}`">
-                                <img width="20" height="20" :src="`/static/icons/line/${page.image}`" alt="">
-                                <span x-text="page.label"></span>
-                            </a>
-                            <span x-text="page.label"></span>
-                        </li>
-                    </template>
+                    <template x-for="item in $store.cache.getSidebarItems()" :key="item.key">
+                        <li :class="{
+                                'nav-item': item.type === 'page' || item.type === 'subpage',
+                                'subpage': item.type === 'subpage',
+                                'last': item.type === 'subpage' && item.last,
+                                'group-header': item.type === 'header',
+                                'active': (item.type === 'page' || item.type === 'subpage') && $store.cache.active_page == '/' + item.name
+                            }">
+                            <!-- Página directa (top-level con icono) -->
+                            <template x-if="item.type === 'page'">
+                                <a :href="`/${item.name}`">
+                                    <img width="20" height="20" :src="`/static/icons/line/${item.image}`" alt="">
+                                    <span class="nav-label" x-text="item.label"></span>
+                                </a>
+                            </template>
+                            <template x-if="item.type === 'page'">
+                                <span class="nav-tip" x-text="item.label"></span>
+                            </template>
 
-                    <template x-if="$store.cache.sidebar_expanded && $store.cache.getUnpinnedPages().length > 0">
-                        <li class="divider"></li>
-                    </template>
+                            <!-- Sub-página (sin icono, indentada) -->
+                            <template x-if="item.type === 'subpage'">
+                                <a :href="`/${item.name}`">
+                                    <span class="nav-label" x-text="item.label"></span>
+                                </a>
+                            </template>
 
-                    <template x-for="page in $store.cache.sidebar_expanded ? $store.cache.getUnpinnedPages() : []" :key="page.name">
-                        <li :class="{'active': $store.cache.active_page == '/' + page.name}">
-                            <a :href="'/' + page.name">
-                                <img width="20" height="20" :src="`/static/icons/line/${page.image}`" alt="">
-                                <span x-text="page.label"></span>
-                            </a>
-                            <span x-text="page.label"></span>
+                            <!-- Cabecera de categoría (modo agrupado): icono + label + chevron -->
+                            <template x-if="item.type === 'header'">
+                                <span class="group-text" :class="{'collapsed': item.collapsed}"
+                                      @click="$store.cache.toggleCategory(item.category)">
+                                    <img class="group-icon" width="18" height="18" :src="`/static/icons/line/${item.image}`" alt="">
+                                    <span class="group-label" x-text="item.label"></span>
+                                    <svg class="group-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                </span>
+                            </template>
                         </li>
                     </template>
                 </ul>
@@ -264,16 +278,16 @@
                     </div>
 
                     <div class="mod-settings modal-content">
-                        <div class="mod-toggle">
-                            <span class="mod-toggle-label">Menú expandido</span>
+                        <div class="mod-toggle" x-show="!$store.cache.is_narrow">
+                            <span class="mod-toggle-label">Menú agrupado</span>
                             <label class="box">
                                 <input type="checkbox"
-                                       :checked="$store.cache.menu_expanded"
-                                       @change="$store.cache.setMenuExpanded($event.target.checked)">
+                                       :checked="$store.cache.menu_grouped"
+                                       @change="$store.cache.setMenuGrouped($event.target.checked)">
                                 <div class="slider"></div>
                             </label>
                         </div>
-                        <!-- <div class="mod-toggle">
+                        <div class="mod-toggle">
                             <span class="mod-toggle-label">Tema oscuro</span>
                             <label class="box">
                                 <input type="checkbox"
@@ -281,9 +295,9 @@
                                        @change="$store.cache.setDarkMode($event.target.checked)">
                                 <div class="slider"></div>
                             </label>
-                        </div> -->
+                        </div>
 
-                        <div class="mod-list">
+                        <div class="mod-list" x-show="$store.cache.is_narrow || !$store.cache.menu_grouped">
                             <template x-for="(mod, idx) in $store.cache._settings_modules" :key="mod.slug">
                                 <div class="mod-item hover-opacity white"
                                      draggable="true"
@@ -327,12 +341,57 @@
                             </template>
                         </div>
 
-                        
+                        <!-- Lista agrupada (desktop + menú agrupado): reordena grupos e items -->
+                        <div class="mod-list mod-grouped" x-show="!$store.cache.is_narrow && $store.cache.menu_grouped">
+                            <template x-for="(node, gi) in $store.cache._grouped_nodes" :key="node.key">
+                                <div class="mod-node">
+                                    <div class="mod-item mod-top white"
+                                         draggable="true"
+                                         @dragstart="$store.cache._gDragStart('top', gi, null)"
+                                         @dragover.prevent="$store.cache._gDragOverTop(gi)"
+                                         @dragend="$store.cache._gDragEnd()"
+                                         :class="{'dragging': $store.cache._g_drag && $store.cache._g_drag.level==='top' && $store.cache._g_drag.gi===gi}">
+                                        <div class="mod-drag">
+                                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                                <circle cx="4" cy="3" r="1.2" fill="#999"/><circle cx="10" cy="3" r="1.2" fill="#999"/>
+                                                <circle cx="4" cy="7" r="1.2" fill="#999"/><circle cx="10" cy="7" r="1.2" fill="#999"/>
+                                                <circle cx="4" cy="11" r="1.2" fill="#999"/><circle cx="10" cy="11" r="1.2" fill="#999"/>
+                                            </svg>
+                                        </div>
+                                        <img width="18" height="18" :src="`/static/icons/line/${node.image}`" alt="">
+                                        <span class="mod-name" x-text="node.label"></span>
+                                        <span class="mod-badge" x-show="node.type==='group'" x-text="node.items.length"></span>
+                                    </div>
+                                    <template x-if="node.type==='group'">
+                                        <div class="mod-subitems">
+                                            <template x-for="(it, ii) in node.items" :key="it.slug">
+                                                <div class="mod-item mod-subitem white"
+                                                     draggable="true"
+                                                     @dragstart="$store.cache._gDragStart('item', gi, ii)"
+                                                     @dragover.prevent="$store.cache._gDragOverItem(gi, ii)"
+                                                     @dragend="$store.cache._gDragEnd()"
+                                                     :class="{'dragging': $store.cache._g_drag && $store.cache._g_drag.level==='item' && $store.cache._g_drag.gi===gi && $store.cache._g_drag.ii===ii}">
+                                                    <div class="mod-drag">
+                                                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                                            <circle cx="4" cy="3" r="1.2" fill="#999"/><circle cx="10" cy="3" r="1.2" fill="#999"/>
+                                                            <circle cx="4" cy="7" r="1.2" fill="#999"/><circle cx="10" cy="7" r="1.2" fill="#999"/>
+                                                            <circle cx="4" cy="11" r="1.2" fill="#999"/><circle cx="10" cy="11" r="1.2" fill="#999"/>
+                                                        </svg>
+                                                    </div>
+                                                    <span class="mod-name" x-text="it.label"></span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+
                     </div>
 
                     <div class="buttons">
                         <button class="button save-btn hover-opacity" 
-                            @click="$store.cache.saveModuleSettings()"
+                            @click="$store.cache.saveSettings()"
                             :disabled="$store.cache._settings_saving">
                             <span x-text="$store.cache._settings_saving ? 'Guardando...' : 'Guardar cambios'"></span>
                         </button>
@@ -343,7 +402,7 @@
         
     </template>
     
-    <div id="content" :class="{'sidebar': $store.cache.sidebar, 'menu-expanded': $store.cache.menu_expanded}"></div>
+    <div id="content" :class="{'sidebar': $store.cache.sidebar, 'menu-expanded': !$store.cache.is_narrow}"></div>
 
 
 </body>

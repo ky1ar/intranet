@@ -835,7 +835,7 @@ body.modal-open {
     width: 1.125rem;
     height: 1.125rem;
 }
-#sidebar ul li span {
+#sidebar ul li .nav-tip {
     left: 4rem;
     position: absolute;
     background-color: var(--primary);
@@ -848,7 +848,7 @@ body.modal-open {
     min-width: max-content;
     font-size: 0.75rem;
 }
-#sidebar ul li span:before {
+#sidebar ul li .nav-tip:before {
     content: "";
     display: block;
     border: 0.75rem solid var(--primary);
@@ -860,9 +860,24 @@ body.modal-open {
     left: -1.25rem;
     transform: rotate(90deg);
 }
-#sidebar ul li a:hover + span {
+#sidebar ul li:hover .nav-tip {
     opacity: 1;
     visibility: visible;
+}
+
+/* Separador entre categorías (rail colapsado) */
+#sidebar ul li.group-sep {
+    height: 1px;
+    width: 1.5rem;
+    background: var(--black);
+    opacity: 0.12;
+    margin: 0.15rem auto;
+    padding: 0;
+    pointer-events: none;
+}
+/* Cabecera de categoría: oculta en el rail, visible al expandir */
+#sidebar ul li.group-header {
+    display: none;
 }
 #sidebar .config {
     padding: 0.5rem;
@@ -960,8 +975,78 @@ body.modal-open {
 #sidebar.menu-expanded ul li a span:before {
     content: none;
 }
-#sidebar.menu-expanded ul li a + span {
+#sidebar.menu-expanded ul li .nav-tip {
     display: none;
+}
+#sidebar.menu-expanded ul li.group-sep {
+    display: none;
+}
+#sidebar.menu-expanded ul li.group-header {
+    display: flex;
+    width: 10rem;
+    padding: 0;
+}
+#sidebar.menu-expanded ul li.group-header .group-text {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    height: 2.5rem;
+    padding: 0 0.5rem 0 0.75rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    color: var(--black);
+    transition: var(--transition);
+}
+#sidebar.menu-expanded ul li.group-header .group-text:hover {
+    background-color: var(--newgray);
+}
+#sidebar.menu-expanded ul li.group-header .group-label {
+    flex: 1;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+#sidebar.menu-expanded ul li.group-header .group-chevron {
+    opacity: 0.5;
+    transition: var(--transition);
+}
+#sidebar.menu-expanded ul li.group-header .group-text.collapsed .group-chevron {
+    transform: rotate(-90deg);
+}
+
+/* Sub-página (modo expandido): sin icono, indentada con línea de árbol */
+#sidebar.menu-expanded ul li.subpage {
+    width: 10rem;
+    position: relative;
+}
+#sidebar.menu-expanded ul li.subpage::before {
+    content: "";
+    position: absolute;
+    left: 1.35rem;
+    top: -0.4rem;
+    height: calc(100% + 0.4rem);
+    width: 1px;
+    background: var(--black);
+    opacity: 0.18;
+}
+#sidebar.menu-expanded ul li.subpage.last::before {
+    height: calc(50% + 0.4rem);
+}
+#sidebar.menu-expanded ul li.subpage::after {
+    content: "";
+    position: absolute;
+    left: 1.35rem;
+    top: 50%;
+    width: 0.55rem;
+    height: 1px;
+    background: var(--black);
+    opacity: 0.18;
+}
+#sidebar.menu-expanded ul li.subpage a {
+    margin-left: 2.1rem;
+    padding: 0 0.6rem;
+    width: auto;
+    flex: 1;
 }
 #sidebar.menu-expanded ul li.active a {
     background-color: var(--primary);
@@ -1244,6 +1329,35 @@ body.modal-open {
 }
 .mod-settings .mod-item.dragging {
     opacity: 0.4;
+}
+/* Lista agrupada (reordenar grupos + items dentro de cada grupo) */
+.mod-settings .mod-grouped .mod-node {
+    border-bottom: 2px solid hsl(0deg 0% 0% / 6%);
+}
+.mod-settings .mod-grouped .mod-node:last-child {
+    border-bottom: none;
+}
+.mod-settings .mod-grouped .mod-item {
+    border-bottom: none;
+}
+.mod-settings .mod-grouped .mod-top .mod-name {
+    font-weight: 600;
+}
+.mod-settings .mod-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    opacity: 0.5;
+    min-width: 1.1rem;
+    text-align: center;
+}
+.mod-settings .mod-subitems {
+    margin-left: 1.75rem;
+    border-left: 2px solid hsl(0deg 0% 0% / 8%);
+    padding-left: 0.25rem;
+}
+.mod-settings .mod-subitem .mod-name {
+    font-weight: 400;
+    font-size: 0.82rem;
 }
 .mod-settings .mod-drag {
     cursor: grab;

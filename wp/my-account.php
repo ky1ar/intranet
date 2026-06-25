@@ -1162,7 +1162,7 @@ document.addEventListener("DOMContentLoaded", () => {
 				<p>Accede a nuestros servicios especiales para clientes Krear 3D.</p>
 			</div>
 
-			<div class="servicios-cards">
+			<div class="servicios-cards" id="k3d-servicios-cards">
 				<div class="servicio-card" data-type="curso-fdm">
 					<div class="top">
 						<div class="data">
@@ -1231,7 +1231,7 @@ document.addEventListener("DOMContentLoaded", () => {
 						</div>
 
 						<div class="image">
-							<img src="https://www.tiendakrear3d.com/wp-content/uploads/2026/06/stl.webp">
+							<img src="https://www.tiendakrear3d.com/wp-content/uploads/2026/06/stl-2.webp">
 						</div>
 					</div>
 
@@ -1447,15 +1447,73 @@ document.addEventListener("DOMContentLoaded", () => {
 			.servicio-card .bottom .action.is-pending:hover { opacity: 1; }
 			.servicio-card .bottom .action.is-rejected { background-color: var(--secondary); cursor: default; }
 			.servicio-card .bottom .action.is-rejected:hover { opacity: 1; }
+			/* Responsive para tablets y laptops pequeñas (1220px a 769px) */
+			@media (max-width: 1220px) {
+				.servicio-card .bottom {
+					display: grid;
+					grid-template-columns: auto 1fr;
+					gap: 0.5rem 1rem;
+				}
+
+				.servicio-card .bottom .action {
+					grid-column: 1 / -1;
+					width: 100%;
+					justify-content: center;
+				}
+			}
+
+			/* Responsive para pantallas menores (<= 1000px) */
+			@media (max-width: 1000px) {
+				.servicios-cards {
+					grid-template-columns: 1fr;
+				}
+			}
+
+			/* Responsive para celulares (<= 480px) y laptops intermedias (1001px - 1150px) */
+			@media (max-width: 480px),
+			(min-width: 1001px) and (max-width: 1150px) {
+				.servicio-card .top {
+					flex-direction: column;
+				}
+
+				.servicio-card .top .data {
+					display: block;
+				}
+
+				.servicio-card .top .data span {
+					display: block;
+					width: max-content;
+					margin-bottom: 0.5rem;
+				}
+
+				.servicio-card .top .data .title,
+				.servicio-card .top .data .type {
+					display: inline-block;
+					margin-top: 0;
+				}
+
+				.servicio-card .top .data .type {
+					margin-left: 0.3rem;
+				}
+
+				.servicio-card .top .data p {
+					display: block;
+					margin-top: 0.25rem;
+					max-width: 100%;
+				}
+
+				.servicio-card .top .image {
+					margin: 0 auto;
+					justify-content: center;
+					margin-top: 1rem;
+				}
+			}
 			</style>
 
 			<script>
             (function() {
-                const API        = 'https://devapi.krear3d.com';
-                // const API        = 'https://api.krear3d.com';
-                const PLATFORM   = 'https://stag.krear3d.com/';
-                // const PLATFORM   = 'https://cursoskrear3d.com/';
-
+                const API        = 'https://api.krear3d.com';
+                const PLATFORM   = 'https://cursoskrear3d.com/';
                 const WP_USER_ID = <?php echo (int) $wp_user_id; ?>;
                 const WP_EMAIL   = <?php echo json_encode( $wp_user_email ); ?>;
                 const WP_USERNAME = <?php echo json_encode( $wp_user_display ); ?>;
@@ -2171,15 +2229,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
 			<script>
 			(function() {
-				// const API         = 'https://api.krear3d.com';
-				const API         = 'https://devapi.krear3d.com';
+				const API         = 'https://api.krear3d.com';
 				const WP_USER_ID  = <?php echo (int) $gwa_user_id; ?>;
 				const WP_EMAIL    = <?php echo json_encode( $gwa_user_email ); ?>;
 				const WP_PHONE    = <?php echo json_encode( $gwa_user_phone ?: '' ); ?>;
 				const WP_DNI      = <?php echo json_encode( $gwa_user_dni ?: '' ); ?>;
 
-				// const INTRANET     = 'https://intranet.krear3d.com';
-				const INTRANET     = 'https://devintranet.krear3d.com';
+				const INTRANET     = 'https://intranet.krear3d.com';
 				const MACHINES_URL = `${INTRANET}/static/images/uploads/machines/`;
 				const BRANDS_URL = `${INTRANET}/static/images/uploads/brands/`;
 

@@ -99,6 +99,7 @@ document.addEventListener('alpine:init', () => {
         async init() {
             Alpine.store('cache').detectPlatform();
             Alpine.store('cache').watchViewport();
+            Alpine.store('cache').openActivePageGroup();
             console.log('Inicializando Alpine...');
 
             // Alpine.store('cache').initSocket();
@@ -137,26 +138,42 @@ document.addEventListener('alpine:init', () => {
         user: {},
         active_page: window.location.pathname,
          module_ui: {
-            attendance:  { image: 'attendance.svg', label: 'Asistencia',     title: 'Krear 3D - Asistencia' },
-            schedule:    { image: 'calendar.svg',   label: 'Agenda',         title: 'Krear 3D - Agenda' },
-            board:       { image: 'board.svg',      label: 'Actividades',    title: 'Krear 3D - Actividades' },
-            logistics:   { image: 'logistics.svg',  label: 'Envíos',        title: 'Krear 3D - Envíos' },
-            warehouse:   { image: 'warehouse.svg',  label: 'Almacén',       title: 'Krear 3D - Almacén' },
-            tracking:    { image: 'tracking.svg',   label: 'Tracking',      title: 'Krear 3D - Trackings' },
-            support:     { image: 'support.svg',    label: 'Soporte',       title: 'Krear 3D - Soporte' },
-            purchases:   { image: 'purchases.svg',  label: 'Compras',       title: 'Krear 3D - Compras' },
-            imports:     { image: 'imports.svg',    label: 'Importaciones', title: 'Krear 3D - Importaciones' },
-            complaint:   { image: 'complaint.svg',  label: 'Reclamos',      title: 'Krear 3D - Reclamos' },
-            driver:      { image: 'driver.svg',     label: 'Conductor',     title: 'Krear 3D - Conductor' },
-            guest:       { image: 'fabrix.svg',     label: 'Fabrix',        title: 'Krear 3D - Fabrix' },
-            marketing:   { image: 'marketing.svg',  label: 'Marketing',     title: 'Krear 3D - Marketing' },
-            schedules:   { image: 'schedule.svg',   label: 'Horarios',      title: 'Krear 3D - Horarios' },
-            refunds:     { image: 'refund.svg',     label: 'Extornos',      title: 'Krear 3D - Extornos' },
-            safebuy:     { image: 'safebuy.svg',    label: 'Compra Segura', title: 'Krear 3D - Compra Segura' },
-            approvals:     { image: 'approval.svg',       label: 'Aprobaciones',   title: 'Krear 3D - Aprobaciones' },
-            conversations: { image: 'marketing.svg',     label: 'Conversaciones', title: 'Krear 3D - Conversaciones' },
-            admin:         { image: 'admin.svg',         label: 'Admin',          title: 'Krear 3D - Admin' },
+            attendance:  { image: 'attendance.svg', label: 'Asistencia',     title: 'Krear 3D - Asistencia',      category: 'General' },
+            schedule:    { image: 'calendar.svg',   label: 'Agenda',         title: 'Krear 3D - Agenda',          category: 'General' },
+            schedules:   { image: 'schedule.svg',   label: 'Horarios',       title: 'Krear 3D - Horarios',        category: 'General' },
+            board:       { image: 'board.svg',      label: 'Actividades',    title: 'Krear 3D - Actividades',     category: 'General' },
+            logistics:   { image: 'logistics.svg',  label: 'Envíos',         title: 'Krear 3D - Envíos',          category: 'Logística' },
+            warehouse:   { image: 'warehouse.svg',  label: 'Almacén',        title: 'Krear 3D - Almacén',         category: 'Logística' },
+            tracking:    { image: 'tracking.svg',   label: 'Tracking',       title: 'Krear 3D - Trackings',       category: 'Logística' },
+            driver:      { image: 'driver.svg',     label: 'Conductor',      title: 'Krear 3D - Conductor',       category: 'Logística' },
+            imports:     { image: 'imports.svg',    label: 'Importaciones',  title: 'Krear 3D - Importaciones',   category: 'Compras' },
+            purchases:   { image: 'purchases.svg',  label: 'Compras',        title: 'Krear 3D - Compras',         category: 'Compras' },
+            marketing:   { image: 'marketing.svg',  label: 'Marketing',      title: 'Krear 3D - Marketing',       category: 'Comercial' },
+            conversations: { image: 'marketing.svg', label: 'Conversaciones', title: 'Krear 3D - Conversaciones', category: 'Comercial' },
+            guest:       { image: 'fabrix.svg',     label: 'Fabrix',         title: 'Krear 3D - Fabrix',          category: 'Soporte' },
+            safebuy:     { image: 'safebuy.svg',    label: 'Compra Segura',  title: 'Krear 3D - Compra Segura',   category: 'Comercial' },
+            support:     { image: 'support.svg',    label: 'Taller',        title: 'Krear 3D - Soporte',         category: 'Soporte' },
+            complaint:   { image: 'complaint.svg',  label: 'Reclamos',       title: 'Krear 3D - Reclamos',        category: 'Administración' },
+            refunds:     { image: 'refund.svg',     label: 'Extornos',       title: 'Krear 3D - Extornos',        category: 'Administración' },
+            approvals:   { image: 'approval.svg',   label: 'Aprobaciones',   title: 'Krear 3D - Aprobaciones',    category: 'Comercial' },
+            admin:       { image: 'admin.svg',      label: 'Admin',          title: 'Krear 3D - Admin'},
         },
+
+        // Categorías del sidebar. El ORDEN es el de este objeto.
+        // 'icon' lo defines tú (archivo en /static/icons/line/). 'label' es el texto visible.
+        // Un módulo cuyo module_ui.category NO esté aquí (o sea null) se muestra como
+        // página directa (top-level, con su propio icono). Si está aquí, es sub-página.
+        categories: {
+            'Logística': { label: 'Logística', icon: 'logistics.svg' },
+            'Comercial': { label: 'Comercial', icon: 'safebuy.svg' },
+            Compras:   { label: 'Compras',   icon: 'purchases.svg' },
+            'Soporte':  { label: 'Soporte',    icon: 'support.svg' },
+            General:      { label: 'General',      icon: 'attendance.svg' },
+        'Administración':       { label: 'Administración',       icon: 'admin.svg' },
+        },
+
+        // Categorías plegadas en modo expandido (acordeón), persistidas en localStorage.
+        collapsed_categories: JSON.parse(localStorage.getItem('collapsed_categories') || '[]'),
 
 
         modals: new Set(),
@@ -172,13 +189,15 @@ document.addEventListener('alpine:init', () => {
         pdf_url: null,
         pdf_title: 'Reglamento',
         sidebar_expanded: false,
-        menu_expanded: localStorage.getItem('menu_expanded') === '1',
+        menu_grouped: localStorage.getItem('menu_grouped') === null ? true : localStorage.getItem('menu_grouped') === '1',
         dark_mode: localStorage.getItem('dark_mode') === '1',
         is_narrow: window.innerWidth < 768,
         _settings_modules: [],
         _settings_saving: false,
         _drag_idx: null,
         _drag_over_idx: null,
+        _grouped_nodes: [],
+        _g_drag: null,
 
         openModuleSettings() {
             const modules = this.user.modules;
@@ -195,12 +214,13 @@ document.addEventListener('alpine:init', () => {
                     sort_order: i,
                 }));
 
+            this._buildGroupedNodes();
             this.showModal('module-settings');
         },
 
-        setMenuExpanded(val) {
-            this.menu_expanded = val;
-            localStorage.setItem('menu_expanded', val ? '1' : '0');
+        setMenuGrouped(val) {
+            this.menu_grouped = val;
+            localStorage.setItem('menu_grouped', val ? '1' : '0');
         },
         setDarkMode(val) {
             this.dark_mode = val;
@@ -268,6 +288,129 @@ document.addEventListener('alpine:init', () => {
                 this.hideModal('module-settings');
             } catch (e) {
                 console.error('Error guardando settings:', e);
+            } finally {
+                this._settings_saving = false;
+            }
+        },
+
+        // ---- Modo agrupado: estructura editable (grupos + páginas directas) ----
+        _buildGroupedNodes() {
+            const modules = this.user.modules || [];
+            const catKeys = Object.keys(this.categories);
+
+            const byCat = new Map();
+            const direct = [];
+            for (const m of modules) {
+                const ui = this.module_ui[m.slug] || {};
+                const cat = (ui.category && this.categories[ui.category]) ? ui.category : null;
+                const page = { slug: m.slug, label: ui.label || m.name, image: ui.image || m.slug, sort: m.sort_order };
+                if (!cat) { direct.push(page); continue; }
+                if (!byCat.has(cat)) byCat.set(cat, []);
+                byCat.get(cat).push(page);
+            }
+            for (const arr of byCat.values()) arr.sort((a, b) => a.sort - b.sort);
+
+            const nodes = [];
+            for (const p of direct) {
+                nodes.push({ type: 'page', key: 'p:' + p.slug, slug: p.slug, label: p.label, image: p.image, sort: p.sort, catIndex: -1 });
+            }
+            for (const [cat, members] of byCat.entries()) {
+                const def = this.categories[cat];
+                nodes.push({
+                    type: 'group',
+                    key: 'g:' + cat,
+                    category: cat,
+                    label: def.label || cat,
+                    image: def.icon,
+                    sort: Math.min(...members.map(m => m.sort)),
+                    catIndex: catKeys.indexOf(cat),
+                    items: members.map(m => ({ slug: m.slug, label: m.label })),
+                });
+            }
+
+            // Mismo orden que el sidebar: nav_order si existe; luego sort + def. de categorías
+            const navOrder = Array.isArray(this.user.nav_order) ? this.user.nav_order : [];
+            const navPos = (k) => { const i = navOrder.indexOf(k); return i < 0 ? Infinity : i; };
+            nodes.sort((a, b) => {
+                const pa = navPos(a.key), pb = navPos(b.key);
+                if (pa !== pb) return pa - pb;
+                if (a.sort !== b.sort) return a.sort - b.sort;
+                return a.catIndex - b.catIndex;
+            });
+
+            this._grouped_nodes = nodes;
+        },
+
+        _gDragStart(level, gi, ii) {
+            this._g_drag = { level, gi, ii };
+        },
+        _gDragOverTop(gi) {
+            const d = this._g_drag;
+            if (!d || d.level !== 'top' || d.gi === gi) return;
+            const arr = this._grouped_nodes;
+            arr.splice(gi, 0, arr.splice(d.gi, 1)[0]);
+            d.gi = gi;
+        },
+        _gDragOverItem(gi, ii) {
+            const d = this._g_drag;
+            if (!d || d.level !== 'item' || d.gi !== gi || d.ii === ii) return;
+            const items = this._grouped_nodes[gi].items;
+            items.splice(ii, 0, items.splice(d.ii, 1)[0]);
+            d.ii = ii;
+        },
+        _gDragEnd() {
+            this._g_drag = null;
+        },
+
+        // Dispatcher de guardado según el modo activo
+        saveSettings() {
+            if (this.menu_grouped && !this.is_narrow) return this.saveGroupedOrder();
+            return this.saveModuleSettings();
+        },
+
+        async saveGroupedOrder() {
+            this._settings_saving = true;
+            const token = localStorage.getItem('user_token');
+            try {
+                const nav_order = this._grouped_nodes.map(n => n.key);
+
+                // sort_order secuencial sobre el aplanado (items de grupos + páginas directas)
+                const flat = [];
+                for (const n of this._grouped_nodes) {
+                    if (n.type === 'group') n.items.forEach(it => flat.push(it.slug));
+                    else flat.push(n.slug);
+                }
+                const sortMap = {};
+                flat.forEach((slug, i) => { sortMap[slug] = i; });
+
+                const modules = this.user.modules.map(m => ({
+                    module_id: m.module_id,
+                    sort_order: sortMap[m.slug] !== undefined ? sortMap[m.slug] : m.sort_order,
+                    is_pinned: m.is_pinned,
+                    is_default: m.is_default,
+                })).filter(m => m.module_id);
+
+                await fetch(`${this.api}/modules/me/settings`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'X-No-Toast': '1',
+                    },
+                    body: JSON.stringify({ modules, nav_order }),
+                });
+
+                // Actualizar store local
+                this.user.nav_order = nav_order;
+                this.user.modules.forEach(m => {
+                    if (sortMap[m.slug] !== undefined) m.sort_order = sortMap[m.slug];
+                });
+
+                PineToast.flash('Orden guardado', 'success');
+                this.hideModal('module-settings');
+            } catch (e) {
+                console.error('Error guardando orden:', e);
+                PineToast.flash('No se pudo guardar el orden', 'error');
             } finally {
                 this._settings_saving = false;
             }
@@ -605,6 +748,136 @@ document.addEventListener('alpine:init', () => {
                 });
         },
 
+        // Estructura del sidebar:
+        //  - Agrupado (desktop, por defecto): árbol con TODOS los menús (ignora is_pinned),
+        //    páginas directas (top-level con icono) + categorías (icono + sub-páginas indentadas).
+        //  - Plano (mobile rail + desktop con "Menú agrupado" apagado): lista por pin + reveal (logo).
+        getSidebarItems() {
+            const modules = this.user.modules;
+            if (!modules || !modules.length) return [];
+
+            const grouped = this.menu_grouped && !this.is_narrow;
+
+            const toPage = (m) => {
+                const ui = this.module_ui[m.slug] || {};
+                const cat = (ui.category && this.categories[ui.category]) ? ui.category : null;
+                return {
+                    slug: m.slug,
+                    name: m.slug,
+                    label: ui.label || m.name,
+                    image: ui.image || m.slug,
+                    category: cat,
+                    sort: m.sort_order,
+                };
+            };
+
+            // ---- Modo plano: mobile (rail) o desktop con agrupado apagado ----
+            // Respeta is_pinned y el reveal por logo (sidebar_expanded).
+            if (!grouped) {
+                const visible = (m) => m.is_pinned || this.sidebar_expanded;
+                return modules
+                    .filter(visible)
+                    .sort((a, b) => a.sort_order - b.sort_order)
+                    .map(m => {
+                        const p = toPage(m);
+                        return { type: 'page', key: 'p:' + p.slug, ...p };
+                    });
+            }
+
+            // ---- Modo agrupado (desktop): TODOS los menús, ignora is_pinned ----
+            const pages = modules.map(toPage);
+
+            // Agrupar sub-páginas por categoría
+            const byCat = new Map();
+            for (const p of pages) {
+                if (!p.category) continue;
+                if (!byCat.has(p.category)) byCat.set(p.category, []);
+                byCat.get(p.category).push(p);
+            }
+
+            // Entradas top-level: páginas directas + categorías (con >=1 página)
+            const catKeys = Object.keys(this.categories);
+            const entries = [];
+            for (const p of pages) {
+                if (!p.category) entries.push({ kind: 'page', key: 'p:' + p.slug, sort: p.sort, page: p });
+            }
+            for (const [cat, members] of byCat.entries()) {
+                members.sort((a, b) => a.sort - b.sort);
+                entries.push({
+                    kind: 'cat',
+                    key: 'g:' + cat,
+                    sort: Math.min(...members.map(m => m.sort)),
+                    catIndex: catKeys.indexOf(cat),
+                    category: cat,
+                    members,
+                });
+            }
+
+            // Orden top-level: nav_order del usuario (si existe); luego default (sort_order + def. de categorías)
+            const navOrder = Array.isArray(this.user.nav_order) ? this.user.nav_order : [];
+            const navPos = (k) => {
+                const i = navOrder.indexOf(k);
+                return i < 0 ? Infinity : i;
+            };
+            entries.sort((a, b) => {
+                const pa = navPos(a.key), pb = navPos(b.key);
+                if (pa !== pb) return pa - pb;
+                if (a.sort !== b.sort) return a.sort - b.sort;
+                return (a.kind === 'cat' ? a.catIndex : -1) - (b.kind === 'cat' ? b.catIndex : -1);
+            });
+
+            const items = [];
+            for (const e of entries) {
+                if (e.kind === 'page') {
+                    items.push({ type: 'page', key: 'p:' + e.page.slug, ...e.page });
+                    continue;
+                }
+                const def = this.categories[e.category];
+                const collapsed = this.collapsed_categories.includes(e.category);
+                items.push({
+                    type: 'header',
+                    key: 'h:' + e.category,
+                    category: e.category,
+                    label: def.label || e.category,
+                    image: def.icon,
+                    collapsed,
+                });
+                if (!collapsed) {
+                    e.members.forEach((m, i) => {
+                        items.push({
+                            type: 'subpage',
+                            key: 's:' + m.slug,
+                            name: m.slug,
+                            label: m.label,
+                            last: i === e.members.length - 1,
+                        });
+                    });
+                }
+            }
+            return items;
+        },
+
+        // Plegar/desplegar una categoría del sidebar (modo agrupado)
+        toggleCategory(cat) {
+            const i = this.collapsed_categories.indexOf(cat);
+            if (i >= 0) this.collapsed_categories.splice(i, 1);
+            else this.collapsed_categories.push(cat);
+            localStorage.setItem('collapsed_categories', JSON.stringify(this.collapsed_categories));
+        },
+
+        // Al cargar/refrescar: abre el grupo de la página activa una sola vez (luego se puede cerrar manualmente)
+        openActivePageGroup() {
+            const activeSlug = (this.active_page || '').replace('/', '');
+            const ui = this.module_ui[activeSlug];
+            const cat = ui && ui.category;
+            if (!cat) return;
+            const i = this.collapsed_categories.indexOf(cat);
+            if (i >= 0) {
+                this.collapsed_categories.splice(i, 1);
+                localStorage.setItem('collapsed_categories', JSON.stringify(this.collapsed_categories));
+            }
+        },
+
         // Verificar si el usuario tiene un permiso específico
         hasPermission(moduleSlug, permissionSlug) {
             const modules = this.user.modules;
@@ -653,9 +926,9 @@ document.addEventListener('alpine:init', () => {
             localStorage.removeItem('push_token');
             localStorage.removeItem('push_device_id');
             localStorage.removeItem('device_id');
-            localStorage.removeItem('menu_expanded');
+            localStorage.removeItem('menu_grouped');
             localStorage.removeItem('sidebar_expanded');
-            this.menu_expanded = false;
+            this.menu_grouped = true;
             this.sidebar_expanded = false;
             window.PineconeRouter.context.navigate('/');
         },

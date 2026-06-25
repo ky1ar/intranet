@@ -45,9 +45,10 @@ class ModuleController:
     def save_my_settings(self, data):
         user_id = data.get('user_id')
         modules_data = data.get('modules', [])
+        nav_order = data.get('nav_order')
         if not modules_data:
             return "modules requerido", 400
-        return self.module.save_my_settings(user_id, modules_data)
+        return self.module.save_my_settings(user_id, modules_data, nav_order)
 
 
     @handle_logs_and_exceptions
