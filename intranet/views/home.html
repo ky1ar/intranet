@@ -1,5 +1,13 @@
 <div x-data="home_data">
 	<div id="home">
+		<div class="tiles">
+			<template x-for="tile in $store.cache.getAllTiles()" :key="tile.name">
+				<a class="tile hover-opacity" :href="`/${tile.name}`">
+					<img :src="`/static/icons/line/${tile.image}`" width="28" height="28" alt="">
+					<span x-text="tile.label"></span>
+				</a>
+			</template>
+		</div>
 		
 	</div>
 
@@ -31,6 +39,31 @@
 			gap: 1rem;
 			margin: 0 auto;
 			max-width: 118rem;
+		}
+		#home .tiles {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+			gap: 1rem;
+		}
+		#home .tile {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			gap: 0.6rem;
+			padding: 1.5rem 1rem;
+			background: var(--white);
+			border-radius: 1rem;
+			box-shadow: 0 1px 3px hsl(0deg 0% 0% / 6%);
+			text-align: center;
+			transition: var(--transition);
+		}
+		#home .tile:hover {
+			transform: translateY(-2px);
+		}
+		#home .tile span {
+			font-size: 0.85rem;
+			font-weight: 500;
 		}
 		#home .content {
 			display: flex;

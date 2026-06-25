@@ -156,7 +156,7 @@ document.addEventListener('alpine:init', () => {
             complaint:   { image: 'complaint.svg',  label: 'Reclamos',       title: 'Krear 3D - Reclamos',        category: 'Administración' },
             refunds:     { image: 'refund.svg',     label: 'Extornos',       title: 'Krear 3D - Extornos',        category: 'Administración' },
             approvals:   { image: 'approval.svg',   label: 'Aprobaciones',   title: 'Krear 3D - Aprobaciones',    category: 'Comercial' },
-            admin:       { image: 'admin.svg',      label: 'Admin',          title: 'Krear 3D - Admin'},
+            admin:       { image: 'admin.svg',      label: 'Admin',          title: 'Krear 3D - Admin',      category: 'General' },
         },
 
         // Categorías del sidebar. El ORDEN es el de este objeto.
@@ -164,12 +164,12 @@ document.addEventListener('alpine:init', () => {
         // Un módulo cuyo module_ui.category NO esté aquí (o sea null) se muestra como
         // página directa (top-level, con su propio icono). Si está aquí, es sub-página.
         categories: {
-            'Logística': { label: 'Logística', icon: 'logistics.svg' },
-            'Comercial': { label: 'Comercial', icon: 'safebuy.svg' },
-            Compras:   { label: 'Compras',   icon: 'purchases.svg' },
-            'Soporte':  { label: 'Soporte',    icon: 'support.svg' },
-            General:      { label: 'General',      icon: 'attendance.svg' },
-        'Administración':       { label: 'Administración',       icon: 'admin.svg' },
+            'Logística': { label: 'Logística', icon: 'org_box.svg' },
+            'Comercial': { label: 'Comercial', icon: 'org_trend.svg' },
+            Compras:   { label: 'Compras',   icon: 'org_cart.svg' },
+            'Soporte':  { label: 'Soporte',    icon: 'org_wrench.svg' },
+            General:      { label: 'General',      icon: 'org_menu.svg' },
+            'Administración':       { label: 'Administración',       icon: 'org_folder.svg' },
         },
 
         // Categorías plegadas en modo expandido (acordeón), persistidas en localStorage.
@@ -849,6 +849,7 @@ document.addEventListener('alpine:init', () => {
                             key: 's:' + m.slug,
                             name: m.slug,
                             label: m.label,
+                            image: m.image,
                             last: i === e.members.length - 1,
                         });
                     });
@@ -876,6 +877,23 @@ document.addEventListener('alpine:init', () => {
                 this.collapsed_categories.splice(i, 1);
                 localStorage.setItem('collapsed_categories', JSON.stringify(this.collapsed_categories));
             }
+        },
+
+        // Navega al home (grilla de todas las páginas)
+        goHome() {
+            window.PineconeRouter.context.navigate('/home');
+        },
+
+        // Todas las páginas accesibles como tiles (icono + label) para la grilla del home.
+        getAllTiles() {
+            const modules = this.user.modules || [];
+            return modules
+                .slice()
+                .sort((a, b) => a.sort_order - b.sort_order)
+                .map(m => {
+                    const ui = this.module_ui[m.slug] || {};
+                    return { name: m.slug, label: ui.label || m.name, image: ui.image || m.slug };
+                });
         },
 
         // Verificar si el usuario tiene un permiso específico
