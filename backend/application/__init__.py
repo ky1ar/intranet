@@ -66,6 +66,7 @@ from application.routes.guide_routes import guide_bp
 from application.routes.conversation_routes import conversation_bp
 from application.routes.analytics_routes import analytics_bp
 from application.routes.wordpress_routes import wordpress_bp
+from application.routes.order_routes import order_bp
 
 
 app.register_blueprint(dev_bp)
@@ -94,6 +95,7 @@ app.register_blueprint(guide_bp)
 app.register_blueprint(conversation_bp)
 app.register_blueprint(analytics_bp)
 app.register_blueprint(wordpress_bp)
+app.register_blueprint(order_bp)
 
 
 def api_key_required():

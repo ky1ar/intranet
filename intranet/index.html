@@ -61,6 +61,7 @@
     <template x-route="/safebuy"    x-handler="loginVerify" x-template.preload.target.content="/views/safebuy.html"></template>
     <template x-route="/refunds"    x-handler="loginVerify" x-template.preload.target.content="/views/refunds.html"></template>
     <template x-route="/approvals"  x-handler="loginVerify" x-template.preload.target.content="/views/approvals.html"></template>
+    <template x-route="/orders"     x-handler="loginVerify" x-template.preload.target.content="/views/orders.html"></template>
     <template x-route="/admin"      x-handler="loginVerify" x-template.preload.target.content="/views/admin.html"></template>
     <template x-route="/conversations"      x-handler="loginVerify" x-template.preload.target.content="/views/conversations.html"></template>
     
@@ -288,7 +289,7 @@
                                 <div class="slider"></div>
                             </label>
                         </div>
-                        <div class="mod-toggle">
+                        <!-- <div class="mod-toggle">
                             <span class="mod-toggle-label">Tema oscuro</span>
                             <label class="box">
                                 <input type="checkbox"
@@ -296,7 +297,7 @@
                                        @change="$store.cache.setDarkMode($event.target.checked)">
                                 <div class="slider"></div>
                             </label>
-                        </div>
+                        </div> -->
 
                         <div class="mod-list" x-show="$store.cache.is_narrow || !$store.cache.menu_grouped">
                             <template x-for="(mod, idx) in $store.cache._settings_modules" :key="mod.slug">
@@ -318,8 +319,7 @@
                                         </svg>
                                     </div>
 
-                                    <img width="18" height="18" 
-                                         :src="`/static/icons/line/${$store.cache.module_ui[mod.slug]?.image || mod.slug}`" alt="">
+                                    <img width="18" height="18" :src="`/static/icons/line/${$store.cache.module_ui[mod.slug]?.image || mod.slug}`" alt="">
                                     
                                     <span class="mod-name" x-text="$store.cache.module_ui[mod.slug]?.label || mod.name"></span>
 
@@ -346,7 +346,7 @@
                         <div class="mod-list mod-grouped" x-show="!$store.cache.is_narrow && $store.cache.menu_grouped">
                             <template x-for="(node, gi) in $store.cache._grouped_nodes" :key="node.key">
                                 <div class="mod-node">
-                                    <div class="mod-item mod-top white"
+                                    <div class="mod-item hover-opacity mod-top white"
                                          draggable="true"
                                          @dragstart="$store.cache._gDragStart('top', gi, null)"
                                          @dragover.prevent="$store.cache._gDragOverTop(gi)"
@@ -366,7 +366,7 @@
                                     <template x-if="node.type==='group'">
                                         <div class="mod-subitems">
                                             <template x-for="(it, ii) in node.items" :key="it.slug">
-                                                <div class="mod-item mod-subitem white"
+                                                <div class="mod-item hover-opacity mod-subitem white"
                                                      draggable="true"
                                                      @dragstart="$store.cache._gDragStart('item', gi, ii)"
                                                      @dragover.prevent="$store.cache._gDragOverItem(gi, ii)"
@@ -379,6 +379,8 @@
                                                             <circle cx="4" cy="11" r="1.2" fill="#999"/><circle cx="10" cy="11" r="1.2" fill="#999"/>
                                                         </svg>
                                                     </div>
+                                                    <img width="18" height="18" :src="`/static/icons/line/${it.image}`" alt="">
+
                                                     <span class="mod-name" x-text="it.label"></span>
                                                 </div>
                                             </template>

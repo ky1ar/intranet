@@ -1,0 +1,710 @@
+<div x-data="orders_data">
+	<div id="orders">
+		<div class="controls">
+			<div class="toggle-collapse frost" @click="viewHistory()">
+				<div class="item">
+					<img alt="" width="18" height="18" src="/static/icons/line/history.svg">
+				</div>
+			</div>
+
+			<div class="left mobile-hide frost">
+				<div class="item" @click="search()">
+					<img alt="" width="20" height="20" src="/static/icons/line/find.svg">
+					<span>Buscar</span>
+				</div>
+				<div class="item" @click="viewHistory()">
+					<img alt="" width="20" height="20" src="/static/icons/line/history.svg">
+					<span>Historial</span>
+				</div>
+			</div>
+		</div>
+
+		<!-- Kanban -->
+		<div class="main glass">
+			<template x-for="group in ($store.cache.getData('order_dashboard') || [])" :key="group.status_slug">
+				<div class="group">
+					<div class="group-head">
+						<img alt="" width="18" height="18" :src="statusIcon(group.status_slug)">
+						<span class="group-name" x-text="group.status_name"></span>
+						<span class="group-count" x-text="group.orders.length"></span>
+					</div>
+
+					<template x-for="order in group.orders" :key="order.id">
+						<div class="req-card white hover-opacity" @click="openDetail(order)">
+							<div class="req-top">
+								<span class="req-id" x-text="`WC-${order.order_number || order.wc_order_id}`"></span>
+								<span class="req-date" x-text="order.created_at"></span>
+							</div>
+							<div class="req-name" x-text="order.client_name || '—'"></div>
+							<div class="req-foot">
+								<span class="req-total" x-text="formatMoney(order.total, order.currency)"></span>
+								<span class="req-pay" x-text="order.payment_method_title || '—'"></span>
+							</div>
+						</div>
+					</template>
+
+					<template x-if="group.orders.length === 0">
+						<div class="group-empty">Sin pedidos</div>
+					</template>
+				</div>
+			</template>
+		</div>
+
+		<!-- ── Modal detalle ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('order-detail')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap common-modal"
+			id="modal-order-detail"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2 small" @click.stop x-show="detail">
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="title">
+					<div class="title-row">
+						<span x-text="`WC-${detail?.order_number || detail?.wc_order_id || ''}`"></span>
+						<span class="req-badge" :class="statusClass(detail?.status)" x-text="statusLabel(detail?.status)"></span>
+					</div>
+					<p class="created">
+						<img alt="" width="14" height="14" src="/static/icons/line/calendar.svg">
+						<span x-text="detail?.order_date || detail?.created_at"></span>
+					</p>
+				</div>
+
+				<div class="modal-content">
+					<div class="dataview overflow">
+						<div class="boxes">
+
+							<!-- Pedido -->
+							<div class="box-cont">
+								<div class="desc">Pedido</div>
+								<div class="white info-box">
+									<div class="info-row">
+										<img alt="" width="16" height="16" src="/static/icons/line/tag.svg">
+										<span class="lbl">N° pedido</span>
+										<span class="val" x-text="detail?.order_number || detail?.wc_order_id || '—'"></span>
+									</div>
+									<div class="info-row">
+										<img alt="" width="16" height="16" src="/static/icons/line/money.svg">
+										<span class="lbl">Total</span>
+										<span class="val" x-text="formatMoney(detail?.total, detail?.currency)"></span>
+									</div>
+									<div class="info-row">
+										<img alt="" width="16" height="16" src="/static/icons/line/invoice.svg">
+										<span class="lbl">Pago</span>
+										<span class="val" x-text="detail?.payment_method_title || '—'"></span>
+									</div>
+									<div class="info-row">
+										<img alt="" width="16" height="16" src="/static/icons/line/progress.svg">
+										<span class="lbl">Estado web</span>
+										<span class="val" x-text="detail?.wc_status || '—'"></span>
+									</div>
+								</div>
+							</div>
+
+							<!-- Cliente -->
+							<div class="box-cont">
+								<div class="desc">Cliente</div>
+								<div class="white info-box">
+									<div class="info-row">
+										<img alt="" width="16" height="16" src="/static/icons/line/user.svg">
+										<span class="lbl">Nombre</span>
+										<span class="val" x-text="detail?.client_name || '—'"></span>
+									</div>
+									<div class="info-row">
+										<img alt="" width="16" height="16" src="/static/icons/line/id.svg">
+										<span class="lbl">DNI/RUC</span>
+										<span class="val" x-text="detail?.client_dni || '—'"></span>
+									</div>
+									<div class="info-row">
+										<img alt="" width="16" height="16" src="/static/icons/line/email.svg">
+										<span class="lbl">Correo</span>
+										<span class="val" x-text="detail?.client_email || '—'"></span>
+									</div>
+									<div class="info-row">
+										<img alt="" width="16" height="16" src="/static/icons/line/phone.svg">
+										<span class="lbl">Teléfono</span>
+										<span class="val" x-text="detail?.client_phone || '—'"></span>
+									</div>
+									<div class="info-row">
+										<img alt="" width="16" height="16" src="/static/icons/line/location.svg">
+										<span class="lbl">Dirección</span>
+										<span class="val" x-text="detail?.client_address || '—'"></span>
+									</div>
+								</div>
+							</div>
+
+							<!-- Vendedor -->
+							<template x-if="detail?.seller_name">
+								<div class="box-cont">
+									<div class="desc">Ejecutivo de ayuda</div>
+									<div class="white info-box">
+										<div class="info-row">
+											<img alt="" width="16" height="16" src="/static/icons/line/guard.svg">
+											<span class="lbl">Vendedor</span>
+											<span class="val" x-text="detail.seller_name"></span>
+										</div>
+										<template x-if="detail?.seller_email">
+											<div class="info-row">
+												<img alt="" width="16" height="16" src="/static/icons/line/email.svg">
+												<span class="lbl">Correo</span>
+												<span class="val" x-text="detail.seller_email"></span>
+											</div>
+										</template>
+									</div>
+								</div>
+							</template>
+
+							<!-- Productos -->
+							<div class="box-cont">
+								<div class="desc">Productos</div>
+								<div class="white order-items">
+									<template x-for="(it, i) in (detail?.items || [])" :key="i">
+										<div class="order-line">
+											<span class="prod" :title="it.name" x-text="it.name"></span>
+											<span class="qty" x-text="`x${it.quantity}`"></span>
+											<span class="amt" x-text="formatMoney(it.total, detail?.currency)"></span>
+										</div>
+									</template>
+									<template x-if="!detail?.items || detail.items.length === 0">
+										<div class="order-line empty">Sin productos</div>
+									</template>
+								</div>
+							</div>
+						</div>
+
+						<!-- Registrado → marcar en proceso -->
+						<template x-if="detail?.status === 'registered'">
+							<div class="buttons">
+								<button class="button icon hover-opacity" @click="changeStatus('in_process')" :disabled="processing">
+									<img alt="" width="16" height="16" src="/static/icons/line/progress.svg">
+									<span>Marcar en proceso</span>
+								</button>
+							</div>
+						</template>
+
+						<!-- En proceso → completar / descartar -->
+						<template x-if="detail?.status === 'in_process'">
+							<div class="buttons">
+								<button class="button icon black hover-opacity" @click="changeStatus('discarded')" :disabled="processing">
+									<img alt="" width="16" height="16" src="/static/icons/line/dislike.svg">
+									<span>Descartar</span>
+								</button>
+								<button class="button icon hover-opacity" @click="changeStatus('completed')" :disabled="processing">
+									<img alt="" width="16" height="16" src="/static/icons/line/approve.svg">
+									<span>Completar</span>
+								</button>
+							</div>
+						</template>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- ── Modal: Buscar ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('search')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-search"
+			x-cloak>
+			<div class="modal little" @click.stop>
+				<div class="bottom glass2">
+					<img alt="" class="ico" width="20" height="20" src="/static/icons/line/find.svg">
+					<input type="text"
+						x-model="find_query"
+						placeholder="Nombre, DNI o N° pedido"
+						@input.debounce.300ms="findOrders()">
+					<div class="hover-opacity clear" x-show="find_query" title="Limpiar búsqueda" @click="find_query = ''; found_orders = [];">
+						<img alt="" width="12" height="12" src="/static/icons/filled/x.svg">
+					</div>
+				</div>
+				<div class="orders glass2" x-show="found_orders.length > 0">
+					<template x-for="o in found_orders" :key="o.id">
+						<div class="item" @click="openDetail(o)">
+							<div class="title">
+								<span class="order-number" x-text="`WC-${o.order_number || o.wc_order_id}`"></span>
+								<span class="req-badge" :class="statusClass(o.status)" x-text="statusLabel(o.status)"></span>
+							</div>
+							<span class="client" x-text="o.client_name || '—'"></span>
+							<span class="service" x-text="formatMoney(o.total, o.currency)"></span>
+						</div>
+					</template>
+				</div>
+			</div>
+		</div>
+
+		<!-- ── Modal: Historial ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('history')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap common-modal"
+			id="modal-history"
+			x-transition:enter="modal-enter"
+			x-transition:enter-start="modal-enter-start"
+			x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave"
+			x-transition:leave-start="modal-leave-start"
+			x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal big glass2" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="top">
+					<span class="title">Historial</span>
+
+					<div class="pagination">
+						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="firstPage()" title="Primera página">
+							<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity left" :class="current_page > 1 ? '':'disabled'" @click="prevPage()" title="Página anterior">
+							<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="nextPage()" title="Siguiente página">
+							<img alt="" src="/static/icons/line/right.svg" width="20" height="20">
+						</span>
+						<span class="white hover-opacity" :class="current_page < total_pages ? '':'disabled'" @click="lastPage()" title="Última página">
+							<img alt="" src="/static/icons/line/rightfull.svg" width="20" height="20">
+						</span>
+					</div>
+				</div>
+
+				<div class="modal-content history">
+					<table class="mobile-hide">
+						<thead>
+							<tr>
+								<th>Pedido</th>
+								<th>Cliente</th>
+								<th>Total</th>
+								<th>Estado</th>
+								<th>Fecha</th>
+							</tr>
+						</thead>
+						<tbody>
+							<template x-for="h in history_list" :key="h.id">
+								<tr class="hover-opacity" @click="openDetail(h)">
+									<td class="req-id" x-text="`WC-${h.order_number || h.wc_order_id}`"></td>
+									<td x-text="h.client_name || '—'"></td>
+									<td x-text="formatMoney(h.total, h.currency)"></td>
+									<td><span class="req-badge" :class="statusClass(h.status)" x-text="statusLabel(h.status)"></span></td>
+									<td x-text="h.created_at"></td>
+								</tr>
+							</template>
+							<template x-if="history_list.length === 0">
+								<tr><td colspan="5" class="empty">Sin pedidos</td></tr>
+							</template>
+						</tbody>
+					</table>
+
+					<div class="mobile-show mobile-table">
+						<template x-for="h in history_list" :key="h.id">
+							<div class="row white hover-opacity" @click="openDetail(h)">
+								<div class="head">
+									<div class="info">
+										<span class="id" x-text="`WC-${h.order_number || h.wc_order_id}`"></span>
+										<span class="date" x-text="h.created_at"></span>
+									</div>
+									<span class="req-badge" :class="statusClass(h.status)" x-text="statusLabel(h.status)"></span>
+								</div>
+								<div class="body">
+									<span class="label">Cliente</span>
+									<span class="name" x-text="h.client_name || '—'"></span>
+								</div>
+								<div class="body">
+									<span class="label">Total</span>
+									<span class="name" x-text="formatMoney(h.total, h.currency)"></span>
+								</div>
+							</div>
+						</template>
+						<template x-if="history_list.length === 0">
+							<div class="empty">Sin pedidos</div>
+						</template>
+					</div>
+				</div>
+			</div>
+		</div>
+
+	</div>
+
+	<script>
+	Alpine.data('orders_data', () => ({
+		detail:     null,
+		processing: false,
+		history_list: [],
+		current_page: 1,
+		total_pages:  null,
+		find_query: '',
+		found_orders: [],
+
+		async init() {
+			const socket = Alpine.store('cache').socket;
+			if (socket) {
+				socket.on('order_update', async () => {
+					await Alpine.store('cache').refresh('order_dashboard');
+				});
+			}
+			await Alpine.store('cache').fetchData([
+				{ key: 'order_dashboard', url: '/order/dashboard', force: true },
+			]);
+		},
+
+		async openDetail(order) {
+			this.detail = order;
+			Alpine.store('cache').showModal('order-detail');
+
+			// Trae el detalle fresco (incluye la lista de productos)
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/order/${order.id}`, {
+					headers: { 'X-No-Toast': '1' },
+				});
+				const j = await r.json();
+				if (r.ok && j.success && j.data) this.detail = j.data;
+			} catch (e) {
+				console.error(e);
+			}
+		},
+
+		async changeStatus(newStatus) {
+			if (this.processing || !this.detail) return;
+			this.processing = true;
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/order/status`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ order_id: this.detail.id, status: newStatus, user_id: cache.user.id }),
+				});
+				const j = await r.json();
+				if (j.success) {
+					cache.hideLastModal();
+					await cache.refresh('order_dashboard');
+					PineToast.flash('Estado actualizado', 'success');
+				} else {
+					PineToast.flash(this.msgOf(j, 'Error al actualizar el estado'), 'error');
+				}
+			} finally {
+				this.processing = false;
+			}
+		},
+
+		msgOf(j, fallback) {
+			const d = j && j.data;
+			if (d && typeof d === 'object' && d.message) return d.message;
+			if (typeof d === 'string') return d;
+			return fallback || 'Ocurrió un error';
+		},
+
+		formatMoney(n, currency) {
+			if (n === null || n === undefined) return '—';
+			const value = Number(n || 0).toFixed(2);
+			const symbols = { PEN: 'S/ ', USD: '$', EUR: '€' };
+			const prefix = symbols[currency] || (currency ? `${currency} ` : '');
+			return `${prefix}${value}`;
+		},
+
+		search() {
+			this.find_query = '';
+			this.found_orders = [];
+			Alpine.store('cache').showModal('search');
+		},
+		async findOrders() {
+			const term = (this.find_query || '').trim();
+			if (term.length < 2) { this.found_orders = []; return; }
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/order/find/${encodeURIComponent(term)}`, { headers: { 'X-No-Toast': '1' } });
+				const j = await r.json();
+				this.found_orders = (j.success && j.data) ? j.data : [];
+			} catch (e) {
+				console.error('Error buscando pedidos', e);
+				this.found_orders = [];
+			}
+		},
+		async viewHistory() {
+			await this.firstPage();
+			Alpine.store('cache').showModal('history');
+		},
+		async getHistory() {
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/order/history?page=${this.current_page}`, { headers: { 'X-No-Toast': '1' } });
+				const j = await r.json();
+				const d = j.data || {};
+				this.history_list = d.list || [];
+				this.total_pages = d.pagination ? d.pagination.pages : 1;
+			} catch (e) {
+				console.error('Error fetching history', e);
+				this.history_list = [];
+			}
+		},
+		async firstPage() { this.current_page = 1; await this.getHistory(); },
+		async lastPage() { this.current_page = this.total_pages || 1; await this.getHistory(); },
+		async nextPage() { if (this.current_page + 1 > this.total_pages) return; this.current_page += 1; await this.getHistory(); },
+		async prevPage() { if (this.current_page - 1 < 1) return; this.current_page -= 1; await this.getHistory(); },
+
+		statusIcon(slug) {
+			const map = {
+				registered: 'pending',
+				in_process: 'in_review',
+				completed:  'approve',
+				discarded:  'rejected',
+			};
+			return `/static/icons/module/approvals/${map[slug]}.svg`;
+		},
+		statusLabel(s) {
+			return { registered: 'Registrado', in_process: 'En proceso', completed: 'Completado', discarded: 'Descartado' }[s] || s;
+		},
+		statusClass(s) {
+			return { registered: 'status-registered', in_process: 'status-process', completed: 'status-completed', discarded: 'status-discarded' }[s] || '';
+		},
+	}));
+	</script>
+
+	<style>
+		#orders {
+			display: flex;
+			flex-direction: column;
+			min-height: calc(100vh - 6.5rem);
+			gap: 1rem;
+			overflow: auto;
+		}
+		#orders .controls { min-height: 0; }
+		#orders .main {
+			display: flex;
+			overflow-x: auto;
+			flex: 1;
+			padding: 0;
+		}
+		#orders .group {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			border-right: 2px solid var(--glass-border);
+			gap: 0.6rem;
+			padding: 0.75rem;
+			min-width: 13rem;
+		}
+		#orders .group:last-child { border-right: none; }
+		#orders .group-head {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.4rem;
+		}
+		#orders .group-name { font-weight: 600; font-size: 0.85rem; }
+		#orders .group-count {
+			font-size: 0.65rem;
+			opacity: 0.5;
+			font-weight: 600;
+			background: var(--graydark);
+			padding: 0.1rem 0.45rem;
+			border-radius: 1rem;
+			display: none;
+		}
+		#orders .group-empty {
+			text-align: center;
+			font-size: 0.72rem;
+			opacity: 0.3;
+			padding: 1rem 0;
+			display: none;
+		}
+		#orders .req-card {
+			padding: 0.75rem;
+			border-radius: 10px;
+			display: flex;
+			flex-direction: column;
+			gap: 0.35rem;
+			cursor: pointer;
+		}
+		#orders .req-top {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#orders .req-id { font-size: 0.8rem; opacity: 0.6; font-weight: 600; }
+		#orders .req-date { font-size: 0.65rem; opacity: 0.4; }
+		#orders .req-name { font-weight: 600; font-size: 0.9rem; }
+		#orders .req-foot {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		#orders .req-total { font-size: 0.85rem; font-weight: 700; color: var(--primary, #e05a00); }
+		#orders .req-pay { font-size: 0.7rem; opacity: 0.5; text-align: right; }
+
+		.req-badge {
+			font-size: 0.72rem;
+			padding: 4px 12px;
+			border-radius: 20px;
+			font-weight: 600;
+		}
+		.status-registered { background: #538ec929; color: #538ec9; }
+		.status-process    { background: #a890cf30; color: #a890cf; }
+		.status-completed  { background: #5bbd8c2b; color: #3aa873; }
+		.status-discarded  { background: #e3646421; color: #e36464; }
+
+		#modal-order-detail { z-index: 50; }
+		#modal-order-detail .modal { gap: 1rem; }
+		#modal-order-detail .dataview {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+		}
+		#modal-order-detail .title-row {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			gap: 1rem;
+		}
+		#modal-order-detail .boxes {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+		}
+		#modal-order-detail .box-cont {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+		#modal-order-detail .box-cont .desc {
+			font-weight: 600;
+			text-transform: uppercase;
+			font-size: 0.7rem;
+			opacity: 0.5;
+		}
+		#modal-order-detail .info-box {
+			display: flex;
+			flex-direction: column;
+			padding: 0 1rem;
+			border-radius: 0.75rem;
+		}
+		#modal-order-detail .info-row {
+			display: flex;
+			align-items: center;
+			gap: 0.6rem;
+			padding: 0.7rem 0;
+			border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+			font-size: 0.85rem;
+		}
+		#modal-order-detail .info-row:last-child { border-bottom: none; }
+		#modal-order-detail .info-row img { opacity: 0.4; }
+		#modal-order-detail .info-row .lbl {
+			opacity: 0.5;
+			font-weight: 500;
+			min-width: 5.5rem;
+		}
+		#modal-order-detail .info-row .val {
+			font-weight: 500;
+			margin-left: auto;
+			text-align: right;
+			word-break: break-word;
+		}
+		#modal-order-detail .order-items {
+			display: flex;
+			flex-direction: column;
+			padding: 0 1rem;
+			border-radius: 0.75rem;
+		}
+		#modal-order-detail .order-line {
+			display: flex;
+			align-items: center;
+			gap: 0.6rem;
+			padding: 0.55rem 0;
+			border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+			font-size: 0.82rem;
+		}
+		#modal-order-detail .order-line:last-child { border-bottom: none; }
+		#modal-order-detail .order-line.empty { opacity: 0.4; justify-content: center; }
+		#modal-order-detail .order-line .prod {
+			flex: 1;
+			font-weight: 500;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		#modal-order-detail .order-line .qty {
+			opacity: 0.55;
+			font-size: 0.75rem;
+			min-width: 2rem;
+			text-align: right;
+		}
+		#modal-order-detail .order-line .amt {
+			font-weight: 600;
+			min-width: 4.5rem;
+			text-align: right;
+		}
+
+		@media (max-width: 48rem) {
+			#orders .main { flex-direction: column; }
+			#orders .group { flex: unset; min-width: 100%; }
+		}
+
+		/* ── Buscar ── */
+		#modal-search .modal { gap: 0.5rem; min-width: initial; }
+		#modal-search .bottom { display: flex; align-items: center; padding: 0.25rem 1rem; border-radius: 0.75rem; }
+		#modal-search .bottom .ico { opacity: 0.5; }
+		#modal-search .bottom input {
+			flex: 1; background-color: transparent; border: none; outline: none;
+			padding: 0.75rem; font-family: inherit; font-size: 1rem; font-weight: 400; min-width: 10rem;
+		}
+		#modal-search .bottom .clear { padding: 0.25rem; }
+		#modal-search .orders {
+			max-height: 18rem; overflow-y: auto; width: 100%; display: flex;
+			flex-direction: column; font-size: 1rem; border-radius: 0.75rem;
+		}
+		#modal-search .orders .item {
+			display: flex; flex-direction: column; gap: 0.35rem; padding: 0.75rem 1rem;
+			border-bottom: 2px solid #ffffff80; cursor: pointer; transition: var(--transition); background-color: transparent;
+		}
+		#modal-search .orders .item:last-child { border-bottom: none; }
+		#modal-search .orders .item:hover { background-color: #ffffff; }
+		#modal-search .orders .title { flex-direction: row; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+		#modal-search .orders .item .order-number { font-size: 1rem; font-weight: 600; line-height: 1rem; }
+		#modal-search .orders .item .client { font-size: 0.85rem; font-weight: 500; }
+		#modal-search .orders .item .service { font-size: 0.75rem; font-weight: 600; color: var(--primary, #e05a00); }
+
+		/* ── Historial ── */
+		#modal-history .top {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		#modal-history .top .title { font-weight: 700; font-size: 1.05rem; }
+		#modal-history .pagination { display: flex; gap: 0.75rem; }
+		#modal-history .pagination .disabled { opacity: 0.5; cursor: default !important; pointer-events: none; }
+		#modal-history .pagination .left img { transform: rotate(180deg); }
+		#modal-history .pagination span {
+			width: 2rem; height: 2rem; display: flex;
+			justify-content: center; align-items: center; border-radius: 2rem;
+		}
+		#modal-history .modal-content.history { overflow: auto; margin-top: 1rem; }
+		#modal-history table { width: 100%; border-collapse: collapse; }
+		#modal-history th, #modal-history td {
+			text-align: left; padding: 0.7rem 0.6rem; font-size: 0.82rem;
+			border-bottom: 1px solid rgba(0,0,0,0.06);
+		}
+		#modal-history th { font-weight: 600; opacity: 0.5; font-size: 0.72rem; text-transform: uppercase; }
+		#modal-history tbody tr { cursor: pointer; }
+		#modal-history td.req-id { font-weight: 600; opacity: 0.6; }
+		#modal-history td.empty, #modal-history .mobile-table .empty { text-align: center; opacity: 0.4; padding: 1.5rem 0; }
+		#modal-history .mobile-table { flex-direction: column; gap: 0.6rem; }
+		#modal-history .mobile-table .row { padding: 0.75rem; border-radius: 10px; display: flex; flex-direction: column; gap: 0.4rem; cursor: pointer; }
+		#modal-history .mobile-table .head { display: flex; justify-content: space-between; align-items: center; }
+		#modal-history .mobile-table .info { display: flex; flex-direction: column; }
+		#modal-history .mobile-table .info .id { font-weight: 600; font-size: 0.85rem; }
+		#modal-history .mobile-table .info .date { font-size: 0.68rem; opacity: 0.4; }
+		#modal-history .mobile-table .body { display: flex; justify-content: space-between; font-size: 0.8rem; }
+		#modal-history .mobile-table .body .label { opacity: 0.5; }
+	</style>
+</div>

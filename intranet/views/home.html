@@ -3,7 +3,9 @@
 		<div class="tiles">
 			<template x-for="tile in $store.cache.getAllTiles()" :key="tile.name">
 				<a class="tile hover-opacity" :href="`/${tile.name}`">
-					<img :src="`/static/icons/line/${tile.image}`" width="28" height="28" alt="">
+					<div>
+						<span class="tile-icon" :style="`--icon:url(/static/icons/line/${tile.image})`"></span>
+					</div>
 					<span x-text="tile.label"></span>
 				</a>
 			</template>
@@ -15,16 +17,12 @@
 
 	<script>
         Alpine.data('home_data',() => ({
-
             async init() {
 				console.log('Inicializando Home...');
-
             },
 
         }));
     </script>
-
-
 
 
 
@@ -33,12 +31,13 @@
 			width: 100%;
 			user-select: none;
 			padding: 1rem;
-			min-height: calc(100vh - 6.5rem);
+			min-height: calc(100vh - 11rem);
 			display: flex;
 			flex-direction: column;
 			gap: 1rem;
 			margin: 0 auto;
-			max-width: 118rem;
+			max-width: 64rem;
+			justify-content: center;
 		}
 		#home .tiles {
 			display: grid;
@@ -57,13 +56,27 @@
 			box-shadow: 0 1px 3px hsl(0deg 0% 0% / 6%);
 			text-align: center;
 			transition: var(--transition);
+			color: var(--secondary);
 		}
 		#home .tile:hover {
 			transform: translateY(-2px);
 		}
+		#home .tile div {
+			background-color: var(--primaryopacity);
+			padding: 1rem;
+			border-radius: 2rem;
+		}
 		#home .tile span {
 			font-size: 0.85rem;
 			font-weight: 500;
+		}
+		#home .tile .tile-icon {
+			width: 28px;
+			height: 28px;
+			background-color: #ea7134;
+			-webkit-mask: var(--icon) no-repeat center / contain;
+			mask: var(--icon) no-repeat center / contain;
+			display: block;
 		}
 		#home .content {
 			display: flex;

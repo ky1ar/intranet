@@ -138,43 +138,38 @@ document.addEventListener('alpine:init', () => {
         user: {},
         active_page: window.location.pathname,
          module_ui: {
-            attendance:  { image: 'attendance.svg', label: 'Asistencia',     title: 'Krear 3D - Asistencia',      category: 'General' },
-            schedule:    { image: 'calendar.svg',   label: 'Agenda',         title: 'Krear 3D - Agenda',          category: 'General' },
-            schedules:   { image: 'schedule.svg',   label: 'Horarios',       title: 'Krear 3D - Horarios',        category: 'General' },
-            board:       { image: 'board.svg',      label: 'Actividades',    title: 'Krear 3D - Actividades',     category: 'General' },
-            logistics:   { image: 'logistics.svg',  label: 'Envíos',         title: 'Krear 3D - Envíos',          category: 'Logística' },
-            warehouse:   { image: 'warehouse.svg',  label: 'Almacén',        title: 'Krear 3D - Almacén',         category: 'Logística' },
-            tracking:    { image: 'tracking.svg',   label: 'Tracking',       title: 'Krear 3D - Trackings',       category: 'Logística' },
-            driver:      { image: 'driver.svg',     label: 'Conductor',      title: 'Krear 3D - Conductor',       category: 'Logística' },
-            imports:     { image: 'imports.svg',    label: 'Importaciones',  title: 'Krear 3D - Importaciones',   category: 'Compras' },
-            purchases:   { image: 'purchases.svg',  label: 'Compras',        title: 'Krear 3D - Compras',         category: 'Compras' },
-            marketing:   { image: 'marketing.svg',  label: 'Marketing',      title: 'Krear 3D - Marketing',       category: 'Comercial' },
-            conversations: { image: 'marketing.svg', label: 'Conversaciones', title: 'Krear 3D - Conversaciones', category: 'Comercial' },
-            guest:       { image: 'fabrix.svg',     label: 'Fabrix',         title: 'Krear 3D - Fabrix',          category: 'Soporte' },
-            safebuy:     { image: 'safebuy.svg',    label: 'Compra Segura',  title: 'Krear 3D - Compra Segura',   category: 'Comercial' },
-            support:     { image: 'support.svg',    label: 'Taller',        title: 'Krear 3D - Soporte',         category: 'Soporte' },
-            complaint:   { image: 'complaint.svg',  label: 'Reclamos',       title: 'Krear 3D - Reclamos',        category: 'Administración' },
-            refunds:     { image: 'refund.svg',     label: 'Extornos',       title: 'Krear 3D - Extornos',        category: 'Administración' },
-            approvals:   { image: 'approval.svg',   label: 'Aprobaciones',   title: 'Krear 3D - Aprobaciones',    category: 'Comercial' },
-            admin:       { image: 'admin.svg',      label: 'Admin',          title: 'Krear 3D - Admin',      category: 'General' },
+            attendance:    { image: 'attendance.svg', label: 'Asistencia',     title: 'Krear 3D - Asistencia',      category: 'General' },
+            schedule:      { image: 'calendar.svg',   label: 'Agenda',         title: 'Krear 3D - Agenda',          category: 'General' },
+            schedules:     { image: 'schedule.svg',   label: 'Horarios',       title: 'Krear 3D - Horarios',        category: 'General' },
+            board:         { image: 'board.svg',      label: 'Actividades',    title: 'Krear 3D - Actividades',     category: 'General' },
+            logistics:     { image: 'logistics.svg',  label: 'Envíos',         title: 'Krear 3D - Envíos',          category: 'Logística' },
+            warehouse:     { image: 'warehouse.svg',  label: 'Almacén',        title: 'Krear 3D - Almacén',         category: 'Logística' },
+            tracking:      { image: 'tracking.svg',   label: 'Tracking',       title: 'Krear 3D - Trackings',       category: 'Logística' },
+            driver:        { image: 'driver.svg',     label: 'Conductor',      title: 'Krear 3D - Conductor',       category: 'Logística' },
+            imports:       { image: 'imports.svg',    label: 'Importaciones',  title: 'Krear 3D - Importaciones',   category: 'Compras' },
+            purchases:     { image: 'purchases.svg',  label: 'Compras',        title: 'Krear 3D - Compras',         category: 'Compras' },
+            marketing:     { image: 'marketing.svg',  label: 'Marketing',      title: 'Krear 3D - Marketing',       category: 'Comercial' },
+            conversations: { image: 'marketing.svg',  label: 'Conversaciones', title: 'Krear 3D - Conversaciones',  category: 'Comercial' },
+            guest:         { image: 'fabrix.svg',     label: 'Fabrix',         title: 'Krear 3D - Fabrix',          category: 'Soporte' },
+            safebuy:       { image: 'safebuy.svg',    label: 'Compra Segura',  title: 'Krear 3D - Compra Segura',   category: 'Comercial' },
+            support:       { image: 'support.svg',    label: 'Taller',         title: 'Krear 3D - Soporte',         category: 'Soporte' },
+            complaint:     { image: 'complaint.svg',  label: 'Reclamos',       title: 'Krear 3D - Reclamos',        category: 'Administración' },
+            refunds:       { image: 'refund.svg',     label: 'Extornos',       title: 'Krear 3D - Extornos',        category: 'Administración' },
+            approvals:     { image: 'approval.svg',   label: 'Aprobaciones',   title: 'Krear 3D - Aprobaciones',    category: 'Comercial' },
+            orders:        { image: 'order.svg',        label: 'Pedidos',        title: 'Krear 3D - Pedidos',         category: 'Comercial' },
+            admin:         { image: 'admin.svg',      label: 'Admin',          title: 'Krear 3D - Admin',           category: 'General' },
         },
 
-        // Categorías del sidebar. El ORDEN es el de este objeto.
-        // 'icon' lo defines tú (archivo en /static/icons/line/). 'label' es el texto visible.
-        // Un módulo cuyo module_ui.category NO esté aquí (o sea null) se muestra como
-        // página directa (top-level, con su propio icono). Si está aquí, es sub-página.
         categories: {
-            'Logística': { label: 'Logística', icon: 'org_box.svg' },
-            'Comercial': { label: 'Comercial', icon: 'org_trend.svg' },
-            Compras:   { label: 'Compras',   icon: 'org_cart.svg' },
-            'Soporte':  { label: 'Soporte',    icon: 'org_wrench.svg' },
-            General:      { label: 'General',      icon: 'org_menu.svg' },
-            'Administración':       { label: 'Administración',       icon: 'org_folder.svg' },
+            'Logística':        { label: 'Logística',       icon: 'org_box.svg' },
+            'Comercial':        { label: 'Comercial',       icon: 'org_trend.svg' },
+            'Compras':          { label: 'Compras',         icon: 'org_cart.svg' },
+            'Soporte':          { label: 'Soporte',         icon: 'org_wrench.svg' },
+            'General':          { label: 'General',         icon: 'org_menu.svg' },
+            'Administración':   { label: 'Administración',  icon: 'org_folder.svg' },
         },
 
-        // Categorías plegadas en modo expandido (acordeón), persistidas en localStorage.
         collapsed_categories: JSON.parse(localStorage.getItem('collapsed_categories') || '[]'),
-
 
         modals: new Set(),
         sidebar: false,
@@ -324,7 +319,7 @@ document.addEventListener('alpine:init', () => {
                     image: def.icon,
                     sort: Math.min(...members.map(m => m.sort)),
                     catIndex: catKeys.indexOf(cat),
-                    items: members.map(m => ({ slug: m.slug, label: m.label })),
+                    items: members.map(m => ({ slug: m.slug, label: m.label, image: m.image })),
                 });
             }
 
