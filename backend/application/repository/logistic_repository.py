@@ -1,9 +1,9 @@
 
 from datetime import date, datetime, timezone, timedelta
 from application.handlers import handle_db_exceptions
-from application.models import ShippingOrders, ClientOrders, ShippingHistory, ShippingMethod, ShippingDistricts, Clients, ShippingAttachment, db
+from application.models import ShippingOrders, ClientOrders, ShippingHistory, ShippingMethod, ShippingDistricts, Clients, ShippingAttachment, Machines, Brands, Category, db
 from sqlalchemy.orm import joinedload
-from sqlalchemy import asc, func
+from sqlalchemy import asc, func, or_, cast, String
 from flask import g
 
 
@@ -433,3 +433,52 @@ class LogisticRepository:
             g.db_session.add(attachment)
         g.db_session.commit()
         return True, 200
+    @handle_db_exceptions
+    def search_label_machines(self, query):
+        query = (query or "").strip()
+        if len(query) < 2:
+            return [], 200
+
+        search_term = f"%{query}%"
+        machines = (
+            g.db_session.query(Machines)
+            .join(Machines.brand)
+            .outerjoin(Machines.category)
+            .filter(
+                or_(
+                    Brands.name.ilike(search_term),
+                    Machines.model.ilike(search_term),
+                    func.concat(Brands.name, " ", Machines.model).ilike(search_term),
+                    cast(Machines.id, String).ilike(search_term),
+                )
+            )
+            .order_by(Brands.name.asc(), Machines.model.asc())
+            .limit(10)
+            .all()
+        )
+        return [
+            {
+                "id": m.id,
+                "brand": m.brand.name if m.brand else "",
+                "model": m.model or "",
+                "category": m.category.name if m.category else "",
+            }
+            for m in machines
+        ], 200
+
+
+    @handle_db_exceptions
+    def get_label_machine(self, machine_id):
+        machine = (
+            g.db_session.query(Machines)
+            .filter(Machines.id == machine_id)
+            .first()
+        )
+        if not machine:
+            return None, 404
+        return {
+            "id": machine.id,
+            "brand": machine.brand.name if machine.brand else "",
+            "model": machine.model or "",
+            "category": machine.category.name if machine.category else "",
+        }, 200

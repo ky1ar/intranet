@@ -122,3 +122,13 @@ def extract_picking():
 @logistic_bp.post("/qr/pdf")
 def logistic_qr_pdf():
     return controller.logistic_qr_pdf(request.get_json() or {})
+
+
+@logistic_bp.get("/machines/search")
+def logistic_machines_search():
+    return controller.logistic_search_label_machines(request.args.get("q", ""))
+
+
+@logistic_bp.post("/machine-label/pdf")
+def logistic_machine_label_pdf():
+    return controller.logistic_machine_label_pdf(request.get_json() or {})

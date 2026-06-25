@@ -11,6 +11,9 @@
 				<div class="item" @click="openQrModal()" x-show="$store.cache.hasPermission('logistics', 'qr')">
 					<img alt="" width="20" height="20" src="/static/icons/line/qr.svg">
 				</div>
+				<div class="item" @click="openMachineLabelModal()">
+					<img alt="" width="20" height="20" src="/static/icons/line/tag.svg">
+				</div>
 				<div class="item" @click="pdfProcess()">
 					<img alt="" width="22" height="22" src="/static/icons/line/pdf.svg">
 				</div>
@@ -59,6 +62,10 @@
 				<div class="item" @click="openQrModal()" x-show="$store.cache.hasPermission('logistics', 'qr')">
 					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/qr.svg">
 					<span>QR</span>
+				</div>
+				<div class="item" @click="openMachineLabelModal()">
+					<img class="invert" alt="" width="20" height="20" src="/static/icons/line/tag.svg">
+					<span>Etiqueta</span>
 				</div>
 
 				<div class="mobile-hide item" @click="pdfProcess()">
@@ -260,6 +267,68 @@
 					<button class="button black hover-opacity" @click="downloadQr()" x-show="qr_svg">
 						Descargar
 					</button>
+				</div>
+			</div>
+		</div>
+
+		<div
+			x-show="$store.cache.isVisibleModal('machine_label')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			x-transition.duration.300ms
+			class="modal-wrap"
+			id="modal-machine_label"
+			x-cloak
+			>
+			<div class="modal glass2" @click.stop style="max-width: 24rem">
+				<div class="modal-grabber">
+					<div class="modal-grabber-bar"></div>
+				</div>
+
+				<div class="top">
+					<span class="title">Generar etiqueta</span>
+				</div>
+
+				<div class="modal-content">
+					<div class="container">
+						<label class="white" style="flex:1;">
+							<input
+								x-ref="labelInput"
+								type="text"
+								x-model="label_query"
+								@input="searchLabelMachines()"
+								placeholder="ID o nombre del producto"
+								autocomplete="off"
+							>
+						</label>
+					</div>
+
+					<div class="container" x-show="label_results.length" x-transition style="flex-direction:column; gap:0.25rem; max-height:14rem; overflow:auto;">
+						<template x-for="m in label_results" :key="m.id">
+							<div class="white hover-opacity" style="cursor:pointer; padding:0.5rem; display:flex; justify-content:space-between; gap:0.5rem;"
+								@click="selectLabelMachine(m)">
+								<span x-text="`${m.brand} ${m.model}`"></span>
+								<span style="opacity:0.6;" x-text="`#${m.id}`"></span>
+							</div>
+						</template>
+					</div>
+
+					<template x-if="label_selected">
+						<div style="display:flex; flex-direction:column; gap:0.5rem;">
+							<div class="white" style="display:flex; flex-direction:column; gap:0.25rem; padding:0.75rem;">
+								<span><b>ID:</b> <span x-text="label_selected.id"></span></span>
+								<span><b>Categoría:</b> <span x-text="label_selected.category || '—'"></span></span>
+								<span><b>Producto:</b> <span x-text="`${label_selected.brand} ${label_selected.model}`"></span></span>
+							</div>
+							<label class="white" style="flex:1;">
+								<textarea x-model="label_detail" rows="2" placeholder="Detalle (opcional)" style="resize:none;"></textarea>
+							</label>
+						</div>
+					</template>
+				</div>
+
+				<div class="buttons">
+					<button class="button black hover-opacity" @click="downloadMachineLabel()" x-show="label_selected" :disabled="label_loading"
+						x-text="label_loading ? 'Generando...' : 'Descargar'"></button>
 				</div>
 			</div>
 		</div>
@@ -785,6 +854,12 @@
 			qr_svg: null,
 			qr_orientation: 'vertical',
 			qr_arrow_side: 'right',
+			label_query: '',
+			label_results: [],
+			label_selected: null,
+			label_detail: '',
+			label_loading: false,
+			label_search_timer: null,
 
 			async init() {
 				console.log('Inicializando Logistics...');
@@ -944,6 +1019,90 @@
 				} catch (e) {
 					console.error(e);
 					this.qr_error = e.message || 'No se pudo descargar el PDF.';
+				}
+			},
+
+			openMachineLabelModal() {
+				this.label_query = '';
+				this.label_results = [];
+				this.label_selected = null;
+				this.label_detail = '';
+				this.label_loading = false;
+
+				Alpine.store('cache').showModal('machine_label');
+
+				this.$nextTick(() => {
+					setTimeout(() => this.$refs.labelInput?.focus(), 50);
+				});
+			},
+
+			searchLabelMachines() {
+				clearTimeout(this.label_search_timer);
+				const q = (this.label_query || '').trim();
+				if (q.length < 2) { this.label_results = []; return; }
+
+				this.label_search_timer = setTimeout(async () => {
+					try {
+						const res = await fetch(`${this.api}/logistic/machines/search?q=${encodeURIComponent(q)}`, {
+							headers: { 'X-No-Toast': '1' }
+						});
+						const json = await res.json();
+						this.label_results = json.data || [];
+					} catch (e) {
+						console.error(e);
+						this.label_results = [];
+					}
+				}, 300);
+			},
+
+			selectLabelMachine(machine) {
+				this.label_selected = machine;
+				this.label_query = `${machine.brand} ${machine.model}`;
+				this.label_results = [];
+			},
+
+			async downloadMachineLabel() {
+				if (!this.label_selected) {
+					PineToast.flash('Selecciona un producto', 'error');
+					return;
+				}
+
+				this.label_loading = true;
+
+				try {
+					const payload = {
+						machine_id: this.label_selected.id,
+						detail: this.label_detail || ''
+					};
+
+					const res = await fetch(`${this.api}/logistic/machine-label/pdf`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(payload)
+					});
+
+					if (!res.ok) {
+						throw new Error('No se pudo generar la etiqueta');
+					}
+
+					const blob = await res.blob();
+					const url = window.URL.createObjectURL(blob);
+
+					const a = document.createElement('a');
+					a.href = url;
+					a.download = `rotulo_${this.label_selected.id}.pdf`;
+					document.body.appendChild(a);
+					a.click();
+					a.remove();
+
+					window.URL.revokeObjectURL(url);
+
+					PineToast.flash('Etiqueta generada', 'success');
+				} catch (e) {
+					console.error(e);
+					PineToast.flash(e.message || 'No se pudo generar la etiqueta', 'error');
+				} finally {
+					this.label_loading = false;
 				}
 			},
 

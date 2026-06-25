@@ -893,3 +893,49 @@ class LogisticService:
             as_attachment=True,
             download_name=f"qr_{code}.pdf"
         )
+    def search_label_machines(self, query):
+        return self.logistic_repository.search_label_machines(query)
+
+
+    def _build_machine_label_pdf_bytes(self, machine_id, category, product, detail):
+        html_out = render_template(
+            "rotulo_machine_label.html",
+            data={
+                "machine_id": machine_id,
+                "category": category,
+                "product": product,
+                "detail": detail,
+            }
+        )
+        return HTML(
+            string=html_out,
+            base_url=current_app.root_path
+        ).write_pdf()
+
+
+    @handle_exceptions
+    def generate_machine_label_pdf(self, data):
+        machine_id = data.get("machine_id")
+        if not machine_id:
+            return "Máquina inválida", 400
+
+        machine, status = self.logistic_repository.get_label_machine(machine_id)
+        if status != 200:
+            return "Máquina no encontrada", 404
+
+        detail = (data.get("detail") or "").strip()
+        product = f"{machine['brand']} {machine['model']}".strip()
+
+        pdf_bytes = self._build_machine_label_pdf_bytes(
+            machine_id=machine["id"],
+            category=(machine["category"] or "").upper(),
+            product=product.upper(),
+            detail=detail.upper(),
+        )
+
+        return send_file(
+            BytesIO(pdf_bytes),
+            mimetype="application/pdf",
+            as_attachment=True,
+            download_name=f"rotulo_{machine['id']}.pdf"
+        )

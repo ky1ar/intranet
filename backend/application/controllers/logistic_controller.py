@@ -113,3 +113,12 @@ class LogisticController:
 
     def logistic_qr_pdf(self, data):
         return self.logistic_service.generate_qr_pdf(data)
+
+
+    @handle_logs_and_exceptions
+    def logistic_search_label_machines(self, query):
+        return self.logistic_service.search_label_machines(query)
+
+
+    def logistic_machine_label_pdf(self, data):
+        return self.logistic_service.generate_machine_label_pdf(data)
