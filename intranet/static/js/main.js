@@ -140,7 +140,6 @@ document.addEventListener('alpine:init', () => {
          module_ui: {
             attendance:    { image: 'attendance.svg', label: 'Asistencia',     title: 'Krear 3D - Asistencia',      category: 'General' },
             schedule:      { image: 'calendar.svg',   label: 'Agenda',         title: 'Krear 3D - Agenda',          category: 'General' },
-            schedules:     { image: 'schedule.svg',   label: 'Horarios',       title: 'Krear 3D - Horarios',        category: 'General' },
             board:         { image: 'board.svg',      label: 'Actividades',    title: 'Krear 3D - Actividades',     category: 'General' },
             logistics:     { image: 'logistics.svg',  label: 'Envíos',         title: 'Krear 3D - Envíos',          category: 'Logística' },
             warehouse:     { image: 'warehouse.svg',  label: 'Almacén',        title: 'Krear 3D - Almacén',         category: 'Logística' },
@@ -158,6 +157,30 @@ document.addEventListener('alpine:init', () => {
             approvals:     { image: 'approval.svg',   label: 'Aprobaciones',   title: 'Krear 3D - Aprobaciones',    category: 'Comercial' },
             orders:        { image: 'order.svg',        label: 'Pedidos',        title: 'Krear 3D - Pedidos',         category: 'Comercial' },
             admin:         { image: 'admin.svg',      label: 'Admin',          title: 'Krear 3D - Admin',           category: 'General' },
+        },
+
+        // Descripción de cada módulo para los tiles del home (por ahora aquí; luego se migra a BD).
+        // Key = slug. Deja '' para no mostrar descripción.
+        module_desc: {
+            attendance:    'Controla asistencia, permisos y vacaciones.',
+            schedule:      'Organiza y consulta eventos y reuniones.',
+            board:         'Gestiona tareas y actividades programadas.',
+            logistics:     'Gestiona envíos y despachos.',
+            warehouse:     'Control de invantario, almacen y picking.',
+            tracking:      'Rastrea envíos a nivel nacional.',
+            driver:        'Gestión de conductores y vehículos.',
+            imports:       'Control de importaciones y proveedores.',
+            purchases:     'Gestiona solicitudes de compras internas.',
+            marketing:     '',
+            conversations: 'Mensajería de Fabrix y comunicaciones.',
+            guest:         'Ingreso y salida de equipos mediante Fabrix.',
+            safebuy:       'Gestión de compras aseguradas de Tienda.',
+            support:       'Órdenes y servicios de soporte técnico.',
+            complaint:     'Administra reclamos y seguimiento.',
+            refunds:       'Administra solicitudes de extornos.',
+            approvals:     'Revisa y aprueba solicitudes de Tienda.',
+            orders:        'Gestiona pedidos realizados en Wordpress.',
+            admin:         'Permisos, módulos y configuración de usuarios.',
         },
 
         categories: {
@@ -887,7 +910,7 @@ document.addEventListener('alpine:init', () => {
                 .sort((a, b) => a.sort_order - b.sort_order)
                 .map(m => {
                     const ui = this.module_ui[m.slug] || {};
-                    return { name: m.slug, label: ui.label || m.name, image: ui.image || m.slug };
+                    return { name: m.slug, label: ui.label || m.name, image: ui.image || m.slug, description: this.module_desc[m.slug] || '' };
                 });
         },
 

@@ -7,6 +7,7 @@
 						<span class="tile-icon" :style="`--icon:url(/static/icons/line/${tile.image})`"></span>
 					</div>
 					<span x-text="tile.label"></span>
+					<span class="tile-desc" x-text="tile.description" x-show="tile.description"></span>
 				</a>
 			</template>
 		</div>
@@ -36,12 +37,12 @@
 			flex-direction: column;
 			gap: 1rem;
 			margin: 0 auto;
-			max-width: 64rem;
+			max-width: 84rem;
 			justify-content: center;
 		}
 		#home .tiles {
 			display: grid;
-			grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+			grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
 			gap: 1rem;
 		}
 		#home .tile {
@@ -77,6 +78,12 @@
 			-webkit-mask: var(--icon) no-repeat center / contain;
 			mask: var(--icon) no-repeat center / contain;
 			display: block;
+		}
+		#home .tile .tile-desc {
+			font-size: 0.7rem;
+			font-weight: 400;
+			opacity: 0.6;
+			line-height: 0.9rem;
 		}
 		#home .content {
 			display: flex;

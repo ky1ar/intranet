@@ -239,7 +239,20 @@ class WarehouseService:
 
 
     # Productos de Odoo que no son artículos físicos de almacén → se omiten.
-    IGNORED_PRODUCT_NAMES = {"ready to pick"}
+    # Cualquier nombre que contenga "envío" también se omite (ver _is_ignored_product).
+    IGNORED_PRODUCT_NAMES = {
+        "ready to pick",
+        "productos entregados en el evento creality",
+        "descuento",
+        "compra en tienda",
+        "recojo (almacén)",
+        "recojo (tienda)",
+        "servicio de mantenimiento correctivo",
+    }
+
+    def _is_ignored_product(self, name):
+        name = (name or "").strip().lower()
+        return "envío" in name or name in self.IGNORED_PRODUCT_NAMES
 
     def _resolve_machine_id(self, line):
         """Determina el id de máquina de una línea de pedido.
@@ -270,7 +283,7 @@ class WarehouseService:
         for line in order.get("lines", []):
             barcode = line.get("barcode")
             raw_name = (line.get("product") or line.get("description") or "").strip()
-            if raw_name.lower() in self.IGNORED_PRODUCT_NAMES:
+            if self._is_ignored_product(raw_name):
                 continue
             try:
                 needed = int(round(float(line.get("quantity") or 0)))

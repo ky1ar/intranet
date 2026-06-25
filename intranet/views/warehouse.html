@@ -228,7 +228,7 @@
 				<div class="picking-loading" x-show="picking_loading" x-cloak
 					style="text-align:center; padding:24px; opacity:.6;">Consultando pedido...</div>
 
-				<template x-if="picking_data && picking_data.order">
+				<!-- <template x-if="picking_data && picking_data.order">
 					<div class="picking-order-head" style="margin-bottom:14px;">
 						<div style="font-weight:600;" x-text="picking_data.order.name || '-'"></div>
 						<div style="font-size:13px; opacity:.7;" x-text="picking_data.order.partner_name || ''"></div>
@@ -239,7 +239,7 @@
 								style="margin-top:8px; display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:8px; background:rgba(26,157,75,.14); color:#1a9d4b; font-weight:600; font-size:13px;">
 								✓ Pedido ya pickeado</div>
 					</div>
-				</template>
+				</template> -->
 
 				<div class="finded-products glass2" x-show="picking_data && picking_data.items && picking_data.items.length" x-cloak>
 					<template x-for="(item, idx) in (picking_data?.items || [])" :key="idx">
