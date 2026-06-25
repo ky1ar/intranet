@@ -307,6 +307,9 @@
 					{ key: 'user_team', url: `/user/team/${Alpine.store('cache').user.id}`, force: true },
 				]);
 
+				// Por defecto, seleccionar al usuario de la sesión
+				this.selected_user_id = Alpine.store('cache').user.id;
+
 				// await Alpine.store('cache').verify();
 			},
 

@@ -134,7 +134,7 @@ document.addEventListener('alpine:init', () => {
     }));
 
     Alpine.store('cache', {
-        api: 'https://devapi.krear3d.com', //https://devapi.krear3d.com
+        api: 'https://api.krear3d.com', //https://devapi.krear3d.com
         user: {},
         active_page: window.location.pathname,
          module_ui: {
@@ -207,7 +207,7 @@ document.addEventListener('alpine:init', () => {
         pdf_url: null,
         pdf_title: 'Reglamento',
         sidebar_expanded: false,
-        menu_grouped: localStorage.getItem('menu_grouped') === null ? true : localStorage.getItem('menu_grouped') === '1',
+        menu_grouped: localStorage.getItem('menu_grouped') === null ? false : localStorage.getItem('menu_grouped') === '1',
         dark_mode: localStorage.getItem('dark_mode') === '1',
         is_narrow: window.innerWidth < 768,
         _settings_modules: [],
@@ -964,8 +964,10 @@ document.addEventListener('alpine:init', () => {
             localStorage.removeItem('device_id');
             localStorage.removeItem('menu_grouped');
             localStorage.removeItem('sidebar_expanded');
-            this.menu_grouped = true;
+            localStorage.removeItem('collapsed_categories');
+            this.menu_grouped = false;
             this.sidebar_expanded = false;
+            this.collapsed_categories = [];
             window.PineconeRouter.context.navigate('/');
         },
 
