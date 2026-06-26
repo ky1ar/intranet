@@ -290,9 +290,8 @@
 
 				<button class="button hover-opacity"
 					x-show="picking_data && picking_data.found && (picking_data.items || []).some(i => i.found && i.allocations.length && i.status !== 'done')"
-					:disabled="picking_completing || !pickingSelectedCount()"
 					@click="completePicking()"
-					x-text="picking_completing ? 'Completando...' : `Completar recogido (${pickingSelectedCount()})`"></button>
+					x-text="picking_completing ? 'Completando...' : 'Completar recogido'"></button>
 				<!-- <button class="button black hover-opacity" style="flex:1;" @click="$store.cache.hideModal('warehouse-picking')">Cerrar</button> -->
 			</div>
 		</div>
@@ -938,7 +937,7 @@
 													class="wh-product-img"
 												>
 												<span class="wh-product-name" x-text="log.product || 'Carga masiva'"></span>
-												<span class="wh-order-ref" x-show="log.order_ref" x-text="log.order_ref" style="margin-left:6px; font-size:11px; padding:1px 6px; border-radius:6px; background:rgba(255,102,0,.14); color:#c45000; align-self:center;"></span>
+												<span class="wh-order-ref" x-show="log.order_ref" x-text="log.order_ref" style="font-size: 0.65rem; padding: 0.25rem 0.5rem; border-radius: 1rem; background: #ea713429; color: var(--primary); font-weight: 500;"></span>
 											</div>
 											
 											<div class="wh-qty" x-text="log.quantity ? `${log.quantity} uds.` : '—'"></div>
@@ -1762,7 +1761,7 @@
 				if (!this.picking_data || this.picking_completing) return;
 				const targets = (this.picking_data.items || [])
 					.filter(i => i.checked && i.found && i.allocations.length && i.status !== 'done');
-				if (!targets.length) return;
+				if (!targets.length) { PineToast.flash('Selecciona al menos un producto para recoger', 'error'); return; }
 
 				const picks = [];
 				targets.forEach(it => {
@@ -2532,7 +2531,7 @@
 			width: 2.5rem;
 		}
 		.location .block.black {
-			background-color: #252c39;
+			background-color: var(--secondary);
 		}
 		.location .block .label {
 			font-size: 0.6rem;
@@ -3030,13 +3029,13 @@
 			gap: 0.5rem;
 		}
 		#modal-warehouse-picking .search-order .find {
-			width: initial;
+			width: 8rem;
 			padding: 0 1rem;
 			display: flex;
 			gap: 0.5rem;
-		}
-		#modal-warehouse-picking .picking-item {
-
+			align-items: center;
+			justify-content: center;
+			margin-right: 0.5rem;
 		}
 		#modal-warehouse-picking .picking-item .picking-check {
 			flex: initial;
@@ -3057,6 +3056,7 @@
 			margin-left: 1rem;
 			color: var(--primary);
 			font-weight: 600;
+			display: none;
 		}
 		#modal-warehouse-picking .picking-item .picking-done-msg {
 			padding: 0.5rem;
@@ -3174,7 +3174,7 @@
 		}
 		#modal-warehouse-history .wh-table-row {
 			display: grid;
-			grid-template-columns: 1fr 1.5fr 0.5fr 1fr 0.6fr 0.8fr;
+			grid-template-columns: 1fr 1.5fr 0.5fr 0.8fr 0.6fr 0.8fr;
 			gap: 0.75rem;
 			align-items: center;
 			padding: 0.6rem 0.75rem;

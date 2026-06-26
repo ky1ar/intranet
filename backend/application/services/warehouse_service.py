@@ -257,12 +257,16 @@ class WarehouseService:
     def _resolve_machine_id(self, line):
         """Determina el id de máquina de una línea de pedido.
         1) usa barcode si es numérico.
-        2) si no, toma el valor entre corchetes al inicio del nombre (ej. "[840] ...")."""
+        2) si no, toma el id entre corchetes al inicio del nombre. El corchete
+           empieza con "ID" seguido del número; puede traer más datos tras un
+           espacio, que se ignoran. Ej:
+           - "[ID608] ..."           -> toma 608
+           - "[ID608 AR123RV] ..."   -> toma 608."""
         barcode = line.get("barcode")
         if barcode is not None and str(barcode).strip().isdigit():
             return int(str(barcode).strip())
         for field in ("product", "description"):
-            match = re.match(r"^\s*\[(\d+)\]", line.get(field) or "")
+            match = re.match(r"^\s*\[\s*ID(\d+)", line.get(field) or "", re.IGNORECASE)
             if match:
                 return int(match.group(1))
         return None
