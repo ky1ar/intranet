@@ -299,7 +299,7 @@ class WarehouseService:
                 "found": False,
                 "available": False,
                 "status": "no_barcode",
-                "message": "Sin código — no disponible para picking",
+                "message": "Sin código",
                 "product_id": None,
                 "brand": None,
                 "model": None,
@@ -322,7 +322,7 @@ class WarehouseService:
             machine, _ = self.warehouse_repository.get_machine(product_id)
             if not machine:
                 item["status"] = "not_found"
-                item["message"] = "Producto no encontrado en el catálogo"
+                item["message"] = "No encontrado"
                 items.append(item)
                 continue
 

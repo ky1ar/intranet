@@ -91,6 +91,9 @@ body.modal-open {
     overflow: hidden;
 }
 /***********************************************************************************/
+img.invert {
+    filter: invert(1);
+}
 .wrapper {
     width: 100%;
     margin: 0 auto;
@@ -248,9 +251,7 @@ body.modal-open {
     font-weight: 600;
 }
 
-.controls img.invert {
-    filter: invert(1);
-}
+
 .modal-grabber{
     display: none;
     width: 100%;
