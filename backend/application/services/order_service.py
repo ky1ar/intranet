@@ -107,7 +107,9 @@ class OrderService:
 
     @handle_exceptions
     def change_status(self, data):
-        result, sc = self.repository.set_status(data.get("order_id"), data.get("status"))
+        result, sc = self.repository.set_status(
+            data.get("order_id"), data.get("status"), data.get("user_id")
+        )
         if sc != 200:
             return result, sc
         socketio.emit("order_update", {})
@@ -136,6 +138,9 @@ class OrderService:
             "seller_id": order.seller_id,
             "seller_name": format_name(order.seller.name) if order.seller else None,
             "seller_email": order.seller.email if order.seller else None,
+            "processed_by": order.processed_by,
+            "processed_by_name": format_name(order.processor.name) if order.processor else None,
+            "processed_at": format_datetime(order.processed_at) if order.processed_at else None,
             "created_at": format_datetime(order.created_at),
         }
         if with_items:

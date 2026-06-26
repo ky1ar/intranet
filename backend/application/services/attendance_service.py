@@ -614,22 +614,47 @@ class AttendanceService:
         effective_start = max(period.start_date, start_in_period)
         payload["effective_start_date"] = effective_start.isoformat()
 
-        profile, prc = self.attendance_repository.get_profile_for_user_on_date(user_id, effective_start)
+        profile_rows, prc = self.attendance_repository.get_user_profiles_in_range(
+            user_id, period.start_date, period.end_date
+        )
         if prc != 200:
-            return profile, prc
+            return profile_rows, prc
 
-        if not profile:
+        if not profile_rows:
             return {
                 **payload,
                 "profile": None,
                 "profile_error": "Usuario sin perfil asignado (user_work_profile)",
             }, 200
 
-        shifts, src = self.attendance_repository.get_shifts_for_profile(profile.id)
-        if src != 200:
-            return shifts, src
+        # Pre-cachea el profile_map de cada perfil distinto que cruza el periodo.
+        profile_map_cache = {}
+        for row in profile_rows:
+            pid = row.profile.id
+            if pid not in profile_map_cache:
+                shifts, src = self.attendance_repository.get_shifts_for_profile(pid)
+                if src != 200:
+                    return shifts, src
+                profile_map_cache[pid] = self._build_profile_map(shifts)
 
-        profile_map = self._build_profile_map(shifts)
+        # Resuelve el perfil vigente en un dia concreto (mismo criterio que
+        # get_profile_for_user_on_date: la vigencia con start_date mas reciente
+        # que cubre la fecha). Soporta cambios de perfil a mitad de periodo.
+        def _profile_for_date(d):
+            match = None
+            for row in profile_rows:
+                if row.start_date <= d and (row.end_date is None or row.end_date >= d):
+                    if match is None or row.start_date >= match.start_date:
+                        match = row
+            if match is None:
+                return None, {i: [] for i in range(7)}
+            return match.profile, profile_map_cache[match.profile.id]
+
+        # Perfil representativo del periodo (payload["profile"] y fallback).
+        profile, profile_map = _profile_for_date(effective_start)
+        if not profile:
+            profile = profile_rows[-1].profile
+            profile_map = profile_map_cache[profile.id]
 
         user, uc = self.user_repository.get_user_by_id(user_id)
         if uc != 200:
@@ -649,7 +674,13 @@ class AttendanceService:
                 dt = parse_date_iso(day["date"])
                 wd = dt.weekday()
 
+                # Perfil vigente ESTE dia (soporta cambio de perfil a mitad de periodo)
+                day_profile, day_profile_map = _profile_for_date(dt)
+
                 if day.get("in_period") and dt < effective_start:
+                    # Dias previos al primer perfil del usuario (alta a mitad de
+                    # periodo): se mantiene el comportamiento anterior usando el
+                    # perfil representativo del periodo.
                     target = self._target_minutes_for_date(profile_map, dt)
                     day["expected_marks"] = 0
                     day["expected_start"] = None
@@ -688,15 +719,15 @@ class AttendanceService:
 
                 day["is_summary"] = False
 
-                shifts_for_day = (profile_map.get(wd) or [])
+                shifts_for_day = (day_profile_map.get(wd) or [])
                 day["expected_marks"] = len(shifts_for_day) * 2
 
                 # ✅ aplica permiso si existe (antes de lateness / incomplete)
                 if day.get("in_period") and day.get("is_permit"):
                     self._apply_permit_rules(day, shifts_for_day)
                     
-                target = self._target_minutes_for_date(profile_map, dt)
-                expected_start_min = self._expected_start_minutes_for_date(profile_map, dt)
+                target = self._target_minutes_for_date(day_profile_map, dt)
+                expected_start_min = self._expected_start_minutes_for_date(day_profile_map, dt)
                 day["expected_start"] = (
                     self._minutes_to_hhmm(expected_start_min) if expected_start_min is not None else None
                 )
@@ -705,10 +736,10 @@ class AttendanceService:
                     week_target += target
 
                 bonus_min = self._adjustment_bonus_minutes_for_date(
-                    profile_map=profile_map,
+                    profile_map=day_profile_map,
                     d=dt,
                     user=user,
-                    profile=profile,
+                    profile=day_profile,
                     adjustments_map=adjustments_map,
                 )
                 day["adjustment_bonus_min"] = bonus_min
@@ -717,10 +748,10 @@ class AttendanceService:
                 day["adjustment_marks"] = int(max(0, min(adj_marks, day["expected_marks"])))
 
                 adj_items = self._adjustment_best_items_for_date(
-                    profile_map=profile_map,
+                    profile_map=day_profile_map,
                     d=dt,
                     user=user,
-                    profile=profile,
+                    profile=day_profile,
                     adjustments_map=adjustments_map,
                 )
                 day["adjustment_items"] = adj_items

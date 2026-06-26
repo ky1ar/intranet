@@ -19,11 +19,16 @@ class Order(BaseModel):
     order_date           = db.Column(db.DateTime)
     # Vendedor (ejecutivo de ayuda): user.id de la intranet resuelto por correo.
     seller_id            = db.Column(db.Integer, db.ForeignKey("user.id"))
+    # Trazabilidad: quien movio el pedido de "registrado" a "en proceso"
+    # (independiente del seller_id, que es el ejecutivo de ayuda asignado).
+    processed_by         = db.Column(db.Integer, db.ForeignKey("user.id"))
+    processed_at         = db.Column(db.DateTime)
     created_at           = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
     updated_at           = db.Column(db.DateTime, onupdate=db.func.now())
 
-    client = db.relationship("Clients", foreign_keys=[client_id], lazy="joined")
-    seller = db.relationship("Users", foreign_keys=[seller_id], lazy="joined")
+    client    = db.relationship("Clients", foreign_keys=[client_id], lazy="joined")
+    seller    = db.relationship("Users", foreign_keys=[seller_id], lazy="joined")
+    processor = db.relationship("Users", foreign_keys=[processed_by], lazy="joined")
 
 
 class OrderItem(BaseModel):

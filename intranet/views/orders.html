@@ -162,6 +162,27 @@
 								</div>
 							</template>
 
+							<!-- Procesado por (traza: registrado → en proceso) -->
+							<template x-if="detail?.processed_by_name">
+								<div class="box-cont">
+									<div class="desc">Procesado por</div>
+									<div class="white info-box">
+										<div class="info-row">
+											<img alt="" width="16" height="16" src="/static/icons/line/guard.svg">
+											<span class="lbl">Responsable</span>
+											<span class="val" x-text="detail.processed_by_name"></span>
+										</div>
+										<template x-if="detail?.processed_at">
+											<div class="info-row">
+												<img alt="" width="16" height="16" src="/static/icons/line/clock.svg">
+												<span class="lbl">Fecha</span>
+												<span class="val" x-text="detail.processed_at"></span>
+											</div>
+										</template>
+									</div>
+								</div>
+							</template>
+
 							<!-- Productos -->
 							<div class="box-cont">
 								<div class="desc">Productos</div>

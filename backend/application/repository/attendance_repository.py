@@ -40,6 +40,23 @@ class AttendanceRepository:
             return None, 200
         return row.start_date, 200
 
+
+    @handle_db_exceptions
+    def get_user_profiles_in_range(self, user_id: int, period_start: date, period_end: date):
+        # Todas las vigencias de perfil que cruzan el periodo (soporta cambios
+        # de perfil a mitad de periodo). Mismo criterio de cruce que
+        # get_user_profile_start_in_period; la resolucion por dia se hace en el
+        # service replicando get_profile_for_user_on_date.
+        rows = (
+            g.db_session.query(UserWorkProfile)
+            .filter(UserWorkProfile.user_id == int(user_id))
+            .filter(UserWorkProfile.start_date <= period_end)
+            .filter((UserWorkProfile.end_date.is_(None)) | (UserWorkProfile.end_date >= period_start))
+            .order_by(UserWorkProfile.start_date.asc())
+            .all()
+        )
+        return rows or [], 200
+
     
     @handle_db_exceptions
     def get_user_leave_adjustment(self, user_id):

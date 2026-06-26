@@ -91,11 +91,16 @@ class OrderRepository:
         return client.id, 200
 
     def _resolve_seller(self, atencion):
-        """Vincula al ejecutivo con un user.id de la intranet por su correo."""
-        email = (atencion.get("vendedor_email") or "").strip()
-        if not email:
+        """El payload trae vendedor_id, que ya es el user.id de la intranet.
+        Se valida que exista para no violar la FK con un id obsoleto."""
+        vendedor_id = atencion.get("vendedor_id")
+        if not vendedor_id:
             return None
-        user = g.db_session.query(Users).filter(Users.email == email).first()
+        try:
+            vendedor_id = int(vendedor_id)
+        except (TypeError, ValueError):
+            return None
+        user = g.db_session.query(Users).filter(Users.id == vendedor_id).first()
         return user.id if user else None
 
     def _parse_date(self, value):
@@ -245,7 +250,7 @@ class OrderRepository:
 
     # ───────────────────────── Estado ─────────────────────────
     @handle_db_exceptions
-    def set_status(self, order_id, new_status):
+    def set_status(self, order_id, new_status, processed_by=None):
         order = (
             g.db_session.query(Order)
             .filter(Order.id == order_id)
@@ -257,5 +262,9 @@ class OrderRepository:
         if new_status not in allowed:
             return "Transición de estado no permitida", 400
         order.status = new_status
+        # Traza: registra quién pasó el pedido a "en proceso" (independiente del seller).
+        if new_status == "in_process" and processed_by:
+            order.processed_by = processed_by
+            order.processed_at = peru_time()
         g.db_session.commit()
         return {"id": order.id, "status": order.status}, 200
