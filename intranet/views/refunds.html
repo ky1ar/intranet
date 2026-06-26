@@ -909,6 +909,13 @@
 					{ key: 'refund_dashboard', url: '/refund/dashboard', force: true },
 					{ key: 'refund_statuses',  url: '/refund/statuses' },
 				]);
+
+				// Deeplink desde push: abrir el extorno indicado
+				const pending = Alpine.store('cache').pending_refund_id;
+				if (pending) {
+					Alpine.store('cache').pending_refund_id = null;
+					this.openDetail(pending);
+				}
 			},
 
 			// ── Permissions ──

@@ -116,7 +116,7 @@ class RefundService:
         days = 7 if weekday == 4 else 4 - weekday
         return resolve(today + timedelta(days=days))
 
-    def _push_to_perm(self, perm_slug, title, body, exclude_id=None):
+    def _push_to_perm(self, perm_slug, title, body, exclude_id=None, url=None):
         """Send push notification to all users with the given permission."""
         user_ids, _ = self.repository.get_users_with_perm("refunds", perm_slug)
         if exclude_id is not None:
@@ -124,9 +124,10 @@ class RefundService:
         if not user_ids:
             return
         tokens, _ = self.push_service.prefetch_registration_tokens(user_ids)
-        socketio.start_background_task(self.push_service.send_to_tokens, tokens, title, body, None)
+        data = {"url": url, "title": title} if url else None
+        socketio.start_background_task(self.push_service.send_to_tokens, tokens, title, body, data)
 
-    def _push_to_perms(self, perm_slugs, title, body, exclude_id=None):
+    def _push_to_perms(self, perm_slugs, title, body, exclude_id=None, url=None):
         """Send push to all users who have any of the given permissions."""
         all_ids = set()
         for slug in perm_slugs:
@@ -137,7 +138,8 @@ class RefundService:
         if not all_ids:
             return
         tokens, _ = self.push_service.prefetch_registration_tokens(list(all_ids))
-        socketio.start_background_task(self.push_service.send_to_tokens, tokens, title, body, None)
+        data = {"url": url, "title": title} if url else None
+        socketio.start_background_task(self.push_service.send_to_tokens, tokens, title, body, data)
 
     def _format_waba_phone(self, phone):
         if not phone:
@@ -481,6 +483,7 @@ class RefundService:
                 f"Nuevo extorno #{refund_id}",
                 f"{name} registró un extorno",
                 exclude_id=user_id,
+                url=f"/refunds/{refund_id}",
             )
 
         return {"id": refund_id}, 200
@@ -582,10 +585,10 @@ class RefundService:
 
         if status_id == 3:
             logging.info(f"push status 3")
-            self._push_to_perm("approve_area", f"Extorno #{refund_id} pendiente", f"{name} envió el extorno a área", user_id)
+            self._push_to_perm("approve_area", f"Extorno #{refund_id} pendiente", f"{name} envió el extorno a área", user_id, url=f"/refunds/{refund_id}")
         elif status_id == 4:
             logging.info(f"push status 4")
-            self._push_to_perm("approve_gerencia", f"Extorno #{refund_id} pendiente", f"{name} aprobó en área", user_id)
+            self._push_to_perm("approve_gerencia", f"Extorno #{refund_id} pendiente", f"{name} aprobó en área", user_id, url=f"/refunds/{refund_id}")
         elif status_id == 5:
             now = peru_time()
             scheduled = self._next_valid_friday(now)
@@ -595,6 +598,7 @@ class RefundService:
                 f"Extorno #{refund_id} programado",
                 f"Agendado para el {scheduled.strftime('%d/%m/%Y')}",
                 user_id,
+                url=f"/refunds/{refund_id}",
             )
             if _waba_phone:
                 logging.info(f"_waba_phone finded to send {_waba_phone}")
@@ -996,6 +1000,7 @@ class RefundService:
             "notify",
             f"Nuevo extorno EX-{refund_id}",
             f"Extorno registrado por cliente pendiente de validación.",
+            url=f"/refunds/{refund_id}",
         )
 
         waba_phone = self._format_waba_phone(client_phone)
@@ -1039,7 +1044,7 @@ class RefundService:
         title = f"Nuevo mensaje, Extorno #{refund_id}"
         body  = f"{format_name(user.name, True)}: {comment}"
         tokens, _ = self.push_service.prefetch_registration_tokens(participants)
-        socketio.start_background_task(self.push_service.send_to_tokens, tokens, title, body, None)
+        socketio.start_background_task(self.push_service.send_to_tokens, tokens, title, body, {"url": f"/refunds/{refund_id}", "title": title})
 
         return {
             "id": chat.id,

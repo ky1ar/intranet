@@ -32,14 +32,25 @@ class OrderService:
             user_ids, _ = self.module_service.get_user_ids_with_permission("orders", "notify")
             if not user_ids:
                 return
+
+            # Cuerpo enriquecido: número de pedido y cliente (con fallback)
+            body = f"WC-{order_id}"
+            order, sc = self.repository.get_order_by_id(order_id)
+            if sc == 200 and order is not None:
+                number = order.order_number or order.wc_order_id or order_id
+                parts = [f"WC-{number}"]
+                if order.client and order.client.name:
+                    parts.append(format_name(order.client.name))
+                body = "  ·  ".join(parts)
+
             self.push_service.send_to_users(
                 user_ids=user_ids,
-                title="Nuevo pedido",
-                body=f"PED-{order_id}",
-                data={"url": "/orders", "title": "Nuevo pedido"},
+                title="Nuevo pedido registrado",
+                body=body,
+                data={"url": f"/orders/{order_id}", "title": "Nuevo pedido"},
             )
         except Exception:
-            logging.exception("Error notificando nuevo pedido PED-%s", order_id)
+            logging.exception("Error notificando nuevo pedido WC-%s", order_id)
 
     # ── Tablero ──
     @handle_exceptions

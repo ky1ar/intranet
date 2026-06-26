@@ -207,7 +207,7 @@ document.addEventListener('alpine:init', () => {
         pdf_url: null,
         pdf_title: 'Reglamento',
         sidebar_expanded: false,
-        menu_grouped: localStorage.getItem('menu_grouped') === null ? false : localStorage.getItem('menu_grouped') === '1',
+        menu_grouped: window.innerWidth >= 768,
         dark_mode: localStorage.getItem('dark_mode') === '1',
         is_narrow: window.innerWidth < 768,
         _settings_modules: [],
@@ -488,7 +488,10 @@ document.addEventListener('alpine:init', () => {
         },
 
         watchViewport() {
-            const update = () => this.is_narrow = window.innerWidth < 768;
+            const update = () => {
+                this.is_narrow = window.innerWidth < 768;
+                this.menu_grouped = !this.is_narrow;
+            };
             update();
             window.addEventListener('resize', update);
         },
@@ -965,7 +968,7 @@ document.addEventListener('alpine:init', () => {
             localStorage.removeItem('menu_grouped');
             localStorage.removeItem('sidebar_expanded');
             localStorage.removeItem('collapsed_categories');
-            this.menu_grouped = false;
+            this.menu_grouped = !this.is_narrow;
             this.sidebar_expanded = false;
             this.collapsed_categories = [];
             window.PineconeRouter.context.navigate('/');
@@ -1431,6 +1434,26 @@ function logisticsHandler({ params }) {
     const currentPath = window.location.pathname;
     const newPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
     history.replaceState(null, '', newPath);
+}
+
+// Fábrica de handlers de deeplink: guarda el id en el store y delega en la ruta base.
+// La pestaña de chat de cada módulo vive dentro del modal de detalle, así que el mismo deeplink la abre.
+function makeDeeplinkHandler(route, storeKey) {
+    return function (context) {
+        const id = context.params.id;
+        if (id) Alpine.store('cache')[storeKey] = id;
+        window.PineconeRouter.context.navigate(route);
+        return false;
+    };
+}
+
+// El service worker reenvía la URL del push cuando la app ya está abierta
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data?.type === 'NAVIGATE' && event.data.url) {
+            window.PineconeRouter.context.navigate(event.data.url);
+        }
+    });
 }
 
 async function loginVerify(context) {

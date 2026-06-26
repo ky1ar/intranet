@@ -475,7 +475,7 @@ class SafebuyService:
         body = f"{format_name(user.name, True)}: {comment}"
 
         registration_tokens, _ = self.push_service.prefetch_registration_tokens(participants)
-        socketio.start_background_task(self.push_service.send_to_tokens, registration_tokens, title, body, None)
+        socketio.start_background_task(self.push_service.send_to_tokens, registration_tokens, title, body, {"url": f"/safebuy/{request_id}", "title": title})
 
         return {
             "id": chat.id,

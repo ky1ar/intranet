@@ -355,6 +355,13 @@
 			await Alpine.store('cache').fetchData([
 				{ key: 'order_dashboard', url: '/order/dashboard', force: true },
 			]);
+
+			// Deeplink desde push: abrir el pedido indicado
+			const pending_id = Alpine.store('cache').pending_order_id;
+			if (pending_id) {
+				Alpine.store('cache').pending_order_id = null;
+				this.openDetail({ id: pending_id });
+			}
 		},
 
 		async openDetail(order) {

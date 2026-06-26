@@ -365,6 +365,13 @@
 					{ key: 'safebuy_dashboard', url: '/safebuy/dashboard', force: true },
 					{ key: 'safebuy_statuses', url: '/safebuy/statuses' },
 				]);
+
+				// Deeplink desde push: abrir la solicitud indicada
+				const pending = Alpine.store('cache').pending_safebuy_id;
+				if (pending) {
+					Alpine.store('cache').pending_safebuy_id = null;
+					this.openRequest(pending);
+				}
 			},
 
 			async refreshDashboard() {

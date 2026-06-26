@@ -176,6 +176,7 @@ class ComplaintService:
             user_ids=department_user_ids,
             title=f"Nuevo Reclamo {complaint_letter}-{complaint_id}",
             body="Se ha registrado un nuevo reclamo pendiente de gestión.",
+            data={"url": f"/complaint/{complaint_id}", "title": f"Nuevo Reclamo {complaint_letter}-{complaint_id}"},
         )
 
         if send_mail and email:
@@ -389,6 +390,7 @@ class ComplaintService:
                 user_ids=users_to_send,
                 title=f"Reclamo {complaint_letter}-{complaint_id} asignado",
                 body="Se te ha asignado un nuevo reclamo, por favor agrega evidencias.",
+                data={"url": f"/complaint/{complaint_id}", "title": f"Reclamo {complaint_letter}-{complaint_id} asignado"},
             )
 
         return "Reclamo actualizado correctamente", 200
@@ -643,7 +645,7 @@ class ComplaintService:
 
         registration_tokens, users_without = self.push_service.prefetch_registration_tokens(participants)
 
-        socketio.start_background_task(self.push_service.send_to_tokens, registration_tokens, title, body, None)
+        socketio.start_background_task(self.push_service.send_to_tokens, registration_tokens, title, body, {"url": f"/complaint/{complaint_id}", "title": title})
         socketio.start_background_task(socketio.emit, "complaint_dashboard_update", {})
 
         if users_without:

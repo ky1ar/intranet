@@ -830,6 +830,13 @@
 					{ key: 'common_departments', url: '/common/departments' },
 				]);
 
+				// Deeplink desde push: abrir el reclamo indicado
+				const pending = Alpine.store('cache').pending_complaint_id;
+				if (pending) {
+					Alpine.store('cache').pending_complaint_id = null;
+					this.viewComplaint(pending);
+				}
+
 				// await Alpine.store('cache').verify();
 
 			},

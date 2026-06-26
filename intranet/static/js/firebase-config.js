@@ -21,6 +21,13 @@ window.messaging.onMessage((payload) => {
     };
 
     if (Notification.permission === 'granted') {
-        new Notification(title, options);
+        const notification = new Notification(title, options);
+        notification.onclick = (e) => {
+            e.preventDefault();
+            window.focus();
+            const url = payload.data?.url;
+            if (url && window.PineconeRouter) window.PineconeRouter.context.navigate(url);
+            notification.close();
+        };
     }
 });

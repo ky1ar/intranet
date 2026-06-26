@@ -95,7 +95,7 @@ class ApprovalService:
                 user_ids=user_ids,
                 title="Nueva solicitud de aprobación",
                 body=f"AP-{request_id} - {type_name}",
-                data={"url": "/approvals", "title": "Nueva solicitud de aprobación"},
+                data={"url": f"/approvals/{request_id}", "title": "Nueva solicitud de aprobación"},
             )
         except Exception:
             logging.exception("Error notificando nueva solicitud de aprobación AP-%s", request_id)
@@ -333,6 +333,7 @@ class ApprovalService:
                 user_ids=participants,
                 title=f"Nuevo mensaje, solicitud AP-{request_id}",
                 body=f"{format_name(chat.commenter.name, True)}: {comment}",
+                data={"url": f"/approvals/{request_id}", "title": f"Nuevo mensaje, solicitud AP-{request_id}"},
             )
         socketio.emit("approval_update", {})
 
