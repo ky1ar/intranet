@@ -291,7 +291,7 @@
 				<button class="button hover-opacity"
 					x-show="picking_data && picking_data.found && (picking_data.items || []).some(i => i.found && i.allocations.length && i.status !== 'done')"
 					@click="completePicking()"
-					x-text="picking_completing ? 'Completando...' : 'Completar recogido'"></button>
+					x-text="picking_completing ? 'Completando...' : 'Completar picking'"></button>
 				<!-- <button class="button black hover-opacity" style="flex:1;" @click="$store.cache.hideModal('warehouse-picking')">Cerrar</button> -->
 			</div>
 		</div>
@@ -1785,7 +1785,7 @@
 					await this.loadOccupiedLocations();
 					// Refresca el plan: el backend recalcula pendiente vs ya pickeado.
 					await this.fetchPickingPlan();
-					PineToast.flash(`Recogido registrado: ${units} ud. en ${count} producto(s).`, 'success');
+					PineToast.flash(`Picking registrado: ${units} ud. en ${count} producto(s).`, 'success');
 				} catch (error) {
 					PineToast.flash(error.message || 'Error completando el picking', 'error');
 				} finally {

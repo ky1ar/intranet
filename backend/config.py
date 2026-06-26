@@ -122,3 +122,4 @@ class Paths:
     REFUND = os.path.abspath("/shared_uploads/refund/")
     APPROVAL_VOUCHERS = os.path.abspath("/shared_uploads/approvals/vouchers/")
     GUIDES_MEDIA = os.path.abspath("/shared_uploads/guides/media/")
+    MACHINES = os.path.abspath("/shared_uploads/machines/")

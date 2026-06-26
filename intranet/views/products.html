@@ -1,0 +1,590 @@
+<div x-data="products_data">
+	<div id="products">
+		<div class="controls">
+			<div class="left mobile-hide frost">
+				<div class="item" x-show="canManageCategories()" @click="openCategories()">
+					<img class="themed" alt="" width="20" height="20" src="/static/icons/line/category.svg">
+					<span>Categorías</span>
+				</div>
+				<div class="item" x-show="canManageBrands()" @click="openBrands()">
+					<img class="themed" alt="" width="20" height="20" src="/static/icons/line/tag.svg">
+					<span>Marcas</span>
+				</div>
+			</div>
+
+			<div class="left frost" x-show="total_pages > 1">
+				<div class="item" :class="page > 1 ? '':'disabled'" @click="firstPage()">
+					<img class="flip" alt="prev" src="/static/icons/line/rightfull.svg" width="20" height="20">
+				</div>
+
+				<div class="item" :class="page > 1 ? '':'disabled'" @click="prevPage()">
+					<img class="flip" alt="prev" src="/static/icons/line/right.svg" width="20" height="20">
+				</div>
+
+				<div class="item label" x-text="`${page} / ${total_pages}`"></div>
+
+				<div class="item" :class="page < total_pages ? '':'disabled'" @click="nextPage()">
+					<img alt="next" src="/static/icons/line/right.svg" width="20" height="20">
+				</div>
+
+				<div class="item" :class="page < total_pages ? '':'disabled'" @click="lastPage()">
+					<img alt="next" src="/static/icons/line/rightfull.svg" width="20" height="20">
+				</div>
+			</div>
+
+			<div class="right frost-dark" x-show="canCreate()">
+				<div class="item" @click="openCreate()">
+					<img class="invert themed" alt="" width="20" height="20" src="/static/icons/line/add.svg">
+					<span>Añadir</span>
+				</div>
+			</div>
+		</div>
+
+		<!-- Catálogo -->
+		<div class="main glass">
+			<div class="product-filters">
+				<label class="white search">
+					<img class="themed" alt="" width="16" height="16" src="/static/icons/line/find.svg">
+					<input type="text" x-model="find_query" placeholder="Buscar por marca o modelo"
+						@input.debounce.300ms="firstPage()">
+				</label>
+				<label class="white">
+					<select x-model="filter_category" @change="firstPage()">
+						<option value="">Todas las categorías</option>
+						<template x-for="c in $store.cache.getData('products_categories') || []" :key="c.id">
+							<option :value="c.id" x-text="c.name"></option>
+						</template>
+					</select>
+				</label>
+				<label class="white">
+					<select x-model="filter_brand" @change="firstPage()">
+						<option value="">Todas las marcas</option>
+						<template x-for="b in $store.cache.getData('products_brands') || []" :key="b.id">
+							<option :value="b.id" x-text="b.name"></option>
+						</template>
+					</select>
+				</label>
+			</div>
+
+			<!-- <template x-if="machines.length === 0">
+				<span style="padding: 1rem;">No se encontraron productos.</span>
+			</template> -->
+
+			<div class="product-grid" x-show="machines.length > 0">
+				<template x-for="m in machines" :key="m.id">
+					<div class="product-card white hover-opacity" @click="openEdit(m)">
+						<div class="thumb">
+							<template x-if="m.image">
+								<img :src="`/static/images/uploads/machines/${m.image}`" :alt="m.model" loading="lazy">
+							</template>
+							<template x-if="!m.image">
+								<span class="placeholder">Sin imagen</span>
+							</template>
+						</div>
+						<div class="info">
+							<span class="brand" x-text="m.brand_name"></span>
+							<span class="model" x-text="m.model"></span>
+							<div class="meta">
+								<span class="category" x-text="m.category_name"></span>
+								<span class="type" x-text="m.type"></span>
+							</div>
+						</div>
+					</div>
+				</template>
+			</div>
+
+			
+		</div>
+
+		<!-- ── Modal crear / editar ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('products-form')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap common-modal"
+			id="modal-products-form"
+			x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2 little" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+
+				<div class="top">
+					<span class="title" x-text="form.id ? 'Editar producto' : 'Nuevo producto'"></span>
+				</div>
+
+				<div class="modal-content">
+					<div class="image-upload">
+						<div class="preview white">
+							<template x-if="form.preview">
+								<img :src="form.preview" alt="preview">
+							</template>
+							<template x-if="!form.preview">
+								<span class="placeholder">Sin imagen</span>
+							</template>
+						</div>
+						<label class="white upload-btn hover-opacity">
+							<img alt="" width="16" height="16" src="/static/icons/line/add.svg">
+							<span x-text="form.image_file ? 'Cambiar' : (form.id ? 'Reemplazar' : 'Subir')"></span>
+							<input type="file" accept="image/*" style="display:none" @change="pickImage($event)">
+						</label>
+					</div>
+
+					<div class="fields">
+						<label class="white" style="flex:2;">
+							<input type="text" x-model="form.model" placeholder="Modelo / nombre">
+						</label>
+						<label class="white" style="flex:1;">
+							<input type="text" maxlength="5" x-model="form.type" placeholder="Tipo (ej. FDM)">
+						</label>
+					</div>
+
+					<div class="fields">
+						<label class="white">
+							<select x-model="form.brand_id">
+								<option value="" disabled>Marca</option>
+								<template x-for="b in $store.cache.getData('products_brands') || []" :key="b.id">
+									<option :value="b.id" x-text="b.name"></option>
+								</template>
+							</select>
+						</label>
+						<label class="white">
+							<select x-model="form.category_id">
+								<option value="" disabled>Categoría</option>
+								<template x-for="c in $store.cache.getData('products_categories') || []" :key="c.id">
+									<option :value="c.id" x-text="c.name"></option>
+								</template>
+							</select>
+						</label>
+					</div>
+				</div>
+
+				<div class="modal-footer buttons">
+					<button class="button hover-opacity" :class="processing ? 'disabled':''" @click="submitForm()">
+						<span x-text="form.id ? 'Guardar cambios' : 'Crear producto'"></span>
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- ── Modal categorías ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('products-categories')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap common-modal"
+			id="modal-products-categories"
+			x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2 little" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+				<div class="top"><span class="title">Categorías</span></div>
+				<div class="modal-content">
+					<div class="fields">
+						<label class="white" style="flex:2;">
+							<input type="text" x-model="new_category" placeholder="Nueva categoría" @keydown.enter="createCategory()">
+						</label>
+						<button class="button hover-opacity" @click="createCategory()" style="width: 8rem;">Añadir</button>
+					</div>
+					<div class="taxonomy-list">
+						<template x-for="c in $store.cache.getData('products_categories') || []" :key="c.id">
+							<div class="taxonomy-row white">
+								<input type="text" x-model="c.name" @keydown.enter="saveCategory(c)">
+								<div class="action hover-opacity" title="Guardar" @click="saveCategory(c)">
+									<img alt="" width="16" height="16" src="/static/icons/line/save.svg">
+								</div>
+							</div>
+						</template>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- ── Modal marcas ── -->
+		<div
+			x-show="$store.cache.isVisibleModal('products-brands')"
+			@mousedown.self="$store.cache.hideLastModal()"
+			class="modal-wrap common-modal"
+			id="modal-products-brands"
+			x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+			x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end"
+			x-cloak
+		>
+			<div class="modal glass2 little" @click.stop>
+				<div class="modal-grabber"><div class="modal-grabber-bar"></div></div>
+				<div class="top"><span class="title">Marcas</span></div>
+				<div class="modal-content">
+					<div class="fields">
+						<label class="white" style="flex:2;">
+							<input type="text" x-model="new_brand" placeholder="Nueva marca" @keydown.enter="createBrand()">
+						</label>
+						<button class="button hover-opacity" @click="createBrand()" style="width: 8rem;">Añadir</button>
+					</div>
+					<div class="taxonomy-list">
+						<template x-for="b in $store.cache.getData('products_brands') || []" :key="b.id">
+							<div class="taxonomy-row white">
+								<input type="text" x-model="b.name" @keydown.enter="saveBrand(b)">
+								<div class="action hover-opacity" title="Guardar" @click="saveBrand(b)">
+									<img alt="" width="16" height="16" src="/static/icons/line/save.svg">
+								</div>
+							</div>
+						</template>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		Alpine.data('products_data', () => ({
+			token: localStorage.getItem('user_token'),
+			api:   Alpine.store('cache').api,
+			user:  Alpine.store('cache').user,
+			processing: false,
+
+			machines: [],
+			page: 1,
+			total_pages: 1,
+			find_query: '',
+			filter_category: '',
+			filter_brand: '',
+
+			new_category: '',
+			new_brand: '',
+
+			form: {
+				id: null, model: '', type: '', brand_id: '', category_id: '',
+				image_file: null, preview: null,
+			},
+
+			async init() {
+				console.log('Inicializando Productos...');
+				await Alpine.store('cache').fetchData([
+					{ key: 'products_categories', url: '/machine/categories' },
+					{ key: 'products_brands',     url: '/machine/brands' },
+				]);
+				await this.firstPage();
+			},
+
+			// ── Permissions ──
+			canCreate() { return Alpine.store('cache').hasPermission('products', 'create'); },
+			canEdit()   { return Alpine.store('cache').hasPermission('products', 'edit'); },
+			canManageCategories() { return Alpine.store('cache').hasPermission('products', 'manage_categories'); },
+			canManageBrands()     { return Alpine.store('cache').hasPermission('products', 'manage_brands'); },
+
+			// ── Listado ──
+			async loadMachines() {
+				const params = new URLSearchParams({ page: this.page, per_page: 30 });
+				if (this.find_query.trim().length >= 2) params.set('q', this.find_query.trim());
+				if (this.filter_category) params.set('category_id', this.filter_category);
+				if (this.filter_brand)    params.set('brand_id', this.filter_brand);
+				try {
+					const res = await fetch(`${this.api}/machine/list?${params.toString()}`, {
+						headers: { 'Authorization': `Bearer ${this.token}`, 'X-No-Toast': '1' },
+					});
+					const json = await res.json();
+					const data = json.data || {};
+					this.machines = data.list || [];
+					this.total_pages = data.pagination?.pages || 1;
+				} catch (e) { console.error(e); }
+			},
+			async firstPage() { this.page = 1; await this.loadMachines(); },
+			async lastPage()  { this.page = this.total_pages; await this.loadMachines(); },
+			async nextPage()  { if (this.page < this.total_pages) { this.page++; await this.loadMachines(); } },
+			async prevPage()  { if (this.page > 1) { this.page--; await this.loadMachines(); } },
+
+			// ── Crear / editar producto ──
+			openCreate() {
+				this.form = { id: null, model: '', type: '', brand_id: '', category_id: '', image_file: null, preview: null };
+				Alpine.store('cache').showModal('products-form');
+			},
+			openEdit(m) {
+				if (!this.canEdit()) return;
+				this.form = {
+					id: m.id, model: m.model || '', type: m.type || '',
+					brand_id: m.brand_id || '', category_id: m.category_id || '',
+					image_file: null, preview: m.image_url ? `${m.image_url}` : null,
+				};
+				Alpine.store('cache').showModal('products-form');
+			},
+			pickImage(e) {
+				const file = e.target.files?.[0];
+				if (!file) return;
+				this.form.image_file = file;
+				this.form.preview = URL.createObjectURL(file);
+				e.target.value = '';
+			},
+			async submitForm() {
+				if (this.processing) return;
+				if (!this.form.model.trim() || !this.form.type.trim() || !this.form.brand_id || !this.form.category_id) {
+					PineToast.flash('Completa todos los campos', 'error');
+					return;
+				}
+				if (!this.form.id && !this.form.image_file) {
+					PineToast.flash('La imagen es obligatoria', 'error');
+					return;
+				}
+				const fd = new FormData();
+				fd.append('model', this.form.model.trim());
+				fd.append('type', this.form.type.trim());
+				fd.append('brand_id', this.form.brand_id);
+				fd.append('category_id', this.form.category_id);
+				if (this.form.image_file) fd.append('image', this.form.image_file);
+
+				const url = this.form.id ? `${this.api}/machine/${this.form.id}` : `${this.api}/machine`;
+				const method = this.form.id ? 'PUT' : 'POST';
+				this.processing = true;
+				try {
+					const res = await fetch(url, {
+						method,
+						headers: { 'Authorization': `Bearer ${this.token}` },
+						body: fd,
+					});
+					const json = await res.json();
+					if (!res.ok) { PineToast.flash(json?.data?.message || json?.data || 'Error', 'error'); return; }
+					Alpine.store('cache').hideLastModal();
+					PineToast.flash(this.form.id ? 'Producto actualizado' : 'Producto creado', 'success');
+					await this.loadMachines();
+				} catch (e) { console.error(e); PineToast.flash('Error de red', 'error'); }
+				finally { this.processing = false; }
+			},
+
+			// ── Categorías ──
+			openCategories() { this.new_category = ''; Alpine.store('cache').showModal('products-categories'); },
+			async createCategory() {
+				const name = this.new_category.trim();
+				if (!name) return;
+				try {
+					const res = await fetch(`${this.api}/machine/categories`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+						body: JSON.stringify({ name }),
+					});
+					const json = await res.json();
+					if (!res.ok) { PineToast.flash(json?.data?.message || json?.data || 'Error', 'error'); return; }
+					this.new_category = '';
+					await Alpine.store('cache').refresh('products_categories');
+					PineToast.flash('Categoría creada', 'success');
+				} catch (e) { console.error(e); }
+			},
+			async saveCategory(c) {
+				const name = (c.name || '').trim();
+				if (!name) return;
+				try {
+					const res = await fetch(`${this.api}/machine/categories/${c.id}`, {
+						method: 'PUT',
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+						body: JSON.stringify({ name }),
+					});
+					const json = await res.json();
+					if (!res.ok) { PineToast.flash(json?.data?.message || json?.data || 'Error', 'error'); return; }
+					PineToast.flash('Categoría actualizada', 'success');
+				} catch (e) { console.error(e); }
+			},
+
+			// ── Marcas ──
+			openBrands() { this.new_brand = ''; Alpine.store('cache').showModal('products-brands'); },
+			async createBrand() {
+				const name = this.new_brand.trim();
+				if (!name) return;
+				try {
+					const res = await fetch(`${this.api}/machine/brands`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+						body: JSON.stringify({ name }),
+					});
+					const json = await res.json();
+					if (!res.ok) { PineToast.flash(json?.data?.message || json?.data || 'Error', 'error'); return; }
+					this.new_brand = '';
+					await Alpine.store('cache').refresh('products_brands');
+					PineToast.flash('Marca creada', 'success');
+				} catch (e) { console.error(e); }
+			},
+			async saveBrand(b) {
+				const name = (b.name || '').trim();
+				if (!name) return;
+				try {
+					const res = await fetch(`${this.api}/machine/brands/${b.id}`, {
+						method: 'PUT',
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+						body: JSON.stringify({ name }),
+					});
+					const json = await res.json();
+					if (!res.ok) { PineToast.flash(json?.data?.message || json?.data || 'Error', 'error'); return; }
+					PineToast.flash('Marca actualizada', 'success');
+				} catch (e) { console.error(e); }
+			},
+		}));
+	</script>
+
+	<style>
+		#products .main {
+			min-height: calc(100vh - 6.5rem);
+		}
+		.controls .item.label {
+			cursor: default;
+			opacity: 0.75;
+			font-weight: 500;
+			width: initial;
+		}
+		#products .product-filters {
+			display: flex;
+			gap: 0.75rem;
+			padding: 0.75rem;
+			flex-wrap: wrap;
+		}
+		#products .product-filters label {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			height: 2.5rem;
+			padding: 0 0.75rem;
+			border-radius: 0.75rem;
+			flex: 1;
+			min-width: 12rem;
+		}
+		#products .product-filters input,
+		#products .product-filters select {
+			border: 0;
+			background: transparent;
+			width: 100%;
+			height: 100%;
+			outline: none;
+			font-family: inherit;
+		}
+		#products .product-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+			gap: 0.75rem;
+			padding: 0.75rem;
+		}
+		#products .product-card {
+			display: flex;
+			flex-direction: column;
+			overflow: hidden;
+			justify-content: space-around;
+			padding: 1rem;
+		}
+		#products .product-card .thumb {
+			aspect-ratio: 1 / 1;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		#products .product-card .thumb img {
+			padding: 0 0.75rem;
+		}
+		#products .product-card .thumb .placeholder {
+			font-size: 0.72rem;
+			opacity: 0.4;
+		}
+		#products .product-card .info {
+			display: flex;
+			flex-direction: column;
+			gap: 0.15rem;
+		}
+		#products .product-card .brand {
+			font-size: 0.7rem;
+			text-transform: uppercase;
+			opacity: 0.5;
+			font-weight: 600;
+		}
+		#products .product-card .model {
+			font-weight: 600;
+			font-size: 0.85rem;
+			line-height: 1rem;
+		}
+		#products .product-card .meta {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			gap: 0.5rem;
+			font-size: 0.7rem;
+			opacity: 0.35;
+			font-weight: 500;
+		}
+		#products .product-card .meta .type {
+			display: none;
+		}
+		#products .pagination {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.5rem;
+			padding: 0.75rem;
+		}
+		#products .pagination .page-indicator {
+			font-size: 0.8rem;
+			opacity: 0.7;
+			min-width: 3rem;
+			text-align: center;
+		}
+		#products .image-upload {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		#products .image-upload .preview {
+			width: 9rem;
+			height: 9rem;
+			padding: 1rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		#products .image-upload .preview img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+		#products .image-upload .preview .placeholder {
+			font-size: 0.75rem;
+			opacity: 0.5;
+		}
+		#products .image-upload .upload-btn {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			height: 2.5rem;
+			padding: 0.5rem 0;
+			border-radius: 0.75rem;
+			cursor: pointer;
+			width: 9rem;
+			font-size: 0.8rem;
+			justify-content: center;
+		}
+		#products .taxonomy-list {
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			max-height: 50vh;
+			overflow: auto;
+		}
+		#products .taxonomy-row {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.35rem 0.5rem 0.35rem 0.75rem;
+			border-radius: 0.75rem;
+		}
+		#products .taxonomy-row input {
+			border: 0;
+			background: transparent;
+			flex: 1;
+			height: 2rem;
+			outline: none;
+			font-family: inherit;
+		}
+		#products .taxonomy-row .action {
+			width: 2rem;
+			height: 2rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			border-radius: 0.5rem;
+			cursor: pointer;
+		}
+	</style>
+</div>

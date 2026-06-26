@@ -134,7 +134,7 @@ document.addEventListener('alpine:init', () => {
     }));
 
     Alpine.store('cache', {
-        api: 'https://devapi.krear3d.com', //https://devapi.krear3d.com
+        api: 'https://api.krear3d.com', //https://devapi.krear3d.com
         user: {},
         active_page: window.location.pathname,
          module_ui: {
@@ -145,6 +145,7 @@ document.addEventListener('alpine:init', () => {
             warehouse:     { image: 'warehouse.svg',  label: 'Almacén',        title: 'Krear 3D - Almacén',         category: 'Logística' },
             tracking:      { image: 'tracking.svg',   label: 'Tracking',       title: 'Krear 3D - Trackings',       category: 'Logística' },
             driver:        { image: 'driver.svg',     label: 'Conductor',      title: 'Krear 3D - Conductor',       category: 'Logística' },
+            products:      { image: 'printer1.svg',       label: 'Productos',      title: 'Krear 3D - Productos',       category: 'Logística' },
             imports:       { image: 'imports.svg',    label: 'Importaciones',  title: 'Krear 3D - Importaciones',   category: 'Compras' },
             purchases:     { image: 'purchases.svg',  label: 'Compras',        title: 'Krear 3D - Compras',         category: 'Compras' },
             marketing:     { image: 'marketing.svg',  label: 'Marketing',      title: 'Krear 3D - Marketing',       category: 'Comercial' },
@@ -169,6 +170,7 @@ document.addEventListener('alpine:init', () => {
             warehouse:     'Control de invantario, almacen y picking.',
             tracking:      'Rastrea envíos a nivel nacional.',
             driver:        'Gestión de conductores y vehículos.',
+            products:      'Administra el catálogo de productos, categorías y marcas.',
             imports:       'Control de importaciones y proveedores.',
             purchases:     'Gestiona solicitudes de compras internas.',
             marketing:     '',

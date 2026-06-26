@@ -17,12 +17,17 @@
     --newgray: #c3c3c375;
 	--black: #0f2027;
 
-    --background: #e9eaec;
+    --background: #e4e5e7;
 
     --glass: hsl(0deg 0% 100% / 29%);
     --glass-border: hsl(0deg 0% 100% / 32%);
 
+    --glass2: hsl(0deg 0% 95% / 75%);
+    --glass2-border: hsl(0deg 0% 100% / 45%);
+
     --frost: rgb(255 255 255 / 50%);
+
+    --overbackground: rgb(204 204 204 / 80%);
 
     
     --transition: 0.2s ease-in-out; 
@@ -36,7 +41,13 @@ html.dark {
     --glass: hsl(0deg 0% 100% / 4%);
     --glass-border: hsl(0deg 0% 100% / 6%);
 
+    --glass2: hsl(219deg 10.59% 21.66% / 75%);
+    --glass2-border: hsl(0deg 0% 100% / 8%);
+
     --frost: rgb(43 49 59 / 50%);
+
+    --overbackground: hsl(219deg 21% 12% / 80%);
+
 
 	--secondary: #ffffff;
     --white: #1f242d;
@@ -144,8 +155,8 @@ img.invert {
     border-radius: 1.5rem;
 }
 .glass2 {
-    background-color: hsl(0deg 0% 95% / 75%);
-    border: 2px solid hsl(0deg 0% 100% / 45%);
+    background-color: var(--glass2);
+    border: 2px solid var(--glass2-border);
     box-shadow: 0 0 2rem hsl(0deg 0% 0% / 5%);
     border-radius: 1.5rem;
 }
@@ -278,7 +289,7 @@ img.invert {
     justify-content: center;
     z-index: 20;
     /* background: linear-gradient(315deg, hsl(20deg 22% 85% / 80%), hsl(211deg 22% 85% / 80%)); */
-    background-color: #cccccccc;
+    background-color: var(--overbackground);
     backdrop-filter: blur(4px);
 }
 .modal {
@@ -1045,32 +1056,6 @@ img.invert {
 #sidebar.menu-expanded ul li.subpage {
     position: relative;
 }
-#sidebar.menu-expanded ul li.subpage:last-child {
-    /* margin-bottom: 1rem; */
-}
-/* #sidebar.menu-expanded ul li.subpage::before {
-    content: "";
-    position: absolute;
-    left: 0.75rem;
-    top: -0.4rem;
-    height: calc(100% + 0.25rem);
-    width: 1px;
-    background: var(--black);
-    opacity: 0.1;
-}
-#sidebar.menu-expanded ul li.subpage.last::before {
-    height: calc(50% + 0.4rem);
-}
-#sidebar.menu-expanded ul li.subpage::after {
-    content: "";
-    position: absolute;
-    left: 0.75rem;
-    top: 50%;
-    width: 0.5rem;
-    height: 1px;
-    background: var(--black);
-    opacity: 0.1;
-} */
 #sidebar.menu-expanded ul li.subpage a {
     margin-left: 1rem;
     margin-right: 0.5rem;
