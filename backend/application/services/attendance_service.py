@@ -436,7 +436,12 @@ class AttendanceService:
         if uc != 200:
             return user, uc
 
-        visible_user_ids = self._get_visible_user_ids(user_id)
+        # El perfil 'monitor' es de solo lectura sobre la asistencia del equipo,
+        # pero en licencias únicamente puede ver las suyas, no las de los demás.
+        if self._has_perm(user_id, 'monitor'):
+            visible_user_ids = [user_id]
+        else:
+            visible_user_ids = self._get_visible_user_ids(user_id)
 
         leave_requests, lrc = self.attendance_repository.get_leave_requests(visible_user_ids)
         if lrc != 200:
