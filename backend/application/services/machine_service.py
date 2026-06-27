@@ -92,6 +92,14 @@ class MachineService:
             return "Máquina no encontrada", code
         return self._machine_dict(machine), 200
 
+    def _is_printer_category(self, category_id):
+        if not category_id:
+            return False
+        category, code = self.repository.get_category(category_id)
+        if code != 200 or not category:
+            return False
+        return category.slug == 'impresora-3d' or (category.name or '').strip().lower() == 'impresora 3d'
+
     @handle_exceptions
     def create_machine(self, data, file):
         model = (data.get("model") or "").strip()
@@ -99,7 +107,11 @@ class MachineService:
         category_id = data.get("category_id")
         type_ = (data.get("type") or "").strip()
 
-        if not model or not brand_id or not category_id or not type_:
+        if not model or not brand_id or not category_id:
+            return "Faltan datos obligatorios", 400
+
+        # 'type' (tecnología) solo es obligatorio para la categoría Impresora 3D.
+        if self._is_printer_category(category_id) and not type_:
             return "Faltan datos obligatorios", 400
 
         stored_name, error = self._save_image(file)

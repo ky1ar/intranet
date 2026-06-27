@@ -31,7 +31,7 @@ class MachineController:
 
     @handle_logs_and_exceptions
     def create_machine(self, data):
-        if validation := validate_request(data, {"model", "brand_id", "category_id", "type"}):
+        if validation := validate_request(data, {"model", "brand_id", "category_id"}):
             return validation, 400
         return self.machine.create_machine(data, data.get("image_file"))
 

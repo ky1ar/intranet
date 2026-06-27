@@ -111,6 +111,7 @@
 
 				<div class="top">
 					<span class="title" x-text="form.id ? 'Editar producto' : 'Nuevo producto'"></span>
+					<span class="id" x-show="form.id" x-text="'ID: ' + form.id"></span>
 				</div>
 
 				<div class="modal-content">
@@ -134,7 +135,7 @@
 						<label class="white" style="flex:2;">
 							<input type="text" x-model="form.model" placeholder="Modelo / nombre">
 						</label>
-						<label class="white" style="flex:1;">
+						<label class="white" style="flex:1;" x-show="isPrinterCategory()">
 							<input type="text" maxlength="5" x-model="form.type" placeholder="Tipo (ej. FDM)">
 						</label>
 					</div>
@@ -273,6 +274,13 @@
 			canManageCategories() { return Alpine.store('cache').hasPermission('products', 'manage_categories'); },
 			canManageBrands()     { return Alpine.store('cache').hasPermission('products', 'manage_brands'); },
 
+			// 'Tipo' (tecnologia) solo aplica a la categoria Impresora 3D.
+			isPrinterCategory() {
+				const cats = Alpine.store('cache').getData('products_categories') || [];
+				const cat = cats.find(c => String(c.id) === String(this.form.category_id));
+				return !!cat && (cat.slug === 'impresora-3d' || (cat.name || '').trim().toLowerCase() === 'impresora 3d');
+			},
+
 			// ── Listado ──
 			async loadMachines() {
 				const params = new URLSearchParams({ page: this.page, per_page: 30 });
@@ -317,7 +325,8 @@
 			},
 			async submitForm() {
 				if (this.processing) return;
-				if (!this.form.model.trim() || !this.form.type.trim() || !this.form.brand_id || !this.form.category_id) {
+				const needsType = this.isPrinterCategory();
+				if (!this.form.model.trim() || !this.form.brand_id || !this.form.category_id || (needsType && !this.form.type.trim())) {
 					PineToast.flash('Completa todos los campos', 'error');
 					return;
 				}
@@ -327,7 +336,7 @@
 				}
 				const fd = new FormData();
 				fd.append('model', this.form.model.trim());
-				fd.append('type', this.form.type.trim());
+				fd.append('type', needsType ? this.form.type.trim() : '');
 				fd.append('brand_id', this.form.brand_id);
 				fd.append('category_id', this.form.category_id);
 				if (this.form.image_file) fd.append('image', this.form.image_file);
@@ -419,6 +428,11 @@
 	</script>
 
 	<style>
+		#modal-products-form .top {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
 		#products .main {
 			min-height: calc(100vh - 6.5rem);
 		}
