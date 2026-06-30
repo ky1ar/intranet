@@ -98,6 +98,18 @@ class DevService:
 
         content = self._extract_content(msg_type, message)
 
+        # Media entrante (video/imagen/audio/documento/sticker): se descarga al
+        # servidor porque las URLs de WhatsApp exigen el Bearer y caducan.
+        media_url = None
+        if msg_type in ("image", "video", "audio", "document", "sticker"):
+            media_obj = message.get(msg_type) or {}
+            media_url = self.whatsapp.download_media(
+                media_obj.get("id"),
+                filename=media_obj.get("filename"),
+                fallback_url=media_obj.get("url"),
+                mime_hint=media_obj.get("mime_type"),
+            )
+
         # Guardar en DB (en hilo separado no es necesario; el webhook responde rápido)
         try:
             self.waba_reply_repository.save(
@@ -120,6 +132,7 @@ class DevService:
                 wamid          = wamid,
                 msg_type       = msg_type,
                 content        = content,
+                media_url      = media_url,
                 waba_timestamp = waba_ts,
             )
         except Exception as e:

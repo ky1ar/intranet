@@ -8,7 +8,17 @@ from flask import g
 class WabaMessageRepository:
 
     @handle_db_exceptions
-    def log_inbound(self, wa_id, contact_name, wamid, msg_type, content, waba_timestamp):
+    def log_inbound(self, wa_id, contact_name, wamid, msg_type, content, waba_timestamp, media_url=None):
+        # Evita duplicados si Meta reintenta el webhook (mismo wamid).
+        if wamid:
+            existing = (
+                g.db_session.query(WabaMessage)
+                .filter(WabaMessage.wamid == wamid, WabaMessage.direction == 'in')
+                .first()
+            )
+            if existing:
+                return existing, 200
+
         msg = WabaMessage(
             wa_id          = wa_id,
             contact_name   = contact_name,
@@ -16,6 +26,7 @@ class WabaMessageRepository:
             direction      = 'in',
             msg_type       = msg_type,
             content        = content,
+            media_url      = media_url,
             waba_timestamp = waba_timestamp,
         )
         g.db_session.add(msg)

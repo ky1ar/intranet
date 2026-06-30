@@ -85,18 +85,32 @@
 							<template x-for="msg in messages" :key="msg.id">
 								<div class="conv-msg" :class="msg.direction === 'out' ? 'conv-msg-out' : 'conv-msg-in'">
 									<div class="conv-bubble" :class="msg.direction === 'out' ? 'bubble-out' : 'bubble-in'">
-										<!-- Media header -->
+										<!-- Media -->
+										<template x-if="msg.media_url && bubbleMediaType(msg) === 'image'">
+											<img class="bubble-media-img" :src="msg.media_url" alt="Imagen adjunta" loading="lazy" style="cursor:pointer" @click="openAttachment(msg)">
+										</template>
+										<template x-if="msg.media_url && bubbleMediaType(msg) === 'video'">
+											<video class="bubble-media-img" :src="msg.media_url" controls preload="metadata"></video>
+										</template>
+										<template x-if="msg.media_url && bubbleMediaType(msg) === 'audio'">
+											<audio class="bubble-media-audio" :src="msg.media_url" controls preload="none"></audio>
+										</template>
 										<template x-if="msg.media_url && bubbleMediaType(msg) === 'pdf'">
 											<a class="bubble-pdf-link" href="#" @click.prevent="openAttachment(msg)">
 												<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
 												Ver PDF adjunto
 											</a>
 										</template>
-										<template x-if="msg.media_url && bubbleMediaType(msg) !== 'pdf'">
-											<img class="bubble-media-img" :src="msg.media_url" alt="Imagen adjunta" loading="lazy" style="cursor:pointer" @click="openAttachment(msg)">
+										<template x-if="msg.media_url && bubbleMediaType(msg) === 'document'">
+											<a class="bubble-pdf-link" :href="msg.media_url" target="_blank" rel="noopener">
+												<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+												Descargar archivo
+											</a>
 										</template>
 										<!-- Body -->
-										<div class="bubble-text" x-html="renderBubbleHtml(msg)"></div>
+										<template x-if="bubbleHasText(msg)">
+											<div class="bubble-text" x-html="renderBubbleHtml(msg)"></div>
+										</template>
 										<!-- Template badge -->
 										<template x-if="msg.template_name">
 											<div class="bubble-tmpl-badge" x-text="msg.template_name"></div>
@@ -484,8 +498,25 @@
 		},
 
 		bubbleMediaType(msg) {
+			// Entrante: el tipo viene del propio mensaje
+			const t = msg.msg_type;
+			if (t === 'image' || t === 'sticker') return 'image';
+			if (t === 'video') return 'video';
+			if (t === 'audio') return 'audio';
+			if (t === 'document') {
+				return (msg.media_url || '').toLowerCase().endsWith('.pdf') ? 'pdf' : 'document';
+			}
+			// Saliente (plantilla): usar el media declarado en la plantilla
 			const tmpl = WA_TEMPLATES[msg.template_name];
 			return tmpl?.media || 'image';
+		},
+
+		bubbleHasText(msg) {
+			const c = (msg.content || '').trim();
+			if (!c) return false;
+			// Ocultar placeholders "(video)", "(audio)", etc. cuando ya mostramos el archivo
+			if (msg.media_url && /^\(.*\)$/.test(c)) return false;
+			return true;
 		},
 
 		formatPhone(wa_id) {
@@ -743,6 +774,11 @@
 	.bubble-media-img {
 		max-width: 100%;
 		border-radius: 0.5rem;
+		margin-bottom: 0.5rem;
+		display: block;
+	}
+	.bubble-media-audio {
+		width: 100%;
 		margin-bottom: 0.5rem;
 		display: block;
 	}

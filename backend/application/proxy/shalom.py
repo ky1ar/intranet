@@ -39,6 +39,45 @@ class Shalom:
         return {**WEB_HEADERS, "Authorization": f"Bearer {self.get_token()}"}
 
 
+    def _post(self, url, payload):
+        """POST a Shalom con logging detallado ante cualquier respuesta no-200.
+
+        Shalom suele responder 403 cuando el token/headers no le gustan o cuando
+        bloquea por WAF/IP; el cuerpo de la respuesta normalmente explica el motivo.
+        """
+        headers = self._headers()
+        # La web de Shalom envía el cuerpo como multipart/form-data; su backend no
+        # acepta application/x-www-form-urlencoded (responde "Token de seguridad
+        # requerido"). Forzamos multipart pasando los campos via files=(None, valor);
+        # requests fija el Content-Type con boundary automáticamente.
+        multipart = {k: (None, str(v)) for k, v in payload.items()}
+        try:
+            response = requests.post(url, files=multipart, headers=headers, timeout=15)
+        except requests.RequestException as e:
+            logging.error("[SHALOM] Error de red en POST %s | payload=%s | %s", url, payload, e)
+            raise
+
+        if response.status_code != 200:
+            # El cuerpo de error suele venir cifrado ({encrypted, data}); lo
+            # desciframos para ver el motivo real (ej. "Token de seguridad requerido.").
+            decrypted = None
+            try:
+                decrypted = self._envelope(response.json())
+            except Exception:
+                pass
+            logging.error(
+                "[SHALOM] POST %s -> %s\n  payload=%s\n  authorization=%s\n  resp_headers=%s\n  message=%s\n  body=%s",
+                url,
+                response.status_code,
+                payload,
+                headers.get("Authorization"),
+                dict(response.headers),
+                (decrypted or {}).get("message") if isinstance(decrypted, dict) else None,
+                response.text[:2000],
+            )
+        return response
+
+
     @staticmethod
     def _decrypt(data_b64):
         raw = base64.b64decode(data_b64)
@@ -68,9 +107,10 @@ class Shalom:
             "numero": code1,
             "codigo": code2,
         }
-        response = requests.post(self.tracking_url, data=payload, headers=self._headers())
+        response = self._post(self.tracking_url, payload)
         if response.status_code != 200:
             return "Error al consultar Shalom API", 502
+
 
         shalom_response = response.json()
         envelope = self._envelope(shalom_response)
@@ -99,7 +139,7 @@ class Shalom:
         payload = {
             "ose_id": ose_id
         }
-        response = requests.post(self.tracking_url, data=payload, headers=self._headers())
+        response = self._post(self.tracking_url, payload)
         if response.status_code != 200:
             return "Error al consultar Shalom API", 502
 
@@ -120,11 +160,62 @@ class Shalom:
         return result, 200
 
 
+    def tracking_status_by_code(self, code1, code2):
+        payload = {
+            "numero": code1,
+            "codigo": code2,
+        }
+        response = self._post(self.state_url, payload)
+        if response.status_code != 200:
+            return "Error al consultar Shalom API", 502
+
+        shalom_response = response.json()
+        envelope = self._envelope(shalom_response)
+        data = envelope.get('data') or {}
+
+        origen = data.get('origen')
+        transito = data.get('transito')
+        destino = data.get('destino')
+        entregado = data.get('entregado')
+        
+        agency_at = None
+        onway_at = None
+        arrived_at = None
+        delivered_at = None
+        last_status_id = None
+
+        if origen:
+            agency_at = origen.get('fecha')
+            last_status_id = 1
+        
+        if transito:
+            onway_at = transito.get('fecha')
+            last_status_id = 2
+
+        if destino:
+            arrived_at = destino.get('fecha')
+            last_status_id = 3
+
+        if entregado:
+            delivered_at = entregado.get('fecha')
+            last_status_id = 4
+
+        return {
+            "status_data": {
+                "agency_at": datetime.strptime(agency_at, "%Y-%m-%d %H:%M:%S") if agency_at else None,
+                "onway_at": datetime.strptime(onway_at, "%Y-%m-%d %H:%M:%S") if onway_at else None,
+                "arrived_at": datetime.strptime(arrived_at, "%Y-%m-%d %H:%M:%S") if arrived_at else None,
+                "delivered_at": datetime.strptime(delivered_at, "%Y-%m-%d %H:%M:%S") if delivered_at else None,
+            },
+            "last_status_id": last_status_id
+        }, 200
+    
+
     def tracking_status(self, external_id):
         payload = {
             'ose_id': external_id
         }
-        response = requests.post(self.state_url, data=payload, headers=self._headers())
+        response = self._post(self.state_url, payload)
         if response.status_code != 200:
             return "Error al consultar Shalom API", 502
 

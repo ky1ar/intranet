@@ -123,3 +123,4 @@ class Paths:
     APPROVAL_VOUCHERS = os.path.abspath("/shared_uploads/approvals/vouchers/")
     GUIDES_MEDIA = os.path.abspath("/shared_uploads/guides/media/")
     MACHINES = os.path.abspath("/shared_uploads/machines/")
+    WHATSAPP = os.path.abspath("/shared_uploads/whatsapp/")

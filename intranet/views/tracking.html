@@ -544,6 +544,7 @@
 			code1: "",          
 			code2: "",
 			code3: "",
+			external_id: "",
 			client_id: null,
 			client_order_id: null,
 			disableDoc: false,     
@@ -871,9 +872,12 @@
 
 						if (result) {
 							const readed = result.text;
-							const payload = {
-								ose_id: readed.split('/')[0],
-							};
+							const oseId = readed.split('/')[0];
+							// El ose_id del QR es el external_id de Shalom; lo guardamos
+							// siempre para poder actualizar estados por /rastrea/estados
+							// aunque /rastrea/buscar (qr_data) esté bloqueado por reCAPTCHA.
+							this.external_id = oseId;
+							const payload = { ose_id: oseId };
 
 							try {
 								const response = await fetch(Alpine.store('cache').api + '/tracking/qr_data', {
@@ -883,21 +887,24 @@
 								});
 
 								const jsonData = await response.json();
-								if (!response.ok) throw new Error(jsonData?.data?.message || 'Error en la solicitud');
-								const data = jsonData.data;
+								if (response.ok) {
+									const data = jsonData.data;
+									this.agency = data.agency;
+									this.code1 = data.numero_orden;
+									this.code2 = data.codigo_orden;
 
-								this.agency = data.agency;
-								this.code1 = data.numero_orden;
-								this.code2 = data.codigo_orden;
-
-								this.document = data.client_document;
-								this.client_id = data.client_id;
-								this.name = data.client_name;
-								this.phone = data.client_phone;
-								this.email = data.client_email;
-
+									this.document = data.client_document;
+									this.client_id = data.client_id;
+									this.name = data.client_name;
+									this.phone = data.client_phone;
+									this.email = data.client_email;
+								} else {
+									// Shalom /buscar caído: no hubo prefill. Se completa a mano,
+									// pero el external_id ya quedó capturado para el seguimiento.
+									this.agency = "1";
+								}
 							} catch (error) {
-								this.showError('add', error.message);
+								this.agency = "1";
 							} 
 							
 							this.stopScan();
@@ -1032,6 +1039,7 @@
 
 			resetForm() {
 				this.order_number = "";
+				this.external_id = "";
 				this.document = "";
 				this.name = "";
 				this.phone = "";
@@ -1054,6 +1062,7 @@
 					code1: this.code1,
 					code2: this.code2,
 					code3: this.code3 || null, 
+					external_id: this.external_id || null,
 					client_id: this.client_id || null,
 					client_order_id: this.client_order_id || null,
 					client: {

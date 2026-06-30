@@ -812,6 +812,13 @@ img.invert {
 #sidebar .home {
     min-width: 2rem;
 }
+/* Hamburguesa + backdrop: solo móvil (ver media query 48rem) */
+#sidebar .hamburger {
+    display: none;
+}
+#sidebar .mobile-backdrop {
+    display: none;
+}
 #sidebar ul {
     margin: 0;
     list-style: none;
@@ -1547,34 +1554,158 @@ img.invert {
         width: initial;
         font-size: 0.75rem;
     }
+    /* Barra superior móvil: hamburguesa (izq) + logo + avatar (der) */
     #sidebar {
         flex-direction: row;
+        align-items: center;
         height: initial;
         left: 0;
         right: 0;
-        justify-content: space-between;
+        justify-content: flex-start;
         top: 1rem;
         padding: 0 1rem;
-        gap: 0.75rem;
+        gap: 0.5rem;
         bottom: initial;
     }
-    #sidebar ul {
-        flex-direction: row;
-        margin-right: auto;
-        padding: 0.5rem 0.75rem;
-        min-width: 11rem;
-        overflow: auto;
-        gap: 0.5rem;
+    #sidebar .hamburger {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.625rem;
+        cursor: pointer;
+        color: var(--secondary);
+        z-index: 2;
     }
-    #sidebar .config {
-        flex-direction: row;
-        margin: 0;
-    }
-    #sidebar ul li span {
+    #sidebar .home-logo {
         display: none;
     }
+    #sidebar .expanded-logo {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem;
+        margin: 0;
+        border: 0;
+        width: initial;
+    }
+    #sidebar .expanded-logo img {
+        height: 1.5rem;
+        width: auto;
+    }
+    /* Avatar/perfil: empujado a la derecha de la barra */
+    #sidebar .config {
+        flex-direction: row;
+        margin: 0 0 0 auto;
+    }
+
+    /* El UL se convierte en un drawer que entra desde la izquierda */
+    #sidebar ul {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 16rem;
+        max-width: 82vw;
+        min-width: initial;
+        flex-direction: column;
+        justify-content: flex-start;
+        gap: 0.25rem;
+        margin: 0;
+        padding: 1.5rem 1rem;
+        border-radius: 0 1.5rem 1.5rem 0;
+        background-color: var(--white);
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.18);
+        overflow-y: auto;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 1002;
+    }
+    #sidebar.mobile-open ul {
+        transform: translateX(0);
+    }
+    #sidebar ul li {
+        width: 100%;
+    }
+    #sidebar ul li a {
+        width: 100%;
+        height: 2.75rem;
+        justify-content: flex-start;
+        gap: 0.75rem;
+        padding: 0 0.75rem;
+        border-radius: 0.75rem;
+    }
+    #sidebar ul li a span {
+        display: flex;
+        position: initial;
+        opacity: 1;
+        visibility: visible;
+        background-color: transparent;
+        padding: 0;
+        font-size: 0.9rem;
+        color: var(--secondary);
+    }
+    #sidebar ul li a span:before {
+        content: none;
+    }
+    #sidebar ul li.active a span {
+        color: var(--white);
+    }
+    #sidebar ul li .nav-tip {
+        display: none;
+    }
+    /* Cabeceras de categoría + subpáginas dentro del drawer (modo agrupado) */
+    #sidebar ul li.group-sep {
+        display: none;
+    }
+    #sidebar ul li.group-header {
+        display: flex;
+        margin-top: 0.75rem;
+    }
+    #sidebar ul li.group-header .group-text {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+        padding: 0 0.25rem 0 0.5rem;
+        height: 2rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        color: var(--secondary);
+        transition: var(--transition);
+    }
+    #sidebar ul li.group-header .group-label {
+        flex: 1;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    #sidebar ul li.group-header .group-chevron {
+        opacity: 0.5;
+        transition: var(--transition);
+        width: 12px;
+        height: 12px;
+    }
+    #sidebar ul li.group-header .group-text.collapsed .group-chevron {
+        transform: rotate(-90deg);
+    }
+    #sidebar ul li.subpage a {
+        margin-left: 1rem;
+        margin-right: 0.5rem;
+        padding: 0 0.5rem 0 0.75rem;
+        height: 2.5rem;
+        opacity: 0.85;
+    }
+
+    /* Backdrop para cerrar al tocar fuera del drawer */
+    #sidebar .mobile-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background-color: rgba(0, 0, 0, 0.35);
+        z-index: 1001;
+    }
+
     #sidebar .menu {
-        left: initial;
+        left: 1rem;
         right: 1rem;
         bottom: initial;
         top: 4.5rem;

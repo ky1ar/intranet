@@ -96,7 +96,36 @@ class TrackingService:
 
         tracking_data, tracking_status = tracking_client.tracking(code1, code2)
         if tracking_status != 200:
-            return tracking_data, tracking_status
+            # Shalom: su endpoint /rastrea/buscar exige un reCAPTCHA del navegador
+            # (no replicable desde backend), pero /rastrea/estados SÍ funciona.
+            # Si el QR nos dio el ose_id (external_id), consultamos el estado real
+            # por /estados y registramos con ese estado + external_id, de modo que
+            # force/force_all puedan seguir actualizando. Sin ose_id, registramos
+            # en estado inicial (manual). El resto de agencias sí abortan.
+            if agency_id == 1:
+                external_id = (data.get("external_id") or "").strip() or None
+                # /estados acepta ose_id o códigos (ambos funcionan, a diferencia de
+                # /buscar bloqueado por reCAPTCHA): si escanearon QR usamos el ose_id,
+                # si no, consultamos por numero+codigo.
+                if external_id:
+                    status_info, status_code = self.shalom.tracking_status(external_id)
+                else:
+                    status_info, status_code = self.shalom.tracking_status_by_code(code1, code2)
+                if status_code == 200:
+                    status_data = status_info.get("status_data") or {}
+                    last_status_id = status_info.get("last_status_id") or 1
+                else:
+                    status_data = {}
+                    last_status_id = 1
+                tracking_data = {
+                    "origin_agency": None,
+                    "destination_agency": None,
+                    "external_id": external_id,
+                    "status_data": status_data,
+                    "last_status_id": last_status_id,
+                }
+            else:
+                return tracking_data, tracking_status
         
         client_id = data.get("client_id")
         client_data = data.pop("client")
@@ -504,7 +533,10 @@ class TrackingService:
         tracking_client = agency_clients.get(agency_id)
         if tracking_order.status_id < 4:
             if agency_id == 1:
-                tracking_status, tsc = tracking_client.tracking_status(tracking_order.external_id)
+                if tracking_order.external_id:
+                    tracking_status, tsc = tracking_client.tracking_status(tracking_order.external_id)
+                else:
+                    tracking_status, tsc = tracking_client.tracking_status_by_code(tracking_order.code1, tracking_order.code2)
             else:
                 tracking_status, tsc = tracking_client.tracking(tracking_order.code1, tracking_order.code2)
 
@@ -554,7 +586,10 @@ class TrackingService:
                 continue
             
             if agency_id == 1:
-                tracking_status, tsc = tracking_client.tracking_status(tracking_order.external_id)
+                if tracking_order.external_id:
+                    tracking_status, tsc = tracking_client.tracking_status(tracking_order.external_id)
+                else:
+                    tracking_status, tsc = tracking_client.tracking_status_by_code(tracking_order.code1, tracking_order.code2)
             else:
                 tracking_status, tsc = tracking_client.tracking(tracking_order.code1, tracking_order.code2)
 
@@ -591,9 +626,13 @@ class TrackingService:
         consult_type = data.get("consult_type")
 
         if consult_type == "status":
-            return self.shalom.tracking_status(ose_id)
+            if ose_id:
+                return self.shalom.tracking_status(ose_id)
+            return self.shalom.tracking_status_by_code(order_number, order_code)
+
         elif consult_type == "codes":
-            return self.shalom.tracking(order_number, order_code)
+            # /estados por códigos (funciona); /buscar está bloqueado por reCAPTCHA.
+            return self.shalom.tracking_status_by_code(order_number, order_code)
         
         return self.shalom.tracking_ose_id(ose_id)
         

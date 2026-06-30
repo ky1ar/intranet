@@ -134,7 +134,7 @@ document.addEventListener('alpine:init', () => {
     }));
 
     Alpine.store('cache', {
-        api: 'https://api.krear3d.com', //https://devapi.krear3d.com
+        api: 'https://devapi.krear3d.com', //https://devapi.krear3d.com
         user: {},
         active_page: window.location.pathname,
          module_ui: {
@@ -200,6 +200,7 @@ document.addEventListener('alpine:init', () => {
         sidebar: false,
         sidebar_menu: false,
         more_menu: false,
+        mobile_menu: false,
         device_id: null,
         fcm_token: null,
         notifications_enabled: !!localStorage.getItem('push_token'),
@@ -493,6 +494,7 @@ document.addEventListener('alpine:init', () => {
             const update = () => {
                 this.is_narrow = window.innerWidth < 768;
                 this.menu_grouped = !this.is_narrow;
+                if (!this.is_narrow) this.mobile_menu = false;
             };
             update();
             window.addEventListener('resize', update);
@@ -779,7 +781,8 @@ document.addEventListener('alpine:init', () => {
             const modules = this.user.modules;
             if (!modules || !modules.length) return [];
 
-            const grouped = this.menu_grouped && !this.is_narrow;
+            // Móvil: siempre menú agrupado completo (mismo que desktop), sin lógica de pineado.
+            const grouped = this.is_narrow ? true : this.menu_grouped;
 
             const toPage = (m) => {
                 const ui = this.module_ui[m.slug] || {};

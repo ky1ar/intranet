@@ -1,4 +1,4 @@
-import logging, requests, json, time
+import logging, requests, json, time, os, uuid, mimetypes
 from datetime import datetime
 from application.handlers import handle_exceptions
 from application.db_models.waba_message_model import WabaMessage
@@ -6,7 +6,8 @@ from application import app, db
 from config import WABA as API
 from config import Config
 from config import Odoo
-from application.utils import reorder_name
+from config import Paths
+from application.utils import reorder_name, upload_path
 
 
 class Whatsapp:
@@ -75,6 +76,59 @@ class Whatsapp:
 
         logging.info(response_data)
         return response_data, 200
+
+
+    def download_media(self, media_id, filename=None, fallback_url=None, mime_hint=None):
+        """Descarga un media entrante de WABA y lo guarda en /shared_uploads/whatsapp.
+        Las URLs de WhatsApp (lookaside.fbsbx.com) exigen el Bearer y caducan, por eso
+        se baja en el servidor. Resuelve la URL por el media id via Graph y, si no,
+        usa la url/mime que ya venían en el webhook. Devuelve la ruta pública o None."""
+        if not media_id and not fallback_url:
+            return None
+        try:
+            headers = {"Authorization": f"Bearer {self.token}"}
+            url = None
+            mime = (mime_hint or "").split(";")[0].strip()
+
+            if media_id:
+                base = "/".join(self.whatsapp_url.split("/")[:4])  # https://graph.facebook.com/vXX.X
+                meta = requests.get(f"{base}/{media_id}", headers=headers, timeout=15)
+                if meta.status_code == 200:
+                    info = meta.json()
+                    url = info.get("url") or url
+                    mime = (info.get("mime_type") or mime_hint or "").split(";")[0].strip()
+                else:
+                    logging.error("[WABA media] meta %s -> %s %s", media_id, meta.status_code, meta.text[:300])
+
+            if not url:
+                url = fallback_url
+            if not url:
+                return None
+
+            binary = requests.get(url, headers=headers, timeout=30)
+            if binary.status_code != 200:
+                logging.error("[WABA media] descarga %s -> %s", media_id, binary.status_code)
+                return None
+
+            ext = ""
+            if filename and "." in filename:
+                ext = "." + filename.rsplit(".", 1)[-1].lower()
+            if not ext:
+                ext = {
+                    "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp",
+                    "video/mp4": ".mp4", "video/3gpp": ".3gp",
+                    "audio/ogg": ".ogg", "audio/mpeg": ".mp3", "audio/amr": ".amr",
+                    "audio/aac": ".aac", "audio/mp4": ".m4a", "application/pdf": ".pdf",
+                }.get(mime) or mimetypes.guess_extension(mime) or ".bin"
+
+            stored = f"{uuid.uuid4().hex}{ext}"
+            path = os.path.join(upload_path(Paths.WHATSAPP), stored)
+            with open(path, "wb") as fh:
+                fh.write(binary.content)
+            return f"/static/images/uploads/whatsapp/{stored}"
+        except Exception as e:
+            logging.exception("[WABA media] error %s: %s", media_id, e)
+            return None
 
 
     def _log_outbound(self, payload):
