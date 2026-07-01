@@ -36,7 +36,7 @@
     </script>
 </head>
 
-<body class="container" x-data="data" :class="{'modal-open': $store.cache.hasActiveModals()}">
+<body class="container" x-data="data" :class="{'modal-open': $store.cache.hasActiveModals(), 'modal-open': $store.cache.mobile_menu}">
     <script src="/static/js/firebase-config.js?v=1.8.0"></script>
     <script src="/static/js/main.js?v=1.8.0"></script>
 
