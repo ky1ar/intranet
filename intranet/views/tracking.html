@@ -104,6 +104,10 @@
 						@input="order_number = $event.target.value.toUpperCase()"
 						@blur="fetchOrderData()"
 						required>
+					<label class="glass2" style="max-width: 8rem;     border-radius: 0.75rem;">
+						<img alt="qr" src="/static/icons/line/qr.svg" width="16" height="16">
+						<input type="text" x-model="external_id" placeholder="# Seguimiento" readonly="">
+					</label>
 					<div class="hover-opacity button black" @click="readQR()">
 						<img alt="qr" src="/static/icons/line/qr.svg" width="16" height="16">
 					</div>
@@ -229,6 +233,17 @@
 									x-model="code3"
 									placeholder="Clave de recojo" 
 									maxlength="4">
+							</label>
+						</template>
+
+						<template x-if="agency === '1'">
+							<label :class="external_id ? 'white' : 'glass2'">
+								<img alt="qr" src="/static/icons/line/qr.svg" width="16" height="16">
+								<input 
+									type="text" 
+									x-model="external_id"
+									placeholder="Escanee el QR para capturar el seguimiento" 
+									readonly>
 							</label>
 						</template>
 					</div>
@@ -944,6 +959,7 @@
 				}
 				if (this.agency !== "1") {
 					this.code3 = null;
+					this.external_id = "";
 				}
 				this.$nextTick(() => {});
 			},
@@ -1053,6 +1069,11 @@
 
 			async processTracking() {
 				if (!this.$refs.form.checkValidity()) {
+					return;
+				}
+
+				if (this.agency === '1' && !(this.external_id || '').trim()) {
+					this.showError('add', 'Escanee el QR para capturar el seguimiento');
 					return;
 				}
 

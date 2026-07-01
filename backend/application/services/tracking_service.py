@@ -83,7 +83,14 @@ class TrackingService:
             return "Ingrese el código 1", 400
         if not code2:
             return "Ingrese el código 2", 400
-        
+
+        # Shalom (agencia 1) solo se puede rastrear por external_id (ose_id del QR):
+        # /rastrea/buscar está bloqueado por reCAPTCHA y la consulta por códigos no es
+        # fiable. El external_id se captura al escanear el QR, por eso es obligatorio.
+        external_id = (data.get("external_id") or "").strip() or None
+        if agency_id == 1 and not external_id:
+            return "Escanee el QR para capturar el código de seguimiento", 400
+
         agency_clients = {
             1: self.shalom,
             2: self.olva,
@@ -103,14 +110,8 @@ class TrackingService:
             # force/force_all puedan seguir actualizando. Sin ose_id, registramos
             # en estado inicial (manual). El resto de agencias sí abortan.
             if agency_id == 1:
-                external_id = (data.get("external_id") or "").strip() or None
-                # /estados acepta ose_id o códigos (ambos funcionan, a diferencia de
-                # /buscar bloqueado por reCAPTCHA): si escanearon QR usamos el ose_id,
-                # si no, consultamos por numero+codigo.
-                if external_id:
-                    status_info, status_code = self.shalom.tracking_status(external_id)
-                else:
-                    status_info, status_code = self.shalom.tracking_status_by_code(code1, code2)
+                # external_id ya validado arriba: consultamos el estado real por /estados.
+                status_info, status_code = self.shalom.tracking_status(external_id)
                 if status_code == 200:
                     status_data = status_info.get("status_data") or {}
                     last_status_id = status_info.get("last_status_id") or 1
@@ -533,10 +534,9 @@ class TrackingService:
         tracking_client = agency_clients.get(agency_id)
         if tracking_order.status_id < 4:
             if agency_id == 1:
-                if tracking_order.external_id:
-                    tracking_status, tsc = tracking_client.tracking_status(tracking_order.external_id)
-                else:
-                    tracking_status, tsc = tracking_client.tracking_status_by_code(tracking_order.code1, tracking_order.code2)
+                if not tracking_order.external_id:
+                    return "La orden no tiene código de seguimiento (external_id)", 400
+                tracking_status, tsc = tracking_client.tracking_status(tracking_order.external_id)
             else:
                 tracking_status, tsc = tracking_client.tracking(tracking_order.code1, tracking_order.code2)
 
@@ -586,10 +586,13 @@ class TrackingService:
                 continue
             
             if agency_id == 1:
-                if tracking_order.external_id:
-                    tracking_status, tsc = tracking_client.tracking_status(tracking_order.external_id)
-                else:
-                    tracking_status, tsc = tracking_client.tracking_status_by_code(tracking_order.code1, tracking_order.code2)
+                if not tracking_order.external_id:
+                    skipped.append({
+                        "order_id": tracking_order.id,
+                        "reason": "Sin external_id (Shalom requiere escaneo de QR)"
+                    })
+                    continue
+                tracking_status, tsc = tracking_client.tracking_status(tracking_order.external_id)
             else:
                 tracking_status, tsc = tracking_client.tracking(tracking_order.code1, tracking_order.code2)
 
