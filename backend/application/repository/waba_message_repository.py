@@ -1,6 +1,7 @@
 from application.handlers import handle_db_exceptions
 from application.db_models.waba_message_model import WabaMessage
 from application.models import Clients
+from application.utils import peru_time
 from sqlalchemy import func
 from flask import g
 
@@ -28,6 +29,7 @@ class WabaMessageRepository:
             content        = content,
             media_url      = media_url,
             waba_timestamp = waba_timestamp,
+            created_at     = peru_time().replace(tzinfo=None),
         )
         g.db_session.add(msg)
         g.db_session.commit()

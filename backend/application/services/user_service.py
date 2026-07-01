@@ -4,6 +4,7 @@ import secrets
 from datetime import date, datetime, timezone, timedelta
 from application import bcrypt
 from application.handlers import handle_exceptions
+from config import Config
 from application.utils import format_name, generate_otp
 from application.repository.user_repository import UserRepository
 from application.repository.push_repository import PushRepository
@@ -201,7 +202,7 @@ class UserService:
         default_page, _ = self.module_service.get_default_page(user.id)
 
         return {
-            "app_version": "1.8.0",
+            "app_version": Config.APP_VERSION,
             "id": user.id,
             "level_id": user.level_id,
             "department_id": user.department_id,

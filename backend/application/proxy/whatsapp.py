@@ -7,7 +7,7 @@ from config import WABA as API
 from config import Config
 from config import Odoo
 from config import Paths
-from application.utils import reorder_name, upload_path
+from application.utils import reorder_name, upload_path, peru_time
 
 
 class Whatsapp:
@@ -172,6 +172,7 @@ class Whatsapp:
                     template_name  = tmpl_name,
                     media_url      = media_url,
                     waba_timestamp = int(time.time()),
+                    created_at     = peru_time().replace(tzinfo=None),
                 )
                 db.session.add(msg)
                 db.session.commit()

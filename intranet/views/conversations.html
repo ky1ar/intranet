@@ -419,21 +419,44 @@
 				: name.substring(0, 2).toUpperCase();
 		},
 
+		// Los timestamps del backend llegan en hora Peru. Si no traen offset,
+		// los fijamos a -05:00 para renderizar SIEMPRE en hora Peru, sin importar
+		// la zona horaria del navegador.
+		_peruDate(iso) {
+			if (!iso) return null;
+			const s = /([zZ]|[+-]\d{2}:?\d{2})$/.test(iso) ? iso : iso + '-05:00';
+			const d = new Date(s);
+			return isNaN(d.getTime()) ? null : d;
+		},
+
+		// 'YYYY-MM-DD' del instante en hora Peru
+		_peruDayStr(d) {
+			return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima' }).format(d);
+		},
+
 		formatTime(iso) {
-			if (!iso) return '';
-			const d   = new Date(iso);
-			const now = new Date();
-			if (d.toDateString() === now.toDateString())
-				return d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
-			const yesterday = new Date(now);
-			yesterday.setDate(now.getDate() - 1);
-			if (d.toDateString() === yesterday.toDateString()) return 'ayer';
-			return d.toLocaleDateString('es-PE', { day: '2-digit', month: 'short' });
+			const d = this._peruDate(iso);
+			if (!d) return '';
+			const timeOpts = { timeZone: 'America/Lima', hour: '2-digit', minute: '2-digit' };
+
+			const dStr     = this._peruDayStr(d);
+			const now      = new Date();
+			const todayStr = this._peruDayStr(now);
+			if (dStr === todayStr)
+				return d.toLocaleTimeString('es-PE', timeOpts);
+
+			const [ty, tm, td] = todayStr.split('-').map(Number);
+			const yStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC' })
+				.format(new Date(Date.UTC(ty, tm - 1, td - 1)));
+			if (dStr === yStr) return 'ayer';
+
+			return d.toLocaleDateString('es-PE', { timeZone: 'America/Lima', day: '2-digit', month: 'short' });
 		},
 
 		formatMsgTime(iso) {
-			if (!iso) return '';
-			return new Date(iso).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+			const d = this._peruDate(iso);
+			if (!d) return '';
+			return d.toLocaleTimeString('es-PE', { timeZone: 'America/Lima', hour: '2-digit', minute: '2-digit' });
 		},
 
 		msgLabel(msg) {
