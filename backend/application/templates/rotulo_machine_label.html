@@ -85,6 +85,17 @@
       font-weight: 800;
       letter-spacing: 0.08cm;
     }
+    .logo-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.2cm;
+    }
+    .qr-mark {
+      width: 1.7cm;
+      height: 1.7cm;
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -110,7 +121,12 @@
           <path class="lk" d="M103.2,14.6c-1.3,0.6-2.7,1.2-4,1.8c-9.6,4.4-17.4,11.4-25,18.3c-8.7,7.8-18.1,14.3-29.3,18
             C30.6,57.5,20.4,57.2,1.1,53C6.8,23.5,32.8,1.2,64,1.2C78.8,1.2,92.4,6.3,103.2,14.6z"/>
         </svg> -->
-        <div class="logo-text">KREAR 3D</div>
+        <div class="logo-wrap">
+          {% if data.qr %}
+          <img class="qr-mark" src="data:image/png;base64,{{ data.qr }}" alt="QR">
+          {% endif %}
+          <div class="logo-text">KREAR 3D</div>
+        </div>
       </td>
     </tr>
 

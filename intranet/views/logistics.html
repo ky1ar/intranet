@@ -322,6 +322,9 @@
 							<label class="white" style="flex:1;">
 								<textarea x-model="label_detail" rows="2" placeholder="Detalle (opcional)" style="resize:none;"></textarea>
 							</label>
+							<label class="white" style="flex:1;">
+								<input type="url" x-model="label_url" placeholder="URL del producto (para QR)" autocomplete="off">
+							</label>
 						</div>
 					</template>
 				</div>
@@ -858,6 +861,7 @@
 			label_results: [],
 			label_selected: null,
 			label_detail: '',
+			label_url: '',
 			label_loading: false,
 			label_search_timer: null,
 
@@ -1027,6 +1031,7 @@
 				this.label_results = [];
 				this.label_selected = null;
 				this.label_detail = '';
+				this.label_url = '';
 				this.label_loading = false;
 
 				Alpine.store('cache').showModal('machine_label');
@@ -1072,7 +1077,8 @@
 				try {
 					const payload = {
 						machine_id: this.label_selected.id,
-						detail: this.label_detail || ''
+						detail: this.label_detail || '',
+						product_url: this.label_url || ''
 					};
 
 					const res = await fetch(`${this.api}/logistic/machine-label/pdf`, {

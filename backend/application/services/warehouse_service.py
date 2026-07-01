@@ -287,8 +287,7 @@ class WarehouseService:
         for line in order.get("lines", []):
             barcode = line.get("barcode")
             raw_name = (line.get("product") or line.get("description") or "").strip()
-            if self._is_ignored_product(raw_name):
-                continue
+           
             try:
                 needed = int(round(float(line.get("quantity") or 0)))
             except (TypeError, ValueError):

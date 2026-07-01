@@ -131,6 +131,9 @@ img.invert {
 .hidden {
     display: none;
 }
+.gray-gradient {
+    background: linear-gradient(180deg, var(--background), var(--background), hsl(0deg 0% 100% / 0%))
+}
 .white-frost {
     background-color: var(--white);
     box-shadow: 0 0 1rem hsl(0deg 0% 0% / 5%);
@@ -1561,17 +1564,18 @@ img.invert {
         height: initial;
         left: 0;
         right: 0;
-        justify-content: flex-start;
-        top: 1rem;
-        padding: 0 1rem;
+        justify-content: space-between;
+        top: 0;
+        padding: 1rem;
         gap: 0.5rem;
         bottom: initial;
+        border-radius: 0;
     }
     #sidebar .hamburger {
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 0.625rem;
+        padding: 1rem;
         cursor: pointer;
         color: var(--secondary);
         z-index: 2;
@@ -1591,11 +1595,6 @@ img.invert {
         height: 1.5rem;
         width: auto;
     }
-    /* Avatar/perfil: empujado a la derecha de la barra */
-    #sidebar .config {
-        flex-direction: row;
-        margin: 0 0 0 auto;
-    }
 
     /* El UL se convierte en un drawer que entra desde la izquierda */
     #sidebar ul {
@@ -1606,12 +1605,9 @@ img.invert {
         width: 16rem;
         max-width: 82vw;
         min-width: initial;
-        flex-direction: column;
-        justify-content: flex-start;
         gap: 0.25rem;
-        margin: 0;
-        padding: 1.5rem 1rem;
-        border-radius: 0 1.5rem 1.5rem 0;
+        padding: 0.75rem 1rem;
+        border-radius: 0;
         background-color: var(--white);
         box-shadow: 0 4px 30px rgba(0, 0, 0, 0.18);
         overflow-y: auto;
@@ -1703,12 +1699,11 @@ img.invert {
         background-color: rgba(0, 0, 0, 0.35);
         z-index: 1001;
     }
-
     #sidebar .menu {
-        left: 1rem;
+        left: initial;
         right: 1rem;
         bottom: initial;
-        top: 4.5rem;
+        top: 5.5rem;
     }
     #content.sidebar {
         margin: 5.5rem 0 0 0;

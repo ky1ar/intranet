@@ -897,7 +897,7 @@ class LogisticService:
         return self.logistic_repository.search_label_machines(query)
 
 
-    def _build_machine_label_pdf_bytes(self, machine_id, category, product, detail):
+    def _build_machine_label_pdf_bytes(self, machine_id, category, product, detail, qr=None):
         html_out = render_template(
             "rotulo_machine_label.html",
             data={
@@ -905,6 +905,7 @@ class LogisticService:
                 "category": category,
                 "product": product,
                 "detail": detail,
+                "qr": qr,
             }
         )
         return HTML(
@@ -926,11 +927,16 @@ class LogisticService:
         detail = (data.get("detail") or "").strip()
         product = f"{machine['brand']} {machine['model']}".strip()
 
+        # QR opcional con la URL del producto (se coloca junto al logo KREAR 3D)
+        product_url = (data.get("product_url") or "").strip()
+        qr_b64 = self._build_qr_png_b64(product_url, box_size=10, border=1) if product_url else None
+
         pdf_bytes = self._build_machine_label_pdf_bytes(
             machine_id=machine["id"],
             category=(machine["category"] or "").upper(),
             product=product.upper(),
             detail=detail.upper(),
+            qr=qr_b64,
         )
 
         return send_file(
