@@ -145,20 +145,28 @@ class TrackingRepository:
             'arrived_at': 3,
             'delivered_at': 4
         }
-            
+
+        existing_status_ids = {
+            row.status_id
+            for row in g.db_session.query(TrackingOrderStatus.status_id)
+            .filter(TrackingOrderStatus.tracking_order_id == tracking_order_id)
+            .all()
+        }
+
         for key, timestamp in status_data.items():
             if not timestamp:
                 continue
 
             mapped_status = status_mapping.get(key)
-            if status_id and mapped_status <= status_id:
+            if mapped_status in existing_status_ids:
                 continue
 
             g.db_session.add(TrackingOrderStatus(
                 tracking_order_id=tracking_order_id,
-                status_id=status_mapping.get(key),
+                status_id=mapped_status,
                 register_at=timestamp
             ))
+            existing_status_ids.add(mapped_status)
 
         g.db_session.commit()
         return True, 200
