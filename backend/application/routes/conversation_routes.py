@@ -1,4 +1,5 @@
 from flask import Blueprint, request
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from application.controllers.conversation_controller import ConversationController
 
 conversation_bp = Blueprint("conversations", __name__, url_prefix="/conversations")
@@ -19,5 +20,8 @@ def get_messages(wa_id):
 
 
 @conversation_bp.route("/reply", methods=["POST"])
+@jwt_required()
 def send_reply():
-    return controller.send_reply(request.get_json())
+    data = request.get_json() or {}
+    data["user_id"] = int(get_jwt_identity())
+    return controller.send_reply(data)

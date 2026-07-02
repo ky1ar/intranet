@@ -1,7 +1,7 @@
 from application.handlers import handle_db_exceptions
 from application.db_models.waba_message_model import WabaMessage
 from application.models import Clients
-from application.utils import peru_time
+from application.utils import peru_time, format_name
 from sqlalchemy import func
 from flask import g
 
@@ -54,8 +54,22 @@ class WabaMessageRepository:
         if not last_msgs:
             return [], 200
 
-        # Most recent known contact_name per wa_id (from any inbound message)
         wa_ids = [m.wa_id for m in last_msgs]
+
+        # Mensajes entrantes sin leer por wa_id
+        unread_rows = (
+            g.db_session.query(WabaMessage.wa_id, func.count(WabaMessage.id))
+            .filter(
+                WabaMessage.wa_id.in_(wa_ids),
+                WabaMessage.direction == 'in',
+                WabaMessage.is_read.is_(False),
+            )
+            .group_by(WabaMessage.wa_id)
+            .all()
+        )
+        unread_map = {row[0]: row[1] for row in unread_rows}
+
+        # Most recent known contact_name per wa_id (from any inbound message)
         name_rows = (
             g.db_session.query(WabaMessage.wa_id, WabaMessage.contact_name)
             .filter(
@@ -108,6 +122,7 @@ class WabaMessageRepository:
                 "msg_type":      m.msg_type,
                 "content":       m.content,
                 "template_name": m.template_name,
+                "unread_count":  unread_map.get(m.wa_id, 0),
                 "created_at":    m.created_at.isoformat() if m.created_at else None,
             }
             for m in last_msgs
@@ -115,6 +130,19 @@ class WabaMessageRepository:
 
     @handle_db_exceptions
     def get_messages(self, wa_id, limit=200):
+        # Al abrir el chat, marcamos como leidos los entrantes de esta conversacion
+        updated = (
+            g.db_session.query(WabaMessage)
+            .filter(
+                WabaMessage.wa_id == wa_id,
+                WabaMessage.direction == 'in',
+                WabaMessage.is_read.is_(False),
+            )
+            .update({WabaMessage.is_read: True}, synchronize_session=False)
+        )
+        if updated:
+            g.db_session.commit()
+
         rows = (
             g.db_session.query(WabaMessage)
             .filter(WabaMessage.wa_id == wa_id)
@@ -126,5 +154,6 @@ class WabaMessageRepository:
         for row in rows:
             d = row.to_dict()
             d["created_at"] = row.created_at.isoformat() if row.created_at else None
+            d["agent_name"] = format_name(row.agent.name, simple=True) if row.agent else None
             result.append(d)
         return result, 200

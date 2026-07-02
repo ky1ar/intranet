@@ -8,7 +8,7 @@ load_dotenv(dotenv_path, override=True)
 
 class Config:
     VERSION = "1.0"
-    APP_VERSION = "1.8.1"
+    APP_VERSION = "1.8.2"
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI")
     SQLALCHEMY_BINDS = {
         key: uri

@@ -30,7 +30,11 @@
 							<div class="conv-item-body">
 								<div class="conv-item-top">
 									<span class="conv-item-name" x-text="displayName(conv)"></span>
-									<span class="conv-item-time" x-text="formatTime(conv.created_at)"></span>
+									<span
+										class="conv-item-time"
+										:class="conv.unread_count > 0 ? 'conv-item-time-unread' : ''"
+										x-text="formatTime(conv.created_at)"
+									></span>
 								</div>
 								<div class="conv-item-preview">
 									<span
@@ -38,7 +42,12 @@
 										:class="conv.direction === 'out' ? 'badge-out' : 'badge-in'"
 										x-text="conv.direction === 'out' ? '↑' : '↓'"
 									></span>
-									<span x-text="previewMsg(conv)"></span>
+									<span class="conv-preview-text" x-text="previewMsg(conv)"></span>
+									<span
+										x-show="conv.unread_count > 0"
+										class="conv-unread-badge"
+										x-text="conv.unread_count"
+									></span>
 								</div>
 							</div>
 						</div>
@@ -115,7 +124,12 @@
 										<template x-if="msg.template_name">
 											<div class="bubble-tmpl-badge" x-text="msg.template_name"></div>
 										</template>
-										<div class="bubble-time" x-text="formatMsgTime(msg.created_at)"></div>
+										<div class="bubble-time">
+											<template x-if="msg.direction === 'out' && msg.agent_name">
+												<span class="bubble-agent" x-text="msg.agent_name"></span>
+											</template>
+											<span x-text="formatMsgTime(msg.created_at)"></span>
+										</div>
 									</div>
 								</div>
 							</template>
@@ -346,6 +360,8 @@
 			this.selected  = conv;
 			this.messages  = [];
 			this.replyText = '';
+			// Al abrir, limpiamos el contador de no leidos (el backend los marca leidos)
+			conv.unread_count = 0;
 			await this.loadMessages(conv.wa_id);
 		},
 
@@ -371,6 +387,10 @@
 			const fresh = j.data || [];
 			this.conversations = fresh;
 			this.convHasMore   = fresh.length === count;
+			if (this.selected) {
+				const open = fresh.find(c => c.wa_id === this.selected.wa_id);
+				if (open) open.unread_count = 0;
+			}
 
 			// Refresh open thread silently
 			if (this.selected) {
@@ -390,9 +410,10 @@
 			const api  = Alpine.store('cache').api;
 			const text = this.replyText.trim();
 			try {
+				const token = localStorage.getItem('user_token');
 				const r = await fetch(`${api}/conversations/reply`, {
 					method:  'POST',
-					headers: { 'Content-Type': 'application/json' },
+					headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
 					body:    JSON.stringify({ wa_id: this.selected.wa_id, text }),
 				});
 				const j = await r.json();
@@ -669,6 +690,25 @@
 	.conv-item-top    { display: flex; justify-content: space-between; align-items: center; gap: 0.25rem; }
 	.conv-item-name   { font-weight: 600; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 	.conv-item-time   { font-size: 0.7rem; color: #aaa; white-space: nowrap; flex-shrink: 0; }
+	.conv-item-time-unread { color: var(--primary); font-weight: 700; }
+	.conv-preview-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.conv-unread-badge {
+		margin-left: auto;
+		flex-shrink: 0;
+		min-width: 1.15rem;
+		height: 1.15rem;
+		padding: 0 0.35rem;
+		border-radius: 999px;
+		background: var(--primary);
+		color: #fff;
+		font-size: 0.68rem;
+		font-weight: 700;
+		line-height: 1.15rem;
+		text-align: center;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+	}
 	.conv-item-preview {
 		font-size: 0.78rem;
 		color: #999;
@@ -791,10 +831,15 @@
 	.bubble-text em { font-style: italic; opacity: 0.8; }
 	.bubble-time {
 		font-size: 0.65rem;
-		opacity: 0.5;
+		color: rgba(0,0,0,0.45);
 		text-align: right;
 		padding: 0 0.25rem 0.25rem 0.25rem;
 		line-height: 0.85rem;
+	}
+	.bubble-agent {
+		color: var(--primary);
+		font-weight: 600;
+		margin-right: 0.35rem;
 	}
 	.bubble-tmpl-badge {
 		font-size: 0.6rem;

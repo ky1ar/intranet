@@ -23,4 +23,4 @@ class ConversationController:
     def send_reply(self, data):
         if validation := validate_request(data, {"wa_id", "text"}):
             return validation, 400
-        return self.service.send_reply(data["wa_id"], data["text"])
+        return self.service.send_reply(data["wa_id"], data["text"], data.get("user_id"))

@@ -58,7 +58,7 @@ class Whatsapp:
         return f"51{pe_9_digits}"
 
 
-    def post(self, payload):
+    def post(self, payload, agent_id=None):
         logging.info(payload)
         url = f"{self.whatsapp_url}"
         headers = {
@@ -68,7 +68,7 @@ class Whatsapp:
         response = requests.post(url, headers=headers, data=json.dumps(payload))
         response_data = response.json()
 
-        self._log_outbound(payload)
+        self._log_outbound(payload, agent_id)
 
         if response.status_code != 200:
             logging.info(response.text)
@@ -131,7 +131,7 @@ class Whatsapp:
             return None
 
 
-    def _log_outbound(self, payload):
+    def _log_outbound(self, payload, agent_id=None):
         try:
             to        = payload.get("to", "")
             msg_type  = payload.get("type", "")
@@ -166,11 +166,13 @@ class Whatsapp:
                 msg = WabaMessage(
                     wa_id          = to,
                     contact_name   = contact_name,
+                    agent_id       = agent_id,
                     direction      = 'out',
                     msg_type       = msg_type,
                     content        = content,
                     template_name  = tmpl_name,
                     media_url      = media_url,
+                    is_read        = True,
                     waba_timestamp = int(time.time()),
                     created_at     = peru_time().replace(tzinfo=None),
                 )
@@ -182,14 +184,14 @@ class Whatsapp:
 
 
     @handle_exceptions
-    def send_text(self, phone, text):
+    def send_text(self, phone, text, agent_id=None):
         payload = {
             "messaging_product": "whatsapp",
             "to": phone,
             "type": "text",
             "text": {"body": text},
         }
-        return self.post(payload)
+        return self.post(payload, agent_id)
     
 
     @handle_exceptions

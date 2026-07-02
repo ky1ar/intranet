@@ -17,8 +17,8 @@ class ConversationService:
         return self.repository.get_messages(wa_id)
 
     @handle_exceptions
-    def send_reply(self, wa_id, text):
-        result, status = self.whatsapp.send_text(wa_id, text.strip())
+    def send_reply(self, wa_id, text, user_id=None):
+        result, status = self.whatsapp.send_text(wa_id, text.strip(), user_id)
         if status != 200:
             return "Error sending message", 400
         return "Message sent", 200
