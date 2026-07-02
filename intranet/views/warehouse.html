@@ -936,7 +936,7 @@
 													:src="log.product_image ? `/static/images/uploads/machines/${log.product_image}` : '/static/icons/line/warehouse.svg'"
 													class="wh-product-img"
 												>
-												<span class="wh-product-name" x-text="log.product || 'Carga masiva'"></span>
+												<span class="wh-product-name" x-text="log.product || 'Carga masiva'" :title="log.product || 'Carga masiva'"></span>
 												<span class="wh-order-ref" x-show="log.order_ref" x-text="log.order_ref" style="font-size: 0.65rem; padding: 0.25rem 0.5rem; border-radius: 1rem; background: #ea713429; color: var(--primary); font-weight: 500;"></span>
 											</div>
 											

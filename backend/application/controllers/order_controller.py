@@ -31,3 +31,7 @@ class OrderController:
         if validation := validate_request(data, {"order_id", "status"}):
             return validation, 400
         return self.service.change_status(data)
+
+    @handle_logs_and_exceptions
+    def refresh_wc_status(self, data):
+        return self.service.refresh_wc_status(data.get("order_id"))

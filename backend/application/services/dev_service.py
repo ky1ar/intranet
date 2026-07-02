@@ -5,13 +5,12 @@ from application.repository.waba_message_repository import WabaMessageRepository
 from application.handlers import handle_exceptions
 from application.proxy.whatsapp import Whatsapp
 from application.services.push_service import PushSender
+from application.services.module_service import ModuleService
 from application.repository.user_repository import UserRepository
 from flask import g
 
 
 class DevService:
-    NOTIFY_USER_ID = 23
-
     def __init__(self):
         self.dev_repository = DevRepository()
         self.waba_reply_repository = WabaReplyRepository()
@@ -19,6 +18,7 @@ class DevService:
         self.user_repository = UserRepository()
         self.whatsapp = Whatsapp()
         self.push_service = PushSender()
+        self.module_service = ModuleService()
         self.default_campaign = 'shining_event'
 
 
@@ -68,6 +68,24 @@ class DevService:
         if msg_type == "sticker":
             return "(sticker)"
         return None
+
+    def _notify_new_message(self, wa_id, contact_name, msg_type, content):
+        """Push a quienes tengan el permiso 'notify' del módulo de conversaciones."""
+        try:
+            user_ids, _ = self.module_service.get_user_ids_with_permission("conversations", "notify")
+            if not user_ids:
+                return
+
+            display_name = contact_name or wa_id
+            push_body = content or f"({msg_type})"
+            self.push_service.send_to_users(
+                user_ids = user_ids,
+                title    = f"WA · {display_name}",
+                body     = push_body,
+                data     = {"wa_id": wa_id, "type": msg_type, "url": "/conversations"},
+            )
+        except Exception:
+            logging.exception(f"[WabaReply] Error al enviar push para wa_id={wa_id}")
 
     @handle_exceptions
     def process_webhook(self, data):
@@ -138,18 +156,8 @@ class DevService:
         except Exception as e:
             logging.exception(f"[WabaMessage] Error al guardar inbound: {e}")
 
-        # Push a usuario 23
-        try:
-            display_name = contact_name or wa_id
-            push_body = content or f"({msg_type})"
-            self.push_service.send_to_user(
-                user_id = self.NOTIFY_USER_ID,
-                title   = f"WA · {display_name}",
-                body    = push_body,
-                data    = {"wa_id": wa_id, "type": msg_type},
-            )
-        except Exception as e:
-            logging.exception(f"[WabaReply] Error al enviar push: {e}")
+        # Push a quienes tengan el permiso 'notify' del módulo de conversaciones
+        self._notify_new_message(wa_id, contact_name, msg_type, content)
 
         # Flujo de botones de campaña (igual que antes)
         if msg_type != "button":

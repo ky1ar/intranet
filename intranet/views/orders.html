@@ -103,8 +103,11 @@
 									</div>
 									<div class="info-row">
 										<img alt="" width="16" height="16" src="/static/icons/line/progress.svg">
-										<span class="lbl">Estado web</span>
-										<span class="val" x-text="detail?.wc_status || '—'"></span>
+										<span class="lbl">Estado Wordpress</span>
+										<span class="val" x-text="wcStatusLabel(detail?.wc_status)"></span>
+										<img class="wc-refresh hover-opacity" :class="refreshingWc ? 'spinning' : ''"
+											@click.stop="refreshWc()" width="15" height="15"
+											src="/static/icons/line/update.svg" title="Actualizar estado desde la web">
 									</div>
 								</div>
 							</div>
@@ -360,6 +363,7 @@
 	Alpine.data('orders_data', () => ({
 		detail:     null,
 		processing: false,
+		refreshingWc: false,
 		history_list: [],
 		current_page: 1,
 		total_pages:  null,
@@ -430,6 +434,44 @@
 			if (d && typeof d === 'object' && d.message) return d.message;
 			if (typeof d === 'string') return d;
 			return fallback || 'Ocurrió un error';
+		},
+		wcStatusLabel(s) {
+			if (!s) return '—';
+			const map = {
+				'pending': 'Pendiente de pago',
+				'on-hold': 'En espera',
+				'processing': 'Procesando (pago recibido)',
+				'completed': 'Completado',
+				'cancelled': 'Cancelado',
+				'refunded': 'Reembolsado',
+				'failed': 'Fallido',
+				'checkout-draft': 'Borrador',
+			};
+			return map[s] || s;
+		},
+		async refreshWc() {
+			if (this.refreshingWc || !this.detail) return;
+			this.refreshingWc = true;
+			const cache = Alpine.store('cache');
+			try {
+				const r = await fetch(`${cache.api}/order/${this.detail.id}/refresh-wc`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json', 'X-No-Toast': '1' },
+				});
+				const j = await r.json();
+				if (j.success) {
+					this.detail.wc_status = j.data.wc_status;
+					await cache.refresh('order_dashboard');
+					PineToast.flash('Estado Wordpress actualizado', 'success');
+				} else {
+					PineToast.flash(this.msgOf(j, 'No se pudo actualizar el estado Wordpress'), 'error');
+				}
+			} catch (e) {
+				console.error(e);
+				PineToast.flash('No se pudo actualizar el estado Wordpress', 'error');
+			} finally {
+				this.refreshingWc = false;
+			}
 		},
 
 		formatMoney(n, currency) {
@@ -626,6 +668,18 @@
 			font-size: 0.85rem;
 		}
 		#modal-order-detail .info-row:last-child { border-bottom: none; }
+			#modal-order-detail .wc-refresh {
+				cursor: pointer;
+				opacity: 0.55;
+				margin-left: 0.5rem;
+			}
+			#modal-order-detail .wc-refresh.spinning {
+				animation: wc-spin 0.8s linear infinite;
+			}
+			@keyframes wc-spin {
+				from { transform: rotate(0deg); }
+				to { transform: rotate(360deg); }
+			}
 		#modal-order-detail .info-row img { opacity: 0.4; }
 		#modal-order-detail .info-row .lbl {
 			opacity: 0.5;

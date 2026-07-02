@@ -11,3 +11,7 @@ class WordpressService:
     @handle_exceptions
     def order_complete(self, data):
         return self.order_service.ingest_wc_order(data)
+
+    @handle_exceptions
+    def order_status_changed(self, data):
+        return self.order_service.sync_wc_status(data)

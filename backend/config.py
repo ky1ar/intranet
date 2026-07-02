@@ -8,7 +8,7 @@ load_dotenv(dotenv_path, override=True)
 
 class Config:
     VERSION = "1.0"
-    APP_VERSION = "1.8.2"
+    APP_VERSION = "1.8.3"
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI")
     SQLALCHEMY_BINDS = {
         key: uri
@@ -20,8 +20,8 @@ class Config:
         "pool_size": 15,
         "max_overflow": 10,
         "pool_timeout": 30,
-        "pool_pre_ping": True,    # valida la conexión al sacarla del pool (reemplaza el SELECT 1 manual)
-        "pool_recycle": 280,      # recicla conexiones antes del wait_timeout de MySQL para evitar "server has gone away"
+        "pool_pre_ping": True,
+        "pool_recycle": 280,
     }
     MAIL_SERVER = os.getenv("MAIL_SERVER")
     MAIL_PORT = int(os.getenv("MAIL_PORT"))
@@ -36,7 +36,7 @@ class Config:
     API_PORT = int(os.getenv("API_PORT"))
 
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-    JWT_ACCESS_TOKEN_EXPIRES = False #int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES"))
+    JWT_ACCESS_TOKEN_EXPIRES = False
     UPLOAD_FOLDER = os.path.abspath("/shared_uploads/")
     UPLOAD_PDF_FOLDER = os.path.abspath("/shared_uploads/pdf/")
     UPLOAD_PICKING_FOLDER = os.path.abspath("/shared_uploads/picking/")
@@ -61,16 +61,16 @@ class Config:
 
 
 class Courses:
-    # Plataforma de cursos (cursos.krear3d.com). La conexión se inyecta vía
-    # COURSES_DATABASE_URI en SQLALCHEMY_BINDS['courses'] (ver clase Config).
     PLATFORM_URL = os.getenv("COURSES_PLATFORM_URL")
-    # URL de la biblioteca de modelos STL (K3D FAB). Es distinta a la de cursos;
-    # si no se define, cae a PLATFORM_URL para no romper los correos.
     FAB_URL = os.getenv("COURSES_FAB_URL")
     DEFAULT_COUNTRY_ISO = os.getenv("COURSES_DEFAULT_COUNTRY_ISO", "PE")
-    # UUIDs de los cursos en la plataforma (distintos en dev y prod).
     FDM_COURSE_UUID = os.getenv("COURSES_FDM_UUID")
     LCD_COURSE_UUID = os.getenv("COURSES_LCD_UUID")
+
+
+class Wordpress:
+    BASE_URL = os.getenv("WP_BASE_URL")
+    WEBHOOK_SECRET = os.getenv("WP_WEBHOOK_SECRET")
 
 
 class Redis:

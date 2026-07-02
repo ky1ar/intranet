@@ -268,3 +268,18 @@ class OrderRepository:
             order.processed_at = peru_time()
         g.db_session.commit()
         return {"id": order.id, "status": order.status}, 200
+
+    @handle_db_exceptions
+    def set_wc_status(self, wc_order_id, wc_status):
+        """Actualiza únicamente el estado de WooCommerce ('Estado web'). No toca el
+        estado del tablero kanban, que se mueve manualmente."""
+        order = (
+            g.db_session.query(Order)
+            .filter(Order.wc_order_id == wc_order_id)
+            .first()
+        )
+        if not order:
+            return "Pedido no encontrado", 404
+        order.wc_status = wc_status
+        g.db_session.commit()
+        return {"id": order.id, "wc_status": order.wc_status}, 200

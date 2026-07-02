@@ -33,3 +33,8 @@ def change_status():
 @order_bp.route("/<int:order_id>", methods=["GET"])
 def get_detail(order_id):
     return controller.get_order_detail({"order_id": order_id})
+
+
+@order_bp.route("/<int:order_id>/refresh-wc", methods=["POST"])
+def refresh_wc(order_id):
+    return controller.refresh_wc_status({"order_id": order_id})

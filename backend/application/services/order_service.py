@@ -5,6 +5,7 @@ from application.utils import format_datetime, format_name
 from application.repository.order_repository import OrderRepository, DASHBOARD_STATUSES
 from application.services.push_service import PushSender
 from application.services.module_service import ModuleService
+from application.integrations.wordpress_client import WordpressClient
 
 
 class OrderService:
@@ -12,6 +13,7 @@ class OrderService:
         self.repository = OrderRepository()
         self.push_service = PushSender()
         self.module_service = ModuleService()
+        self.wp_client = WordpressClient()
 
     # ── Ingesta del webhook de WordPress/WooCommerce ──
     @handle_exceptions
@@ -114,6 +116,40 @@ class OrderService:
             return result, sc
         socketio.emit("order_update", {})
         return {"message": "Estado actualizado", "status": result["status"]}, 200
+
+    # ── Sincronización del estado de WooCommerce ("Estado web") ──
+    @handle_exceptions
+    def sync_wc_status(self, data):
+        """Push desde WordPress: actualiza solo el 'Estado web'. El tablero kanban
+        no se altera (se mueve manualmente)."""
+        if not data:
+            return "Payload vacío", 400
+        wc_order_id = data.get("order_id")
+        wc_status = (data.get("status") or "").strip()
+        if not wc_order_id or not wc_status:
+            return "Faltan order_id o status", 400
+        result, sc = self.repository.set_wc_status(wc_order_id, wc_status)
+        if sc != 200:
+            return result, sc
+        socketio.emit("order_update", {})
+        return {"message": "Estado web actualizado", "wc_status": wc_status}, 200
+
+    @handle_exceptions
+    def refresh_wc_status(self, order_id):
+        """Pull bajo demanda desde la intranet: consulta el estado real en WordPress
+        para el pedido indicado y actualiza el 'Estado web'."""
+        order, sc = self.repository.get_order_by_id(order_id)
+        if sc != 200:
+            return order, sc
+        wc_order_id = order.wc_order_id
+        status, sc = self.wp_client.get_order_status(wc_order_id)
+        if sc != 200:
+            return status, sc
+        result, sc = self.repository.set_wc_status(wc_order_id, status)
+        if sc != 200:
+            return result, sc
+        socketio.emit("order_update", {})
+        return {"message": "Estado web actualizado", "wc_status": status}, 200
 
     # ── Serialización ──
     def _format_order(self, order, with_items=False):
